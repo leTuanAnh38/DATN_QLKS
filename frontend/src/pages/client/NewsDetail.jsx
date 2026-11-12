@@ -55,7 +55,7 @@ export default function NewsDetail() {
             if (res.success && res.post) {
                 setPost(res.post);
                 // Cập nhật thẻ Title của trình duyệt cho SEO
-                document.title = `${res.post.title} | Khách Sạn & Nghỉ Dưỡng`;
+                document.title = `${res.post.title} | ${settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'} ${settings?.stars || 3}★`;
             } else {
                 setError(res.message || 'Không tìm thấy bài viết hoặc bài viết đã bị gỡ bỏ.');
             }

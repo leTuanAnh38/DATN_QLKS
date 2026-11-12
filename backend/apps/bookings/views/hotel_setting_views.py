@@ -1,3 +1,4 @@
+import re
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -5,6 +6,14 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from ..models import HotelSetting
 from ...users.models import log_action
 from ..serializers import HotelSettingSerializer
+
+
+def normalize_hotel_slogan(slogan, stars):
+    if not slogan:
+        return f"{stars}-Star Luxury Resort & Hotel"
+    s = re.sub(r'\b\d+[- ]*(?:Star|star)\b', f"{stars}-Star", slogan)
+    s = re.sub(r'\b\d+[- ]*(?:Sao|sao)\b', f"{stars} Sao", s)
+    return s
 
 
 class HotelSettingView(APIView):
@@ -20,6 +29,14 @@ class HotelSettingView(APIView):
 
     def get(self, request):
         config = HotelSetting.get_solo()
+        if config.stars and config.hotel_slogan:
+            normalized = normalize_hotel_slogan(config.hotel_slogan, config.stars)
+            if normalized != config.hotel_slogan:
+                config.hotel_slogan = normalized
+                try:
+                    config.save(update_fields=['hotel_slogan'])
+                except Exception:
+                    pass
         serializer = HotelSettingSerializer(config)
         return Response({
             "success": True,
@@ -34,7 +51,12 @@ class HotelSettingView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
 
         config = HotelSetting.get_solo()
-        serializer = HotelSettingSerializer(config, data=request.data, partial=False)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        stars = data.get('stars', config.stars)
+        if 'hotel_slogan' in data and stars:
+            data['hotel_slogan'] = normalize_hotel_slogan(data['hotel_slogan'], stars)
+
+        serializer = HotelSettingSerializer(config, data=data, partial=False)
         if serializer.is_valid():
             cfg = serializer.save()
             log_action(
@@ -63,7 +85,12 @@ class HotelSettingView(APIView):
             }, status=status.HTTP_403_FORBIDDEN)
 
         config = HotelSetting.get_solo()
-        serializer = HotelSettingSerializer(config, data=request.data, partial=True)
+        data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        stars = data.get('stars', config.stars)
+        if 'hotel_slogan' in data and stars:
+            data['hotel_slogan'] = normalize_hotel_slogan(data['hotel_slogan'], stars)
+
+        serializer = HotelSettingSerializer(config, data=data, partial=True)
         if serializer.is_valid():
             cfg = serializer.save()
             log_action(

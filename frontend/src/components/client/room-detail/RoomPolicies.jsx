@@ -61,10 +61,11 @@ export const getPolicyBadge = (line) => {
 export default function RoomPolicies({
     room,
     settings = {},
-    starCount = 5
+    starCount = 3
 }) {
     if (!room) return null;
 
+    const finalStarCount = starCount || settings?.stars || 3;
     const rawPolicies = parseCancellationPolicy(room.cancellation_policy);
 
     // Bóc tách các mốc chính sách hủy & hoàn tiền
@@ -111,7 +112,7 @@ export default function RoomPolicies({
                 </div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 self-start sm:self-auto shrink-0 shadow-2xs">
                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>Tiêu chuẩn {starCount} sao quốc tế</span>
+                    <span>Tiêu chuẩn {finalStarCount} sao quốc tế</span>
                 </span>
             </div>
 

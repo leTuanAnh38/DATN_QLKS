@@ -443,8 +443,9 @@ def local_smart_fallback(message, user, hotel_context, tracked_bookings=None, la
         )
 
     if lang == 'en':
+        star_num = h_info.get('stars', 3) or 3
         return (
-            f"Dear Valued Guest! Welcome to the 5-Star AI Concierge of **{h_info['name']}**.\n\n"
+            f"Dear Valued Guest! Welcome to the {star_num}-Star AI Concierge of **{h_info['name']}**.\n\n"
             f"I am at your service 24/7 to assist with:\n"
             f"• **Date-Specific Room Availability & Rates (with USD conversion)**\n"
             f"• **24/7 In-Room Dining, Ocean Spa & Private Airport Limousine**\n"

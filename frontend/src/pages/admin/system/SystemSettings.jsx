@@ -49,8 +49,8 @@ export default function SystemSettings() {
     // ==========================================
     const [hotelData, setHotelData] = useState({
         hotel_name: 'Khách Sạn TA Đà Nẵng',
-        hotel_slogan: '5-Star Luxury Resort & Hotel',
-        stars: 5,
+        hotel_slogan: '3-Star Luxury Resort & Hotel',
+        stars: 3,
         address: '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng',
         hotline: '1900 8899',
         phone_number: '+84 (0) 236 388 9900',
@@ -239,7 +239,13 @@ export default function SystemSettings() {
 
         setIsSavingHotel(true);
         try {
-            const response = await api.put('/hotel-settings/', hotelData);
+            let finalSlogan = hotelData.hotel_slogan;
+            if (finalSlogan) {
+                finalSlogan = finalSlogan.replace(/\b\d+[- ]*(?:Star|star)\b/gi, `${hotelData.stars || 3}-Star`)
+                                         .replace(/\b\d+[- ]*(?:Sao|sao)\b/gi, `${hotelData.stars || 3} Sao`);
+            }
+            const payload = { ...hotelData, hotel_slogan: finalSlogan };
+            const response = await api.put('/hotel-settings/', payload);
             const resData = response.data?.data || response.data;
             if (resData) {
                 setHotelData(resData);

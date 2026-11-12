@@ -1,7 +1,7 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Home from './pages/client/Home';
-import { hotelSettingStore } from './store/hotelSettingStore';
+import { hotelSettingStore, useHotelSettings, applyDocumentTitle } from './store/hotelSettingStore';
 
 // Lazy-load các trang để tách bundle: chỉ tải code của trang khi người dùng truy cập
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -54,10 +54,18 @@ function CustomerChatbot() {
 }
 
 function App() {
+  const { settings } = useHotelSettings();
+
   useEffect(() => {
     // Tự động tải thông tin thương hiệu, logo & đồng bộ favicon toàn trang
     hotelSettingStore.fetchSettings();
   }, []);
+
+  useEffect(() => {
+    if (settings) {
+      applyDocumentTitle(settings);
+    }
+  }, [settings]);
 
   return (
     <BrowserRouter>

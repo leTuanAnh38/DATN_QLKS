@@ -20,8 +20,12 @@ def render_booking_email_html(booking, custom_message=None):
     from ..models import HotelSetting
     try:
         hotel_settings = HotelSetting.get_settings()
+        hotel_stars = getattr(hotel_settings, 'stars', 3) or 3
         hotel_name = hotel_settings.hotel_name or 'Khách Sạn TA Đà Nẵng'
-        hotel_slogan = hotel_settings.hotel_slogan or '5-Star Luxury Resort & Hotel'
+        hotel_slogan = hotel_settings.hotel_slogan or f'{hotel_stars}-Star Luxury Resort & Hotel'
+        if hotel_slogan and hotel_stars:
+            import re
+            hotel_slogan = re.sub(r'\b\d+[- ]*(?:Star|star)\b', f"{hotel_stars}-Star", hotel_slogan)
         hotel_address = hotel_settings.address or '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
         hotel_hotline = hotel_settings.hotline or '1900 8899'
         hotel_phone = hotel_settings.phone_number or '0236 388 9999'
@@ -29,8 +33,9 @@ def render_booking_email_html(booking, custom_message=None):
         check_in_time = hotel_settings.check_in_time or '14:00'
         check_out_time = hotel_settings.check_out_time or '12:00'
     except Exception:
+        hotel_stars = 3
         hotel_name = 'Khách Sạn TA Đà Nẵng'
-        hotel_slogan = '5-Star Luxury Resort & Hotel'
+        hotel_slogan = '3-Star Luxury Resort & Hotel'
         hotel_address = '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Quận Ngũ Hành Sơn, TP. Đà Nẵng'
         hotel_hotline = '1900 8899'
         hotel_phone = '0236 388 9999'

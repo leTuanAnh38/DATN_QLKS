@@ -112,7 +112,7 @@ export default function HotelInfoTab({
                                         value={hotelData.hotel_slogan || ''}
                                         onChange={(e) => setHotelData({ ...hotelData, hotel_slogan: e.target.value })}
                                         disabled={!isEditingHotel}
-                                        placeholder="VD: 5-Star Luxury Resort & Hotel"
+                                        placeholder={`VD: ${hotelData.stars || 3}-Star Luxury Resort & Hotel`}
                                         className={`w-full px-4 py-2.5 rounded-xl border text-xs font-medium transition shadow-xs ${
                                             !isEditingHotel
                                                 ? 'bg-slate-100/70 text-slate-700 border-slate-200 cursor-not-allowed'
@@ -128,8 +128,18 @@ export default function HotelInfoTab({
                                         <span>Tiêu Chuẩn Xếp Hạng</span>
                                     </label>
                                     <select
-                                        value={hotelData.stars || 5}
-                                        onChange={(e) => setHotelData({ ...hotelData, stars: Number(e.target.value) })}
+                                        value={hotelData.stars || 3}
+                                        onChange={(e) => {
+                                            const newStars = Number(e.target.value);
+                                            let updatedSlogan = hotelData.hotel_slogan || '';
+                                            if (updatedSlogan) {
+                                                updatedSlogan = updatedSlogan.replace(/\b\d+[- ]*(?:Star|star)\b/gi, `${newStars}-Star`)
+                                                                             .replace(/\b\d+[- ]*(?:Sao|sao)\b/gi, `${newStars} Sao`);
+                                            } else {
+                                                updatedSlogan = `${newStars}-Star Luxury Resort & Hotel`;
+                                            }
+                                            setHotelData({ ...hotelData, stars: newStars, hotel_slogan: updatedSlogan });
+                                        }}
                                         disabled={!isEditingHotel}
                                         className={`w-full px-4 py-2.5 rounded-xl border text-xs font-semibold transition shadow-xs ${
                                             !isEditingHotel

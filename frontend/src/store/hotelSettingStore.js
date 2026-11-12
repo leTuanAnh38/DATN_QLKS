@@ -26,6 +26,25 @@ export function applyFavicon(faviconUrl) {
     link.href = faviconUrl;
 }
 
+export function getFormattedHotelSlogan(settings) {
+    const stars = Number(settings?.stars) || 3;
+    let slogan = settings?.hotel_slogan;
+    if (slogan && slogan.trim()) {
+        slogan = slogan.replace(/\b\d+[- ]*(?:Star|star)\b/gi, `${stars}-Star`)
+                       .replace(/\b\d+[- ]*(?:Sao|sao)\b/gi, `${stars} Sao`);
+    } else {
+        slogan = `${stars}-Star Luxury Resort & Hotel`;
+    }
+    return slogan;
+}
+
+export function applyDocumentTitle(settings) {
+    if (typeof document === 'undefined') return;
+    const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
+    const slogan = getFormattedHotelSlogan(settings);
+    document.title = `${hotelName} | ${slogan}`;
+}
+
 let listeners = [];
 let currentSettings = {
     hotel_name: 'Khách Sạn TA Đà Nẵng',
@@ -95,6 +114,7 @@ export const hotelSettingStore = {
         if (currentSettings.favicon_url) {
             applyFavicon(currentSettings.favicon_url);
         }
+        applyDocumentTitle(currentSettings);
         emitChange();
     },
     async fetchSettings(force = false) {
@@ -108,16 +128,20 @@ export const hotelSettingStore = {
                 this.updateSettings(data);
             } else {
                 currentSettings.isLoaded = true;
+                applyDocumentTitle(currentSettings);
             }
         } catch (e) {
             console.error('Lỗi khi tải cấu hình khách sạn:', e);
             currentSettings.isLoaded = true;
+            applyDocumentTitle(currentSettings);
         } finally {
             isFetching = false;
         }
         return currentSettings;
     }
 };
+
+applyDocumentTitle(currentSettings);
 
 export function useHotelSettings() {
     const settings = useSyncExternalStore(
