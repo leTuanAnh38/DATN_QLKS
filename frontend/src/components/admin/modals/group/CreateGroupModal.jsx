@@ -365,7 +365,10 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                 gender = 'Khác';
             }
 
-            const dob = parts[3] || '';
+            // Hỗ trợ ngày sinh dạng dd/mm/yyyy (hoặc dd-mm-yyyy), chuyển về yyyy-mm-dd cho input date
+            const dobRaw = (parts[3] || '').trim();
+            const dobMatch = dobRaw.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+            const dob = dobMatch ? `${dobMatch[3]}-${dobMatch[2].padStart(2, '0')}-${dobMatch[1].padStart(2, '0')}` : dobRaw;
 
             parsedGuests.push({
                 full_name: fullName,
@@ -2215,7 +2218,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                 Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
                             </code>
                             <p className="text-[10px] text-indigo-700 italic">
-                                Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 1995-10-20"
+                                Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 20/10/1995"
                             </p>
                         </div>
 
@@ -2228,7 +2231,7 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
                                     setFastPasteText(e.target.value);
                                     if (fastPasteError) setFastPasteError('');
                                 }}
-                                placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	1995-10-20&#10;Lê Văn Hoàng	048092003456	Nam	1988-02-12&#10;Phạm Minh Tuấn	048095007890	Nam	1992-06-18"
+                                placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988&#10;Phạm Minh Tuấn	048095007890	Nam	18/06/1992"
                                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                             />
                             {fastPasteError && (

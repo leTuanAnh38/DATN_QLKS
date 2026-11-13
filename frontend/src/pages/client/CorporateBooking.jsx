@@ -41,7 +41,10 @@ import {
     CheckCircle2,
     Bell,
     X,
-    CalendarDays
+    CalendarDays,
+    FileSpreadsheet,
+    Info,
+    AlertTriangle
 } from 'lucide-react';
 
 const formatCurrency = (val) => {
@@ -327,6 +330,12 @@ export default function CorporateBooking() {
     const [roomingList, setRoomingList] = useState([]);
     const [isRoomingListOpen, setIsRoomingListOpen] = useState(true);
 
+    // State cho tính năng [Dán nhanh danh sách đoàn từ Excel / Clipboard]
+    const [showFastPasteModal, setShowFastPasteModal] = useState(false);
+    const [fastPasteTarget, setFastPasteTarget] = useState('all'); // 'all' hoặc room_key
+    const [fastPasteText, setFastPasteText] = useState('');
+    const [fastPasteError, setFastPasteError] = useState('');
+
     // Đồng bộ roomingList khi selectedRooms hoặc categories thay đổi
     useEffect(() => {
         setRoomingList((prevList) => {
@@ -453,6 +462,139 @@ export default function CorporateBooking() {
                 };
             })
         );
+    };
+
+    // Dán nhanh danh sách khách từ Excel / Clipboard
+    const parsePastedGuestLines = (rawText) => {
+        const raw = (rawText || '').trim();
+        if (!raw) return { error: 'Vui lòng dán danh sách khách từ Excel hoặc văn bản.' };
+
+        const lines = raw.split(/\r?\n/).filter((line) => line.trim().length > 0);
+        if (lines.length === 0) return { error: 'Không tìm thấy dòng dữ liệu nào hợp lệ.' };
+
+        const parsedGuests = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            let parts = line.includes('\t')
+                ? line.split('\t')
+                : line.includes(',')
+                    ? line.split(',')
+                    : line.includes('|')
+                        ? line.split('|')
+                        : line.split(/\s{2,}/);
+
+            parts = parts.map((p) => p.trim());
+            const fullName = parts[0] || '';
+            if (!fullName) continue;
+
+            const idCard = parts[1] || '';
+            const genderRaw = (parts[2] || '').toLowerCase();
+            let gender = 'Nam';
+            if (genderRaw.includes('nữ') || genderRaw.includes('female') || genderRaw === 'f') {
+                gender = 'Nữ';
+            } else if (genderRaw.includes('khác') || genderRaw.includes('other')) {
+                gender = 'Khác';
+            }
+
+            // Hỗ trợ ngày sinh dạng dd/mm/yyyy (hoặc dd-mm-yyyy), chuyển về yyyy-mm-dd cho input date
+            const dobRaw = (parts[3] || '').trim();
+            const dobMatch = dobRaw.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+            const dob = dobMatch ? `${dobMatch[3]}-${dobMatch[2].padStart(2, '0')}-${dobMatch[1].padStart(2, '0')}` : dobRaw;
+
+            parsedGuests.push({
+                full_name: fullName,
+                id_type: 'CCCD',
+                id_number: idCard,
+                gender: gender,
+                date_of_birth: dob,
+                nationality: 'Việt Nam',
+                is_primary: false
+            });
+        }
+
+        if (parsedGuests.length === 0) {
+            return { error: 'Không tìm thấy dữ liệu tên khách nào hợp lệ.' };
+        }
+
+        return { guests: parsedGuests };
+    };
+
+    const handleApplyFastPaste = () => {
+        setFastPasteError('');
+        const { error: parseErr, guests: parsedGuests } = parsePastedGuestLines(fastPasteText);
+        if (parseErr) {
+            setFastPasteError(parseErr);
+            return;
+        }
+
+        if (fastPasteTarget === 'all') {
+            let guestPointer = 0;
+            const totalToAssign = parsedGuests.length;
+            const totalCap = roomingList.reduce((acc, r) => acc + Number(r.capacity || 2), 0);
+
+            setRoomingList((prev) =>
+                prev.map((room) => {
+                    const roomCap = Number(room.capacity || 2);
+                    const assignedForThisRoom = [];
+
+                    for (let k = 0; k < roomCap && guestPointer < totalToAssign; k++) {
+                        const g = parsedGuests[guestPointer];
+                        assignedForThisRoom.push({
+                            ...g,
+                            id: `guest_${room.room_key}_${Date.now()}_${k}`,
+                            is_primary: k === 0
+                        });
+                        guestPointer++;
+                    }
+
+                    if (assignedForThisRoom.length > 0) {
+                        return {
+                            ...room,
+                            guests: assignedForThisRoom
+                        };
+                    }
+                    return room;
+                })
+            );
+
+            if (parsedGuests.length > totalCap) {
+                showToastNotice('warning', `Đã nạp ${totalCap} khách vào toàn bộ phòng. Còn dư ${parsedGuests.length - totalCap} khách chưa thể xếp do vượt sức chứa.`);
+            } else {
+                showToastNotice('success', `Đã tự động phân bổ thành công ${parsedGuests.length} khách vào các phòng theo đúng sức chứa!`);
+            }
+
+            setShowFastPasteModal(false);
+            setFastPasteText('');
+        } else {
+            const targetRoom = roomingList.find((r) => r.room_key === fastPasteTarget);
+            if (!targetRoom) return;
+
+            const roomCap = Number(targetRoom.capacity || 2);
+            const toAdd = parsedGuests.slice(0, roomCap).map((g, idx) => ({
+                ...g,
+                id: `guest_${fastPasteTarget}_${Date.now()}_${idx}`,
+                is_primary: idx === 0
+            }));
+
+            setRoomingList((prev) =>
+                prev.map((r) => {
+                    if (r.room_key !== fastPasteTarget) return r;
+                    return {
+                        ...r,
+                        guests: toAdd
+                    };
+                })
+            );
+
+            if (parsedGuests.length > roomCap) {
+                showToastNotice('warning', `Phòng #${targetRoom.global_index} chỉ chứa được ${roomCap} khách. Đã lấy ${roomCap} người đầu tiên.`);
+            } else {
+                showToastNotice('success', `Đã nạp thành công ${toAdd.length} khách vào Phòng #${targetRoom.global_index}!`);
+            }
+
+            setShowFastPasteModal(false);
+            setFastPasteText('');
+        }
     };
 
     // Quản lý dịch vụ chọn kèm cho từng phòng
@@ -1242,14 +1384,31 @@ export default function CorporateBooking() {
                                     </p>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
-                                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                >
-                                    <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở danh sách'}</span>
-                                    {isRoomingListOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFastPasteTarget('all');
+                                            setFastPasteText('');
+                                            setFastPasteError('');
+                                            setShowFastPasteModal(true);
+                                        }}
+                                        title="Dán nhanh danh sách đoàn từ Excel hoặc văn bản và tự động xếp vào tất cả các phòng"
+                                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                    >
+                                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                        <span>Dán nhanh từ Excel</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRoomingListOpen(!isRoomingListOpen)}
+                                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                    >
+                                        <span>{isRoomingListOpen ? 'Thu gọn' : 'Mở danh sách'}</span>
+                                        {isRoomingListOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                                    </button>
+                                </div>
                             </div>
 
                             {isRoomingListOpen && (
@@ -1295,6 +1454,26 @@ export default function CorporateBooking() {
                                                         <button
                                                             type="button"
                                                             disabled={isFull}
+                                                            onClick={() => {
+                                                                setFastPasteTarget(room.room_key);
+                                                                setFastPasteText('');
+                                                                setFastPasteError('');
+                                                                setShowFastPasteModal(true);
+                                                            }}
+                                                            title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Dán nhanh khách vào phòng này từ Excel'}
+                                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 ${
+                                                                isFull
+                                                                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                                                    : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
+                                                            }`}
+                                                        >
+                                                            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                                                            <span>Dán Excel</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            disabled={isFull}
                                                             onClick={() => handleAddGuestToAllocatedRoom(room.room_key)}
                                                             title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Thêm người ở cùng'}
                                                             className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 ${
@@ -1304,7 +1483,7 @@ export default function CorporateBooking() {
                                                             }`}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
-                                                            <span>Thêm người ở cùng</span>
+                                                            <span>Thêm người</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1909,6 +2088,106 @@ export default function CorporateBooking() {
                     bankConfig={bankConfig}
                     formatCurrency={formatCurrency}
                 />
+
+                {/* MODAL DÁN NHANH DANH SÁCH KHÁCH ĐOÀN TỪ EXCEL */}
+                {showFastPasteModal && (
+                    <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                            {/* HEADER */}
+                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 shadow-2xs">
+                                        <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                            {fastPasteTarget === 'all'
+                                                ? 'Dán nhanh danh sách khách TOÀN ĐOÀN từ Excel'
+                                                : (() => {
+                                                    const targetRoom = roomingList.find(r => r.room_key === fastPasteTarget);
+                                                    return `Dán nhanh khách vào Phòng #${targetRoom?.global_index || ''} (${targetRoom?.category_name || ''}) từ Excel`;
+                                                })()}
+                                        </h3>
+                                        <p className="text-[11px] text-slate-500">
+                                            {fastPasteTarget === 'all'
+                                                ? 'Hệ thống tự động phân bổ lần lượt từng khách vào các phòng theo đúng sức chứa tối đa.'
+                                                : (() => {
+                                                    const targetRoom = roomingList.find(r => r.room_key === fastPasteTarget);
+                                                    return `Nạp danh sách khách cho riêng phòng #${targetRoom?.global_index || ''} (${targetRoom?.category_name || ''}). Sức chứa: ${targetRoom?.capacity || 2} khách.`;
+                                                })()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowFastPasteModal(false);
+                                        setFastPasteError('');
+                                    }}
+                                    className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {/* HƯỚNG DẪN ĐỊNH DẠNG EXCEL */}
+                            <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-emerald-950 text-xs space-y-1.5">
+                                <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                                    <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Định dạng hỗ trợ mỗi dòng (Copy từ bảng tính Excel, Google Sheets hoặc Zalo):</span>
+                                </div>
+                                <code className="block bg-white p-2 rounded-xl font-mono text-[11px] text-slate-800 border border-emerald-200/80 shadow-2xs">
+                                    Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
+                                </code>
+                                <p className="text-[10px] text-emerald-800 italic">
+                                    Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 20/10/1995"
+                                </p>
+                            </div>
+
+                            {/* TEXTAREA NHẬP LIỆU */}
+                            <div>
+                                <textarea
+                                    rows={8}
+                                    value={fastPasteText}
+                                    onChange={(e) => {
+                                        setFastPasteText(e.target.value);
+                                        if (fastPasteError) setFastPasteError('');
+                                    }}
+                                    placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988&#10;Phạm Minh Tuấn	048095007890	Nam	18/06/1992"
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition placeholder:text-slate-400"
+                                />
+                                {fastPasteError && (
+                                    <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
+                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                        <span>{fastPasteError}</span>
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* NÚT THAO TÁC */}
+                            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowFastPasteModal(false);
+                                        setFastPasteError('');
+                                    }}
+                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleApplyFastPaste}
+                                    className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95 flex items-center gap-1.5"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>Phân tích & Nạp vào danh sách</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
 
             {/* Toast Thông báo sang trọng */}

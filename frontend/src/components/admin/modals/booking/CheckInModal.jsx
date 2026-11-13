@@ -332,7 +332,10 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                 gender = 'Khác';
             }
 
-            const dob = parts[3] || '';
+            // Hỗ trợ ngày sinh dạng dd/mm/yyyy (hoặc dd-mm-yyyy), chuyển về yyyy-mm-dd cho input date
+            const dobRaw = (parts[3] || '').trim();
+            const dobMatch = dobRaw.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+            const dob = dobMatch ? `${dobMatch[3]}-${dobMatch[2].padStart(2, '0')}-${dobMatch[1].padStart(2, '0')}` : dobRaw;
 
             parsedGuests.push({
                 id: `fast_guest_${Date.now()}_${i}`,
@@ -2179,7 +2182,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                     setFastPasteText(e.target.value);
                                     if (fastPasteError) setFastPasteError('');
                                 }}
-                                placeholder="Dán nội dung từ Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	1995-10-20&#10;Lê Văn Hoàng	048092003456	Nam	1988-02-12"
+                                placeholder="Dán nội dung từ Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988"
                                 className="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                             />
                             {fastPasteError && (
