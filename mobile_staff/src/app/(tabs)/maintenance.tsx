@@ -272,7 +272,9 @@ export default function MaintenanceScreen() {
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì</Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -304,10 +306,10 @@ export default function MaintenanceScreen() {
       {/* 2. Dải Bộ Lọc & KPI Cố Định 100% */}
       <View style={styles.fixedFilterBar}>
         {[
+          { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
           { key: 'fixing', label: 'Cần sửa', count: stats.fixing, color: isDark ? '#F87171' : '#DC2626' },
           { key: 'completed', label: 'Đã xong', count: stats.completed, color: isDark ? '#34D399' : '#059669' },
           { key: 'cancelled', label: 'Đã hủy', count: stats.cancelled, color: isDark ? '#94A3B8' : '#64748B' },
-          { key: 'all', label: 'Tất cả', count: stats.total, color: isDark ? '#F8FAFC' : '#0F172A' },
         ].map((item) => {
           const isSelected = filterStatus === item.key;
           return (
@@ -706,10 +708,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#F59E0B',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
   greetingTitle: {
     fontSize: 22,

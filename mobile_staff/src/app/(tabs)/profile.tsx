@@ -229,7 +229,9 @@ export default function ProfileScreen() {
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={styles.greetingTitle}>Hồ Sơ Cá Nhân</Text>
         </View>
         <View style={styles.headerRightActions}>

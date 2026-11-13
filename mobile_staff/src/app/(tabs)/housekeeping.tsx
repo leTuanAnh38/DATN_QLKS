@@ -435,11 +435,11 @@ export default function HousekeepingScreen() {
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
-            {user?.role === 'service_staff'
-              ? 'Sơ Đồ Phòng'
-              : (user?.first_name ? `Chào ${user.first_name}` : 'Sơ Đồ Buồng Phòng')}
+            Sơ Đồ Phòng
           </Text>
         </View>
         <View style={styles.headerRightActions}>

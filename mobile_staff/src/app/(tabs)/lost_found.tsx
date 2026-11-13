@@ -203,7 +203,9 @@ export default function LostFoundScreen() {
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc</Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -499,10 +501,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#F59E0B',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
   greetingTitle: {
     fontSize: 22,

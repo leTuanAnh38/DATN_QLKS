@@ -14,10 +14,10 @@ export const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#F59E0B',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
   greetingTitle: {
     fontSize: 22,

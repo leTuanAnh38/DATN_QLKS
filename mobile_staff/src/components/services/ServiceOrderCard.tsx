@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ServiceOrder, ServiceLockReason, SlaStatus, StatusBadgeConfig } from './types';
-import { getServiceItemImage, formatOrderTime, getServiceActionConfig, detectAllergyWarning } from './serviceHelpers';
+import { getServiceItemImage, formatOrderTime, getServiceActionConfig, detectAllergyWarning, getServiceCategoryType } from './serviceHelpers';
 import { styles } from './styles';
 
 export interface ServiceOrderCardProps {
@@ -224,8 +224,8 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
               </View>
             ) : null}
 
-            {/* Huy hiệu đơn cùng mâm (nhiều món cùng phòng) */}
-            {sameRoomCount && sameRoomCount >= 2 ? (
+            {/* Huy hiệu đơn cùng mâm (chỉ hiển thị cho món ăn/đồ uống F&B) */}
+            {getServiceCategoryType(item) === 'fnb' && sameRoomCount && sameRoomCount >= 2 ? (
               <View
                 style={[
                   styles.paidBadge,

@@ -21,7 +21,7 @@ export default function TabLayout() {
   // 3. Kỹ thuật (technician): Bảo trì sự cố + Sơ đồ phòng + Cá nhân
   // 4. Quản lý / Lễ tân / Admin: Xem toàn diện các phân hệ điều hành
   const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'technician', 'service_staff'].includes(role);
-  const canAccessLostFound = isManagerOrAdmin || role === 'housekeeper';
+  const canAccessLostFound = isManagerOrAdmin || ['housekeeper', 'service_staff'].includes(role);
   const canAccessTransport = isManagerOrAdmin || role === 'service_staff';
   const canAccessServices = isManagerOrAdmin || ['service_staff', 'housekeeper'].includes(role);
   const canAccessMaintenance = isManagerOrAdmin || role === 'technician';

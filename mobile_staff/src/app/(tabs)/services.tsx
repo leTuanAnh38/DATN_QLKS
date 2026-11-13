@@ -52,8 +52,10 @@ export default function ServicesScreen() {
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Bộ lọc danh mục nghiệp vụ cho Đơn phục vụ
-  const [orderCategoryFilter, setOrderCategoryFilter] = useState<'all' | 'fnb' | 'spa' | 'laundry' | 'amenities'>('all');
+  // Bộ lọc danh mục nghiệp vụ cho Đơn phục vụ (Nếu là Buồng phòng, ưu tiên mặc định nhóm Tiện ích phòng)
+  const [orderCategoryFilter, setOrderCategoryFilter] = useState<'all' | 'fnb' | 'spa' | 'laundry' | 'amenities'>(() => {
+    return user?.role === 'housekeeper' ? 'amenities' : 'all';
+  });
 
   // Bộ lọc theo Tầng (Floor Filter) giúp nhân viên đẩy xe giao món cuốn chiếu theo tầng
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
@@ -339,18 +341,23 @@ export default function ServicesScreen() {
     });
   }, [orders, activeTab, orderCategoryFilter, selectedFloor, searchQuery, scopeFilter, checkIsMyTask]);
 
-  // Đếm số lượng món đang xử lý theo từng phòng để gắn nhãn "Cùng mâm"
+  // Đếm số lượng món Ẩm thực (F&B) đang xử lý theo từng phòng để gắn nhãn "Cùng mâm"
   const orderCountByRoom = useMemo(() => {
     const counts: Record<string, number> = {};
     orders.forEach((o) => {
-      if (['pending', 'in_progress', 'delivering'].includes(o.status) && o.room_number) {
+      if (
+        ['pending', 'in_progress', 'delivering'].includes(o.status) &&
+        o.room_number &&
+        getServiceCategoryType(o) === 'fnb'
+      ) {
         counts[o.room_number] = (counts[o.room_number] || 0) + 1;
       }
     });
     return counts;
   }, [orders]);
 
-  // Gom các món đang hoạt động (Đang nấu hoặc Đang giao) theo từng phòng để phục vụ cùng mâm
+  // Gom các món Ẩm thực & Đồ uống (F&B) đang hoạt động (Đang nấu hoặc Đang giao) theo từng phòng để phục vụ cùng mâm trên xe đẩy
+  // Không gom chung Spa / Massage, Giặt ủi hay Tiện ích vì có quy trình & thời gian phục vụ hoàn toàn khác nhau
   const roomBatches = useMemo(() => {
     const map: Record<
       string,
@@ -364,7 +371,12 @@ export default function ServicesScreen() {
     > = {};
 
     filteredOrders.forEach((o) => {
-      if (['in_progress', 'delivering'].includes(o.status) && o.room_number) {
+      // Chỉ gom các dịch vụ thuộc nhóm F&B (Món ăn / Nước uống)
+      if (
+        getServiceCategoryType(o) === 'fnb' &&
+        ['in_progress', 'delivering'].includes(o.status) &&
+        o.room_number
+      ) {
         const rn = o.room_number;
         if (!map[rn]) {
           map[rn] = {
@@ -384,7 +396,7 @@ export default function ServicesScreen() {
       }
     });
 
-    // Chỉ hiển thị phòng nào có từ 2 món trở lên đang cùng mâm
+    // Chỉ hiển thị phòng nào có từ 2 món F&B trở lên đang cùng mâm
     return Object.values(map).filter(
       (b) => b.inProgressItems.length + b.deliveringItems.length >= 2
     );
@@ -1098,7 +1110,11 @@ export default function ServicesScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           }}
           onCallGuest={handleCallGuest}
-          sameRoomCount={orderCountByRoom[item.room_number] || 1}
+          sameRoomCount={
+            getServiceCategoryType(item) === 'fnb' && item.room_number
+              ? (orderCountByRoom[item.room_number] || 1)
+              : 0
+          }
         />
       );
     },
@@ -1112,7 +1128,9 @@ export default function ServicesScreen() {
       {/* 1. Header Khách Sạn (Tinh gọn trên 1 dòng) */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 6 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
             Yêu cầu dịch vụ
           </Text>

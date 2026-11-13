@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { TransportListSkeleton } from '../../components/SkeletonLoader';
+import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
   TransportCard,
   ServiceRequestItem,
@@ -69,14 +70,16 @@ export default function TransportScreen() {
     fetchTransportRequests();
   };
 
-  // Thống kê nhanh KPI
+  // Thống kê nhanh KPI (Lọc bỏ các cuốc xe đã bị hủy)
   const stats = useMemo(() => {
-    const total = requests.length;
-    const pending = requests.filter((r) => r.status === 'pending').length;
-    const active = requests.filter((r) => r.status === 'in_progress' || r.status === 'delivering').length;
-    const completed = requests.filter((r) => r.status === 'completed').length;
-    const myTasks = requests.filter((r) => r.assigned_staff === user?.id).length;
-    return { total, pending, active, completed, myTasks };
+    const valid = requests.filter((r) => r.status !== 'cancelled');
+    const total = valid.length;
+    const pending = valid.filter((r) => r.status === 'pending').length;
+    const active = valid.filter((r) => r.status === 'in_progress' || r.status === 'delivering').length;
+    const completed = valid.filter((r) => r.status === 'completed').length;
+    const cancelled = requests.filter((r) => r.status === 'cancelled').length;
+    const myTasks = valid.filter((r) => r.assigned_staff === user?.id).length;
+    return { total, pending, active, completed, cancelled, myTasks };
   }, [requests, user?.id]);
 
   // Bộ lọc dữ liệu
@@ -88,9 +91,14 @@ export default function TransportScreen() {
       } else if (filterType === 'active') {
         matchFilter = item.status === 'in_progress' || item.status === 'delivering';
       } else if (filterType === 'my') {
-        matchFilter = item.assigned_staff === user?.id;
+        matchFilter = item.assigned_staff === user?.id && item.status !== 'cancelled';
       } else if (filterType === 'completed') {
         matchFilter = item.status === 'completed';
+      } else if (filterType === 'cancelled') {
+        matchFilter = item.status === 'cancelled';
+      } else {
+        // Tab "Tất cả" mặc định chỉ hiển thị các cuốc xe còn hiệu lực
+        matchFilter = item.status !== 'cancelled';
       }
 
       const q = searchQuery.trim().toLowerCase();
@@ -154,7 +162,7 @@ export default function TransportScreen() {
     );
   };
 
-  // Tài xế tiếp nhận cuốc xe (Khóa chống double tap)
+  // Tài xế tiếp nhận cuốc xe (Khóa chống double tap + Hỗ trợ Ngoại tuyến)
   const handleClaim = async (item: ServiceRequestItem) => {
     if (actionLoadingId) return;
     setActionLoadingId(item.id);
@@ -167,31 +175,69 @@ export default function TransportScreen() {
         fetchTransportRequests();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể tiếp nhận cuốc xe.';
-      Alert.alert('Lỗi', msg);
+      if (!err.response) {
+        await enqueueOfflineAction({
+          description: `Cuốc xe #${item.booking_code} (${item.guest_name}): Tiếp nhận cuốc xe`,
+          url: `/services/requests/${item.id}/claim/`,
+          method: 'POST',
+        });
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === item.id
+              ? { ...r, assigned_staff: user?.id || null, assigned_staff_name: user?.first_name || 'Bạn' }
+              : r
+          )
+        );
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác tiếp nhận cuốc xe #${item.booking_code} đã được lưu vào hàng đợi và sẽ tự động đồng bộ khi có mạng lại.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể tiếp nhận cuốc xe.';
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  // Cập nhật trạng thái chuyến đi (Khóa chống double tap)
+  // Cập nhật trạng thái chuyến đi (Khóa chống double tap + Hỗ trợ Ngoại tuyến)
   const handleUpdateStatus = async (item: ServiceRequestItem, newStatus: string, statusLabel: string) => {
     if (actionLoadingId) return;
     setActionLoadingId(item.id);
+    const payload = {
+      status: newStatus,
+      assigned_staff: item.assigned_staff || user?.id,
+    };
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const res = await apiClient.patch(`/services/requests/${item.id}/`, {
-        status: newStatus,
-        assigned_staff: item.assigned_staff || user?.id,
-      });
+      const res = await apiClient.patch(`/services/requests/${item.id}/`, payload);
       if (res.data.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert('Đã cập nhật', `Cuốc xe đã chuyển sang "${statusLabel}"!`);
         fetchTransportRequests();
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
-      Alert.alert('Lỗi', msg);
+      if (!err.response) {
+        await enqueueOfflineAction({
+          description: `Cuốc xe #${item.booking_code} (${item.guest_name}): Chuyển sang "${statusLabel}"`,
+          url: `/services/requests/${item.id}/`,
+          method: 'PATCH',
+          data: payload,
+        });
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === item.id ? { ...r, status: newStatus, status_display: statusLabel } : r
+          )
+        );
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Trạng thái "${statusLabel}" của cuốc xe #${item.booking_code} đã được lưu vào hàng đợi và sẽ tự động đồng bộ khi có mạng lại.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setActionLoadingId(null);
     }
@@ -250,7 +296,9 @@ export default function TransportScreen() {
       {/* 1. Header Khách Sạn & Thông Tin Đội Xe */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
-          <Text style={styles.brandSubtitle}>{hotelName.toUpperCase()} • {hotelStars} SAO</Text>
+          <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
+            {hotelName.toUpperCase()} • {hotelStars} SAO
+          </Text>
           <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
             Đội Xe & Vận Chuyển
           </Text>
@@ -405,10 +453,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#F59E0B',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
   greetingTitle: {
     fontSize: 22,

@@ -16,10 +16,10 @@ export const createProfileStyles = (colors: ThemeColors, isDark: boolean) =>
       paddingBottom: 10,
     },
     brandSubtitle: {
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: '800',
       color: colors.gold,
-      letterSpacing: 1.5,
+      letterSpacing: 0.5,
     },
     greetingTitle: {
       fontSize: 22,

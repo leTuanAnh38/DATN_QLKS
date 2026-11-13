@@ -81,7 +81,7 @@ export const RoomBatchDeliveryCard: React.FC<RoomBatchDeliveryCardProps> = ({
             <Text style={[styles.itemName, { color: isDark ? '#F1F5F9' : '#0F172A' }]} numberOfLines={1}>
               {it.service_name} <Text style={{ fontWeight: '800' }}>x{it.quantity}</Text>
             </Text>
-            <Text style={styles.inProgressLabel}>Đang nấu</Text>
+            <Text style={styles.inProgressLabel}>Đang chuẩn bị</Text>
           </View>
         ))}
       </View>

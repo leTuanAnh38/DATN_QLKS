@@ -252,6 +252,23 @@ export const getSlaStatus = (item: ServiceOrder): SlaStatus | null => {
           borderColor: '#EF4444',
         };
       }
+      if (item.status === 'delivering') {
+        const updatedD = item.updated_at ? new Date(item.updated_at) : null;
+        const deliveringMinutes =
+          updatedD && !isNaN(updatedD.getTime())
+            ? Math.max(0, Math.floor((Date.now() - updatedD.getTime()) / 60000))
+            : diffMinutes;
+        if (deliveringMinutes >= 20) {
+          return {
+            isOverdue: true,
+            label: `Giao trễ >${deliveringMinutes}p`,
+            badgeBg: 'rgba(192, 132, 252, 0.18)',
+            badgeTextColor: '#C084FC',
+            badgeBorderColor: 'rgba(192, 132, 252, 0.45)',
+            borderColor: '#A855F7',
+          };
+        }
+      }
       return null;
     }
   }
