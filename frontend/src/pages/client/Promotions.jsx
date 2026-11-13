@@ -525,18 +525,6 @@ export default function PromotionsPage() {
                                         </div>
                                     )}
                                 </div>
-                            ) : livePromotions.length > 0 ? (
-                                <div className="mt-8 inline-flex items-center gap-3 bg-white/95 backdrop-blur-md border border-amber-200/90 rounded-2xl px-5 py-3 shadow-lg shadow-slate-200/50">
-                                    <Sparkles className="w-5 h-5 text-amber-600 shrink-0" />
-                                    <div className="text-left">
-                                        <div className="text-xs font-bold text-slate-900">
-                                            Đang kích hoạt {livePromotions.length} mã ưu đãi độc quyền
-                                        </div>
-                                        <div className="text-[11px] text-slate-500">
-                                            Sao chép mã bên dưới và dán tại bước thanh toán để nhận chiết khấu trực tiếp
-                                        </div>
-                                    </div>
-                                </div>
                             ) : null}
 
                             {/* Search Bar */}
@@ -587,33 +575,30 @@ export default function PromotionsPage() {
                             <button
                                 type="button"
                                 onClick={() => setActivePromoTab('all')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'all'
+                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'all'
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
+                                    }`}
                             >
                                 Tất cả ({livePromotions.length})
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActivePromoTab('percentage')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'percentage'
+                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'percentage'
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
+                                    }`}
                             >
                                 Giảm %
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActivePromoTab('fixed')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${
-                                    activePromoTab === 'fixed'
+                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'fixed'
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
+                                    }`}
                             >
                                 Giảm tiền mặt
                             </button>
@@ -725,11 +710,10 @@ export default function PromotionsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyCode(promo.code)}
-                                                    className={`p-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
-                                                        isCopied
+                                                    className={`p-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${isCopied
                                                             ? 'bg-emerald-600 text-white shadow-xs'
                                                             : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-200'
-                                                    }`}
+                                                        }`}
                                                     title="Sao chép mã voucher"
                                                 >
                                                     {isCopied ? (
@@ -842,29 +826,7 @@ export default function PromotionsPage() {
                         </div>
 
                         {/* Banner kết nối voucher & đặt phòng */}
-                        <div className="mt-12 p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-                            <div className="relative z-10 max-w-2xl text-center md:text-left">
-                                <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider inline-block mb-3 backdrop-blur-xs">
-                                    ĐẶC QUYỀN ĐẶT PHÒNG TRỰC TIẾP
-                                </span>
-                                <h3 className="font-serif text-2xl sm:text-3xl font-bold leading-snug">
-                                    Sẵn Sàng Cho Kỳ Nghỉ Đáng Nhớ Của Bạn?
-                                </h3>
-                                <p className="text-xs sm:text-sm text-white/90 mt-2 leading-relaxed">
-                                    Sao chép bất kỳ mã voucher nào ở trên và áp dụng ngay tại bước thanh toán để nhận chiết khấu tiền phòng trực tiếp, đồng thời tích lũy điểm thưởng thăng hạng hội viên TA Club.
-                                </p>
-                            </div>
-                            <div className="relative z-10 shrink-0">
-                                <Link
-                                    to="/rooms"
-                                    className="px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 font-extrabold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group cursor-pointer"
-                                >
-                                    <span>Xem Phòng & Áp Dụng Mã Ngay</span>
-                                    <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
-                                </Link>
-                            </div>
-                        </div>
+                        
                     </div>
                 </section>
 
