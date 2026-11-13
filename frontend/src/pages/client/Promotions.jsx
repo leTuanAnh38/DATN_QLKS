@@ -34,6 +34,7 @@ import { promotionService } from '../../services/promotionService';
 import { roomService } from '../../services/roomService';
 import { hotelService } from '../../services/hotelService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // ============================================================================
 // HÀM TIỆN ÍCH & LOGIC KHUYẾN MÃI / GÓI NGHỈ DƯỠNG
@@ -41,6 +42,39 @@ import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore
 
 // Thời gian tối đa để hiển thị đồng hồ đếm ngược (chỉ đếm khi voucher sắp hết hạn trong 30 ngày)
 const COUNTDOWN_MAX_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Trích xuất URL hình ảnh hợp lệ từ object hạng phòng (tránh lỗi [object Object] khi images là array các đối tượng)
+const extractCategoryImageUrl = (category, fallback) => {
+    if (!category) return fallback;
+
+    // 1. Kiểm tra feature_image dạng chuỗi
+    if (typeof category.feature_image === 'string' && category.feature_image.trim()) {
+        return resolveMediaUrl(category.feature_image, fallback);
+    }
+
+    // 2. Kiểm tra mảng images (chứa [{ id, image, image_url, is_feature }])
+    if (Array.isArray(category.images) && category.images.length > 0) {
+        const featureObj = category.images.find((img) => img && img.is_feature);
+        const targetObj = featureObj || category.images[0];
+        const raw =
+            (typeof targetObj === 'string' && targetObj) ||
+            targetObj?.image_url ||
+            targetObj?.image;
+        if (typeof raw === 'string' && raw.trim()) {
+            return resolveMediaUrl(raw, fallback);
+        }
+    }
+
+    // 3. Kiểm tra image_url hoặc image dạng chuỗi trực tiếp
+    if (typeof category.image_url === 'string' && category.image_url.trim()) {
+        return resolveMediaUrl(category.image_url, fallback);
+    }
+    if (typeof category.image === 'string' && category.image.trim()) {
+        return resolveMediaUrl(category.image, fallback);
+    }
+
+    return fallback;
+};
 
 // Bỏ dấu tiếng Việt để so khớp tên hạng phòng / dịch vụ linh hoạt
 const stripDiacritics = (str) =>
@@ -483,6 +517,8 @@ export default function PromotionsPage() {
             }
 
             const bundleTotal = bundle.reduce((sum, b) => sum + b.price * b.quantity, 0);
+            const fallbackImage = tpl.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+            const cardImage = extractCategoryImageUrl(category, fallbackImage);
 
             return {
                 ...tpl,
@@ -494,7 +530,8 @@ export default function PromotionsPage() {
                 nightsNeeded,
                 hasDiscount: Boolean(promo) && discountTotal > 0,
                 bundleTotal,
-                cardImage: category?.image_url || category?.images?.[0] || tpl.image
+                cardImage,
+                fallbackImage
             };
         }).filter(Boolean);
     }, [categories, serviceCatalog, dbPromotions, nowTs]);
@@ -652,8 +689,13 @@ export default function PromotionsPage() {
                     {/* Background Dynamic Banner with refined light overlay */}
                     <div className="absolute inset-0 z-0">
                         <img
-                            src={settings?.banner_promotions || DEFAULT_BANNERS.banner_promotions}
+                            src={resolveMediaUrl(settings?.banner_promotions, DEFAULT_BANNERS.banner_promotions)}
                             alt="Khuyến Mãi Banner"
+                            onError={(e) => {
+                                if (e.currentTarget.src !== DEFAULT_BANNERS.banner_promotions) {
+                                    e.currentTarget.src = DEFAULT_BANNERS.banner_promotions;
+                                }
+                            }}
                             className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
@@ -994,10 +1036,15 @@ export default function PromotionsPage() {
                                 >
                                     <div>
                                         {/* Cover Image & Badges */}
-                                        <div className="relative h-60 w-full overflow-hidden">
+                                        <div className="relative h-60 w-full overflow-hidden bg-slate-100">
                                             <img
                                                 src={pkg.cardImage}
                                                 alt={pkg.title}
+                                                onError={(e) => {
+                                                    if (e.currentTarget.src !== pkg.fallbackImage) {
+                                                        e.currentTarget.src = pkg.fallbackImage;
+                                                    }
+                                                }}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
