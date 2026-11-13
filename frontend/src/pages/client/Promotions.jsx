@@ -26,64 +26,22 @@ import {
     Gem,
     X,
     Sparkles,
-    Building2
+    Waves,
+    BedDouble,
+    UtensilsCrossed
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { promotionService } from '../../services/promotionService';
-import { roomService } from '../../services/roomService';
-import { hotelService } from '../../services/hotelService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // ============================================================================
-// HÀM TIỆN ÍCH & LOGIC KHUYẾN MÃI / GÓI NGHỈ DƯỠNG
+// HẰNG SỐ & HÀM TIỆN ÍCH
 // ============================================================================
 
 // Thời gian tối đa để hiển thị đồng hồ đếm ngược (chỉ đếm khi voucher sắp hết hạn trong 30 ngày)
 const COUNTDOWN_MAX_MS = 30 * 24 * 60 * 60 * 1000;
-
-// Trích xuất URL hình ảnh hợp lệ từ object hạng phòng (tránh lỗi [object Object] khi images là array các đối tượng)
-const extractCategoryImageUrl = (category, fallback) => {
-    if (!category) return fallback;
-
-    // 1. Kiểm tra feature_image dạng chuỗi
-    if (typeof category.feature_image === 'string' && category.feature_image.trim()) {
-        return resolveMediaUrl(category.feature_image, fallback);
-    }
-
-    // 2. Kiểm tra mảng images (chứa [{ id, image, image_url, is_feature }])
-    if (Array.isArray(category.images) && category.images.length > 0) {
-        const featureObj = category.images.find((img) => img && img.is_feature);
-        const targetObj = featureObj || category.images[0];
-        const raw =
-            (typeof targetObj === 'string' && targetObj) ||
-            targetObj?.image_url ||
-            targetObj?.image;
-        if (typeof raw === 'string' && raw.trim()) {
-            return resolveMediaUrl(raw, fallback);
-        }
-    }
-
-    // 3. Kiểm tra image_url hoặc image dạng chuỗi trực tiếp
-    if (typeof category.image_url === 'string' && category.image_url.trim()) {
-        return resolveMediaUrl(category.image_url, fallback);
-    }
-    if (typeof category.image === 'string' && category.image.trim()) {
-        return resolveMediaUrl(category.image, fallback);
-    }
-
-    return fallback;
-};
-
-// Bỏ dấu tiếng Việt để so khớp tên hạng phòng / dịch vụ linh hoạt
-const stripDiacritics = (str) =>
-    String(str || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .toLowerCase();
 
 // Voucher còn hiệu lực: đang kích hoạt, trong thời hạn, còn lượt dùng
 const isPromoLive = (promo, nowTs) => {
@@ -95,29 +53,7 @@ const isPromoLive = (promo, nowTs) => {
     return true;
 };
 
-// Tính tiền giảm chuẩn logic ValidatePromoCodeView từ backend
-const calcPromoDiscount = (promo, orderValue) => {
-    if (!promo) return 0;
-    if (promo.discount_type === 'percentage') {
-        let discount = (orderValue * Number(promo.discount_value || 0)) / 100;
-        if (promo.max_discount_amount) {
-            discount = Math.min(discount, Number(promo.max_discount_amount));
-        }
-        return Math.round(discount);
-    }
-    return Math.min(orderValue, Number(promo.discount_value || 0));
-};
-
-const formatVnd = (value) => `${Math.round(Number(value) || 0).toLocaleString('vi-VN')}đ`;
-
-const toDateInput = (date) => {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${month}-${day}`;
-};
-
-// Dữ liệu dự phòng khi API chưa sẵn sàng hoặc rỗng
+// Dữ liệu voucher dự phòng khi API chưa sẵn sàng hoặc rỗng
 const FALLBACK_PROMOTIONS = [
     {
         id: 1,
@@ -177,96 +113,58 @@ const FALLBACK_PROMOTIONS = [
     }
 ];
 
-const FALLBACK_CATEGORIES = [
+// BỘ SƯU TẬP 3 TRẢI NGHIỆM ĐỘC BẢN CỦA KHÁCH SẠN (SHOWCASE HÌNH ẢNH NGHỆ THUẬT)
+const EXPERIENCES = [
     {
-        id: 4,
-        name: 'Grand Suite Oceanfront',
-        base_price: 3800000,
-        promo_price: 3420000,
-        max_occupancy: 2,
-        image_url: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80'
-    },
-    {
-        id: 3,
-        name: 'Premier Ocean View King',
-        base_price: 3200000,
-        promo_price: 2880000,
-        max_occupancy: 2,
-        image_url: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80'
-    },
-    {
-        id: 1,
-        name: 'Deluxe King City View',
-        base_price: 1800000,
-        promo_price: 1620000,
-        max_occupancy: 2,
-        image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80'
-    }
-];
-
-const FALLBACK_SERVICES = [
-    { id: 1, name: 'Đưa Đón Sân Bay Bằng Xe Maybach / Limousine', price: 2000000, is_active: true },
-    { id: 2, name: 'Set Trà Chiều Hoàng Gia Royal High Tea', price: 350000, is_active: true },
-    { id: 3, name: 'Massage Toàn Thân Đá Nóng Núi Lửa (60 Phút)', price: 650000, is_active: true },
-    { id: 4, name: 'Vang Đỏ Bordeaux Grand Cru (Ly)', price: 240000, is_active: true },
-    { id: 5, name: 'Bò Wagyu Úc Nướng Than Hoa Sốt Tiêu Rừng', price: 740000, is_active: true },
-    { id: 6, name: 'Súp Tôm Hùm Nha Trang Saffron', price: 380000, is_active: true },
-    { id: 7, name: 'Cocktail Đà Nẵng Sunset Signature', price: 190000, is_active: true },
-    { id: 8, name: 'Set Thêm Gối Lông Vũ & Khăn Tắm Cao Cấp', price: 0, is_active: true }
-];
-
-// MẪU NỘI DUNG 3 GÓI NGHỈ DƯỠNG TRỌN GÓI
-// Cấu hình ghép động với Hạng phòng, Dịch vụ và Voucher thật từ hệ thống
-const PACKAGE_TEMPLATES = [
-    {
-        id: 'pkg-royal',
-        badge: 'Suite Hướng Biển & Tiện Ích',
-        title: 'Kỳ Nghỉ Hoàng Gia Đà Nẵng - Royal Oceanfront',
+        id: 'exp-pool',
+        icon: Waves,
+        tag: 'SKY POOL & BAR',
+        badge: 'Hồ Bơi Vô Cực Tầng Thượng',
+        title: 'Hoàng Hôn Rực Rỡ Bên Hồ Bơi Vô Cực',
         description:
-            'Trải nghiệm đỉnh cao tại phòng hướng biển Mỹ Khê, dịch vụ xe Limousine đưa đón sân bay và Set Trà Chiều Hoàng Gia ngắm hoàng hôn.',
-        image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-        tier: 'premium',
-        categoryKeywords: ['royal', 'presidential', 'penthouse', 'grand premier', 'suite'],
-        promoCodes: ['SUMMER2026', 'VIP10', 'WELCOME10'],
-        extraPerk: 'Hỗ trợ nhận phòng sớm & ưu tiên chọn tầng cao hướng biển',
-        services: [
-            { anyOf: ['dua don', 'limousine', 'maybach'], quantity: 1 },
-            { anyOf: ['tra chieu', 'high tea'], quantity: 1 },
-            { anyOf: ['massage toan than', 'massage', 'tri lieu co vai gay', 'spa'], quantity: 1 }
-        ]
+            'Thả mình trong làn nước trong vắt tại tầng thượng với tầm nhìn 180 độ ôm trọn bãi biển Mỹ Khê. Thưởng thức ly cocktail hoàng hôn mát lạnh và tận hưởng không khí biển trong lành.',
+        image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
+        highlights: [
+            'Tầm nhìn hướng biển Mỹ Khê và bán đảo Sơn Trà tuyệt mỹ',
+            'Phục vụ Cocktail & Mocktail nhiệt đới tại quầy Sky Bar',
+            'Miễn phí khăn tắm cao cấp & ghế tắm nắng thư giãn'
+        ],
+        actionLabel: 'Xem Các Hạng Phòng Suite',
+        actionLink: '/rooms'
     },
     {
-        id: 'pkg-honeymoon',
-        badge: 'Kỷ Niệm & Trăng Mật',
-        title: 'Trăng Mật Lãng Mạn - Oceanfront Honeymoon',
+        id: 'exp-suite',
+        icon: BedDouble,
+        tag: 'OCEANFRONT SUITES',
+        badge: 'Phòng Nghỉ Chuẩn Quốc Tế',
+        title: 'Thức Giấc Đón Bình Minh Giữa Đại Dương',
         description:
-            'Không gian hướng biển ấm cúng cùng ly vang đỏ Bordeaux hảo hạng và bữa tối Bò Wagyu Úc nướng than hoa sốt tiêu rừng dành cho cặp đôi.',
-        image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80',
-        tier: 'comfort',
-        categoryKeywords: ['oceanfront', 'seafront', 'ocean', 'king', 'suite'],
-        promoCodes: ['WELCOME10', 'VIP10', 'SUMMER2026'],
-        extraPerk: 'Trang trí bồn tắm hoa tươi lãng mạn & bánh kem kỷ niệm nghệ thuật',
-        services: [
-            { anyOf: ['bordeaux', 'vang do', 'ruou vang'], quantity: 1 },
-            { anyOf: ['wagyu', 'bo'], quantity: 1 }
-        ]
+            'Hệ thống phòng nghỉ và Penthouse thiết kế kính panorama từ sàn đến trần đón trọn ánh bình minh trên biển. Không gian tinh tế với ban công riêng và bồn tắm sục thư giãn.',
+        image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80',
+        highlights: [
+            'Ban công riêng rộng thoáng hướng thẳng biển Mỹ Khê',
+            'Bồn tắm sục Jacuzzi đôi ngắm sóng biển thư thái',
+            'Đệm lông vũ cao cấp chuẩn công thái học cho giấc ngủ sâu'
+        ],
+        actionLabel: 'Khám Phá Danh Sách Phòng',
+        actionLink: '/rooms'
     },
     {
-        id: 'pkg-gourmet',
-        badge: 'Ẩm Thực & Tri Ân',
-        title: 'Kỳ Nghỉ Ẩm Thực Biển - Luxury Gourmet',
+        id: 'exp-dining',
+        icon: UtensilsCrossed,
+        tag: 'GOURMET & WELLNESS',
+        badge: 'Ẩm Thực & Thư Giãn',
+        title: 'Mỹ Vị Ẩm Thực Biển & Liệu Trình Spa Tinh Hoa',
         description:
-            'Tận hưởng kỳ nghỉ biển tiện nghi sang trọng kết hợp đại tiệc Súp tôm hùm Nha Trang Saffron, Cocktail ngắm hoàng hôn và bộ gối lông vũ theo yêu cầu.',
-        image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-        tier: 'standard',
-        categoryKeywords: ['deluxe', 'superior', 'standard'],
-        promoCodes: ['TADANANG', 'WELCOME10', 'VIP10'],
-        extraPerk: 'Miễn phí dịch vụ giặt hấp lấy ngay 01 lượt & trà thảo mộc đón tiếp',
-        services: [
-            { anyOf: ['sup tom hum', 'tom hum'], quantity: 1 },
-            { anyOf: ['sunset signature', 'cocktail'], quantity: 2 },
-            { anyOf: ['goi long vu', 'goi'], quantity: 1 }
-        ]
+            'Thưởng thức đại tiệc hải sản tươi sống Nha Trang, Bò Wagyu Úc nướng than hoa thượng hạng kết hợp liệu trình spa đá nóng núi lửa giúp giải tỏa căng thẳng toàn diện.',
+        image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+        highlights: [
+            'Thực đơn hải sản cao cấp chế biến theo phong vị Á - Âu',
+            'Set Trà Chiều Hoàng Gia Royal High Tea ngắm biển',
+            'Liệu trình massage đá nóng & trị liệu cổ vai gáy thảo dược'
+        ],
+        actionLabel: 'Xem Menu Dịch Vụ Khách Sạn',
+        actionLink: '/services'
     }
 ];
 
@@ -278,8 +176,6 @@ export default function PromotionsPage() {
 
     // 1. STATE DỮ LIỆU TỪ HỆ THỐNG
     const [dbPromotions, setDbPromotions] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [serviceCatalog, setServiceCatalog] = useState([]);
     const [isLoadingPromos, setIsLoadingPromos] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
@@ -287,55 +183,25 @@ export default function PromotionsPage() {
     const [activePromoTab, setActivePromoTab] = useState('all'); // 'all' | 'percentage' | 'fixed'
     const [nowTs, setNowTs] = useState(() => Date.now());
 
-    // 2. TẢI DỮ LIỆU ĐỒNG THỜI: VOUCHERS + HẠNG PHÒNG + DỊCH VỤ THỰC TẾ
+    // 2. TẢI DANH SÁCH VOUCHER THỰC TẾ TỪ BACKEND
     useEffect(() => {
         let isMounted = true;
-        const loadAllData = async () => {
+        const loadPromotions = async () => {
             setIsLoadingPromos(true);
             try {
-                const [promoRes, catRes, svcRes] = await Promise.allSettled([
-                    promotionService.getPromotions(),
-                    roomService.getCategories(),
-                    hotelService.getServices({ status: 'active' })
-                ]);
-
+                const res = await promotionService.getPromotions();
                 if (!isMounted) return;
 
-                // Xử lý promotions
-                if (promoRes.status === 'fulfilled' && promoRes.value?.success && Array.isArray(promoRes.value.data) && promoRes.value.data.length > 0) {
-                    setDbPromotions(promoRes.value.data);
+                if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+                    setDbPromotions(res.data);
                 } else {
                     setDbPromotions(FALLBACK_PROMOTIONS);
                 }
-
-                // Xử lý categories
-                if (catRes.status === 'fulfilled') {
-                    const cVal = catRes.value;
-                    let list = [];
-                    if (Array.isArray(cVal?.categories)) list = cVal.categories;
-                    else if (Array.isArray(cVal)) list = cVal;
-                    else if (Array.isArray(cVal?.results)) list = cVal.results;
-                    else if (Array.isArray(cVal?.data)) list = cVal.data;
-
-                    setCategories(list.length > 0 ? list : FALLBACK_CATEGORIES);
-                } else {
-                    setCategories(FALLBACK_CATEGORIES);
-                }
-
-                // Xử lý services
-                if (svcRes.status === 'fulfilled' && svcRes.value?.success && Array.isArray(svcRes.value.items) && svcRes.value.items.length > 0) {
-                    setServiceCatalog(svcRes.value.items.filter((s) => s.is_active !== false));
-                } else {
-                    setServiceCatalog(FALLBACK_SERVICES);
-                }
-
                 setNowTs(Date.now());
             } catch (err) {
-                console.error('Lỗi khi tải dữ liệu trang khuyến mãi:', err);
+                console.error('Lỗi khi tải dữ liệu khuyến mãi:', err);
                 if (isMounted) {
                     setDbPromotions(FALLBACK_PROMOTIONS);
-                    setCategories(FALLBACK_CATEGORIES);
-                    setServiceCatalog(FALLBACK_SERVICES);
                 }
             } finally {
                 if (isMounted) {
@@ -344,7 +210,7 @@ export default function PromotionsPage() {
             }
         };
 
-        loadAllData();
+        loadPromotions();
         return () => {
             isMounted = false;
         };
@@ -448,122 +314,7 @@ export default function PromotionsPage() {
         }
     };
 
-    // 8. TÍNH TOÁN CÁC GÓI NGHỈ DƯỠNG TRỌN GÓI THỰC TẾ
-    // Ghép hạng phòng DB + Dịch vụ DB + Voucher DB, tính giá động theo số đêm lưu trú
-    const packages = useMemo(() => {
-        const poolCategories = categories.length > 0 ? categories : FALLBACK_CATEGORIES;
-        const poolServices = serviceCatalog.length > 0 ? serviceCatalog : FALLBACK_SERVICES;
-
-        const priceOf = (c) => Number(c.promo_price || c.base_price || 0);
-        const sortedCats = [...poolCategories]
-            .filter((c) => priceOf(c) > 0)
-            .sort((a, b) => priceOf(a) - priceOf(b));
-
-        if (sortedCats.length === 0) return [];
-
-        const pickCategory = (tpl) => {
-            const matched = sortedCats.filter((c) =>
-                tpl.categoryKeywords.some((kw) => stripDiacritics(c.name).includes(kw))
-            );
-            const pool = matched.length > 0 ? matched : sortedCats;
-            if (tpl.tier === 'premium') return pool[pool.length - 1];
-            if (tpl.tier === 'standard') return pool[0];
-            return pool[Math.floor((pool.length - 1) / 2)];
-        };
-
-        return PACKAGE_TEMPLATES.map((tpl) => {
-            const category = pickCategory(tpl);
-            if (!category) return null;
-
-            // Ghép dịch vụ thật từ hệ thống
-            const bundle = [];
-            tpl.services.forEach((def) => {
-                let found = null;
-                for (const kw of def.anyOf) {
-                    found = poolServices.find((s) => stripDiacritics(s.name).includes(kw));
-                    if (found) break;
-                }
-                if (found && !bundle.some((b) => String(b.service_id) === String(found.id))) {
-                    bundle.push({
-                        service_id: found.id,
-                        name: found.name,
-                        price: Number(found.price || 0),
-                        quantity: def.quantity || 1
-                    });
-                }
-            });
-
-            // Tìm promo code phù hợp và còn hiệu lực
-            const promo =
-                tpl.promoCodes
-                    .map((code) =>
-                        dbPromotions.find(
-                            (p) => String(p.code).toUpperCase() === code && isPromoLive(p, nowTs)
-                        )
-                    )
-                    .find(Boolean) || null;
-
-            const roomPrice = priceOf(category);
-            let nightsNeeded = 1;
-            let perNightAfter = roomPrice;
-            let discountTotal = 0;
-
-            if (promo) {
-                const minOrder = Number(promo.min_order_value || 0);
-                nightsNeeded = Math.max(1, Math.ceil(minOrder / roomPrice));
-                const orderValue = roomPrice * nightsNeeded;
-                discountTotal = calcPromoDiscount(promo, orderValue);
-                perNightAfter = Math.round((orderValue - discountTotal) / nightsNeeded);
-            }
-
-            const bundleTotal = bundle.reduce((sum, b) => sum + b.price * b.quantity, 0);
-            const fallbackImage = tpl.image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
-            const cardImage = extractCategoryImageUrl(category, fallbackImage);
-
-            return {
-                ...tpl,
-                category,
-                bundle,
-                promo,
-                roomPrice,
-                perNightAfter,
-                nightsNeeded,
-                hasDiscount: Boolean(promo) && discountTotal > 0,
-                bundleTotal,
-                cardImage,
-                fallbackImage
-            };
-        }).filter(Boolean);
-    }, [categories, serviceCatalog, dbPromotions, nowTs]);
-
-    // 9. ĐẶT GÓI TRỌN GÓI: Chuyển hướng trực tiếp vào /checkout/:categoryId kèm dịch vụ & mã giảm giá
-    const handleBookPackage = (pkg) => {
-        const checkIn = new Date();
-        const checkOut = new Date();
-        checkOut.setDate(checkOut.getDate() + (pkg.nightsNeeded || 1));
-
-        if (pkg.promo?.code) {
-            try {
-                localStorage.setItem('pending_promo_code', pkg.promo.code);
-            } catch {
-                // ignore
-            }
-        }
-
-        navigate(`/checkout/${pkg.category.id}`, {
-            state: {
-                checkInDate: toDateInput(checkIn),
-                checkOutDate: toDateInput(checkOut),
-                promoCode: pkg.promo ? pkg.promo.code : '',
-                packageServices: pkg.bundle.map((b) => ({
-                    service_id: b.service_id,
-                    quantity: b.quantity
-                }))
-            }
-        });
-    };
-
-    // 10. HẠNG THẺ HỘI VIÊN VIP (ĐỒNG BỘ 100% VỚI HỆ THỐNG LOYALTY DATABASE)
+    // 8. HẠNG THẺ HỘI VIÊN VIP (ĐỒNG BỘ 100% VỚI HỆ THỐNG LOYALTY DATABASE)
     const membershipTiers = [
         {
             name: 'Đồng (Bronze)',
@@ -641,15 +392,15 @@ export default function PromotionsPage() {
         }
     ];
 
-    // 11. CÂU HỎI THƯỜNG GẶP
+    // 9. CÂU HỎI THƯỜNG GẶP
     const faqs = [
         {
             q: 'Làm thế nào để áp dụng mã giảm giá khi đặt phòng trực tuyến?',
-            a: 'Quý khách chỉ cần bấm nút "Sao chép" ở bất kỳ thẻ voucher nào trên trang này, sau đó bấm "Sử dụng ngay" hoặc truy cập trang Đặt phòng. Tại bước thanh toán cuối cùng, dán mã vào ô "Mã khuyến mãi" và bấm "Áp dụng", hệ thống sẽ tự động trừ số tiền chiết khấu tương ứng.'
+            a: 'Quý khách chỉ cần bấm nút "Chép" ở bất kỳ thẻ voucher nào trên trang này, sau đó bấm "Sử Dụng Ngay" hoặc truy cập trang Phòng nghỉ. Tại bước thanh toán cuối cùng, dán mã vào ô "Mã khuyến mãi" và bấm "Áp dụng", hệ thống sẽ tự động trừ số tiền chiết khấu tương ứng trực tiếp vào tổng hóa đơn.'
         },
         {
-            q: 'Khi bấm "Đặt Gói Này Ngay" thì các dịch vụ đi kèm có được tự động tính vào hóa đơn không?',
-            a: 'Có! Khi quý khách chọn gói nghỉ dưỡng trọn gói, hệ thống sẽ tự động chuyển thẳng sang trang Thanh toán với hạng phòng tương ứng, tự động điền mã ưu đãi của gói và kích hoạt sẵn toàn bộ danh sách dịch vụ đi kèm mà quý khách không cần phải chọn lại thủ công.'
+            q: 'Tôi có thể dùng mã voucher cho bất kỳ hạng phòng nào không?',
+            a: 'Đa số các voucher chiến dịch như WELCOME10, VIP10 có thể áp dụng cho toàn bộ các hạng phòng từ Deluxe đến Suite cao cấp. Quý khách chỉ cần đạt giá trị đơn hàng tối thiểu theo quy định ghi trên từng thẻ voucher.'
         },
         {
             q: 'Ưu đãi có áp dụng đồng thời với chính sách hoàn hủy miễn phí không?',
@@ -657,7 +408,7 @@ export default function PromotionsPage() {
         },
         {
             q: 'Mã khuyến mãi có áp dụng vào dịp Lễ, Tết hoặc cuối tuần không?',
-            a: 'Các mã ưu đãi như WELCOME10, VIP10 và SUMMER2026 áp dụng xuyên suốt tất cả các ngày trong tuần. Vào các ngày Lễ Tết cao điểm, một số gói có thể áp dụng phụ thu theo quy định dịch vụ nhưng vẫn giữ nguyên giá trị chiết khấu cam kết.'
+            a: 'Các mã ưu đãi như WELCOME10, VIP10 và SUMMER2026 áp dụng xuyên suốt tất cả các ngày trong tuần. Vào các ngày Lễ Tết cao điểm, mức chiết khấu cam kết vẫn giữ nguyên giá trị theo đúng điều kiện của mã.'
         },
         {
             q: 'Tôi có thể dùng chung voucher giảm giá cùng với quyền lợi thẻ hội viên VIP không?',
@@ -782,7 +533,7 @@ export default function PromotionsPage() {
                                             Đang kích hoạt {livePromotions.length} mã ưu đãi độc quyền
                                         </div>
                                         <div className="text-[11px] text-slate-500">
-                                            Sao chép mã bên dưới hoặc chọn gói kỳ nghỉ trọn gói để áp dụng ngay
+                                            Sao chép mã bên dưới và dán tại bước thanh toán để nhận chiết khấu trực tiếp
                                         </div>
                                     </div>
                                 </div>
@@ -1012,165 +763,107 @@ export default function PromotionsPage() {
                 </section>
 
                 {/* ============================================================== */}
-                {/* 3. GÓI NGHỈ DƯỠNG TRỌN GÓI THƯỢNG LƯU (CURATED PACKAGES THẬT) */}
+                {/* 3. KHOẢNH KHẮC NGHỈ DƯỠNG THƯỢNG LƯU (VISUAL EXPERIENCE SHOWCASE) */}
                 {/* ============================================================== */}
                 <section className="py-16 bg-white border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center max-w-2xl mx-auto mb-12">
-                            <span className="text-xs font-bold text-rose-600 uppercase tracking-widest block mb-2">
-                                GÓI KỲ NGHỈ ĐỘC BẢN
+                            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">
+                                TRẢI NGHIỆM ĐỘC BẢN • NGHỈ DƯỠNG ĐẲNG CẤP
                             </span>
                             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
-                                Tuyệt Tác Nghỉ Dưỡng Trọn Gói
+                                Khoảnh Khắc Nghỉ Dưỡng Thượng Lưu
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-500 mt-2">
-                                Trải nghiệm trọn vẹn phong vị ẩm thực thượng lưu, chăm sóc sức khỏe và nghỉ dưỡng ven biển được kết hợp tự động
+                                Đắm chìm trong vẻ đẹp tuyệt mỹ của biển Đà Nẵng, ẩm thực đỉnh cao và không gian phòng nghỉ chuẩn quốc tế — sẵn sàng đón bạn với mức giá ưu đãi nhất
                             </p>
                         </div>
 
+                        {/* 3 Thẻ Trải Nghiệm Khổ Lớn Có Ảnh Đẹp Sắc Nét */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {packages.map((pkg) => (
+                            {EXPERIENCES.map((exp) => (
                                 <div
-                                    key={pkg.id}
-                                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-lg hover:shadow-2xl hover:border-slate-300 flex flex-col justify-between group hover:-translate-y-1.5 transition-all duration-300"
+                                    key={exp.id}
+                                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-lg hover:shadow-2xl hover:border-amber-300 flex flex-col justify-between group hover:-translate-y-1.5 transition-all duration-300"
                                 >
                                     <div>
-                                        {/* Cover Image & Badges */}
-                                        <div className="relative h-60 w-full overflow-hidden bg-slate-100">
+                                        {/* Ảnh lớn nghệ thuật có gradient & badge */}
+                                        <div className="relative h-64 w-full overflow-hidden bg-slate-100">
                                             <img
-                                                src={pkg.cardImage}
-                                                alt={pkg.title}
-                                                onError={(e) => {
-                                                    if (e.currentTarget.src !== pkg.fallbackImage) {
-                                                        e.currentTarget.src = pkg.fallbackImage;
-                                                    }
-                                                }}
+                                                src={exp.image}
+                                                alt={exp.title}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                             />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
                                             <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                                                <span className="px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold">
-                                                    {pkg.badge}
+                                                <span className="px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+                                                    {exp.tag}
                                                 </span>
-                                                <span className="px-3 py-1 rounded-full bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[10px] font-bold shadow-md">
-                                                    {pkg.promo
-                                                        ? pkg.promo.discount_type === 'percentage'
-                                                            ? `Giảm ${pkg.promo.discount_value}%`
-                                                            : `Giảm ${formatVnd(pkg.promo.discount_value)}`
-                                                        : 'Trọn Gói Phòng & Dịch Vụ'}
+                                            </div>
+                                            <div className="absolute bottom-4 left-4 right-4">
+                                                <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase tracking-wider inline-block mb-1.5 shadow-xs">
+                                                    {exp.badge}
                                                 </span>
+                                                <h3 className="font-serif font-bold text-white text-lg leading-snug drop-shadow-sm">
+                                                    {exp.title}
+                                                </h3>
                                             </div>
                                         </div>
 
-                                        {/* Body */}
+                                        {/* Nội dung mô tả & điểm nhấn */}
                                         <div className="p-6">
-                                            <div className="mb-2">
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-semibold mb-2">
-                                                    <Building2 className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                                                    <span className="truncate">Hạng phòng: {pkg.category.name}</span>
-                                                </span>
-                                                <h3 className="font-serif font-bold text-slate-900 text-lg group-hover:text-amber-600 transition-colors">
-                                                    {pkg.title}
-                                                </h3>
-                                            </div>
-
                                             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                                                {pkg.description}
+                                                {exp.description}
                                             </p>
 
-                                            {/* Perks checklist (Chỉ chứa tiện ích thực tế, không đưa điểm tích lũy vào đây) */}
-                                            <ul className="space-y-2 border-t border-slate-100 pt-4 mb-4">
-                                                <li className="flex items-start gap-2 text-xs text-slate-700 font-medium">
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                                    <span className="text-[11px] leading-tight">
-                                                        Lưu trú tại <strong>{pkg.category.name}</strong> (tiêu chuẩn {pkg.category.max_occupancy || 2} khách/phòng)
-                                                    </span>
-                                                </li>
-                                                {pkg.bundle.map((b, i) => (
-                                                    <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                                            <ul className="space-y-2.5 border-t border-slate-100 pt-4">
+                                                {exp.highlights.map((item, idx) => (
+                                                    <li key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                                                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                                        <span className="text-[11px] leading-tight">
-                                                            Tặng <strong>{b.name}</strong> {b.quantity > 1 ? `(x${b.quantity})` : ''} — Trị giá <span className="text-amber-800 font-semibold">{formatVnd(b.price * b.quantity)}</span>
-                                                        </span>
+                                                        <span className="text-[11px] leading-tight">{item}</span>
                                                     </li>
                                                 ))}
-                                                {pkg.extraPerk && (
-                                                    <li className="flex items-start gap-2 text-xs text-slate-700">
-                                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                                        <span className="text-[11px] leading-tight">{pkg.extraPerk}</span>
-                                                    </li>
-                                                )}
                                             </ul>
                                         </div>
                                     </div>
 
-                                    {/* Footer Price & Action */}
-                                    <div className="p-6 pt-0 border-t border-slate-100">
-                                        <div className="flex items-baseline justify-between pt-4 mb-3">
-                                            <div>
-                                                {pkg.hasDiscount ? (
-                                                    <>
-                                                        <span className="text-xs text-slate-400 line-through block">
-                                                            {formatVnd(pkg.roomPrice)}
-                                                        </span>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-2xl font-bold text-amber-600">
-                                                                {formatVnd(pkg.perNightAfter)}
-                                                            </span>
-                                                            <span className="text-xs text-slate-500">/ đêm</span>
-                                                        </div>
-                                                        {pkg.nightsNeeded > 1 && (
-                                                            <span className="text-[10px] text-slate-400 block mt-0.5">
-                                                                (Áp dụng khi đặt từ {pkg.nightsNeeded} đêm)
-                                                            </span>
-                                                        )}
-                                                    </>
-                                                ) : (
-                                                    <div>
-                                                        <span className="text-[10px] text-slate-400 block uppercase font-medium">
-                                                            Giá phòng tiêu chuẩn
-                                                        </span>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-2xl font-bold text-amber-600">
-                                                                {formatVnd(pkg.roomPrice)}
-                                                            </span>
-                                                            <span className="text-xs text-slate-500">/ đêm</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-semibold">
-                                                    {pkg.promo ? 'Mã ưu đãi:' : 'Hình thức:'}
-                                                </span>
-                                                <strong className="font-mono text-xs text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 block mt-0.5">
-                                                    {pkg.promo ? pkg.promo.code : 'Trọn gói'}
-                                                </strong>
-                                            </div>
-                                        </div>
-
-                                        {/* Giá trị quà tặng dịch vụ đi kèm */}
-                                        {pkg.bundleTotal > 0 && (
-                                            <div className="mb-4 px-3 py-2 rounded-xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between text-[11px]">
-                                                <span className="text-emerald-800 font-medium flex items-center gap-1.5">
-                                                    <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                                    <span>Dịch vụ tặng kèm:</span>
-                                                </span>
-                                                <strong className="text-emerald-700 font-bold">+{formatVnd(pkg.bundleTotal)}</strong>
-                                            </div>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            onClick={() => handleBookPackage(pkg)}
-                                            className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                    {/* Nút hành động dẫn trực tiếp sang xem phòng / dịch vụ */}
+                                    <div className="p-6 pt-0">
+                                        <Link
+                                            to={exp.actionLink}
+                                            className="w-full py-3 rounded-xl bg-slate-50 hover:bg-gradient-to-r hover:from-amber-500 hover:to-amber-600 hover:text-white text-slate-800 font-bold text-xs border border-slate-200 hover:border-amber-500 transition-all flex items-center justify-center gap-2 group-hover:shadow-md cursor-pointer"
                                         >
-                                            <span>Đặt Gói Này Ngay</span>
-                                            <ArrowRight className="w-3.5 h-3.5" />
-                                        </button>
+                                            <span>{exp.actionLabel}</span>
+                                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                                        </Link>
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Banner kết nối voucher & đặt phòng */}
+                        <div className="mt-12 p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-white shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                            <div className="relative z-10 max-w-2xl text-center md:text-left">
+                                <span className="px-3 py-1 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider inline-block mb-3 backdrop-blur-xs">
+                                    ĐẶC QUYỀN ĐẶT PHÒNG TRỰC TIẾP
+                                </span>
+                                <h3 className="font-serif text-2xl sm:text-3xl font-bold leading-snug">
+                                    Sẵn Sàng Cho Kỳ Nghỉ Đáng Nhớ Của Bạn?
+                                </h3>
+                                <p className="text-xs sm:text-sm text-white/90 mt-2 leading-relaxed">
+                                    Sao chép bất kỳ mã voucher nào ở trên và áp dụng ngay tại bước thanh toán để nhận chiết khấu tiền phòng trực tiếp, đồng thời tích lũy điểm thưởng thăng hạng hội viên TA Club.
+                                </p>
+                            </div>
+                            <div className="relative z-10 shrink-0">
+                                <Link
+                                    to="/rooms"
+                                    className="px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-900 font-extrabold text-xs sm:text-sm shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group cursor-pointer"
+                                >
+                                    <span>Xem Phòng & Áp Dụng Mã Ngay</span>
+                                    <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </section>
