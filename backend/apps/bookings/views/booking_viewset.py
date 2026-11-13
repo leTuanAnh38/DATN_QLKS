@@ -394,7 +394,12 @@ class BookingViewSet(
                 ).first()
 
                 # Tự động tạo bản ghi Promotion nếu là mã hệ thống mặc định (đồng bộ ValidatePromoCodeView)
-                if not promo and promo_code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
+                # Chỉ áp dụng khi mã CHƯA từng tồn tại trong DB (mã đã hết hạn / tạm dừng thì không được dùng lại)
+                if (
+                    not promo
+                    and promo_code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']
+                    and not Promotion.objects.filter(code=promo_code).exists()
+                ):
                     promo, _ = Promotion.objects.get_or_create(
                         code=promo_code,
                         defaults={

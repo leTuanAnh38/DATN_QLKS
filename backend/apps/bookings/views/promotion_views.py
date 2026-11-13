@@ -36,8 +36,10 @@ class ValidatePromoCodeView(APIView):
         ).first()
 
         if not promo:
-            # Hỗ trợ một số mã mặc định nếu chưa setup trong DB
-            if code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
+            # Mã mặc định chỉ dùng khi CHƯA từng được tạo trong DB.
+            # Nếu mã đã tồn tại nhưng hết hạn / tạm dừng thì phải từ chối, không được dùng mã dự phòng.
+            code_exists_in_db = Promotion.objects.filter(code=code).exists()
+            if not code_exists_in_db and code in ['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG']:
                 discount_val = 10  # 10%
                 discount_amount = (order_value * discount_val) / 100
                 return Response({

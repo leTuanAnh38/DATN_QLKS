@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { roomService } from '../../services/roomService';
 import { bookingService } from '../../services/bookingService';
@@ -520,6 +520,77 @@ export default function Checkout() {
         setPromoInput('');
         setPromoError('');
     };
+
+    // =========================================================================
+    // TỰ ĐỘNG ÁP DỤNG MÃ KHUYẾN MÃI & DỊCH VỤ KÈM GÓI (chuyển từ trang Ưu đãi)
+    // Nguồn mã: location.state.promoCode -> ?promo= -> localStorage (nút "Sử dụng ngay")
+    // =========================================================================
+    const [incomingPromoCode] = useState(() => {
+        const fromState = location.state?.promoCode;
+        const fromQuery = searchParams.get('promo');
+        let fromStorage = '';
+        try {
+            fromStorage = localStorage.getItem('pending_promo_code') || '';
+        } catch {
+            fromStorage = '';
+        }
+        return String(fromState || fromQuery || fromStorage || '').trim().toUpperCase();
+    });
+    const incomingPackageServices = location.state?.packageServices;
+    const promoAutoAppliedRef = useRef(false);
+    const servicesAutoAppliedRef = useRef(false);
+
+    // Chọn sẵn các dịch vụ thuộc gói khi danh sách dịch vụ đã tải xong
+    useEffect(() => {
+        if (servicesAutoAppliedRef.current) return;
+        if (!Array.isArray(incomingPackageServices) || incomingPackageServices.length === 0) return;
+        if (servicesList.length === 0) return;
+
+        servicesAutoAppliedRef.current = true;
+        setSelectedServices((prev) => {
+            const next = { ...prev };
+            incomingPackageServices.forEach((item) => {
+                const exists = servicesList.some((s) => String(s.id) === String(item.service_id));
+                if (exists) {
+                    next[item.service_id] = Math.max(1, Math.min(20, Number(item.quantity) || 1));
+                }
+            });
+            return next;
+        });
+        setIsExpandedServices(true);
+    }, [servicesList, incomingPackageServices]);
+
+    // Tự điền & kiểm tra mã khuyến mãi khi đã có giá phòng
+    useEffect(() => {
+        if (promoAutoAppliedRef.current || !incomingPromoCode) return;
+        if (!room || subtotal <= 0) return;
+
+        promoAutoAppliedRef.current = true;
+        setPromoInput(incomingPromoCode);
+        setIsApplyingPromo(true);
+        bookingService
+            .validatePromoCode(incomingPromoCode, subtotal)
+            .then((res) => {
+                if (res && res.valid) {
+                    setAppliedPromo({
+                        code: res.code || incomingPromoCode,
+                        discount_amount: res.discount_amount || 0,
+                        message: res.message || `Đã áp dụng mã ${incomingPromoCode} thành công!`
+                    });
+                    setPromoError('');
+                } else {
+                    setPromoError(res?.message || `Mã khuyến mãi "${incomingPromoCode}" không hợp lệ hoặc đã hết hạn.`);
+                }
+            })
+            .finally(() => {
+                setIsApplyingPromo(false);
+                try {
+                    localStorage.removeItem('pending_promo_code');
+                } catch {
+                    // ignore
+                }
+            });
+    }, [room, subtotal, incomingPromoCode]);
 
     // =========================================================================
     // XỬ LÝ SUBMIT ĐẶT PHÒNG TỚI API POST /api/bookings/
