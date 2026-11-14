@@ -227,7 +227,7 @@ export default function TADaNangHotelLanding() {
                 onTouchStart={handleBannerTouchStart}
                 onTouchMove={handleBannerTouchMove}
                 onTouchEnd={handleBannerTouchEnd}
-                className="relative w-full min-h-[340px] sm:min-h-[440px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
+                className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
             >
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
                 {bannerImages.map((b, idx) => (
@@ -253,7 +253,7 @@ export default function TADaNangHotelLanding() {
                 <div className="absolute inset-0 bg-black/25 bg-gradient-to-t from-slate-950/70 via-black/15 to-transparent z-1" />
 
                 {/* Hero Content nổi bật trên cùng (relative z-10) */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-8 pb-14 sm:py-12">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-12">
                     <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4 drop-shadow-md transition-all duration-700">
                         {bannerImages[currentBanner].title} <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300">
