@@ -46,7 +46,7 @@ export default function BookingManagementModal({
   }, [visible, activeMainTab, fetchBookings]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View
           style={[

@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { safeOpenUrl } from '../../utils/linking';
 import * as Haptics from 'expo-haptics';
 import { styles } from './styles';
 import { GuestDetailViewProps } from './types';
@@ -101,7 +102,7 @@ export default function GuestDetailView({
       Alert.alert('Chưa có số', 'Khách hàng này chưa cập nhật số điện thoại.');
       return;
     }
-    Linking.openURL(`tel:${phone}`);
+    safeOpenUrl(`tel:${phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.');
   };
 
   // Hành động nhanh: Gửi tin nhắn SMS
@@ -110,7 +111,7 @@ export default function GuestDetailView({
       Alert.alert('Chưa có số', 'Khách hàng này chưa cập nhật số điện thoại.');
       return;
     }
-    Linking.openURL(`sms:${phone}`);
+    safeOpenUrl(`sms:${phone}`, 'Thiết bị không hỗ trợ nhắn tin SMS.');
   };
 
   // Hành động nhanh: Gửi email
@@ -119,7 +120,7 @@ export default function GuestDetailView({
       Alert.alert('Chưa có email', 'Khách hàng này chưa cập nhật địa chỉ email.');
       return;
     }
-    Linking.openURL(`mailto:${email}`);
+    safeOpenUrl(`mailto:${email}`, 'Thiết bị không hỗ trợ ứng dụng gửi Email.');
   };
 
   // Trích xuất an toàn các thuộc tính hồ sơ chi tiết khách hàng

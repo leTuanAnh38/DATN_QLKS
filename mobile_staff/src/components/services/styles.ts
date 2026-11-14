@@ -64,7 +64,7 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 9.5,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 2,

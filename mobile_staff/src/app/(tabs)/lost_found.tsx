@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { safeOpenUrl } from '../../utils/linking';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
@@ -187,7 +188,7 @@ export default function LostFoundScreen() {
         item={item}
         isLoading={actionLoadingId === item.id}
         onPreviewImage={setPreviewImageUrl}
-        onCallPhone={(phone) => Linking.openURL(`tel:${phone}`)}
+        onCallPhone={(phone) => safeOpenUrl(`tel:${phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
         onMarkContacted={handleMarkContacted}
         onOpenReturn={(it) => {
           setSelectedItem(it);
@@ -211,11 +212,15 @@ export default function LostFoundScreen() {
         <View style={styles.headerRightActions}>
           <NotificationBell />
           <TouchableOpacity
-            style={styles.createCircleBtn}
-            onPress={() => setCreateModalVisible(true)}
+            style={styles.createPillBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setCreateModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
-            <Ionicons name="add" size={22} color="#0A0F1D" />
+            <Ionicons name="add-circle" size={16} color="#0A0F1D" style={{ marginRight: 4 }} />
+            <Text style={styles.createPillBtnText}>Báo đồ</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -434,9 +439,9 @@ export default function LostFoundScreen() {
         <LostFoundListSkeleton />
       ) : filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="archive-outline" size={56} color="#334155" />
-          <Text style={styles.emptyTitle}>Không có vật phẩm nào</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="archive-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Không có vật phẩm nào</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             {searchQuery || selectedCategory !== 'all'
               ? 'Thử thay đổi từ khóa hoặc bộ lọc để xem kết quả khác.'
               : 'Hiện chưa có báo cáo đồ khách để quên trong kho.'}
@@ -527,18 +532,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  createCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F59E0B',
-    justifyContent: 'center',
+  createPillBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 11,
+    height: 36,
+    borderRadius: 18,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 3,
+  },
+  createPillBtnText: {
+    color: '#0A0F1D',
+    fontSize: 12,
+    fontWeight: '800',
   },
   fixedFilterBar: {
     flexDirection: 'row',
@@ -564,7 +574,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 1,

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Modal,
   View,
   Text,
   TouchableOpacity,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -74,8 +76,46 @@ export default function CustomerCrmModal({
     }
   };
 
+  // Kéo thanh dragHandle xuống để đóng modal
+  const translateY = useRef(new Animated.Value(0)).current;
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 4,
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) {
+          translateY.setValue(gs.dy);
+        }
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 90 || gs.vy > 0.8) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          Animated.timing(translateY, {
+            toValue: 600,
+            duration: 180,
+            useNativeDriver: true,
+          }).start(() => {
+            onCloseRef.current();
+          });
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   useEffect(() => {
     if (visible) {
+      translateY.setValue(0);
       fetchGuests();
       if (initialGuestId) {
         openGuestDetail({ id: initialGuestId });
@@ -83,14 +123,15 @@ export default function CustomerCrmModal({
         setSelectedGuest(null);
       }
     }
-  }, [visible, initialGuestId, fetchGuests]);
+  }, [visible, initialGuestId, fetchGuests, translateY]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View
+        <Animated.View
           style={[
             styles.modalContent,
+            { transform: [{ translateY }] },
             !isDark && {
               backgroundColor: '#FFFFFF',
               borderTopColor: '#E2E8F0',
@@ -99,7 +140,7 @@ export default function CustomerCrmModal({
           ]}
         >
           {/* Thanh kéo vuốt xuống (Drag Handle Indicator) */}
-          <View style={styles.dragHandleWrapper}>
+          <View style={styles.dragHandleWrapper} {...panResponder.panHandlers}>
             <View style={[styles.dragHandle, !isDark && { backgroundColor: '#CBD5E1' }]} />
           </View>
 
@@ -162,7 +203,7 @@ export default function CustomerCrmModal({
               onRefreshDetail={() => openGuestDetail(selectedGuest)}
             />
           )}
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

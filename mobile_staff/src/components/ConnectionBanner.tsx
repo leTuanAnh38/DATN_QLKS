@@ -21,9 +21,11 @@ export default function ConnectionBanner() {
     setModalVisible(true);
   };
 
+  const bottomOffset = 58 + Math.max(insets.bottom, 8) + 10;
+
   return (
     <>
-      <View style={[styles.wrap, { top: insets.top + 4 }]}>
+      <View style={[styles.wrap, { bottom: bottomOffset }]} pointerEvents="box-none">
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handlePress}

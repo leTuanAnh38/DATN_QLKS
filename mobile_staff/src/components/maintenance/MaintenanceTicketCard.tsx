@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MAINTENANCE_ISSUE_TYPES, calculateTicketSLA } from '../../constants/maintenance';
 import { Palette } from '../../constants/theme';
@@ -202,15 +202,12 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
         </View>
       )}
 
-      {/* Cảnh báo SOP theo tiêu chuẩn sao khách sạn: Phòng có khách lưu trú */}
+      {/* Cảnh báo SOP gọn 1 dòng: Phòng có khách lưu trú */}
       {isOccupied && !isCancelled && (
-        <View style={styles.sopAlertBanner}>
-          <View style={styles.sopBadge}>
-            <Ionicons name="warning" size={12} color="#F59E0B" style={{ marginRight: 4 }} />
-            <Text style={styles.sopBadgeText}>SOP {hotelStars} SAO • CÓ KHÁCH</Text>
-          </View>
-          <Text style={styles.sopBannerText}>
-            Phòng có khách lưu trú{item.guest_name ? ` (${item.guest_name})` : ''} • Tuân thủ SOP: Gõ cửa 3 lần, xưng "Kỹ thuật phòng" trước khi vào!
+        <View style={[styles.sopAlertBanner, { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }]}>
+          <Ionicons name="warning" size={13} color="#F59E0B" style={{ marginRight: 6 }} />
+          <Text style={[styles.sopBannerText, { flex: 1 }]} numberOfLines={1}>
+            SOP {hotelStars}★ • Có khách{item.guest_name ? ` (${item.guest_name})` : ''} • Gõ cửa 3 lần trước khi vào
           </Text>
         </View>
       )}

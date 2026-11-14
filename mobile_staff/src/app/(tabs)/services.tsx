@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { safeOpenUrl } from '../../utils/linking';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
@@ -46,6 +47,10 @@ import {
 export default function ServicesScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const canToggleCatalog = Boolean(
+    user?.is_superuser ||
+      ['service_staff', 'admin', 'owner', 'manager', 'receptionist'].includes(user?.role || '')
+  );
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -703,13 +708,16 @@ export default function ServicesScreen() {
           {
             text: 'Nhắn tin SMS',
             onPress: () => {
-              Linking.openURL(`sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ khách sạn TA Luxury...`)}`);
+              safeOpenUrl(
+                `sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ khách sạn TA Luxury...`)}`,
+                'Thiết bị không hỗ trợ nhắn tin SMS.'
+              );
             },
           },
           {
             text: 'Gọi điện ngay',
             onPress: () => {
-              Linking.openURL(`tel:${cleanPhone}`);
+              safeOpenUrl(`tel:${cleanPhone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.');
             },
           },
         ]
@@ -1137,15 +1145,20 @@ export default function ServicesScreen() {
         </View>
         <View style={styles.headerRightActions}>
           <TouchableOpacity
-            style={styles.headerCrmBtn}
+            style={[
+              styles.refreshCircleBtn,
+              { borderColor: 'rgba(56, 189, 248, 0.4)' },
+              !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
+            ]}
             onPress={() => {
               setCrmGuestId(null);
               setCrmModalVisible(true);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             activeOpacity={0.7}
+            accessibilityLabel="Hồ sơ khách hàng CRM"
           >
-            <Ionicons name="people" size={17} color="#38BDF8" />
+            <Ionicons name="people-outline" size={16} color="#38BDF8" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.createOrderBtn}
@@ -1601,10 +1614,10 @@ export default function ServicesScreen() {
                     ? '#10B981'
                     : scopeFilter === 'unassigned'
                       ? '#38BDF8'
-                      : '#334155'
+                      : (isDark ? '#334155' : '#CBD5E1')
                 }
               />
-              <Text style={styles.emptyTitle}>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>
                 {scopeFilter === 'my_tasks' && activeTab === 'all'
                   ? 'Bạn không có đơn nào cần xử lý'
                   : scopeFilter === 'unassigned'
@@ -1672,6 +1685,7 @@ export default function ServicesScreen() {
         /* MODE 2: FULL SERVICE CATALOG & MENU VIEW */
         <ServiceCatalogView
           isDark={isDark}
+          canToggleActive={canToggleCatalog}
           onOrder={(serviceId) => openCreateOrderModal(serviceId)}
           onCatalogLoaded={(count) => setCatalogCount(count)}
         />

@@ -9,6 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { safeOpenUrl } from '../../utils/linking';
 import * as Haptics from 'expo-haptics';
 import { styles } from './styles';
 import { BookingListViewProps, getStatusBadge } from './types';
@@ -248,7 +249,7 @@ export default function BookingListView({
                   {b.guest_phone ? (
                     <TouchableOpacity
                       style={styles.phonePill}
-                      onPress={() => Linking.openURL(`tel:${b.guest_phone}`)}
+                      onPress={() => safeOpenUrl(`tel:${b.guest_phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
                     >
                       <Ionicons name="call" size={12} color="#059669" style={{ marginRight: 4 }} />
                       <Text style={styles.phonePillText}>{b.guest_phone}</Text>

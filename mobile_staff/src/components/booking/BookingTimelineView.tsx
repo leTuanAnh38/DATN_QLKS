@@ -9,6 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { safeOpenUrl } from '../../utils/linking';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { styles } from './styles';
@@ -654,7 +655,7 @@ export default function BookingTimelineView({
                               {activeBooking.guest_phone ? (
                                 <TouchableOpacity
                                   style={styles.phonePillSmall}
-                                  onPress={() => Linking.openURL(`tel:${activeBooking.guest_phone}`)}
+                                  onPress={() => safeOpenUrl(`tel:${activeBooking.guest_phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
                                 >
                                   <Ionicons name="call" size={10} color="#059669" style={{ marginRight: 3 }} />
                                   <Text style={styles.phonePillSmallText}>{activeBooking.guest_phone}</Text>
@@ -726,7 +727,7 @@ export default function BookingTimelineView({
                                   {bk.guest_phone ? (
                                     <TouchableOpacity
                                       style={{ flexDirection: 'row', alignItems: 'center' }}
-                                      onPress={() => Linking.openURL(`tel:${bk.guest_phone}`)}
+                                      onPress={() => safeOpenUrl(`tel:${bk.guest_phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
                                     >
                                       <Ionicons name="call" size={10} color="#059669" style={{ marginRight: 3 }} />
                                       <Text style={[styles.stayDates, { color: '#0284C7', fontSize: 10.5 }]}>

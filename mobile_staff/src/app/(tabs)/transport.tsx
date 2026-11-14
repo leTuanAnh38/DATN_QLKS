@@ -243,12 +243,25 @@ export default function TransportScreen() {
     }
   };
 
+  const safeOpenUrl = async (url: string, fallbackError: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Không hỗ trợ', fallbackError);
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Lỗi', fallbackError);
+    }
+  };
+
   const callGuest = (phone: string) => {
     if (!phone) {
       Alert.alert('Thông báo', 'Khách hàng chưa cung cấp số điện thoại.');
       return;
     }
-    Linking.openURL(`tel:${phone}`);
+    safeOpenUrl(`tel:${phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.');
   };
 
   // Chỉ đường GPS bản đồ tối ưu cho iPhone (Apple Maps) & Android (Google Maps)
@@ -260,7 +273,10 @@ export default function TransportScreen() {
       android: `google.navigation:q=${query}`,
       default: `https://www.google.com/maps/dir/?api=1&destination=${query}`,
     });
-    Linking.openURL(url || `https://www.google.com/maps/dir/?api=1&destination=${query}`);
+    safeOpenUrl(
+      url || `https://www.google.com/maps/dir/?api=1&destination=${query}`,
+      'Không thể mở ứng dụng bản đồ trên thiết bị này.'
+    );
   };
 
   const sendSmsToGuest = (phone: string, guestName: string) => {
@@ -272,7 +288,7 @@ export default function TransportScreen() {
     const msg = encodeURIComponent(
       `Kính chào Quý khách ${guestName || ''}, xe đưa đón của TA Luxury Hotel đã sẵn sàng phục vụ. Quý khách vui lòng liên hệ tài xế khi đến điểm hẹn.`
     );
-    Linking.openURL(`sms:${phone}?body=${msg}`);
+    safeOpenUrl(`sms:${phone}?body=${msg}`, 'Thiết bị không hỗ trợ nhắn tin SMS.');
   };
 
   const renderItem = useCallback(
@@ -403,9 +419,9 @@ export default function TransportScreen() {
         <TransportListSkeleton />
       ) : filteredRequests.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="car-sport-outline" size={56} color="#334155" />
-          <Text style={styles.emptyTitle}>Không có cuốc xe nào</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="car-sport-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Không có cuốc xe nào</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             Hiện chưa có yêu cầu đưa đón nào trong danh mục này.
           </Text>
         </View>
@@ -517,7 +533,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 2,

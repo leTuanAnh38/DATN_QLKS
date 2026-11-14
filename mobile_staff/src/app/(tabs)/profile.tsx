@@ -282,6 +282,7 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.staffUsername}>
                 @{user?.username} • ID: {user?.employee_code || `NV-${user?.id || '01'}`}
+                {user?.phone_number ? ` • ${user.phone_number}` : ''}
               </Text>
             </View>
           </View>
@@ -293,29 +294,13 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
-          {/* Dải thông tin cơ bản: Bộ phận • Ca trực • SĐT */}
-          <View style={styles.staffMetaRow}>
-            <View style={styles.metaChip}>
-              <Ionicons name="git-network-outline" size={12} color={colors.sky} style={{ marginRight: 4 }} />
-              <Text style={styles.metaChipText} numberOfLines={1}>{user?.department || 'Khối Vận Hành'}</Text>
-            </View>
-            <View style={styles.metaChip}>
-              <Ionicons name="time-outline" size={12} color={colors.emerald} style={{ marginRight: 4 }} />
-              <Text style={styles.metaChipText} numberOfLines={1}>{user?.shift || 'Ca Sáng'}</Text>
-            </View>
-            <View style={styles.metaChip}>
-              <Ionicons name="call-outline" size={12} color={colors.gold} style={{ marginRight: 4 }} />
-              <Text style={styles.metaChipText} numberOfLines={1}>{user?.phone_number || 'Chưa có SĐT'}</Text>
-            </View>
-          </View>
-
           {/* Hàng 3 chỉ số vận hành thực tế của tài khoản & kết nối */}
           <View style={styles.idKpiRow}>
             <View style={styles.idKpiCol}>
-              <Text style={styles.idKpiVal}>
-                {user?.employee_code || `NV-${user?.id || '01'}`}
+              <Text style={styles.idKpiVal} numberOfLines={1}>
+                {user?.department || 'Vận hành'}
               </Text>
-              <Text style={styles.idKpiLbl}>Mã nhân sự</Text>
+              <Text style={styles.idKpiLbl}>Bộ phận</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>

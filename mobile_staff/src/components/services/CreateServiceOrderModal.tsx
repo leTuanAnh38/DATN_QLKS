@@ -117,7 +117,7 @@ export const CreateServiceOrderModal: React.FC<CreateServiceOrderModalProps> = (
   const remainingItemsCount = Math.max(0, filteredServiceItems.length - INITIAL_ITEMS_LIMIT);
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

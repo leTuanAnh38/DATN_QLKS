@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform, View } from 'react-native';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,6 +11,7 @@ import ConnectionBanner from '../../components/ConnectionBanner';
 export default function TabLayout() {
   const { user } = useAuth();
   const { colors, isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const role = user?.role || '';
   const isManagerOrAdmin =
     Boolean(user?.is_superuser) ||
@@ -37,8 +39,8 @@ export default function TabLayout() {
             backgroundColor: colors.tabBarBackground,
             borderTopColor: colors.tabBarBorder,
             borderTopWidth: 1,
-            height: Platform.OS === 'ios' ? 92 : 68,
-            paddingBottom: Platform.OS === 'ios' ? 34 : 10, // Vùng đệm chuẩn xác cho Home Indicator của iPhone 14 Pro
+            height: 58 + Math.max(insets.bottom, 8),
+            paddingBottom: Math.max(insets.bottom, 8), // Tự động thích ứng Home Indicator iOS & Navigation Bar Android
             paddingTop: 8,
             elevation: 12,
             shadowColor: colors.shadowColor,

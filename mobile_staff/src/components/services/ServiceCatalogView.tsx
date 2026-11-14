@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,14 @@ import { CatalogItemCard } from './CatalogItemCard';
 
 export interface ServiceCatalogViewProps {
   isDark: boolean;
+  canToggleActive?: boolean;
   onOrder: (serviceId?: number) => void;
   onCatalogLoaded?: (count: number) => void;
 }
 
 export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
   isDark,
+  canToggleActive = true,
   onOrder,
   onCatalogLoaded,
 }) => {
@@ -40,6 +42,11 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
   const [visibleCatalogCount, setVisibleCatalogCount] = useState(16);
   const [loadingMoreCatalog, setLoadingMoreCatalog] = useState(false);
 
+  const onCatalogLoadedRef = useRef(onCatalogLoaded);
+  useEffect(() => {
+    onCatalogLoadedRef.current = onCatalogLoaded;
+  }, [onCatalogLoaded]);
+
   const fetchCatalog = useCallback(async () => {
     setLoadingCatalog(true);
     try {
@@ -52,8 +59,8 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
         (s: any) => !isTransportService(s) && !isHousekeepingService(s)
       );
       setCatalogItems(validCatalog);
-      if (onCatalogLoaded) {
-        onCatalogLoaded(validCatalog.length);
+      if (onCatalogLoadedRef.current) {
+        onCatalogLoadedRef.current(validCatalog.length);
       }
 
       const cats = resCats.data.categories || resCats.data.results || resCats.data.data || resCats.data || [];
@@ -64,7 +71,7 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
       setLoadingCatalog(false);
       setRefreshing(false);
     }
-  }, [onCatalogLoaded]);
+  }, []);
 
   useEffect(() => {
     fetchCatalog();
@@ -78,6 +85,7 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
   };
 
   const handleToggleCatalogActive = async (item: any) => {
+    if (!canToggleActive) return;
     if (togglingCatalogId === item.id) return;
     const isCurrentlyActive = item.is_active !== false;
     const nextStatusText = isCurrentlyActive ? 'Tạm hết món / Ngưng phục vụ' : 'Mở phục vụ lại';
@@ -187,11 +195,12 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
         item={item}
         isDark={isDark}
         isToggling={togglingCatalogId === item.id}
+        canToggleActive={canToggleActive}
         onToggleActive={handleToggleCatalogActive}
         onOrder={(it) => onOrder(it.id)}
       />
     ),
-    [isDark, togglingCatalogId, handleToggleCatalogActive, onOrder]
+    [isDark, togglingCatalogId, canToggleActive, handleToggleCatalogActive, onOrder]
   );
 
   return (

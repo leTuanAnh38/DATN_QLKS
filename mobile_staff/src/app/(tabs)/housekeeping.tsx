@@ -445,7 +445,7 @@ export default function HousekeepingScreen() {
         <View style={styles.headerRightActions}>
           <TouchableOpacity
             style={[
-              styles.headerShortcutBtn,
+              styles.refreshCircleBtn,
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={() => {
@@ -453,14 +453,14 @@ export default function HousekeepingScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             activeOpacity={0.7}
+            accessibilityLabel="Lịch đặt phòng"
           >
-            <Ionicons name="calendar-outline" size={13} color="#F59E0B" />
-            <Text style={styles.headerShortcutText}>Lịch</Text>
+            <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
-              styles.headerShortcutBtn,
+              styles.refreshCircleBtn,
               { borderColor: 'rgba(56, 189, 248, 0.4)' },
               !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
             ]}
@@ -470,9 +470,9 @@ export default function HousekeepingScreen() {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
             activeOpacity={0.7}
+            accessibilityLabel="Hồ sơ khách hàng CRM"
           >
-            <Ionicons name="people-outline" size={13} color="#38BDF8" />
-            <Text style={[styles.headerShortcutText, { color: '#38BDF8' }]}>CRM</Text>
+            <Ionicons name="people-outline" size={16} color="#38BDF8" />
           </TouchableOpacity>
 
           <NotificationBell />
@@ -482,6 +482,7 @@ export default function HousekeepingScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            accessibilityLabel="Làm mới sơ đồ phòng"
           >
             <Ionicons name="refresh" size={16} color="#F59E0B" />
           </TouchableOpacity>
@@ -788,9 +789,9 @@ export default function HousekeepingScreen() {
         <RoomGridSkeleton />
       ) : filteredRooms.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="bed-outline" size={56} color="#334155" />
-          <Text style={styles.emptyTitle}>Không tìm thấy phòng phù hợp</Text>
-          <Text style={styles.emptySubtitle}>Hãy thử chọn bộ lọc khác hoặc xóa từ khóa tìm kiếm.</Text>
+          <Ionicons name="bed-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Không tìm thấy phòng phù hợp</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>Hãy thử chọn bộ lọc khác hoặc xóa từ khóa tìm kiếm.</Text>
         </View>
       ) : (
         <FlatList
@@ -847,6 +848,7 @@ export default function HousekeepingScreen() {
         isTechnician={isTechnician}
         isManagerOrAdmin={isManagerOrAdmin}
         onToggleCleaning={handleToggleCleaning}
+        onCompleteMakeUp={handleCompleteMakeUpCleaning}
         onOpenMinibar={openMinibarCheck}
         onOpenLostFound={openLostFoundModal}
         onOpenBreakdown={openBreakdownModal}

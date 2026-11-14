@@ -16,6 +16,7 @@ export interface CatalogItemCardProps {
   item: any;
   isDark: boolean;
   isToggling: boolean;
+  canToggleActive?: boolean;
   onToggleActive: (item: any) => void;
   onOrder: (item: any) => void;
 }
@@ -24,6 +25,7 @@ export const CatalogItemCard: React.FC<CatalogItemCardProps> = React.memo(({
   item,
   isDark,
   isToggling,
+  canToggleActive = true,
   onToggleActive,
   onOrder,
 }) => {
@@ -33,6 +35,13 @@ export const CatalogItemCard: React.FC<CatalogItemCardProps> = React.memo(({
 
   const handleOrderPress = () => {
     if (!isAvailable) {
+      if (!canToggleActive) {
+        Alert.alert(
+          'Món đang tạm hết',
+          `Món "${item.name}" hiện đang tạm hết phục vụ. Vui lòng liên hệ bộ phận Phục vụ / Bếp để biết thêm chi tiết.`
+        );
+        return;
+      }
       Alert.alert(
         'Món đang tạm hết',
         `Món "${item.name}" đang được đánh dấu là tạm hết. Bạn có muốn mở lại món này trước khi gọi cho khách không?`,
@@ -103,41 +112,43 @@ export const CatalogItemCard: React.FC<CatalogItemCardProps> = React.memo(({
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {/* Nút Toggle Còn món / Hết món */}
-            <TouchableOpacity
-              style={[
-                styles.catalogToggleBtn,
-                !isAvailable && styles.catalogToggleBtnInactive,
-                !isDark && {
-                  backgroundColor: isAvailable ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
-                  borderColor: isAvailable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
-                },
-              ]}
-              onPress={() => onToggleActive(item)}
-              disabled={isToggling}
-              activeOpacity={0.7}
-            >
-              {isToggling ? (
-                <ActivityIndicator size="small" color="#EF4444" />
-              ) : (
-                <>
-                  <Ionicons
-                    name={isAvailable ? 'pause-circle-outline' : 'play-circle-outline'}
-                    size={13}
-                    color={isAvailable ? '#DC2626' : '#059669'}
-                    style={{ marginRight: 3 }}
-                  />
-                  <Text
-                    style={[
-                      styles.catalogToggleBtnText,
-                      { color: isAvailable ? '#DC2626' : '#059669' },
-                    ]}
-                  >
-                    {isAvailable ? 'Báo hết' : 'Mở lại'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/* Nút Toggle Còn món / Hết món (chỉ Phục vụ / Quản lý / Lễ tân) */}
+            {canToggleActive && (
+              <TouchableOpacity
+                style={[
+                  styles.catalogToggleBtn,
+                  !isAvailable && styles.catalogToggleBtnInactive,
+                  !isDark && {
+                    backgroundColor: isAvailable ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                    borderColor: isAvailable ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                  },
+                ]}
+                onPress={() => onToggleActive(item)}
+                disabled={isToggling}
+                activeOpacity={0.7}
+              >
+                {isToggling ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name={isAvailable ? 'pause-circle-outline' : 'play-circle-outline'}
+                      size={13}
+                      color={isAvailable ? '#DC2626' : '#059669'}
+                      style={{ marginRight: 3 }}
+                    />
+                    <Text
+                      style={[
+                        styles.catalogToggleBtnText,
+                        { color: isAvailable ? '#DC2626' : '#059669' },
+                      ]}
+                    >
+                      {isAvailable ? 'Báo hết' : 'Mở lại'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* Nút Gọi món */}
             <TouchableOpacity

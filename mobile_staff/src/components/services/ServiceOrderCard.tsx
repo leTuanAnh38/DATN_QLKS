@@ -99,11 +99,6 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
               P.{item.room_number || '?'}{floorLabel ? ` • T.${floorLabel}` : ''}
             </Text>
           </View>
-          {item.booking_code ? (
-            <View style={[styles.bookingCodeTag, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-              <Text style={[styles.bookingCodeTagText, !isDark && { color: '#64748B' }]}>#{item.booking_code}</Text>
-            </View>
-          ) : null}
           {/* Nhãn phân loại nghiệp vụ F&B / Spa / Giặt là / Tiện ích */}
           <View style={[styles.categoryPill, { borderColor: actionConfig.catColor }]}>
             <Ionicons name={actionConfig.catIcon as any} size={11} color={actionConfig.catColor} style={{ marginRight: 3 }} />
@@ -163,45 +158,73 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 6 }}>
+          {/* Dòng 1: Giá • Mã đơn • Đã thu tiền / Cùng mâm (gọn gàng, giảm badge) */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 3, flexWrap: 'wrap', gap: 5 }}>
             <Text style={styles.priceText}>
               {item.total_price ? `${parseInt(item.total_price, 10).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
             </Text>
-            <Text style={styles.dotSeparator}>•</Text>
-            <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-              onPress={onOpenCrm}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.guestInfoText, { color: '#0284C7', fontWeight: '800' }]}>
-                Khách: {item.guest_name}
-              </Text>
-              <Ionicons name="person-circle-outline" size={13} color="#0284C7" style={{ marginLeft: 3 }} />
-            </TouchableOpacity>
-
-            {/* Huy hiệu Khách VIP (Gold / Diamond) */}
-            {item.is_vip ? (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
-                  borderColor: '#F59E0B',
-                  borderWidth: 1,
-                  borderRadius: 6,
-                  paddingHorizontal: 6,
-                  paddingVertical: 1.5,
-                  gap: 3,
-                }}
-              >
-                <Ionicons name="ribbon" size={10} color={isDark ? '#FBBF24' : '#B45309'} />
-                <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
-                  {item.guest_tier_code === 'DIAMOND' ? 'VIP KIM CƯƠNG' : 'VIP VÀNG'}
+            {item.booking_code ? (
+              <>
+                <Text style={styles.dotSeparator}>•</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#94A3B8' : '#64748B' }}>
+                  #{item.booking_code}
                 </Text>
-              </View>
+              </>
             ) : null}
+            {item.is_paid ? (
+              <>
+                <Text style={styles.dotSeparator}>•</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="checkmark-circle" size={11} color="#059669" style={{ marginRight: 2 }} />
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Đã thu</Text>
+                </View>
+              </>
+            ) : null}
+            {getServiceCategoryType(item) === 'fnb' && sameRoomCount && sameRoomCount >= 2 ? (
+              <>
+                <Text style={styles.dotSeparator}>•</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                  Cùng mâm ({sameRoomCount})
+                </Text>
+              </>
+            ) : null}
+          </View>
 
-            {/* Nút Gọi điện thoại nhanh cho khách phòng */}
+          {/* Dòng 2: Tên khách + VIP + Nút gọi nhanh */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 5 }}>
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
+                onPress={onOpenCrm}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.guestInfoText, { color: '#0284C7', fontWeight: '800' }]} numberOfLines={1}>
+                  {item.guest_name}
+                </Text>
+                <Ionicons name="person-circle-outline" size={13} color="#0284C7" style={{ marginLeft: 3 }} />
+              </TouchableOpacity>
+              {item.is_vip ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+                    borderColor: '#F59E0B',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    paddingHorizontal: 5,
+                    paddingVertical: 1,
+                    gap: 2,
+                  }}
+                >
+                  <Ionicons name="ribbon" size={9} color={isDark ? '#FBBF24' : '#B45309'} />
+                  <Text style={{ fontSize: 9, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
+                    {item.guest_tier_code === 'DIAMOND' ? 'VIP KC' : 'VIP'}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
             <TouchableOpacity
               style={[
                 styles.quickPhoneBtn,
@@ -215,32 +238,6 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
                 {item.guest_phone ? item.guest_phone : 'Gọi khách'}
               </Text>
             </TouchableOpacity>
-
-            {/* Huy hiệu đã thanh toán */}
-            {item.is_paid ? (
-              <View style={[styles.paidBadge, !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
-                <Ionicons name="checkmark-circle" size={11} color="#059669" style={{ marginRight: 2 }} />
-                <Text style={styles.paidBadgeText}>Đã thu tiền</Text>
-              </View>
-            ) : null}
-
-            {/* Huy hiệu đơn cùng mâm (chỉ hiển thị cho món ăn/đồ uống F&B) */}
-            {getServiceCategoryType(item) === 'fnb' && sameRoomCount && sameRoomCount >= 2 ? (
-              <View
-                style={[
-                  styles.paidBadge,
-                  {
-                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
-                    borderColor: '#F59E0B',
-                  },
-                ]}
-              >
-                <Ionicons name="restaurant" size={11} color="#F59E0B" style={{ marginRight: 3 }} />
-                <Text style={[styles.paidBadgeText, { color: isDark ? '#FBBF24' : '#B45309' }]}>
-                  Cùng mâm ({sameRoomCount} món)
-                </Text>
-              </View>
-            ) : null}
           </View>
         </View>
       </View>

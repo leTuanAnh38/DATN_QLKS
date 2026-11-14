@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const passwordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
 
   // Modal cấu hình IP máy chủ
   const [modalVisible, setModalVisible] = useState(false);
@@ -152,6 +153,8 @@ export default function LoginScreen() {
                   onChangeText={setUsername}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
                 />
                 {username.trim().length > 0 && (
                   <TouchableOpacity
@@ -162,6 +165,7 @@ export default function LoginScreen() {
                     style={styles.clearButton}
                     activeOpacity={0.7}
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    accessibilityLabel="Xóa tên đăng nhập"
                   >
                     <Ionicons name="close-circle" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
                   </TouchableOpacity>
@@ -175,6 +179,7 @@ export default function LoginScreen() {
               <View style={[styles.inputWrapper, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' }]}>
                 <Ionicons name="lock-closed-outline" size={18} color={isDark ? "#94A3B8" : "#64748B"} style={styles.inputIcon} />
                 <TextInput
+                  ref={passwordInputRef}
                   style={[styles.input, { flex: 1 }, !isDark && { color: '#0F172A' }]}
                   placeholder="Nhập mật khẩu..."
                   placeholderTextColor={isDark ? "#475569" : "#94A3B8"}
@@ -182,11 +187,14 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeButton}
                   activeOpacity={0.7}
+                  accessibilityLabel={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -260,7 +268,12 @@ export default function LoginScreen() {
       </KeyboardAvoidingView>
 
       {/* Modal Cấu hình IP Máy chủ */}
-      <Modal visible={modalVisible} transparent animationType="fade">
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={[styles.modalOverlay, !isDark && { backgroundColor: 'rgba(15, 23, 42, 0.45)' }]}>
           <View style={[styles.modalContent, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', shadowColor: '#64748B' }]}>
             <View style={styles.modalHeader}>

@@ -14,6 +14,7 @@ import { styles } from './styles';
 import { getStatusConfig } from './RoomCard';
 import type { RoomItem } from './types';
 import { useAppTheme } from '../../contexts/ThemeContext';
+import { safeOpenUrl } from '../../utils/linking';
 
 interface RoomDetailModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ interface RoomDetailModalProps {
   isTechnician: boolean;
   isManagerOrAdmin: boolean;
   onToggleCleaning: (room: RoomItem) => void;
+  onCompleteMakeUp?: (room: RoomItem) => void;
   onOpenMinibar: (room: RoomItem) => void;
   onOpenLostFound: (room: RoomItem) => void;
   onOpenBreakdown: (room: RoomItem) => void;
@@ -47,6 +49,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   isTechnician,
   isManagerOrAdmin,
   onToggleCleaning,
+  onCompleteMakeUp,
   onOpenMinibar,
   onOpenLostFound,
   onOpenBreakdown,
@@ -60,7 +63,9 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
 
   const { isDark } = useAppTheme();
   const config = getStatusConfig(room.status, isDark);
-  const bk = room.current_booking || room.recent_booking;
+  // Phòng trống đã dọn sạch không hiển thị lại khách đã check-out trước đó
+  const bk = room.status === 'available' ? null : (room.current_booking || room.recent_booking);
+  const hasCurrentGuest = Boolean(room.current_booking);
   const hasGuest = Boolean(bk);
   const isInspectReq = hasGuest && room.latest_minibar_check?.status === 'requested';
 
@@ -164,7 +169,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       <Text style={[styles.detailLabel, !isDark && { color: '#64748B' }]}>Số điện thoại:</Text>
                       <TouchableOpacity
                         style={{ flexDirection: 'row', alignItems: 'center' }}
-                        onPress={() => Linking.openURL(`tel:${bk.guest_phone}`)}
+                        onPress={() => safeOpenUrl(`tel:${bk.guest_phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
                       >
                         <Ionicons name="call" size={13} color="#059669" style={{ marginRight: 4 }} />
                         <Text style={[styles.detailValueBold, { color: '#059669' }]}>
@@ -309,10 +314,16 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                   </View>
                 )}
                 <View style={styles.detailActionsGrid}>
-                  {/* 1. Nút Đổi trạng thái Dọn phòng: CHỈ HIỆN khi phòng đang 'cleaning' hoặc 'available' */}
+                  {/* 1. Nút Đổi trạng thái Dọn phòng: phòng 'cleaning' hoặc 'available' */}
                   {canMarkCleaned && (room.status === 'cleaning' || room.status === 'available') && (
                     <TouchableOpacity
-                      style={[styles.detailActionBtn, { backgroundColor: config.actionBg }]}
+                      style={[
+                        styles.detailActionBtn,
+                        {
+                          backgroundColor:
+                            room.status === 'cleaning' && hasCurrentGuest ? '#0284C7' : config.actionBg,
+                        },
+                      ]}
                       onPress={() => {
                         onClose();
                         onToggleCleaning(room);
@@ -325,10 +336,31 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                         style={{ marginRight: 6 }}
                       />
                       <Text style={[styles.detailActionBtnText, { color: config.actionColor }]}>
-                        {config.actionText}
+                        {room.status === 'cleaning' && hasCurrentGuest
+                          ? 'Dọn xong (Khách ở tiếp)'
+                          : config.actionText}
                       </Text>
                     </TouchableOpacity>
                   )}
+
+                  {/* 1b. Nút Hoàn tất dọn phòng khách đang ở khi có yêu cầu dọn */}
+                  {canMarkCleaned &&
+                    room.status === 'occupied' &&
+                    room.is_cleaning_requested &&
+                    onCompleteMakeUp && (
+                      <TouchableOpacity
+                        style={[styles.detailActionBtn, { backgroundColor: '#0284C7' }]}
+                        onPress={() => {
+                          onClose();
+                          onCompleteMakeUp(room);
+                        }}
+                      >
+                        <Ionicons name="sparkles" size={17} color="#FFFFFF" style={{ marginRight: 6 }} />
+                        <Text style={[styles.detailActionBtnText, { color: '#FFFFFF' }]}>
+                          Đã dọn xong phòng khách ở
+                        </Text>
+                      </TouchableOpacity>
+                    )}
 
                   {/* 2. Kiểm Minibar: CHỈ khi phòng có khách (occupied) hoặc vừa trả phòng đang dọn (cleaning) VÀ có khách */}
                   {canAccessMinibar && hasGuest && (room.status === 'occupied' || room.status === 'cleaning') && (

@@ -125,8 +125,21 @@ function RoomCard({
   const hasGuest = Boolean(currentBk || recentBk);
   const activeBk = isOccupied ? (currentBk || recentBk) : (recentBk || currentBk);
   const isVipGuest = Boolean(activeBk?.is_vip);
-  const vipTierCode = activeBk?.guest_tier_code;
-  const vipBadgeLabel = vipTierCode === 'DIAMOND' ? 'VIP KIM CƯƠNG' : 'VIP VÀNG';
+  const isDiamondVip = activeBk?.guest_tier_code === 'DIAMOND';
+  const vipBadgeLabel = isDiamondVip ? 'VIP KC' : 'VIP VÀNG';
+  const vipColors = isDiamondVip
+    ? {
+        bg: isDark ? 'rgba(56, 189, 248, 0.2)' : '#E0F2FE',
+        border: isDark ? '#38BDF8' : '#0284C7',
+        text: isDark ? '#7DD3FC' : '#0369A1',
+        icon: 'diamond' as const,
+      }
+    : {
+        bg: isDark ? 'rgba(245, 158, 11, 0.2)' : '#FEF3C7',
+        border: '#F59E0B',
+        text: isDark ? '#FBBF24' : '#B45309',
+        icon: 'ribbon' as const,
+      };
   const guestName = isOccupied
     ? (currentBk?.guest_name || recentBk?.guest_name)
     : isCleaning
@@ -228,34 +241,32 @@ function RoomCard({
       {/* Hàng 3: Khối thông tin khách hàng / Sự cố theo chuẩn PMS Web */}
       {isOccupied ? (
         <View style={[styles.guestInfoCardOccupied, !isDark && { backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.22)' }]}>
-          <View style={styles.guestNameRow}>
-            <Ionicons name="person" size={11} color={!isDark ? '#2563EB' : '#60A5FA'} style={{ marginRight: 4 }} />
+          <View style={[styles.guestNameRow, { gap: 4 }]}>
+            <Ionicons name="person" size={11} color={!isDark ? '#2563EB' : '#60A5FA'} />
             <Text style={[styles.guestNameText, !isDark && { color: '#1D4ED8' }]} numberOfLines={1}>
               {guestName || 'Khách lưu trú'}
             </Text>
+            {isVipGuest && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: vipColors.bg,
+                  borderColor: vipColors.border,
+                  borderWidth: 1,
+                  borderRadius: 5,
+                  paddingHorizontal: 4,
+                  paddingVertical: 1,
+                  gap: 2,
+                }}
+              >
+                <Ionicons name={vipColors.icon} size={8.5} color={vipColors.text} />
+                <Text style={{ fontSize: 8.5, fontWeight: '900', color: vipColors.text }}>
+                  {vipBadgeLabel}
+                </Text>
+              </View>
+            )}
           </View>
-          {isVipGuest && (
-            <View
-              style={{
-                alignSelf: 'flex-start',
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: vipTierCode === 'DIAMOND' ? 'rgba(245, 158, 11, 0.22)' : 'rgba(245, 158, 11, 0.14)',
-                borderColor: '#F59E0B',
-                borderWidth: 1,
-                borderRadius: 6,
-                paddingHorizontal: 6,
-                paddingVertical: 1.5,
-                marginBottom: 4,
-                gap: 3,
-              }}
-            >
-              <Ionicons name="ribbon" size={10} color={isDark ? '#FBBF24' : '#B45309'} />
-              <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
-                {vipBadgeLabel}
-              </Text>
-            </View>
-          )}
           <View style={styles.guestMetaRow}>
             {bookingCode ? (
               <Text style={[styles.bookingCodeBadge, !isDark && { color: '#2563EB' }]}>#{bookingCode}</Text>
@@ -299,9 +310,12 @@ function RoomCard({
               <Text style={[styles.bookingCodeCleaning, !isDark && { color: '#D97706' }]}>#{bookingCode}</Text>
             ) : <View />}
             {isVipGuest && (
-              <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDark ? '#FBBF24' : '#B45309' }}>
-                {vipBadgeLabel}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Ionicons name={vipColors.icon} size={9} color={vipColors.text} />
+                <Text style={{ fontSize: 9, fontWeight: '900', color: vipColors.text }}>
+                  {vipBadgeLabel}
+                </Text>
+              </View>
             )}
           </View>
         </View>
@@ -342,68 +356,20 @@ function RoomCard({
         </View>
       )}
 
-      {/* Hàng 4: Dải thao tác nghiệp vụ tinh gọn & phân quyền chính xác */}
+      {/* Hàng 4: Dải thao tác tinh gọn 1 chạm (Thao tác phụ mở qua RoomDetailModal khi chạm thẻ) */}
       {isMaintenance ? (
         <View style={styles.cardToolBarSingle}>
           <View style={[styles.cardToolBtnSingle, { borderColor: 'rgba(239, 68, 68, 0.25)', backgroundColor: 'rgba(239, 68, 68, 0.08)' }]}>
-            <Ionicons name="time" size={12} color="#EF4444" />
+            <Ionicons name="time" size={13} color="#EF4444" />
             <Text style={[styles.cardToolBtnTextSingle, { color: '#EF4444' }]}>Kỹ thuật đang xử lý</Text>
           </View>
         </View>
-      ) : isAvailable ? (
-        /* PHÒNG SẠCH / TRỐNG: Chỉ hiển thị nút Báo hỏng thiết bị */
-        <View style={styles.cardToolBarSingle}>
-          <TouchableOpacity
-            style={[styles.cardToolBtnSingle, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-            onPress={() => onOpenBreakdown(item)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="construct" size={12} color="#EF4444" />
-            <Text style={[styles.cardToolBtnTextSingle, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
-          </TouchableOpacity>
-        </View>
       ) : isCleaning && canMarkCleaned ? (
-        /* BUỒNG PHÒNG ĐANG DỌN: Dọn xong 1 chạm + Hàng công cụ */
         <View style={styles.actionGroupCleaning}>
-          <View style={styles.cardToolBar}>
-            {hasGuest && (
-              <>
-                <TouchableOpacity
-                  style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-                  onPress={() => onOpenMinibar(item)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="wine" size={13} color="#F59E0B" />
-                  <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-                  onPress={() => onOpenLostFound(item)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="briefcase" size={13} color="#8B5CF6" />
-                  <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <TouchableOpacity
-              style={[
-                hasGuest ? styles.cardToolBtn : styles.cardToolBtnSingle,
-                !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
-              ]}
-              onPress={() => onOpenBreakdown(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="construct" size={13} color="#EF4444" />
-              <Text style={[hasGuest ? styles.cardToolBtnText : styles.cardToolBtnTextSingle, { color: '#EF4444' }]} numberOfLines={1}>
-                {hasGuest ? 'Báo hỏng' : 'Báo hỏng thiết bị'}
-              </Text>
-            </TouchableOpacity>
-          </View>
           <TouchableOpacity
             style={[
               styles.actionFullBtn,
-              { backgroundColor: hasCurrentGuest ? '#0284C7' : '#10B981' },
+              { backgroundColor: hasCurrentGuest ? '#0284C7' : '#10B981', minHeight: 36 },
               actionLoading && { opacity: 0.65 },
             ]}
             onPress={() => onToggleCleaning(item)}
@@ -413,96 +379,51 @@ function RoomCard({
             {actionLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]}>
-                {hasCurrentGuest ? 'Đã dọn xong (Khách ở tiếp)' : 'Đã dọn xong'}
+              <Text style={[styles.actionFullBtnText, { color: '#FFFFFF' }]} numberOfLines={1}>
+                {hasCurrentGuest ? 'Dọn xong (Khách ở tiếp)' : 'Đã dọn xong'}
               </Text>
             )}
           </TouchableOpacity>
         </View>
-      ) : isCleaning ? (
-        /* BUỒNG PHÒNG ĐANG DỌN (CHO NHÂN VIÊN CHỈ ĐƯỢC XEM HOẶC BÁO HỎNG) */
-        <View style={styles.cardToolBarSingle}>
-          <TouchableOpacity
-            style={[styles.cardToolBtnSingle, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-            onPress={() => onOpenBreakdown(item)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="construct" size={12} color="#EF4444" />
-            <Text style={[styles.cardToolBtnTextSingle, { color: '#EF4444' }]}>Báo hỏng thiết bị</Text>
-          </TouchableOpacity>
-        </View>
-      ) : canAccessMinibar ? (
-        /* BUỒNG PHÒNG (PHÒNG CÓ KHÁCH): 3 nút tiện ích chuẩn web + Nút Dọn phòng nếu khách yêu cầu */
-        <View>
-          <View style={styles.cardToolBar}>
-            <TouchableOpacity
-              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-              onPress={() => onOpenMinibar(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="wine" size={13} color="#F59E0B" />
-              <Text style={[styles.cardToolBtnText, { color: '#F59E0B' }]} numberOfLines={1}>Minibar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-              onPress={() => onOpenLostFound(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="briefcase" size={13} color="#8B5CF6" />
-              <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-              onPress={() => onOpenBreakdown(item)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="construct" size={13} color="#EF4444" />
-              <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]} numberOfLines={1}>Báo hỏng</Text>
-            </TouchableOpacity>
-          </View>
-          {item.is_cleaning_requested && (
-            <TouchableOpacity
-              style={[
-                styles.actionFullBtn,
-                { backgroundColor: '#0284C7', marginTop: 6 },
-                actionLoading && { opacity: 0.65 },
-              ]}
-              onPress={() => onCompleteMakeUp(item)}
-              disabled={actionLoading}
-              activeOpacity={0.8}
-            >
-              {actionLoading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="sparkles" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                  <Text style={[styles.actionFullBtnText, { color: '#FFFFFF', fontWeight: 'bold' }]}>
-                    Đã dọn xong phòng khách ở
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+      ) : canAccessMinibar && item.is_cleaning_requested ? (
+        <TouchableOpacity
+          style={[
+            styles.actionFullBtn,
+            { backgroundColor: '#0284C7', minHeight: 36 },
+            actionLoading && { opacity: 0.65 },
+          ]}
+          onPress={() => onCompleteMakeUp(item)}
+          disabled={actionLoading}
+          activeOpacity={0.8}
+        >
+          {actionLoading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="sparkles" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={[styles.actionFullBtnText, { color: '#FFFFFF', fontWeight: 'bold' }]} numberOfLines={1}>
+                Đã dọn xong phòng
+              </Text>
+            </>
           )}
-        </View>
+        </TouchableOpacity>
       ) : (
-        /* PHỤC VỤ (PHÒNG CÓ KHÁCH / ĐANG DỌN): 2 Nút Báo đồ quên & Báo hỏng */
-        <View style={styles.cardToolBar}>
-          <TouchableOpacity
-            style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-            onPress={() => onOpenLostFound(item)}
-            activeOpacity={0.7}
+        <View style={styles.cardToolBarSingle}>
+          <View
+            style={[
+              styles.cardToolBtnSingle,
+              !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
+            ]}
           >
-            <Ionicons name="briefcase" size={13} color="#8B5CF6" />
-            <Text style={[styles.cardToolBtnText, { color: '#8B5CF6' }]} numberOfLines={1}>Đồ quên</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.cardToolBtn, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }]}
-            onPress={() => onOpenBreakdown(item)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="construct" size={13} color="#EF4444" />
-            <Text style={[styles.cardToolBtnText, { color: '#EF4444' }]} numberOfLines={1}>Báo hỏng</Text>
-          </TouchableOpacity>
+            <Ionicons
+              name={isAvailable ? 'construct-outline' : 'apps-outline'}
+              size={13}
+              color={isDark ? '#94A3B8' : '#64748B'}
+            />
+            <Text style={[styles.cardToolBtnTextSingle, { color: isDark ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>
+              {isAvailable ? 'Chạm để báo hỏng' : 'Chạm để thao tác'}
+            </Text>
+          </View>
         </View>
       )}
     </TouchableOpacity>
