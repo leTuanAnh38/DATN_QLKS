@@ -1520,7 +1520,7 @@ export default function Checkout() {
                                         </div>
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <h2 className="font-serif font-bold text-lg sm:text-xl text-slate-900 tracking-tight truncate">
+                                                <h2 className="font-serif font-bold text-lg sm:text-xl text-slate-900 tracking-tight leading-snug">
                                                     Nâng tầm kỳ nghỉ - Dịch vụ gợi ý đi kèm
                                                 </h2>
                                                 <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
@@ -1822,7 +1822,7 @@ export default function Checkout() {
                                         <button
                                             type="button"
                                             onClick={handleRemovePromo}
-                                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-xs font-bold border border-rose-200 transition cursor-pointer"
+                                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 text-xs font-bold border border-rose-200 transition cursor-pointer whitespace-nowrap shrink-0"
                                         >
                                             Hủy bỏ
                                         </button>

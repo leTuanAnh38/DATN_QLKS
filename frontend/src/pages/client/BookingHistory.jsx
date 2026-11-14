@@ -1025,8 +1025,8 @@ export default function BookingHistory() {
 
                                                     <span className="hidden sm:inline text-slate-300">•</span>
 
-                                                    <span className="text-xs text-slate-400 hidden sm:inline flex items-center gap-1">
-                                                        <Clock className="w-3 h-3 text-slate-400" />
+                                                    <span className="text-xs text-slate-400 hidden sm:inline-flex items-center gap-1 whitespace-nowrap">
+                                                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                                                         <span>Đặt lúc: {formatDateTimeDisplay(booking.created_at)}</span>
                                                     </span>
                                                 </div>

@@ -96,11 +96,11 @@ export default function OrderSummarySidebar({
                 {/* BẢNG KÊ CHI TIẾT TỔNG TIỀN (ORDER SUMMARY) */}
                 <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
                     {/* 1. Tiền phòng gốc */}
-                    <div className="flex justify-between text-slate-700">
+                    <div className="flex justify-between gap-2 text-slate-700">
                         <span>
                             Tiền phòng ({pricePerNight.toLocaleString('vi-VN')} ₫ × {nights} đêm)
                         </span>
-                        <span className="font-bold text-slate-900">
+                        <span className="font-bold text-slate-900 whitespace-nowrap shrink-0">
                             {subtotal.toLocaleString('vi-VN')} VND
                         </span>
                     </div>
@@ -135,9 +135,9 @@ export default function OrderSummarySidebar({
 
                     {/* 3. Chiết khấu hạng thành viên */}
                     {tierDiscountAmount > 0 && (
-                        <div className="flex justify-between text-emerald-600 font-semibold">
+                        <div className="flex justify-between gap-2 text-emerald-600 font-semibold">
                             <span>Chiết khấu hạng {userTier?.name} ({tierDiscountPercent}%)</span>
-                            <span>-{tierDiscountAmount.toLocaleString('vi-VN')} VND</span>
+                            <span className="whitespace-nowrap shrink-0">-{tierDiscountAmount.toLocaleString('vi-VN')} VND</span>
                         </div>
                     )}
 

@@ -227,7 +227,7 @@ export default function TADaNangHotelLanding() {
                 onTouchStart={handleBannerTouchStart}
                 onTouchMove={handleBannerTouchMove}
                 onTouchEnd={handleBannerTouchEnd}
-                className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
+                className="relative w-full min-h-[340px] sm:min-h-[440px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
             >
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
                 {bannerImages.map((b, idx) => (
@@ -253,7 +253,7 @@ export default function TADaNangHotelLanding() {
                 <div className="absolute inset-0 bg-black/25 bg-gradient-to-t from-slate-950/70 via-black/15 to-transparent z-1" />
 
                 {/* Hero Content nổi bật trên cùng (relative z-10) */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-12">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-8 pb-14 sm:py-12">
                     <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4 drop-shadow-md transition-all duration-700">
                         {bannerImages[currentBanner].title} <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300">
@@ -481,9 +481,9 @@ export default function TADaNangHotelLanding() {
             <FeaturedServices />
 
             {/* 7. TIN TỨC & CẨM NANG NGHỈ DƯỠNG MỚI NHẤT */}
-            <section id="tin-tuc" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section id="tin-tuc" className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Tiêu đề */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-5 sm:gap-6">
                     <div>
                         <div className="text-xs uppercase font-bold tracking-widest text-amber-700 mb-2 flex items-center gap-1.5">
                             <Newspaper className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -584,14 +584,14 @@ export default function TADaNangHotelLanding() {
                                 </div>
 
                                 {/* Footer thẻ */}
-                                <div className="px-6 pb-6 pt-3 flex items-center justify-between border-t border-slate-100 text-xs">
-                                    <span className="text-xs text-slate-500 font-semibold truncate max-w-[140px] flex items-center gap-1">
-                                        <PenLine className="w-3 h-3 text-slate-400" />
-                                        {post.author || 'Ban Biên Tập'}
+                                <div className="px-6 pb-6 pt-3 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
+                                    <span className="text-xs text-slate-500 font-semibold flex items-center gap-1 min-w-0 max-w-[160px]">
+                                        <PenLine className="w-3 h-3 text-slate-400 shrink-0" />
+                                        <span className="truncate">{post.author || 'Ban Biên Tập'}</span>
                                     </span>
                                     <Link
                                         to={`/news/${post.slug || post.id}`}
-                                        className="font-bold text-amber-700 group-hover:text-amber-800 transition flex items-center gap-1.5"
+                                        className="font-bold text-amber-700 group-hover:text-amber-800 transition flex items-center gap-1.5 whitespace-nowrap shrink-0"
                                     >
                                         <span>Chi tiết</span>
                                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
