@@ -1430,23 +1430,25 @@ export default function BookingHistory() {
                                                                 const isDamage = cleanName.toLowerCase().includes('bồi thường');
                                                                 const srvTotal = Number(srv.total_price != null ? srv.total_price : (srv.price * (srv.quantity || 1)));
                                                                 return (
-                                                                    <div key={srv.id || idx} className={`py-1.5 flex items-center justify-between gap-2 ${isDamage ? 'text-rose-900 font-medium' : 'text-slate-700'}`}>
-                                                                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 flex-wrap">
-                                                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isDamage ? 'bg-rose-500' : (isFullyCoveredByCompany ? 'bg-indigo-500' : 'bg-amber-500')}`}></span>
-                                                                            {isDamage && (
-                                                                                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1 shrink-0">
-                                                                                    <AlertCircle className="w-3 h-3 text-rose-600" />
-                                                                                    <span>Bồi thường</span>
-                                                                                </span>
-                                                                            )}
-                                                                            <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
-                                                                            <span className="text-slate-400 text-[11px] shrink-0">(x{srv.quantity || 1})</span>
-                                                                            {isFullyCoveredByCompany && srvTotal > 0 && (
-                                                                                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1 shrink-0">
-                                                                                    <Check className="w-2.5 h-2.5 text-emerald-600" />
-                                                                                    <span>Công ty chi trả</span>
-                                                                                </span>
-                                                                            )}
+                                                                    <div key={srv.id || idx} className={`py-1.5 flex items-start justify-between gap-2.5 ${isDamage ? 'text-rose-900 font-medium' : 'text-slate-700'}`}>
+                                                                        <div className="flex items-start gap-2 min-w-0 flex-1">
+                                                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${isDamage ? 'bg-rose-500' : (isFullyCoveredByCompany ? 'bg-indigo-500' : 'bg-amber-500')}`}></span>
+                                                                            <div className="min-w-0 flex-1 leading-snug">
+                                                                                {isDamage && (
+                                                                                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center gap-1 mr-1.5 align-middle">
+                                                                                        <AlertCircle className="w-3 h-3 text-rose-600" />
+                                                                                        <span>Bồi thường</span>
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className={`font-semibold ${isDamage ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</span>
+                                                                                <span className="text-slate-400 text-[11px] ml-1 whitespace-nowrap">(x{srv.quantity || 1})</span>
+                                                                                {isFullyCoveredByCompany && srvTotal > 0 && (
+                                                                                    <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1 ml-1.5 align-middle">
+                                                                                        <Check className="w-2.5 h-2.5 text-emerald-600" />
+                                                                                        <span>Công ty chi trả</span>
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
                                                                         </div>
                                                                         <span className={`font-bold whitespace-nowrap shrink-0 ${isDamage ? 'text-rose-700' : (srvTotal > 0 ? (isFullyCoveredByCompany ? 'text-indigo-800' : 'text-slate-800') : 'text-emerald-700')}`}>
                                                                             {srvTotal > 0 ? `${srvTotal.toLocaleString('vi-VN')} VND` : 'Miễn phí'}

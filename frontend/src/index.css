@@ -264,3 +264,14 @@ input[type="date"]::-webkit-datetime-edit {
   margin: 0;
 }
 
+/* Chống iOS Safari tự động zoom khi chạm vào ô input / select / textarea nhỏ hơn 16px */
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):not([type="range"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
