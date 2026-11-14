@@ -1905,12 +1905,12 @@ export default function Checkout() {
                                             onChange={() => setPaymentMethod('reception')}
                                             className="mt-1 text-amber-600 accent-amber-600 cursor-pointer"
                                         />
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start sm:items-center justify-between gap-2">
                                                 <strong className="text-xs sm:text-sm font-bold text-slate-900 block">
                                                     Thanh toán trực tiếp tại quầy Lễ tân (Khi nhận phòng)
                                                 </strong>
-                                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase">
+                                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase whitespace-nowrap shrink-0">
                                                     Khuyên dùng
                                                 </span>
                                             </div>
@@ -1935,12 +1935,12 @@ export default function Checkout() {
                                             onChange={() => setPaymentMethod('vietqr')}
                                             className="mt-1 text-amber-600 accent-amber-600 cursor-pointer"
                                         />
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start sm:items-center justify-between gap-2">
                                                 <strong className="text-xs sm:text-sm font-bold text-slate-900 block">
                                                     Chuyển khoản VietQR tức thì (Tự động xác nhận)
                                                 </strong>
-                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 whitespace-nowrap shrink-0">
                                                     Miễn phí 24/7
                                                 </span>
                                             </div>
