@@ -51,7 +51,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
     // Trạng thái Modal Quyết toán đoàn (Master Folio Settlement)
     const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
-    const [settlementPaymentMethod, setSettlementPaymentMethod] = useState('transfer'); // 'transfer' | 'cash'
+    const [settlementPaymentMethod, setSettlementPaymentMethod] = useState('transfer'); // 'transfer' | 'cash' | 'credit_card'
     const [isCompanyInvoice, setIsCompanyInvoice] = useState(
         Boolean(groupData?.corporate_partner_details || groupData?.corporate_partner || groupData?.company_name)
     );
@@ -1706,7 +1706,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
                                         Phương thức thanh toán 50% còn lại
                                     </label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <button
                                             type="button"
                                             onClick={() => setSettlementPaymentMethod('transfer')}
@@ -1720,6 +1720,22 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             <div>
                                                 <div className="text-xs font-bold text-slate-900">Chuyển khoản VietQR</div>
                                                 <div className="text-[10px] text-slate-500">Mã QR động tự điền số tiền</div>
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setSettlementPaymentMethod('credit_card')}
+                                            className={`p-3 rounded-2xl border text-left transition flex items-center gap-3 cursor-pointer ${
+                                                settlementPaymentMethod === 'credit_card'
+                                                    ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
+                                                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                                            }`}
+                                        >
+                                            <CreditCard className="w-5 h-5 text-purple-600 shrink-0" />
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-900">Quẹt thẻ POS</div>
+                                                <div className="text-[10px] text-slate-500">Visa / Mastercard / ATM tại quầy</div>
                                             </div>
                                         </button>
 
@@ -1739,6 +1755,18 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                             </div>
                                         </button>
                                     </div>
+
+                                    {settlementPaymentMethod === 'credit_card' && (
+                                        <div className="p-3.5 bg-purple-50/60 rounded-2xl border border-purple-200 text-xs text-purple-900 flex items-center gap-3">
+                                            <CreditCard className="w-5 h-5 text-purple-600 shrink-0" />
+                                            <div>
+                                                <div className="font-bold">Thanh toán qua máy quẹt thẻ POS tại quầy</div>
+                                                <div className="text-[11px] text-purple-800/80">
+                                                    Số tiền cần quẹt: <strong className="text-rose-600">{formatCurrency(remainingSettlementBalance)}</strong>. Giao dịch sẽ được ghi nhận vào cột Thẻ POS trong Báo cáo Kết ca (Z-Report).
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* VIETQR CARD HIỂN THỊ KHI CHỌN CHUYỂN KHOẢN */}
                                     {settlementPaymentMethod === 'transfer' && groupQrUrl && (

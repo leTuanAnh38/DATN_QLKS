@@ -42,6 +42,44 @@ import OpenShiftModal from '../../../components/admin/modals/shift/OpenShiftModa
 import CloseShiftModal from '../../../components/admin/modals/shift/CloseShiftModal';
 import ShiftZReportModal from '../../../components/admin/modals/shift/ShiftZReportModal';
 
+const normalizeMethodKey = (rawMethod) => {
+    const m = String(rawMethod || '').trim().toUpperCase();
+    if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER', 'MOMO', 'ZALOPAY'].includes(m)) return 'TRANSFER';
+    if (['CREDIT_CARD', 'CARD', 'POS', 'THE_TIN_DUNG'].includes(m)) return 'CREDIT_CARD';
+    return 'CASH';
+};
+
+const renderMethodBadge = (rawMethod, compact = false) => {
+    const key = normalizeMethodKey(rawMethod);
+    const sizeCls = compact
+        ? 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold'
+        : 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0';
+    const iconCls = compact ? 'w-2.5 h-2.5 shrink-0' : 'w-3 h-3 shrink-0';
+
+    if (key === 'TRANSFER') {
+        return (
+            <span className={`${sizeCls} bg-blue-50 text-blue-700 border border-blue-200`}>
+                <QrCode className={`${iconCls} text-blue-600`} />
+                <span>VietQR</span>
+            </span>
+        );
+    }
+    if (key === 'CREDIT_CARD') {
+        return (
+            <span className={`${sizeCls} bg-purple-50 text-purple-700 border border-purple-200`}>
+                <CreditCard className={`${iconCls} text-purple-600`} />
+                <span>Quẹt thẻ POS</span>
+            </span>
+        );
+    }
+    return (
+        <span className={`${sizeCls} bg-amber-50 text-amber-700 border border-amber-200`}>
+            <Banknote className={`${iconCls} text-amber-600`} />
+            <span>Tiền mặt</span>
+        </span>
+    );
+};
+
 /**
  * Dữ liệu mẫu dự phòng (Mock data) khi Backend chưa có nhiều giao dịch
  */
@@ -370,7 +408,7 @@ export default function InvoiceManagement() {
 
             // Lọc theo Phương thức
             const matchMethod =
-                methodFilter === 'ALL' || item.payment_method === methodFilter;
+                methodFilter === 'ALL' || normalizeMethodKey(item.payment_method) === methodFilter;
 
             // Lọc theo Khoảng thời gian
             const matchDate = isDateInFilter(item.created_at, dateFilter, customStartDate, customEndDate);
@@ -507,7 +545,13 @@ export default function InvoiceManagement() {
                         : (p.booking_id ? `BK-${p.booking_id}` : '—')
                 );
                 const roomDisplay = p.room_number ? `Phòng ${p.room_number}` : (isGroup ? 'Đơn đặt đoàn' : '—');
-                const methodDisplay = (p.payment_method === 'TRANSFER' || p.payment_method === 'vietqr') ? 'VietQR / Chuyển khoản' : 'Tiền mặt';
+                const methodKey = normalizeMethodKey(p.payment_method);
+                const methodDisplay =
+                    methodKey === 'TRANSFER'
+                        ? 'VietQR / Chuyển khoản'
+                        : methodKey === 'CREDIT_CARD'
+                            ? 'Quẹt thẻ POS'
+                            : 'Tiền mặt';
                 const statusDisplay = p.payment_status === 'COMPLETED' ? 'Thành công' : (p.payment_status === 'PENDING' ? 'Chờ xử lý' : 'Thất bại');
                 const createdTime = formatDateTime(p.created_at);
 
@@ -565,7 +609,7 @@ export default function InvoiceManagement() {
                             </span>
                         </h1>
                         <p className="text-xs text-slate-500 mt-0.5">
-                            Theo dõi các giao dịch thanh toán VietQR, tiền mặt và xuất/in phiếu hóa đơn
+                            Theo dõi các giao dịch thanh toán VietQR, quẹt thẻ POS, tiền mặt và xuất/in phiếu hóa đơn
                         </p>
                     </div>
                 </div>
@@ -828,6 +872,7 @@ export default function InvoiceManagement() {
                             >
                                 <option value="ALL">Tất cả</option>
                                 <option value="TRANSFER">VietQR / Chuyển khoản</option>
+                                <option value="CREDIT_CARD">Quẹt thẻ POS</option>
                                 <option value="CASH">Tiền mặt</option>
                             </select>
                         </div>
@@ -926,11 +971,6 @@ export default function InvoiceManagement() {
                                     const isCompleted = payment.payment_status === 'COMPLETED';
                                     const isPending = payment.payment_status === 'PENDING';
                                     const isFailed = payment.payment_status === 'FAILED';
-
-                                    const isVietQR =
-                                        payment.payment_method === 'TRANSFER' ||
-                                        payment.payment_method === 'vietqr' ||
-                                        payment.payment_method === 'bank_transfer';
 
                                     return (
                                         <tr
@@ -1057,19 +1097,9 @@ export default function InvoiceManagement() {
                                                 </span>
                                             </td>
 
-                                            {/* 5. Hình thức (VietQR / Tiền mặt) */}
+                                            {/* 5. Hình thức (VietQR / Quẹt thẻ POS / Tiền mặt) */}
                                             <td className="py-3.5 px-4 whitespace-nowrap">
-                                                {isVietQR ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap shrink-0">
-                                                        <QrCode className="w-3 h-3 text-blue-600 shrink-0" />
-                                                        <span>VietQR</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shrink-0">
-                                                        <Banknote className="w-3 h-3 text-amber-600 shrink-0" />
-                                                        <span>Tiền mặt</span>
-                                                    </span>
-                                                )}
+                                                {renderMethodBadge(payment.payment_method, false)}
                                             </td>
 
                                             {/* 6. Trạng thái */}
@@ -1120,7 +1150,7 @@ export default function InvoiceManagement() {
                                                             type="button"
                                                             onClick={() => {
                                                                 setConfirmingPayment(payment);
-                                                                setConfirmPaymentMethod(payment.payment_method || 'TRANSFER');
+                                                                setConfirmPaymentMethod(normalizeMethodKey(payment.payment_method || 'TRANSFER'));
                                                                 setConfirmNote('');
                                                             }}
                                                             className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shadow-emerald-600/20 transition cursor-pointer active:scale-95"
@@ -1189,11 +1219,6 @@ export default function InvoiceManagement() {
                             const isCompleted = payment.payment_status === 'COMPLETED';
                             const isPending = payment.payment_status === 'PENDING';
                             const isFailed = payment.payment_status === 'FAILED';
-
-                            const isVietQR =
-                                payment.payment_method === 'TRANSFER' ||
-                                payment.payment_method === 'vietqr' ||
-                                payment.payment_method === 'bank_transfer';
 
                             const isGroupOrCorp = Boolean(
                                 payment.is_group || 
@@ -1311,17 +1336,7 @@ export default function InvoiceManagement() {
 
                                         <div className="text-right space-y-1">
                                             <div>
-                                                {isVietQR ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                        <QrCode className="w-2.5 h-2.5 text-blue-600" />
-                                                        <span>VietQR</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                        <Banknote className="w-2.5 h-2.5 text-amber-600" />
-                                                        <span>Tiền mặt</span>
-                                                    </span>
-                                                )}
+                                                {renderMethodBadge(payment.payment_method, true)}
                                             </div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-1 justify-end font-medium">
                                                 <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
@@ -1337,7 +1352,7 @@ export default function InvoiceManagement() {
                                                 type="button"
                                                 onClick={() => {
                                                     setConfirmingPayment(payment);
-                                                    setConfirmPaymentMethod(payment.payment_method || 'TRANSFER');
+                                                    setConfirmPaymentMethod(normalizeMethodKey(payment.payment_method || 'TRANSFER'));
                                                     setConfirmNote('');
                                                 }}
                                                 className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
@@ -1471,7 +1486,7 @@ export default function InvoiceManagement() {
                                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                     Hình thức tiền đã vào quỹ / tài khoản
                                 </label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setConfirmPaymentMethod('TRANSFER')}
@@ -1481,8 +1496,20 @@ export default function InvoiceManagement() {
                                                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                         }`}
                                     >
-                                        <CreditCard className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                        <QrCode className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                         <span>Đã chuyển VietQR</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setConfirmPaymentMethod('CREDIT_CARD')}
+                                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer text-xs font-semibold flex items-center justify-center gap-1.5 ${
+                                            confirmPaymentMethod === 'CREDIT_CARD'
+                                                ? 'bg-purple-50 border-purple-400 text-purple-900 font-bold'
+                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <CreditCard className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                        <span>Đã quẹt thẻ POS</span>
                                     </button>
                                     <button
                                         type="button"
@@ -1588,9 +1615,9 @@ export default function InvoiceManagement() {
                                 total_amount: selectedPayment.booking_details?.total_amount,
                                 room_amount: selectedPayment.booking_details?.room_amount || selectedPayment.booking_details?.total_amount,
                                 payment_method: selectedPayment.payment_method ? (
-                                    selectedPayment.payment_method === 'TRANSFER' ? 'Chuyển khoản VietQR' :
-                                    selectedPayment.payment_method === 'CASH' ? 'Tiền mặt (Tại quầy lễ tân)' :
-                                    'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'
+                                    normalizeMethodKey(selectedPayment.payment_method) === 'TRANSFER' ? 'Chuyển khoản VietQR' :
+                                    normalizeMethodKey(selectedPayment.payment_method) === 'CREDIT_CARD' ? 'Quẹt thẻ POS / Tín dụng' :
+                                    'Tiền mặt (Tại quầy lễ tân)'
                                 ) : 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'
                             }
                             : (selectedPayment.booking_details || selectedPayment.booking || {

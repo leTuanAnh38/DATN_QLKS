@@ -964,15 +964,16 @@ class BookingFrontDeskMixin:
             invoice_recipient_email = str(request.data.get('invoice_recipient_email') or '').strip() or None
 
             # 2. Tạo hoặc cập nhật bản ghi Invoice lưu tổng số tiền & thông tin VAT công ty
-            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            from ...payments.methods import normalize_payment_method_code, normalize_invoice_payment_method
+            method_code = normalize_payment_method_code(payment_method)
 
             # Kiểm tra xem đơn đã có đợt thanh toán trước đó với phương thức khác hay không (Thanh toán hỗn hợp)
-            inv_payment_method = payment_method
+            inv_payment_method = normalize_invoice_payment_method(method_code)
             if hasattr(booking, 'payments') and booking.payments.filter(payment_status='COMPLETED').exists():
-                prior_methods = set()
-                for p in booking.payments.filter(payment_status='COMPLETED'):
-                    pm = 'TRANSFER' if str(p.payment_method).upper() in ['TRANSFER', 'VIETQR', 'BANK_TRANSFER'] else 'CASH'
-                    prior_methods.add(pm)
+                prior_methods = {
+                    normalize_payment_method_code(p.payment_method)
+                    for p in booking.payments.filter(payment_status='COMPLETED')
+                }
                 if remaining_amount > 0 and (method_code not in prior_methods or len(prior_methods) > 1):
                     inv_payment_method = 'mixed'
                 elif len(prior_methods) > 1:

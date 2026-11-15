@@ -13,21 +13,8 @@ from ...users.models import log_action
 from ...users.views import check_role_permission
 from ..models import Payment, Invoice, PaymentConfig, CashierShift
 from ..serializers import PaymentSerializer, PaymentListSerializer, PaymentConfigSerializer
+from ..methods import normalize_payment_method_code, normalize_invoice_payment_method as _map_invoice_payment_method
 from .permissions import IsAdminOrOwnerUser
-
-
-def _map_invoice_payment_method(raw_method):
-    """Chuẩn hóa mã phương thức thanh toán từ Payment sang Invoice.METHOD_CHOICES."""
-    m = str(raw_method or 'TRANSFER').upper()
-    if m == 'CASH':
-        return 'cash'
-    if m in ('CARD', 'CREDIT_CARD', 'POS'):
-        return 'credit_card'
-    if m in ('MOMO', 'ZALOPAY'):
-        return 'momo'
-    if m == 'MIXED':
-        return 'mixed'
-    return 'bank_transfer'
 
 
 class ConfirmPaymentView(APIView):
@@ -542,7 +529,7 @@ class PaymentListView(APIView):
 
             new_payments = []
             for inv in missing_invoices:
-                method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+                method_code = normalize_payment_method_code(inv.payment_method)
                 status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if (inv.status in ['cancelled', 'refunded'] or (inv.booking and inv.booking.status in ['cancelled', 'no_show'])) else 'PENDING')
                 new_payments.append(Payment(
                     booking=inv.booking,
@@ -568,7 +555,12 @@ class PaymentListView(APIView):
 
             for b in paid_bookings:
                 note_lower = (b.note or '').lower()
-                method_code = 'TRANSFER' if ('vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower) else 'CASH'
+                if any(k in note_lower for k in ['pos', 'quẹt thẻ', 'credit_card', 'thẻ tín dụng']):
+                    method_code = 'CREDIT_CARD'
+                elif 'vietqr' in note_lower or 'chuyển khoản' in note_lower or 'transfer' in note_lower:
+                    method_code = 'TRANSFER'
+                else:
+                    method_code = 'CASH'
                 new_payments.append(Payment(
                     booking=b,
                     amount=b.total_amount or 0,

@@ -158,7 +158,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
 
     // Form thanh toán thu nốt phần remaining_balance khi click "Thu tiền & Check-in"
     const [showPaymentForm, setShowPaymentForm] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'transfer'
+    const [paymentMethod, setPaymentMethod] = useState('cash'); // 'cash' | 'transfer' | 'credit_card'
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
     // Cấu hình ngân hàng VietQR động
@@ -840,15 +840,26 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
         try {
             setIsProcessingPayment(true);
 
+            const apiMethod =
+                paymentMethod === 'transfer'
+                    ? 'TRANSFER'
+                    : paymentMethod === 'credit_card'
+                        ? 'CREDIT_CARD'
+                        : 'CASH';
             await paymentService.confirmPayment({
                 booking_id: booking.id,
                 amount: effectiveRemainingBalance,
-                payment_method: paymentMethod === 'transfer' ? 'TRANSFER' : 'CASH',
+                payment_method: apiMethod,
                 same_day_early_surcharge: sameDayEarlySurcharge,
                 early_checkin_surcharge: (isEarlyCheckIn && applyEarlyCharge) ? estimatedEarlyCharge : 0
             });
 
-            const methodLabel = paymentMethod === 'transfer' ? 'VietQR' : 'Tiền mặt';
+            const methodLabel =
+                paymentMethod === 'transfer'
+                    ? 'VietQR'
+                    : paymentMethod === 'credit_card'
+                        ? 'Quẹt thẻ POS'
+                        : 'Tiền mặt';
             await executeCheckIn(`[Đã thu đủ ${formatCurrency(effectiveRemainingBalance)} qua ${methodLabel} lúc Check-in]`);
         } catch (err) {
             console.error('Lỗi khi ghi nhận thanh toán Check-in:', err);
@@ -1064,7 +1075,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                             <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2">
                                 <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                                 <div className="leading-relaxed">
-                                    <strong>Trường hợp Post-paid:</strong> Khách còn nợ <strong>{formatCurrency(effectiveRemainingBalance)}</strong>. Bạn có thể thu ngay qua Tiền mặt/VietQR hoặc chọn <em>"Cho nợ & Check-in"</em> để thu khi Check-out.
+                                    <strong>Trường hợp Post-paid:</strong> Khách còn nợ <strong>{formatCurrency(effectiveRemainingBalance)}</strong>. Bạn có thể thu ngay qua Tiền mặt / VietQR / Quẹt thẻ POS hoặc chọn <em>"Cho nợ & Check-in"</em> để thu khi Check-out.
                                 </div>
                             </div>
                         )}
@@ -1728,7 +1739,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                             </div>
 
                             {/* CHỌN HÌNH THỨC THU TIỀN */}
-                            <div className="grid grid-cols-2 gap-2.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <button
                                     type="button"
                                     onClick={() => setPaymentMethod('cash')}
@@ -1764,7 +1775,40 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                                         <div className="text-[10px] text-slate-500">Quét mã chuyển nhanh</div>
                                     </div>
                                 </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('credit_card')}
+                                    className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex items-center gap-2.5 ${
+                                        paymentMethod === 'credit_card'
+                                            ? 'bg-purple-100/70 border-purple-500 ring-2 ring-purple-500/20 text-slate-900 shadow-2xs'
+                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200">
+                                        <CreditCard className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-xs">Quẹt thẻ POS</div>
+                                        <div className="text-[10px] text-slate-500">Visa / Master / ATM</div>
+                                    </div>
+                                </button>
                             </div>
+
+                            {/* KHU VỰC HIỂN THỊ POS */}
+                            {paymentMethod === 'credit_card' && (
+                                <div className="p-3 bg-white rounded-xl border border-purple-200 flex items-center gap-3 text-xs text-purple-950">
+                                    <div className="w-9 h-9 rounded-lg bg-purple-50 border border-purple-200 flex items-center justify-center shrink-0 text-purple-600">
+                                        <CreditCard className="w-4 h-4" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <div className="font-bold">Quẹt thẻ qua máy POS tại quầy lễ tân</div>
+                                        <div className="text-[11px] text-purple-800/80">
+                                            Số tiền cần quẹt: <strong className="text-rose-600 font-mono">{formatCurrency(effectiveRemainingBalance)}</strong>. Hãy giữ liên hóa đơn POS trước khi bấm xác nhận.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* KHU VỰC HIỂN THỊ VIETQR */}
                             {paymentMethod === 'transfer' && (
@@ -1799,7 +1843,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
                             )}
 
                             <p className="text-[10px] text-slate-500 italic">
-                                * Lễ tân vui lòng nhận tiền mặt hoặc đợi khách quét mã VietQR thành công, sau đó bấm nút <strong>"Xác nhận Đã thu & Check-in"</strong> để hoàn tất.
+                                * Lễ tân vui lòng nhận tiền mặt, quẹt thẻ POS hoặc đợi khách quét mã VietQR thành công, sau đó bấm nút <strong>"Xác nhận Đã thu & Check-in"</strong> để hoàn tất.
                             </p>
                         </div>
                     )}

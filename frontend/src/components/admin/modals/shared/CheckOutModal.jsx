@@ -120,7 +120,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     // Trạng thái xử lý thanh toán phần nợ remaining_balance
     const [isProcessingDebtPayment, setIsProcessingDebtPayment] = useState(false);
     const [isDebtPaid, setIsDebtPaid] = useState(false); // Đã giải quyết xong phần nợ chưa
-    const [paymentMethod, setPaymentMethod] = useState('bank_transfer'); // 'bank_transfer' | 'cash'
+    const [paymentMethod, setPaymentMethod] = useState('bank_transfer'); // 'bank_transfer' | 'cash' | 'credit_card'
 
     // Xử lý các dịch vụ chưa hoàn tất phục vụ (pending, in_progress, delivering)
     const [serviceActionLoading, setServiceActionLoading] = useState(null); // id of request or 'bulk'
@@ -774,10 +774,16 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             setIsProcessingDebtPayment(true);
 
             // Ghi nhận bản ghi thanh toán nốt phần nợ vào database
+            const apiMethod =
+                paymentMethod === 'bank_transfer'
+                    ? 'TRANSFER'
+                    : paymentMethod === 'credit_card'
+                        ? 'CREDIT_CARD'
+                        : 'CASH';
             await paymentService.confirmPayment({
                 booking_id: booking.id,
                 amount: currentRemainingBalance,
-                payment_method: paymentMethod === 'bank_transfer' ? 'TRANSFER' : 'CASH',
+                payment_method: apiMethod,
                 late_checkout_surcharge: lateChargeAmount
             });
 
@@ -1949,13 +1955,13 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 </div>
 
                                 <p className="text-[11px] text-slate-500">
-                                    Khách có phát sinh dịch vụ hoặc chưa thanh toán đủ tiền phòng. Vui lòng quét mã VietQR hoặc thu tiền mặt trước khi bấm hoàn tất Check-out.
+                                    Khách có phát sinh dịch vụ hoặc chưa thanh toán đủ tiền phòng. Vui lòng quét mã VietQR, quẹt thẻ POS hoặc thu tiền mặt trước khi bấm hoàn tất Check-out.
                                 </p>
 
                                 {/* Lựa chọn phương thức thu */}
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
                                     <label className="text-[11px] font-bold text-slate-700">Hình thức thanh toán:</label>
-                                    <div className="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+                                    <div className="inline-flex flex-wrap rounded-xl border border-slate-200 bg-slate-100 p-1 gap-1">
                                         <button
                                             type="button"
                                             onClick={() => setPaymentMethod('bank_transfer')}
@@ -1966,6 +1972,17 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                         >
                                             <QrCode className="w-3.5 h-3.5" />
                                             <span>Quét mã VietQR</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPaymentMethod('credit_card')}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${paymentMethod === 'credit_card'
+                                                    ? 'bg-white text-purple-700 shadow-xs'
+                                                    : 'text-slate-600 hover:text-slate-900'
+                                                }`}
+                                        >
+                                            <CreditCard className="w-3.5 h-3.5" />
+                                            <span>Quẹt thẻ POS</span>
                                         </button>
                                         <button
                                             type="button"
@@ -2073,6 +2090,40 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                                 <>
                                                     <Banknote className="w-4 h-4" />
                                                     <span>Xác nhận Đã thu tiền mặt</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* FORM QUẸT THẺ POS */}
+                                {paymentMethod === 'credit_card' && (
+                                    <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="font-bold text-purple-950 text-xs flex items-center gap-1.5">
+                                                <CreditCard className="w-4 h-4 text-purple-600" />
+                                                <span>Quẹt thẻ qua máy POS tại quầy lễ tân:</span>
+                                            </div>
+                                            <p className="text-[11px] text-purple-800/80">
+                                                Vui lòng quẹt thẻ Visa/Mastercard/ATM số tiền <strong className="text-rose-600">{formatCurrency(currentRemainingBalance)}</strong> trên máy POS và giữ liên hóa đơn trước khi xác nhận.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            disabled={isProcessingDebtPayment}
+                                            onClick={handleConfirmDebtPayment}
+                                            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 shrink-0"
+                                        >
+                                            {isProcessingDebtPayment ? (
+                                                <>
+                                                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    <span>Đang ghi nhận...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CreditCard className="w-4 h-4" />
+                                                    <span>Xác nhận Đã quẹt thẻ POS</span>
                                                 </>
                                             )}
                                         </button>

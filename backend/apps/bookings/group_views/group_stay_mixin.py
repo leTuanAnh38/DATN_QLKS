@@ -110,8 +110,10 @@ class GroupBookingStayMixin:
         with transaction.atomic():
             # Cập nhật hoặc tạo Master Invoice thanh toán toàn bộ cho đoàn
             from ...payments.models import Invoice, Payment, CashierShift
+            from ...payments.methods import normalize_payment_method_code, normalize_invoice_payment_method
             payment_method = request.data.get('payment_method', 'transfer')
-            method_code = 'TRANSFER' if str(payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
+            method_code = normalize_payment_method_code(payment_method)
+            inv_payment_method = normalize_invoice_payment_method(method_code)
             
             # Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE):
             # Tự động quét và gom toàn bộ phụ phí dịch vụ phát sinh chưa thanh toán của tất cả phòng con vào hóa đơn đoàn
@@ -195,7 +197,7 @@ class GroupBookingStayMixin:
                     service_charge=unpaid_incidental_services,
                     total_amount=total_contract,
                     status=inv_status,
-                    payment_method=payment_method,
+                    payment_method=inv_payment_method,
                     paid_at=inv_paid_at,
                     is_company_invoice=is_company_invoice,
                     company_name=comp_name,
@@ -208,7 +210,7 @@ class GroupBookingStayMixin:
                 master_inv.total_amount = total_contract
                 master_inv.status = inv_status
                 master_inv.paid_at = inv_paid_at
-                master_inv.payment_method = payment_method
+                master_inv.payment_method = inv_payment_method
                 if is_company_invoice:
                     master_inv.is_company_invoice = True
                     master_inv.company_name = comp_name

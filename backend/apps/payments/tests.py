@@ -7,8 +7,8 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from ..bookings.models import Booking
-from ..rooms.models import RoomCategory
-from .models import Invoice, CashOutVoucher
+from ..rooms.models import RoomCategory, Room
+from .models import Invoice, CashOutVoucher, Payment, CashierShift
 
 User = get_user_model()
 
@@ -172,3 +172,78 @@ class RevenueConsistencyTests(APITestCase):
             float(dash_rev['room_revenue']) + float(dash_rev['service_revenue']),
             float(dash_rev['total_revenue']),
         )
+
+
+class PosCardCheckoutTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='pos_admin',
+            email='posadmin@example.com',
+            password='Password123!',
+            role='admin',
+            is_superuser=True,
+        )
+        self.guest = User.objects.create_user(
+            username='pos_guest',
+            email='posguest@example.com',
+            password='Password123!',
+            role='guest',
+        )
+        self.cat = RoomCategory.objects.create(
+            name='POS Cat',
+            slug='pos-cat',
+            size=30.0,
+            bed_type='King',
+            capacity=2,
+            base_price=Decimal('1500000'),
+        )
+        self.room = Room.objects.create(
+            room_number='901',
+            category=self.cat,
+            floor=9,
+            status='occupied',
+        )
+        self.shift = CashierShift.objects.create(
+            user=self.admin,
+            shift_type='MORNING',
+            opening_cash=Decimal('1000000'),
+            status='OPEN',
+        )
+        today = timezone.localdate()
+        self.booking = Booking.objects.create(
+            guest=self.guest,
+            category=self.cat,
+            room=self.room,
+            check_in_date=today - timedelta(days=1),
+            check_out_date=today,
+            total_amount=Decimal('1500000'),
+            status='checked_in',
+        )
+
+    def test_checkout_credit_card_records_card_in_payment_invoice_and_shift(self):
+        self.client.force_authenticate(user=self.admin)
+
+        confirm_res = self.client.post('/api/payments/confirm/', {
+            'booking_id': self.booking.id,
+            'amount': '1500000',
+            'payment_method': 'CREDIT_CARD',
+        }, format='json')
+        self.assertEqual(confirm_res.status_code, 200)
+
+        checkout_res = self.client.post(f'/api/bookings/{self.booking.id}/check-out/', {
+            'payment_method': 'credit_card',
+            'confirm_settle': True,
+        }, format='json')
+        self.assertEqual(checkout_res.status_code, 200)
+
+        self.booking.refresh_from_db()
+        inv = Invoice.objects.get(booking=self.booking)
+        pay = Payment.objects.filter(booking=self.booking, payment_status='COMPLETED').first()
+
+        self.assertEqual(inv.payment_method, 'credit_card')
+        self.assertEqual(pay.payment_method, 'CREDIT_CARD')
+
+        shift_summary = self.shift.calculate_current_summary()
+        self.assertEqual(shift_summary['card_in'], 1500000.0)
+        self.assertEqual(shift_summary['transfer_in'], 0.0)
+        self.assertEqual(shift_summary['cash_in'], 0.0)
