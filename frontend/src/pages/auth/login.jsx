@@ -42,6 +42,46 @@ import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
 const resolveBannerUrl = (url) => resolveMediaUrl(url, '');
+const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+
+const ensureGoogleOAuthLoaded = () =>
+    new Promise((resolve, reject) => {
+        if (window.google?.accounts?.oauth2) {
+            resolve(window.google.accounts.oauth2);
+            return;
+        }
+        const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+        const checkReady = () => {
+            if (window.google?.accounts?.oauth2) {
+                resolve(window.google.accounts.oauth2);
+                return true;
+            }
+            return false;
+        };
+        if (existingScript) {
+            let elapsed = 0;
+            const timer = setInterval(() => {
+                if (checkReady()) {
+                    clearInterval(timer);
+                } else if ((elapsed += 100) >= 6000) {
+                    clearInterval(timer);
+                    reject(new Error('Không thể tải dịch vụ đăng nhập Google. Vui lòng thử lại.'));
+                }
+            }, 100);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+            if (!checkReady()) {
+                reject(new Error('Dịch vụ đăng nhập Google chưa sẵn sàng.'));
+            }
+        };
+        script.onerror = () => reject(new Error('Không thể kết nối tới Google Identity Services.'));
+        document.head.appendChild(script);
+    });
 
 export default function AuthBookingPage() {
     const navigate = useNavigate();
@@ -57,6 +97,7 @@ export default function AuthBookingPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
     const [toastNotice, setToastNotice] = useState(null);
@@ -158,6 +199,52 @@ export default function AuthBookingPage() {
         await authService.logout();
         setSuccessMessage('Đã đăng xuất tài khoản thành công.');
         setErrorMessage(null);
+    };
+
+    const handleGoogleLogin = async () => {
+        if (!GOOGLE_CLIENT_ID) {
+            setErrorMessage('Chức năng đăng nhập bằng Google chưa được cấu hình.');
+            return;
+        }
+        setErrorMessage(null);
+        setSuccessMessage(null);
+        setIsGoogleLoading(true);
+        try {
+            const oauth2 = await ensureGoogleOAuthLoaded();
+            const tokenClient = oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'openid email profile',
+                callback: async (tokenResponse) => {
+                    if (!tokenResponse?.access_token) {
+                        setIsGoogleLoading(false);
+                        setErrorMessage(tokenResponse?.error_description || 'Không nhận được xác thực từ Google.');
+                        return;
+                    }
+                    const result = await authService.googleLogin({ access_token: tokenResponse.access_token });
+                    setIsGoogleLoading(false);
+                    if (result.success) {
+                        const loggedInUser = result.data?.user;
+                        const isStaff = isStaffRole(loggedInUser);
+                        setSuccessMessage(result.data?.message || 'Đăng nhập bằng Google thành công!');
+                        setTimeout(() => {
+                            navigate(isStaff ? '/admin' : '/');
+                        }, 700);
+                    } else {
+                        setErrorMessage(result.message || 'Đăng nhập bằng Google thất bại. Vui lòng thử lại.');
+                    }
+                },
+                error_callback: (err) => {
+                    setIsGoogleLoading(false);
+                    if (err?.type === 'popup_failed_to_open') {
+                        setErrorMessage('Trình duyệt đã chặn cửa sổ bật lên của Google. Vui lòng cho phép popup và thử lại.');
+                    }
+                },
+            });
+            tokenClient.requestAccessToken({ prompt: 'select_account' });
+        } catch (err) {
+            setIsGoogleLoading(false);
+            setErrorMessage(err?.message || 'Không thể tải cổng đăng nhập Google. Vui lòng thử lại.');
+        }
     };
 
     return (
@@ -693,48 +780,37 @@ export default function AuthBookingPage() {
                                     </form>
                                 )}
 
-                                {/* ĐĂNG NHẬP NHANH VỚI BIỂU TƯỢNG SVG CHUẨN */}
-                                <div className="mt-7">
-                                    <div className="relative flex items-center justify-center mb-5">
-                                        <div className="border-t border-slate-200 w-full" />
-                                        <span className="bg-white px-3 text-[11px] text-slate-400 uppercase font-bold tracking-wider absolute">
-                                            Hoặc đăng nhập nhanh qua
-                                        </span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-2.5">
+                                {GOOGLE_CLIENT_ID && (
+                                    <div className="mt-6">
+                                        <div className="relative flex items-center justify-center mb-4">
+                                            <div className="border-t border-slate-200 w-full" />
+                                            <span className="bg-white px-3 text-[11px] text-slate-400 uppercase font-bold tracking-wider absolute">
+                                                Hoặc tiếp tục với
+                                            </span>
+                                        </div>
                                         <button
                                             type="button"
-                                            onClick={() => triggerNotice('Đang kết nối cổng xác thực an toàn Google One-Tap...', 'info')}
-                                            className="py-2.5 px-3 border border-slate-200 hover:border-amber-300 hover:bg-amber-50/30 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 bg-white transition shadow-xs cursor-pointer group"
+                                            onClick={handleGoogleLogin}
+                                            disabled={isLoading || isGoogleLoading}
+                                            className="w-full py-3 px-4 border border-slate-200 hover:border-amber-300 hover:bg-amber-50/40 rounded-xl flex items-center justify-center gap-2.5 text-xs sm:text-sm font-semibold text-slate-700 bg-white transition shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed group"
                                         >
-                                            <svg className="w-4 h-4 shrink-0 group-hover:scale-105 transition-transform" viewBox="0 0 24 24">
-                                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                                            </svg>
-                                            <span>Google</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => triggerNotice('Đang kết nối cổng bảo mật Apple ID...', 'info')}
-                                            className="py-2.5 px-3 border border-slate-200 hover:border-amber-300 hover:bg-amber-50/30 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 bg-white transition shadow-xs cursor-pointer group"
-                                        >
-                                            <svg className="w-4 h-4 fill-slate-900 shrink-0 group-hover:scale-105 transition-transform" viewBox="0 0 170 170">
-                                                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.6-7.7-11.71-13.97-5.55-8.48-9.87-18.06-12.96-28.74-3.09-10.68-4.64-21.08-4.64-31.2 0-14.57 3.69-26.69 11.08-36.37 7.39-9.68 16.89-14.61 28.5-14.79 4.35 0 9.27 1.09 14.75 3.28 5.48 2.19 9.38 3.38 11.71 3.57 1.95-.25 5.96-1.48 12.02-3.68 6.06-2.21 11.28-3.23 15.66-3.09 13.04.62 23.51 5.34 31.42 14.15-11.3 6.84-16.82 16.27-16.55 28.3.27 9.42 3.86 17.26 10.77 23.51 6.91 6.25 15.15 9.87 24.71 10.86-2.17 6.42-4.79 12.71-7.86 18.87zM119.22 31.84c0-7.23 2.62-13.93 7.86-20.1 5.24-6.17 11.74-10.08 19.5-11.74.54 3.91.46 7.69-.24 11.34-.7 3.65-2.07 7.15-4.11 10.51-4.08 6.53-9.97 10.4-17.67 11.62-.97-.54-2.18-.89-3.64-1.05-.98-.16-1.55-.35-1.7-.58z"/>
-                                            </svg>
-                                            <span>Apple ID</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => triggerNotice('Hệ thống đã gửi mã OTP xác nhận về số điện thoại của quý khách.', 'success')}
-                                            className="py-2.5 px-3 border border-slate-200 hover:border-amber-300 hover:bg-amber-50/30 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-700 bg-white transition shadow-xs cursor-pointer group"
-                                        >
-                                            <Phone className="w-4 h-4 text-emerald-600 shrink-0 group-hover:scale-105 transition-transform" />
-                                            <span>Mã OTP</span>
+                                            {isGoogleLoading ? (
+                                                <svg className="animate-spin h-4 w-4 text-sky-600 shrink-0" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-4 h-4 shrink-0 group-hover:scale-105 transition-transform" viewBox="0 0 24 24">
+                                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                                </svg>
+                                            )}
+                                            <span>{isGoogleLoading ? 'Đang xác thực với Google...' : 'Tiếp tục với Google'}</span>
                                         </button>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* CHÂN FORM: BẢO MẬT SSL & HOTLINE */}

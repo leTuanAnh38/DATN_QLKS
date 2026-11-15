@@ -309,7 +309,8 @@ SIMPLE_JWT = {
 }
 
 # ==========================================
-# SEPAY & GOOGLE GEMINI AI CONFIGURATION
+# SEPAY, GOOGLE GEMINI AI & GOOGLE OAUTH CONFIGURATION
 # ==========================================
 SEPAY_WEBHOOK_SECRET = os.environ.get('SEPAY_WEBHOOK_SECRET', '')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')

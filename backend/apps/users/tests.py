@@ -1,9 +1,11 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
+from .models import GuestProfile
 from .views.role_matrix import check_role_permission
 
 User = get_user_model()
@@ -73,3 +75,69 @@ class RBACPermissionTests(APITestCase):
         self.client.force_authenticate(user=self.manager)
         res_mgr = self.client.post('/api/promotions/', payload, format='json')
         self.assertIn(res_mgr.status_code, [200, 201])
+
+
+class GoogleLoginTests(APITestCase):
+    CLIENT_ID = 'test-client-id.apps.googleusercontent.com'
+
+    def _mock_response(self, status_code, payload):
+        resp = MagicMock()
+        resp.status_code = status_code
+        resp.json.return_value = payload
+        return resp
+
+    @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
+    def test_google_login_creates_new_guest_and_returns_tokens(self):
+        tokeninfo_resp = self._mock_response(200, {'aud': self.CLIENT_ID})
+        userinfo_resp = self._mock_response(200, {
+            'email': 'NewGuest@gmail.com',
+            'email_verified': True,
+            'name': 'Nguyễn Văn An',
+        })
+        with patch('apps.users.views.auth_views.requests.get', side_effect=[tokeninfo_resp, userinfo_resp]):
+            res = self.client.post('/api/auth/google-login/', {'access_token': 'fake-google-token'}, format='json')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data['success'])
+        self.assertTrue(res.data['is_new_user'])
+        self.assertIn('access', res.data['tokens'])
+        user = User.objects.get(email='newguest@gmail.com')
+        self.assertEqual(user.role, 'guest')
+        self.assertEqual(user.first_name, 'Nguyễn Văn')
+        self.assertEqual(user.last_name, 'An')
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(GuestProfile.objects.filter(user=user).exists())
+
+    @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
+    def test_google_login_blocks_staff_account(self):
+        User.objects.create_user(
+            username='staff_user',
+            email='staff@gmail.com',
+            password='Password123!',
+            role='receptionist',
+        )
+        tokeninfo_resp = self._mock_response(200, {'aud': self.CLIENT_ID})
+        userinfo_resp = self._mock_response(200, {
+            'email': 'staff@gmail.com',
+            'email_verified': True,
+            'name': 'Staff Member',
+        })
+        with patch('apps.users.views.auth_views.requests.get', side_effect=[tokeninfo_resp, userinfo_resp]):
+            res = self.client.post('/api/auth/google-login/', {'access_token': 'fake-google-token'}, format='json')
+
+        self.assertEqual(res.status_code, 403)
+        self.assertFalse(res.data['success'])
+
+    @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
+    def test_google_login_rejects_mismatched_audience(self):
+        id_token_resp = self._mock_response(200, {
+            'aud': 'other-app.apps.googleusercontent.com',
+            'iss': 'https://accounts.google.com',
+            'email': 'hacker@gmail.com',
+            'email_verified': 'true',
+        })
+        with patch('apps.users.views.auth_views.requests.get', return_value=id_token_resp):
+            res = self.client.post('/api/auth/google-login/', {'credential': 'bad-id-token'}, format='json')
+
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(res.data['success'])

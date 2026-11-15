@@ -1,7 +1,7 @@
 """Package views của users. Re-export để giữ nguyên `from .views import ...`."""
 from .role_matrix import load_role_matrix, save_role_matrix, check_role_permission, get_all_roles_matrix
 from .permissions import IsManagerOrAdmin, IsOwnerOrAdminOnly, IsFrontDeskOrManager, IsEmployeeManagementPermission
-from .auth_views import RegisterView, LoginView, CurrentUserView, LogoutView, ChangePasswordView, ForgotPasswordView, ResetPasswordConfirmView
+from .auth_views import RegisterView, LoginView, GoogleLoginView, CurrentUserView, LogoutView, ChangePasswordView, ForgotPasswordView, ResetPasswordConfirmView
 from .guest_views import AdminGuestListCreateView, AdminGuestDetailView
 from .employee_views import AdminEmployeeListCreateView, AdminEmployeeDetailView
 from .role_views import AdminRoleListView, AdminRolePermissionsView
@@ -18,6 +18,7 @@ __all__ = [
     "IsEmployeeManagementPermission",
     "RegisterView",
     "LoginView",
+    "GoogleLoginView",
     "CurrentUserView",
     "LogoutView",
     "ChangePasswordView",

@@ -32,6 +32,35 @@ export const authService = {
     },
 
     /**
+     * Đăng nhập / Tự động tạo tài khoản khách qua Google Identity Services
+     */
+    async googleLogin({ credential, access_token }) {
+        try {
+            const response = await api.post('/auth/google-login/', {
+                credential,
+                access_token,
+            });
+
+            if (response.data.success) {
+                const { user, tokens } = response.data;
+                authStore.setAuth(user, tokens);
+                return { success: true, data: response.data };
+            }
+
+            return {
+                success: false,
+                message: response.data.message || 'Đăng nhập bằng Google không thành công.',
+            };
+        } catch (error) {
+            const message =
+                error.response?.data?.message ||
+                error.response?.data?.detail ||
+                'Không thể đăng nhập bằng Google. Vui lòng thử lại.';
+            return { success: false, message };
+        }
+    },
+
+    /**
      * Đăng ký tài khoản khách hàng mới
      */
     async register({ fullName, phone, email, password }) {

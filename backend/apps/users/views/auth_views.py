@@ -1,9 +1,11 @@
 """Đăng ký, đăng nhập, hồ sơ cá nhân, đổi / quên / đặt lại mật khẩu."""
 import os
+import re
 import logging
 import secrets
 from datetime import timedelta
 
+import requests
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +14,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 
@@ -100,6 +103,184 @@ class LoginView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _split_full_name(full_name: str, given_name: str = '', family_name: str = ''):
+    """Tách họ và tên theo quy ước hệ thống (VD: 'Nguyễn Văn A' -> ('Nguyễn Văn', 'A'))."""
+    cleaned = (full_name or '').strip()
+    if cleaned:
+        parts = cleaned.split()
+        if len(parts) > 1:
+            return " ".join(parts[:-1]), parts[-1]
+        return cleaned, ""
+    first = (family_name or '').strip()
+    last = (given_name or '').strip()
+    if first or last:
+        return first or last, last if first else ""
+    return "", ""
+
+
+def _generate_unique_username(email: str) -> str:
+    """Sinh username duy nhất từ email cho tài khoản Google mới."""
+    base = re.sub(r'[^a-zA-Z0-9_]', '', (email.split('@')[0] if '@' in email else email)) or 'google_user'
+    base = base[:120]
+    username = base
+    counter = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base}_{counter}"
+        counter += 1
+    return username
+
+
+class GoogleLoginView(APIView):
+    """
+    Đăng nhập hoặc tự động tạo tài khoản khách (role='guest') bằng Google Identity Services.
+    Chỉ yêu cầu GOOGLE_CLIENT_ID (không cần Client Secret); hỗ trợ cả `credential` (id_token)
+    và `access_token` do popup Google OAuth2 trả về.
+    """
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def _verify_id_token(id_token: str, client_id: str) -> dict:
+        resp = requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'id_token': id_token},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            raise ValueError("Mã xác thực Google không hợp lệ hoặc đã hết hạn.")
+        data = resp.json()
+        if data.get('aud') != client_id:
+            raise ValueError("Mã xác thực Google không thuộc ứng dụng này.")
+        iss = data.get('iss')
+        if iss and iss not in ('accounts.google.com', 'https://accounts.google.com'):
+            raise ValueError("Nguồn phát hành token Google không hợp lệ.")
+        if str(data.get('email_verified', '')).lower() != 'true' or not data.get('email'):
+            raise ValueError("Tài khoản Google chưa xác minh địa chỉ email.")
+        return data
+
+    @staticmethod
+    def _verify_access_token(access_token: str, client_id: str) -> dict:
+        tokeninfo_resp = requests.get(
+            'https://www.googleapis.com/oauth2/v3/tokeninfo',
+            params={'access_token': access_token},
+            timeout=10,
+        )
+        if tokeninfo_resp.status_code != 200:
+            raise ValueError("Phiên xác thực Google không hợp lệ hoặc đã hết hạn.")
+        tokeninfo = tokeninfo_resp.json()
+        token_aud = tokeninfo.get('aud') or tokeninfo.get('azp')
+        if token_aud != client_id:
+            raise ValueError("Mã xác thực Google không thuộc ứng dụng này.")
+
+        userinfo_resp = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10,
+        )
+        if userinfo_resp.status_code != 200:
+            raise ValueError("Không thể lấy thông tin tài khoản từ Google.")
+        userinfo = userinfo_resp.json()
+        if str(userinfo.get('email_verified', '')).lower() != 'true' or not userinfo.get('email'):
+            raise ValueError("Tài khoản Google chưa xác minh địa chỉ email.")
+        return userinfo
+
+    def post(self, request):
+        client_id = (getattr(settings, 'GOOGLE_CLIENT_ID', '') or '').strip()
+        if not client_id:
+            return Response({
+                'success': False,
+                'message': 'Chức năng đăng nhập bằng Google chưa được cấu hình trên máy chủ.'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        credential = (request.data.get('credential') or '').strip()
+        access_token = (request.data.get('access_token') or '').strip()
+        if not credential and not access_token:
+            return Response({
+                'success': False,
+                'message': 'Thiếu mã xác thực Google. Vui lòng thử lại.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            google_profile = (
+                self._verify_id_token(credential, client_id)
+                if credential
+                else self._verify_access_token(access_token, client_id)
+            )
+        except ValueError as exc:
+            return Response({'success': False, 'message': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except requests.RequestException:
+            return Response({
+                'success': False,
+                'message': 'Không thể kết nối tới máy chủ xác thực Google. Vui lòng thử lại sau.'
+            }, status=status.HTTP_502_BAD_GATEWAY)
+
+        email = google_profile['email'].strip().lower()
+        existing_user = User.objects.filter(email__iexact=email).first()
+
+        if existing_user:
+            if not existing_user.is_active:
+                return Response({
+                    'success': False,
+                    'message': 'Tài khoản của Quý khách hiện đang bị khóa hoặc tạm ngưng hoạt động.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if existing_user.role != 'guest':
+                return Response({
+                    'success': False,
+                    'message': 'Tài khoản nhân sự / quản trị vui lòng đăng nhập bằng tên đăng nhập và mật khẩu.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            user = existing_user
+            is_new_user = False
+        else:
+            first_name, last_name = _split_full_name(
+                google_profile.get('name', ''),
+                google_profile.get('given_name', ''),
+                google_profile.get('family_name', ''),
+            )
+            with transaction.atomic():
+                user = User(
+                    username=_generate_unique_username(email),
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    role='guest',
+                    is_active=True,
+                )
+                user.set_unusable_password()
+                user.save()
+                GuestProfile.objects.get_or_create(
+                    user=user,
+                    defaults={'vip_tier': 'Silver', 'loyalty_points': 0},
+                )
+            is_new_user = True
+
+        refresh = RefreshToken.for_user(user)
+        log_action(
+            user=user,
+            action='LOGIN',
+            module='USER',
+            description=f"Tài khoản khách {user.username} ({email}) đăng nhập qua Google thành công",
+            request=request,
+        )
+
+        access_token_str = str(refresh.access_token)
+        refresh_token_str = str(refresh)
+        return Response({
+            'success': True,
+            'is_new_user': is_new_user,
+            'message': (
+                f'Chào mừng {user.get_full_name() or user.username} đến với Khách Sạn TA!'
+                if is_new_user
+                else f'Đăng nhập Google thành công! Kính chào {user.get_full_name() or user.username}'
+            ).strip(),
+            'user': UserSerializer(user, context={'request': request}).data,
+            'access': access_token_str,
+            'refresh': refresh_token_str,
+            'tokens': {
+                'access': access_token_str,
+                'refresh': refresh_token_str,
+            },
+        }, status=status.HTTP_200_OK)
+
+
 class CurrentUserView(APIView):
     """
     API endpoint dành riêng cho user đang đăng nhập: GET & PATCH /api/users/me/
@@ -154,6 +335,7 @@ class CurrentUserView(APIView):
             'message': error_msg,
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
     def put(self, request):
         return self.patch(request)
