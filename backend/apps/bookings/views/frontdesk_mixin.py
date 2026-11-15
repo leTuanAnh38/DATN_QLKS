@@ -249,7 +249,7 @@ class BookingFrontDeskMixin:
                 booking.category = target_room.category
                 update_fields.append('category')
 
-            receptionist_note = request.data.get('internal_note', '').strip()
+            receptionist_note = str(request.data.get('internal_note') or '').strip()
             time_str = now.strftime('%H:%M • %d/%m/%Y')
             receptionist_name = user.get_full_name() or user.username
 
@@ -259,12 +259,13 @@ class BookingFrontDeskMixin:
                 booking.check_in_date = today
                 update_fields.append('check_in_date')
                 if additional_amount > 0:
-                    booking.total_amount = float(booking.total_amount or 0) + additional_amount
+                    add_dec = Decimal(str(additional_amount))
+                    booking.total_amount = Decimal(str(booking.total_amount or 0)) + add_dec
                     update_fields.append('total_amount')
                     if hasattr(booking, 'invoice') and booking.invoice:
                         inv = booking.invoice
-                        inv.room_charge = float(inv.room_charge or 0) + additional_amount
-                        inv.total_amount = float(inv.total_amount or 0) + additional_amount
+                        inv.room_charge = Decimal(str(inv.room_charge or 0)) + add_dec
+                        inv.total_amount = Decimal(str(inv.total_amount or 0)) + add_dec
                         inv.save(update_fields=['room_charge', 'total_amount'])
                     early_log = f"[Early Check-in sớm {early_days} ngày lúc {time_str} bởi {receptionist_name}]: Nhận phòng sớm từ ngày {today.strftime('%d/%m/%Y')} (lịch cũ {old_check_in_date.strftime('%d/%m/%Y')}). Phụ thu tiền phòng: +{additional_amount:,.0f} VND ({early_days} đêm x {daily_rate:,.0f}đ)."
                 else:
@@ -286,7 +287,8 @@ class BookingFrontDeskMixin:
             if same_day_surcharge > 0 and not booking.extra_services.filter(
                 service_name__icontains='Phụ thu nhận phòng sớm trong ngày'
             ).exists():
-                booking.total_amount = float(booking.total_amount or 0) + same_day_surcharge
+                surcharge_dec = Decimal(str(same_day_surcharge))
+                booking.total_amount = Decimal(str(booking.total_amount or 0)) + surcharge_dec
                 if 'total_amount' not in update_fields:
                     update_fields.append('total_amount')
 
@@ -599,7 +601,7 @@ class BookingFrontDeskMixin:
                 'message': f'Không thể chuyển sang phòng {new_room.room_number}. Phòng này đã có đơn #{conflict_move.booking_code} đặt trước từ {conflict_move.check_in_date.strftime("%d/%m/%Y")} đến {conflict_move.check_out_date.strftime("%d/%m/%Y")}.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        reason = request.data.get('reason', '').strip() or 'Thiết bị phòng bị sự cố hư hỏng'
+        reason = str(request.data.get('reason') or '').strip() or 'Thiết bị phòng bị sự cố hư hỏng'
         old_room_status = request.data.get('old_room_status', 'maintenance')
         if old_room_status not in ['maintenance', 'cleaning']:
             old_room_status = 'maintenance'
@@ -607,7 +609,7 @@ class BookingFrontDeskMixin:
         now = timezone.now()
         time_str = now.strftime('%H:%M • %d/%m/%Y')
         staff_name = (user.get_full_name() or user.username) if user.is_authenticated else "Lễ tân"
-        guest_display = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else booking.guest_name
+        guest_display = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else (getattr(booking, 'guest_name', None) or 'Khách lưu trú')
 
         with transaction.atomic():
             # Khóa bi quan Booking và Phòng mới
@@ -647,13 +649,12 @@ class BookingFrontDeskMixin:
                 from ...rooms.models import MaintenanceTicket
                 from ...bookings.models import BookingExtraService
                 import uuid
-                eq_name = request.data.get('maintenance_equipment', '').strip() or 'Thiết bị phòng (Sự cố cần kiểm tra)'
+                eq_name = str(request.data.get('maintenance_equipment') or '').strip() or 'Thiết bị phòng (Sự cố cần kiểm tra)'
                 issue_type = request.data.get('maintenance_issue_type', 'other')
-                desc = request.data.get('maintenance_description', '').strip() or reason
-                parts_replaced = request.data.get('parts_replaced', '').strip()
+                desc = str(request.data.get('maintenance_description') or '').strip() or reason
+                parts_replaced = str(request.data.get('parts_replaced') or '').strip()
                 try:
-                    raw_cost = str(request.data.get('cost', 0)).replace(',', '').replace('.', '').replace(' ', '')
-                    cost = int(raw_cost) if raw_cost.isdigit() else 0
+                    cost = int(round(float(str(request.data.get('cost', 0) or 0).replace(',', '').strip())))
                 except (ValueError, TypeError):
                     cost = 0
                 raw_guest_fault = request.data.get('is_guest_fault', False)
@@ -772,7 +773,7 @@ class BookingFrontDeskMixin:
             }, status=status.HTTP_400_BAD_REQUEST)
 
         payment_method = request.data.get('payment_method', 'cash')
-        note = request.data.get('note', '').strip()
+        note = str(request.data.get('note') or '').strip()
 
         with transaction.atomic():
             # 1. Tính toán room_charge, total_service_charge, grand_total
@@ -1048,7 +1049,7 @@ class BookingFrontDeskMixin:
         try:
             room_label = (booking.room.room_number if booking.room else None) or \
                          (booking.category.name if booking.category else "Chưa gán phòng")
-            guest_name = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else (booking.guest_name or "Khách hàng")
+            guest_name = (booking.guest.get_full_name() or booking.guest.username) if booking.guest else (getattr(booking, 'guest_name', None) or "Khách hàng")
 
             # 1. Thông báo cho Khách hàng
             if booking.guest:
@@ -1162,7 +1163,7 @@ class BookingFrontDeskMixin:
                 )
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        reason = request.data.get('reason', '').strip()
+        reason = str(request.data.get('reason') or '').strip()
         now = timezone.now()
         staff_name = user.get_full_name() or user.username
         time_str = now.strftime('%H:%M • %d/%m/%Y')

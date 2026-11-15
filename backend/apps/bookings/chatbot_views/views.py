@@ -30,7 +30,7 @@ class ChatbotAskView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        message = request.data.get('message', '').strip()
+        message = str(request.data.get('message') or '').strip()
         history = request.data.get('history', [])
 
         if not message:

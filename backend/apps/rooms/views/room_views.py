@@ -382,7 +382,7 @@ class AdminRoomStatusUpdateView(APIView):
                     cat_name = updated_room.category.name if updated_room.category else 'Tiêu chuẩn'
                     
                     if active_booking:
-                        guest_name = active_booking.guest.get_full_name() if active_booking.guest else active_booking.guest_name
+                        guest_name = active_booking.guest.get_full_name() if active_booking.guest else (getattr(active_booking, 'guest_name', None) or 'Khách lưu trú')
                         notif_title = f"[Dọn phòng hoàn tất] Phòng {updated_room.room_number} đã dọn xong"
                         notif_message = (
                             f"Nhân viên ({staff_name}) đã hoàn tất dọn dẹp phòng {updated_room.room_number} ({cat_name}).\n"
@@ -478,7 +478,7 @@ class AdminRoomRequestCleaningView(APIView):
                 'message': f'Phòng {room.room_number} hiện không có khách đang lưu trú. Yêu cầu dọn phòng lưu trú chỉ áp dụng cho phòng đang có khách.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        note = request.data.get('note', '').strip() or 'Khách yêu cầu dọn phòng lưu trú (Make-up room)'
+        note = str(request.data.get('note') or '').strip() or 'Khách yêu cầu dọn phòng lưu trú (Make-up room)'
         room.is_cleaning_requested = True
         room.cleaning_request_note = note
         room.cleaning_requested_at = timezone.now()
@@ -490,7 +490,7 @@ class AdminRoomRequestCleaningView(APIView):
             housekeepers = User.objects.filter(
                 Q(role__in=['housekeeper', 'manager', 'admin']) | Q(is_superuser=True)
             ).distinct()
-            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (active_booking.guest_name if active_booking else "Khách lưu trú")
+            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (getattr(active_booking, 'guest_name', None) if active_booking else None) or "Khách lưu trú"
             notifs = [
                 Notification(
                     recipient=u,
@@ -560,7 +560,7 @@ class AdminRoomCompleteCleaningView(APIView):
             receptionists = User.objects.filter(
                 Q(role__in=['receptionist', 'manager', 'admin']) | Q(is_superuser=True)
             ).distinct()
-            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (active_booking.guest_name if active_booking else "Khách lưu trú")
+            guest_str = active_booking.guest.get_full_name() if active_booking and active_booking.guest else (getattr(active_booking, 'guest_name', None) if active_booking else None) or "Khách lưu trú"
             notifs = [
                 Notification(
                     recipient=u,

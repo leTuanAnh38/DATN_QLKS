@@ -161,7 +161,7 @@ class BookingReservationMixin:
         total_amount = calculated_total
         if provided_total is not None and str(provided_total).isdigit() and int(provided_total) > 0:
             prov_val = int(provided_total)
-            min_floor = int(calculated_total * 0.5)
+            min_floor = int(Decimal(str(calculated_total)) * Decimal('0.5'))
             is_manager = user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner', 'manager']
             if prov_val < min_floor and not is_manager:
                 return Response({

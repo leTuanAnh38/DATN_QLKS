@@ -180,12 +180,12 @@ class BookingViewSet(
         room_identifier = data.get('room') or data.get('room_id') or data.get('category_id')
         check_in_str = data.get('check_in_date')
         check_out_str = data.get('check_out_date')
-        note = data.get('note', '').strip()
-        guest_name = data.get('guest_name', '').strip()
-        guest_phone = data.get('guest_phone', '').strip()
-        guest_email = data.get('guest_email', '').strip()
-        identity_card = data.get('identity_card', '').strip()
-        promo_code = data.get('promo_code', '').strip().upper()
+        note = str(data.get('note') or '').strip()
+        guest_name = str(data.get('guest_name') or '').strip()
+        guest_phone = str(data.get('guest_phone') or '').strip()
+        guest_email = str(data.get('guest_email') or '').strip()
+        identity_card = str(data.get('identity_card') or '').strip()
+        promo_code = str(data.get('promo_code') or '').strip().upper()
 
         customer_type = str(data.get('customer_type') or 'MEMBER').strip().upper()
         company_name = str(data.get('company_name') or '').strip() or None

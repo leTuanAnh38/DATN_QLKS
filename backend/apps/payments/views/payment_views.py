@@ -1,6 +1,6 @@
 """Thanh toán: xác nhận, danh sách, chi tiết, cấu hình, trạng thái."""
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import models, transaction
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -116,7 +116,7 @@ class ConfirmPaymentView(APIView):
 
             try:
                 amount_dec = Decimal(str(amount))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, InvalidOperation):
                 amount_dec = Decimal(str(group_booking.deposit_amount or group_booking.total_amount or 0))
 
             if amount_dec <= Decimal('0'):
@@ -186,7 +186,7 @@ class ConfirmPaymentView(APIView):
         # 3. Tính toán chi phí lưu trú và số tiền còn lại cần thanh toán
         try:
             amount_dec = Decimal(str(amount))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             return Response(
                 {
                     "success": False,
@@ -262,17 +262,17 @@ class ConfirmPaymentView(APIView):
 
         try:
             late_checkout_surcharge = Decimal(str(request.data.get('late_checkout_surcharge', 0) or 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             late_checkout_surcharge = Decimal('0')
 
         try:
             same_day_early_surcharge = Decimal(str(request.data.get('same_day_early_surcharge', 0) or 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             same_day_early_surcharge = Decimal('0')
 
         try:
             early_checkin_surcharge = Decimal(str(request.data.get('early_checkin_surcharge', 0) or 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             early_checkin_surcharge = Decimal('0')
 
         has_late_surcharge_record = booking.extra_services.filter(

@@ -175,7 +175,7 @@ export default function PaymentModal({
                     } else if (onClose) {
                         onClose({ completed: true, bookingCode: code });
                     } else {
-                        navigate('/booking-success', {
+                        navigate('/booking-history', {
                             state: {
                                 bookingId: targetId,
                                 bookingCode: code,

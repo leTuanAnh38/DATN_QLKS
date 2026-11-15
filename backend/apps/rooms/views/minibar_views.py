@@ -88,7 +88,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         if not booking:
             booking = room.bookings.filter(status='checked_in').first()
 
-        note = request.data.get('note', '').strip() or 'Lễ tân yêu cầu kiểm phòng Check-out (Minibar & Hư hại)'
+        note = str(request.data.get('note') or '').strip() or 'Lễ tân yêu cầu kiểm phòng Check-out (Minibar & Hư hại)'
 
         # Kiểm tra xem phòng đã có phiếu check 'requested' nào đang chờ chưa
         pending_check = room.minibar_checks.filter(status='requested').order_by('-created_at').first()
@@ -214,11 +214,11 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         has_damage_val = request.data.get('has_damage', False)
         has_damage = has_damage_val in [True, 'true', 'True', '1', 1]
         damage_desc = str(request.data.get('damage_description', '') or '').strip()
-        raw_dmg_amt = str(request.data.get('damage_amount') or '0').replace(',', '').replace('.', '').replace(' ', '').strip()
+        raw_dmg_amt = str(request.data.get('damage_amount') or '0').replace(',', '').strip()
         try:
             damage_amt = float(raw_dmg_amt) if raw_dmg_amt else 0.0
         except (ValueError, TypeError):
-            damage_amt = float(request.data.get('damage_amount') or 0)
+            damage_amt = 0.0
         check_id = request.data.get('check_id')
 
         booking = None

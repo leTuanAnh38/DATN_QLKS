@@ -1,7 +1,7 @@
 """Webhook SePay."""
 import os
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -87,7 +87,7 @@ class SepayWebhookView(APIView):
         # 3. Chuyển đổi và kiểm tra số tiền
         try:
             transfer_amount = Decimal(str(amount_val or 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             transfer_amount = Decimal('0')
 
         if transfer_amount <= Decimal('0'):

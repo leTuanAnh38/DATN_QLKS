@@ -70,15 +70,18 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         except Room.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy phòng.'}, status=status.HTTP_404_NOT_FOUND)
 
-        equipment_name = request.data.get('equipment_name', '').strip()
+        equipment_name = str(request.data.get('equipment_name') or '').strip()
         if not equipment_name:
             return Response({'success': False, 'message': 'Vui lòng nhập tên thiết bị bị hư hỏng.'}, status=status.HTTP_400_BAD_REQUEST)
 
         issue_type = request.data.get('issue_type', 'ac')
         priority = request.data.get('priority') or ('urgent' if room.status == 'occupied' else 'normal')
-        description = request.data.get('description', '')
-        parts_replaced = request.data.get('parts_replaced', '')
-        cost = int(request.data.get('cost') or 0)
+        description = str(request.data.get('description') or '')
+        parts_replaced = str(request.data.get('parts_replaced') or '')
+        try:
+            cost = int(round(float(str(request.data.get('cost') or 0).replace(',', '').strip())))
+        except (ValueError, TypeError):
+            cost = 0
         is_guest_fault_val = request.data.get('is_guest_fault', False)
         is_guest_fault = is_guest_fault_val in [True, 'true', 'True', '1', 1]
         booking_id = request.data.get('booking') or request.data.get('booking_id')

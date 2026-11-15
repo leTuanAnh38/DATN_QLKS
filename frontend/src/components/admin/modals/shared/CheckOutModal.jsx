@@ -830,7 +830,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             }
         } catch (err) {
             console.error('Lỗi khi thực hiện Check-out:', err);
-            showModalToast('error', 'Đã xảy ra lỗi khi kết nối máy chủ để thực hiện Check-out.');
+            const serverMsg = err.response?.data?.message || err.message;
+            showModalToast('error', serverMsg || 'Đã xảy ra lỗi khi kết nối máy chủ để thực hiện Check-out.');
         } finally {
             setIsSubmitting(false);
         }
