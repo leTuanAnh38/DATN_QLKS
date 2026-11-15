@@ -23,16 +23,17 @@ def strip_html_tags(text):
     return re.sub(r'\s+', ' ', clean).strip()
 
 
-def detect_language(text):
+def detect_language(text, preferred_lang=None):
     """
     Tự động nhận diện ngôn ngữ của tin nhắn khách hàng:
     - 'ko': Tiếng Hàn (chứa ký tự Hangul)
     - 'zh': Tiếng Trung (chứa ký tự Hanzi)
     - 'en': Tiếng Anh
     - 'vi': Tiếng Việt (mặc định)
+    Có tham khảo `preferred_lang` từ UI đối với các câu ngắn/trung tính (VD: chỉ có mã đơn BK-...).
     """
     if not text:
-        return 'vi'
+        return preferred_lang if preferred_lang in ['vi', 'en', 'ko', 'zh'] else 'vi'
 
     # 1. Tiếng Hàn: Ký tự Hangul [\uac00-\ud7a3\u1100-\u11ff]
     if re.search(r'[\uac00-\ud7a3\u1100-\u11ff]', text):
@@ -42,21 +43,52 @@ def detect_language(text):
     if re.search(r'[\u4e00-\u9fff]', text):
         return 'zh'
 
-    # 3. Tiếng Anh: các từ khóa phổ biến trong giao tiếp khách sạn quốc tế
-    text_lower = text.lower()
-    english_keywords = [
-        'hello', 'hi', 'good morning', 'good afternoon', 'good evening',
-        'room', 'rooms', 'price', 'prices', 'rate', 'rates', 'cost', 'available', 'availability',
-        'hotel', 'booking', 'reservation', 'check in', 'check out', 'how much',
-        'spa', 'massage', 'restaurant', 'airport', 'shuttle', 'dinner', 'breakfast',
-        'swimming', 'pool', 'suite', 'deluxe', 'what is', 'do you have', 'can i',
-        'track', 'status', 'my booking', 'reservation status', 'cancel', 'refund',
-        'tomorrow', 'tonight', 'weekend', 'wifi', 'password', 'bill', 'invoice', 'clean',
-        'tour', 'travel', 'dragon bridge', 'ba na', 'hoi an', 'jacuzzi', 'bathtub', 'sea view', 'ocean view'
+    text_lower = text.lower().strip()
+
+    # 3. Nếu có dấu tiếng Việt -> chắc chắn là tiếng Việt
+    vietnamese_accents = re.search(
+        r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]',
+        text_lower,
+    )
+    if vietnamese_accents:
+        return 'vi'
+
+    # 4. Kiểm tra các từ tiếng Việt không dấu phổ biến
+    unaccented_vi_keywords = [
+        'phong', 'gia', 'dat', 'khach', 'ngay', 'hom nay', 'ngay mai', 'cuoi tuan',
+        'xin chao', 'cam on', 'bao nhieu', 'con khong', 'don', 'dich vu',
+        'hoa don', 'tam tinh', 'don phong', 'ho boi', 'an sang', 'da nang',
+        'cau rong', 'hoi an', 'ba na', 'thanh toan', 'khuyen mai', 'uu dai',
+        'tra cuu', 'kiem tra', 'giup toi', 'cho toi', 'nhan phong', 'tra phong',
+        'mat khau', 'may gio', 'huy phong'
     ]
-    vietnamese_accents = re.search(r'[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]', text_lower)
-    if not vietnamese_accents and any(re.search(rf'\b{re.escape(kw)}\b', text_lower) for kw in english_keywords):
+    if any(re.search(rf'\b{re.escape(kw)}\b', text_lower) for kw in unaccented_vi_keywords):
+        return 'vi'
+
+    # 5. Kiểm tra từ khóa tiếng Anh phổ biến
+    english_keywords = [
+        'hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening',
+        'thank', 'thanks', 'please', 'yes', 'no', 'okay', 'sure', 'help',
+        'room', 'rooms', 'price', 'prices', 'rate', 'rates', 'cost', 'available', 'availability',
+        'hotel', 'booking', 'bookings', 'reservation', 'reservations', 'book', 'reserve',
+        'check in', 'check out', 'check-in', 'check-out', 'how much', 'how many',
+        'spa', 'massage', 'restaurant', 'airport', 'shuttle', 'transfer', 'car', 'limousine',
+        'dinner', 'breakfast', 'lunch', 'food', 'menu', 'order', 'service', 'services',
+        'swimming', 'pool', 'gym', 'fitness', 'suite', 'deluxe', 'penthouse',
+        'what', 'where', 'when', 'which', 'tell me', 'show me', 'do you have', 'can i', 'could you',
+        'track', 'status', 'my booking', 'reservation status', 'cancel', 'cancellation', 'refund',
+        'early', 'late', 'policy', 'policies', 'discount', 'promo', 'voucher', 'vip', 'member',
+        'tomorrow', 'tonight', 'today', 'weekend', 'night', 'nights', 'guest', 'guests', 'adult', 'adults', 'people',
+        'wifi', 'wi-fi', 'password', 'bill', 'invoice', 'folio', 'charges', 'clean', 'housekeeping', 'towel', 'towels', 'water',
+        'tour', 'travel', 'dragon bridge', 'ba na', 'hoi an', 'jacuzzi', 'bathtub', 'sea view', 'ocean view',
+        'group', 'corporate', 'company', 'tax'
+    ]
+    if any(re.search(rf'\b{re.escape(kw)}\b', text_lower) for kw in english_keywords):
         return 'en'
+
+    # 6. Câu trung tính (chỉ chứa mã đơn BK-..., số ĐT, ký tự số) -> giữ ngôn ngữ UI đang chọn
+    if preferred_lang in ['vi', 'en', 'ko', 'zh']:
+        return preferred_lang
 
     return 'vi'
 

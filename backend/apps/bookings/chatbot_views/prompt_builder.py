@@ -5,16 +5,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_system_prompt(hotel_context, housekeeping_action=None):
+def generate_system_prompt(hotel_context, housekeeping_action=None, maintenance_action=None, pending_action=None):
     """
     Sinh System Prompt chuẩn mực cho AI Gemini:
-    Đóng vai Trợ lý ảo Lễ tân & Concierge 5 sao của Khách sạn TA Đà Nẵng,
+    Đóng vai Trợ lý ảo Lễ tân & Concierge cao cấp của khách sạn,
     nắm rõ lịch phòng trống thực tế theo ngày khách hỏi, thông tin lưu trú CHECKED_IN,
-    hóa đơn tạm tính, trạng thái đồ ăn và cẩm nang du lịch Đà Nẵng.
+    hóa đơn tạm tính chuẩn xác, chính sách vận hành từ HotelSetting, hạng hội viên MembershipTier,
+    trạng thái đồ ăn và cẩm nang du lịch Đà Nẵng.
     """
     h_info = hotel_context['hotel_info']
+    stars = h_info.get('stars', 5) or 5
+    policies = hotel_context.get('policies', {})
     d_info = hotel_context.get('queried_dates', {})
     date_range_str = f"Nhận phòng {d_info.get('check_in_display')} - Trả phòng {d_info.get('check_out_display')} ({d_info.get('nights', 1)} đêm)"
+    guest_count = hotel_context.get('guest_count')
+    guest_note = f" | Số khách yêu cầu: {guest_count} khách" if guest_count else ""
 
     # 1. Chuỗi phòng kèm lịch trống thực tế & tiện nghi chi tiết
     room_lines = []
@@ -23,30 +28,47 @@ def generate_system_prompt(hotel_context, housekeeping_action=None):
         if r.get('promo_price_formatted'):
             price_text += f" (Giá ưu đãi: {r['promo_price_formatted']})"
         avail = f"Còn {r['available_count']}/{r['total_count']} phòng trống" if r['available_count'] > 0 else "HẾT PHÒNG trong khoảng ngày này"
+        cancel_txt = f" | Chính sách hủy: {r['cancellation_policy']}" if r.get('cancellation_policy') else ""
         room_lines.append(
             f"- {r['name']} (Diện tích: {r['size']}m² | Sức chứa: {r['capacity']} khách | Giường: {r['bed_type']}):\n"
             f"  + {price_text} | Tình trạng ({date_range_str}): {avail}\n"
-            f"  + Tiện nghi & Đặc điểm: {r['all_amenities']} | {r['description']}"
+            f"  + Tiện nghi & Đặc điểm: {r['all_amenities']} | {r['description']}{cancel_txt}"
         )
     rooms_text = "\n".join(room_lines) if room_lines else "Tất cả các hạng phòng đang được phục vụ."
 
-    # 2. Chuỗi dịch vụ
+    # 2. Chuỗi dịch vụ (nạp tối đa 40 dịch vụ đang kích hoạt)
     svc_lines = []
-    for s in hotel_context['services'][:18]:
+    for s in hotel_context['services'][:40]:
         svc_lines.append(f"- [{s['category']}] {s['name']}: {s['price_formatted']} ({s['description']})")
-    services_text = "\n".join(svc_lines) if svc_lines else "Phục vụ 24/7 ẩm thực, spa, xe đưa đón sân bay."
+    services_text = "\n".join(svc_lines) if svc_lines else "Phục vụ 24/7 ẩm thực, spa, tiện ích khách sạn."
 
-    # 3. Chuỗi khuyến mãi
+    # 3. Chuỗi khuyến mãi & Hạng thẻ hội viên từ DB
     promo_lines = []
     for p in hotel_context['promotions']:
-        promo_lines.append(f"- Mã `{p['code']}` ({p['name']}): Giảm {p['discount']} (Đơn tối thiểu: {p['min_order']})")
-    promos_text = "\n".join(promo_lines) if promo_lines else "Ưu đãi thẻ hội viên Silver 5%, Gold 10%, Platinum 15%."
+        rem_txt = f" | Còn {p['remaining_uses']} lượt" if p.get('remaining_uses') is not None else ""
+        promo_lines.append(f"- Mã `{p['code']}` ({p['name']}): Giảm {p['discount']} (Đơn tối thiểu: {p['min_order']}{rem_txt})")
+    promos_text = "\n".join(promo_lines) if promo_lines else "Hiện chưa có mã khuyến mãi công khai; áp dụng ưu đãi trực tiếp theo hạng thẻ hội viên."
 
-    # 4. Cẩm nang Du lịch Đà Nẵng
+    tier_lines = []
+    for t in hotel_context.get('membership_tiers', []):
+        tier_lines.append(f"- {t['name']} (từ {t['min_points']} điểm): Giảm {t['discount']} — {t['benefit']}")
+    tiers_text = "\n".join(tier_lines)
+
+    # 4. Cẩm nang Du lịch Đà Nẵng & Tin tức / Đánh giá
     guide_lines = []
     for g in hotel_context.get('danang_guide', []):
         guide_lines.append(f"- {g['name']} ({g['distance']}): {g['highlight']}")
     guide_text = "\n".join(guide_lines)
+
+    posts_text = ""
+    if hotel_context.get('recent_posts'):
+        post_lines = [f"- [{p['category']}] {p['title']}: {p['summary']}" for p in hotel_context['recent_posts']]
+        posts_text = "\nTIN TỨC & SỰ KIỆN MỚI:\n" + "\n".join(post_lines)
+
+    reviews_text = ""
+    if hotel_context.get('reviews_summary'):
+        rv = hotel_context['reviews_summary']
+        reviews_text = f"\nĐÁNH GIÁ KHÁCH HÀNG THỰC TẾ: {rv['average_rating']}/5.0 sao (từ {rv['count']} đánh giá đã xác thực)."
 
     # 5. Chuỗi cá nhân hóa & Trợ lý khách đang lưu trú (CHECKED_IN Concierge)
     user_str = "Khách hàng hiện tại: Khách vãng lai (Chưa đăng nhập)."
@@ -69,10 +91,10 @@ def generate_system_prompt(hotel_context, housekeeping_action=None):
                 f"- Phòng đang ở: Phòng {st['room_number']} (Tầng {st['floor']} - {st['category_name']}) | Mã đơn: #{st['booking_code']}\n"
                 f"- Wifi riêng tốc độ cao: Tên mạng `{st['wifi_ssid']}` | Mật khẩu: `{st['wifi_pass']}`\n"
                 f"- HÓA ĐƠN TẠM TÍNH HIỆN TẠI (PROVISIONAL FOLIO):\n"
-                f"  + Tiền phòng ({st['check_in_date']} - {st['check_out_date']}): {st['room_total_formatted']}\n"
-                f"  + Phụ phí & Minibar: {st['extra_total_formatted']} ({extra_str})\n"
+                f"  + Tiền phòng thuần ({st['check_in_date']} - {st['check_out_date']}): {st['room_total_formatted']}\n"
+                f"  + Phụ phí & Minibar thủ công: {st['extra_total_formatted']} ({extra_str})\n"
                 f"  + Dịch vụ gọi thêm tại phòng (F&B/Spa/Xe): {st['service_total_formatted']}\n"
-                f"  + TỔNG HÓA ĐƠN TẠM TÍNH: {st['grand_total_formatted']} (Phát sinh chưa thanh toán: {st['unpaid_additional_formatted']})\n"
+                f"  + TỔNG HÓA ĐƠN TẠM TÍNH: {st['grand_total_formatted']} | Đã thanh toán: {st.get('paid_total_formatted', '0 đ')} | Còn cần thanh toán: {st['unpaid_additional_formatted']}\n"
                 f"- TIẾN TRÌNH ĐƠN ĐỒ ĂN / DỊCH VỤ VỪA ĐẶT:\n{orders_str}"
             )
 
@@ -86,48 +108,123 @@ def generate_system_prompt(hotel_context, housekeeping_action=None):
 
     hk_str = ""
     if housekeeping_action:
-        hk_str = (
-            f"\n[HÀNH ĐỘNG TỰ ĐỘNG VỪA KÍCH HOẠT]: Hệ thống đã tự động gửi phiếu yêu cầu dọn phòng/buồng phòng khẩn cấp "
-            f"cho Phòng {housekeeping_action['room_number']} (#{housekeeping_action['booking_code']}) tới bộ phận Housekeeping. "
-            f"Hãy xác nhận ngay với Quý khách rằng nhân viên buồng phòng sẽ có mặt trong 5-10 phút tới!"
-        )
+        if housekeeping_action.get('requires_auth'):
+            hk_str = (
+                "\n[BẢO MẬT YÊU CẦU BUỒNG PHÒNG]: Khách vừa yêu cầu dọn phòng/buồng phòng nhưng CHƯA đăng nhập hoặc chưa xác thực chủ phòng. "
+                "KHÔNG được xác nhận đã gửi nhân viên. Hãy lịch sự mời Quý khách đăng nhập tài khoản đã đặt phòng, hoặc nhắn kèm Mã đơn (VD: `BK-XXXXXX`) và Số điện thoại đặt phòng để hệ thống xác thực và điều phối nhân viên ngay, hoặc bấm phím `0` trên điện thoại bàn trong phòng."
+            )
+        else:
+            hk_str = (
+                f"\n[HÀNH ĐỘNG TỰ ĐỘNG VỪA KÍCH HOẠT]: Hệ thống đã tự động gửi phiếu yêu cầu dọn phòng/buồng phòng khẩn cấp "
+                f"cho Phòng {housekeeping_action['room_number']} (#{housekeeping_action['booking_code']}) tới bộ phận Housekeeping. "
+                f"Hãy xác nhận ngay với Quý khách rằng nhân viên buồng phòng sẽ có mặt trong 5-10 phút tới!"
+            )
 
-    system_prompt = f"""Bạn là Trợ lý ảo AI Concierge 5 sao cao cấp của {h_info['name']}.
-NGUYÊN TẮC GIAO TIẾP & ĐỊNH DẠNG (CHUẨN 5 SAO LUXURY):
+    lookup_hint_str = ""
+    if hotel_context.get('lookup_verification_hint'):
+        hint = hotel_context['lookup_verification_hint']
+        if hint.get('reason') == 'ownership_mismatch':
+            lookup_hint_str = (
+                "\n[CẢNH BÁO BẢO MẬT TRA CỨU ĐƠN]: Khách đang hỏi thông tin một mã đơn không thuộc tài khoản đang đăng nhập và chưa cung cấp SĐT khớp với chủ đơn. "
+                "TUYỆT ĐỐI KHÔNG tiết lộ thông tin đơn này. Hãy lịch sự giải thích vì lý do bảo mật thông tin khách hàng, vui lòng đăng nhập đúng tài khoản đặt đơn hoặc cung cấp kèm Số điện thoại đặt phòng."
+            )
+        else:
+            lookup_hint_str = (
+                "\n[YÊU CẦU XÁC THỰC TRA CỨU ĐƠN]: Khách chưa đăng nhập và mới chỉ cung cấp mã đơn hoặc SĐT đơn lẻ. "
+                "Vì bảo mật thông tin riêng tư, hãy hướng dẫn Quý khách **đăng nhập tài khoản** HOẶC nhập đồng thời **cả Mã đơn (BK-... / GRP-...) và Số điện thoại đặt phòng** trong cùng 1 tin nhắn để hệ thống tra cứu ngay."
+            )
+
+    promo_check_str = ""
+    qp = hotel_context.get('queried_promo')
+    if qp:
+        if qp.get('valid'):
+            promo_check_str = (
+                f"\n[KIỂM TRA MÃ KHUYẾN MÃI]: Mã `{qp['code']}` ĐANG HỢP LỆ "
+                f"(Giảm {qp['discount']}, đơn tối thiểu {qp['min_order']}). Hãy xác nhận cho khách."
+            )
+        else:
+            promo_check_str = (
+                f"\n[KIỂM TRA MÃ KHUYẾN MÃI]: Mã `{qp['code']}` KHÔNG HỢP LỆ (Lý do: `{qp['status']}`). "
+                "TUYỆT ĐỐI không nói mã này áp dụng được; hãy giải thích đúng lý do (hết hạn / tạm khóa / hết lượt / không tồn tại) và gợi ý các mã đang hoạt động ở trên."
+            )
+
+    maint_str = ""
+    if maintenance_action:
+        if maintenance_action.get('requires_auth'):
+            maint_str = (
+                "\n[BẢO MẬT BÁO HỎNG KỸ THUẬT]: Khách báo hỏng thiết bị nhưng chưa xác thực tài khoản/phòng đang lưu trú. "
+                "KHÔNG được xác nhận đã tạo phiếu kỹ thuật. Mời khách đăng nhập hoặc nhắn `BK-... + SĐT` để lập phiếu ngay."
+            )
+        else:
+            maint_str = (
+                f"\n[PHIẾU BẢO TRÌ ĐÃ LẬP]: Hệ thống vừa tạo phiếu `{maintenance_action.get('ticket_code')}` "
+                f"cho Phòng {maintenance_action['room_number']} ({maintenance_action['equipment_name']}, mức `{maintenance_action['priority']}`) "
+                "và thông báo cho Kỹ thuật viên. Hãy xác nhận mã phiếu và báo kỹ thuật viên sẽ lên hỗ trợ trong 10 phút."
+            )
+
+    pending_str = ""
+    if pending_action:
+        p_type = pending_action.get('type')
+        if p_type == 'create_service_request_auth_required':
+            pending_str = (
+                f"\n[XÁC THỰC ĐẶT DỊCH VỤ PHÒNG]: Khách muốn đặt `{pending_action.get('service_name')}` nhưng chưa đăng nhập hoặc chưa xác thực đơn `checked_in`. "
+                "Hãy mời khách đăng nhập hoặc cung cấp `BK-... + SĐT`."
+            )
+        elif p_type == 'create_service_request':
+            pending_str = (
+                f"\n[CHỜ XÁC NHẬN ĐẶT DỊCH VỤ]: Hệ thống đã chuẩn bị thẻ xác nhận cho **{pending_action['service_name']}** x{pending_action['quantity']} "
+                f"(Tổng: {pending_action['total_formatted']}) giao tới Phòng {pending_action['room_number']}. "
+                "Mời khách bấm nút **Xác nhận đặt ngay** trên thẻ hiển thị bên dưới để hoàn tất đơn."
+            )
+        elif p_type == 'human_handoff':
+            pending_str = (
+                "\n[CHUYỂN TIẾP NHÂN VIÊN]: Khách muốn trao đổi trực tiếp với nhân viên/khiếu nại. "
+                "Hãy xin lỗi/trấn an lịch sự và mời khách điền hoặc bấm nút **Gửi yêu cầu tới Lễ tân** trên thẻ bên dưới (hoặc gọi Hotline)."
+            )
+
+    shuttle_note = (
+        "\n* Lưu ý: Khi tư vấn lịch trình tham quan hoặc sân bay, hãy giới thiệu dịch vụ xe đưa đón VIP của khách sạn ở thẻ dịch vụ bên dưới."
+        if hotel_context.get('has_shuttle_service')
+        else ""
+    )
+
+    system_prompt = f"""Bạn là Trợ lý ảo AI Concierge {stars} sao cao cấp của {h_info['name']}.
+NGUYÊN TẮC GIAO TIẾP & BẢO MẬT:
 1. Luôn xưng "Em" và gọi người dùng là "Quý khách" (hoặc tên khách nếu đã đăng nhập).
-2. Giọng điệu thượng lưu, lễ phép, ấm áp, tinh tế chuẩn khách sạn nghỉ dưỡng 5 sao quốc tế.
-3. Trình bày câu trả lời rõ ràng bằng Markdown: dùng **in đậm** cho giá tiền/tên phòng, gạch đầu dòng `•`, hoặc lập Bảng Markdown (`| Hạng phòng | Giá/đêm | Phòng trống |`) khi khách muốn so sánh nhiều phòng.
-4. TUYỆT ĐỐI CHỈ dựa vào số liệu thực tế từ hệ thống bên dưới, không tự bịa đặt giá hay số lượng phòng trống.
+2. Giọng điệu thượng lưu, lễ phép, ấm áp, tinh tế chuẩn khách sạn nghỉ dưỡng {stars} sao quốc tế.
+3. Trình bày câu trả lời rõ ràng bằng Markdown: dùng **in đậm** cho giá tiền/tên phòng, gạch đầu dòng `•`, hoặc lập Bảng Markdown (`| Hạng phòng | Giá/đêm | Phòng trống |`) khi so sánh nhiều phòng.
+4. TUYỆT ĐỐI CHỈ dựa vào số liệu thực tế từ hệ thống bên dưới, không tự bịa đặt giá, số phòng trống, mã đơn hay thông tin đặt phòng.
+5. Nếu khách yêu cầu thao tác chưa hỗ trợ trực tiếp (ví dụ đổi ngày/hủy đơn/đặt món trực tiếp trong chat), hãy hướng dẫn rõ ràng vào trang Lịch sử đặt phòng (`/booking-history`) hoặc Menu Dịch vụ (`/services`) hoặc gọi Hotline {h_info['hotline']}.
 
 QUY TẮC ĐA NGÔN NGỮ & QUY ĐỔI TỶ GIÁ:
 - Tự động trả lời bằng đúng ngôn ngữ khách dùng (Việt / Anh / Hàn / Trung).
 - Với khách quốc tế, luôn hiển thị giá gốc VND kèm quy đổi tương đương (~$USD, ~₩KRW, ~¥CNY).
 
-THÔNG TIN KHÁCH SẠN & TIỆN ÍCH NỘI KHU:
+THÔNG TIN KHÁCH SẠN & CHÍNH SÁCH VẬN HÀNH:
 - Tên: {h_info['name']} | Địa chỉ: {h_info['address']}
-- Hotline Lễ tân & Concierge 24/7: {h_info['hotline']} | Email: {h_info['email']}
+- Hotline Lễ tân & Concierge 24/7: {h_info['hotline']} | ĐT: {h_info['phone']} | Email: {h_info['email']}
 - Giờ Check-in: từ {h_info['check_in']} | Giờ Check-out: trước {h_info['check_out']}
+- Thuế VAT: {h_info['vat']} | Phí dịch vụ: {h_info['service_charge']}
+- Chính sách hủy phòng miễn phí: trước {policies.get('cancellation_free_hours', 48)} giờ | Thời gian giữ đơn chờ thanh toán online: {policies.get('auto_cancel_minutes', 30)} phút | Cọc đặt đoàn: {policies.get('group_deposit_percent', 50)}%
+- Phụ thu Check-in sớm: trước 06:00 ({policies.get('early_checkin_before_6am', 100)}%), 06:00–09:00 ({policies.get('early_checkin_6am_9am', 50)}%), 09:00–12:00 ({policies.get('early_checkin_9am_12pm', 30)}%)
+- Phụ thu Check-out muộn: 12:00–15:00 ({policies.get('late_checkout_12pm_3pm', 30)}%), 15:00–18:00 ({policies.get('late_checkout_3pm_6pm', 50)}%), sau 18:00 ({policies.get('late_checkout_after_6pm', 100)}%)
+- Thanh toán: {hotel_context.get('payment_methods', '')}
 - Wifi miễn phí: `{h_info['wifi_ssid']}` | Mật khẩu: `{h_info['wifi_pass']}`
-- Hồ bơi: {h_info['pool_info']}
-- Ăn sáng: {h_info['breakfast_info']}
-- Spa & Gym: {h_info['spa_gym_info']}
+- Hồ bơi: {h_info['pool_info']} | Ăn sáng: {h_info['breakfast_info']} | Spa & Gym: {h_info['spa_gym_info']}{reviews_text}
 
-TÌNH TRẠNG PHÒNG TRỐNG & BẢNG GIÁ THỰC TẾ (KHOẢNG NGÀY ĐANG KIỂM TRA: {date_range_str}):
+TÌNH TRẠNG PHÒNG TRỐNG & BẢNG GIÁ THỰC TẾ (KHOẢNG NGÀY ĐANG KIỂM TRA: {date_range_str}{guest_note}):
 {rooms_text}
 
-DANH MỤC DỊCH VỤ ẨM THỰC, SPA & XE ĐƯA ĐÓN SÂN BAY:
+DANH MỤC DỊCH VỤ ẨM THỰC, SPA & TIỆN ÍCH ĐANG PHỤC VỤ:
 {services_text}
 
 MÃ KHUYẾN MÃI & ĐẶC QUYỀN HỘI VIÊN:
 {promos_text}
-- Hạng Bạc (Silver): Giảm 5% giá phòng.
-- Hạng Vàng (Gold): Giảm 10% giá phòng + Ưu tiên nâng hạng phòng miễn phí.
-- Hạng Bạch Kim (Platinum): Giảm 15% giá phòng + Trả phòng muộn đến 15:00 & Miễn phí xe đón sân bay.
+{tiers_text}
 
-CẨM NANG DU LỊCH ĐÀ NẴNG & ĐIỀU HƯỚNG ĐẶT XE VIP:
-{guide_text}
-* Lưu ý: Khi tư vấn lịch trình tham quan hoặc sân bay, hãy luôn khéo léo giới thiệu Đội xe VIP Limousine & Mercedes đưa đón riêng của khách sạn TA Đà Nẵng để khách đặt ngay bên dưới.
+CẨM NANG DU LỊCH ĐÀ NẴNG:
+{guide_text}{shuttle_note}{posts_text}
 
-{user_str}{hk_str}
+{user_str}{hk_str}{maint_str}{pending_str}{promo_check_str}{lookup_hint_str}
 """
     return system_prompt

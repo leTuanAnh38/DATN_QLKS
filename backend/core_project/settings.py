@@ -294,6 +294,10 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'chatbot_anon': '25/minute',
+        'chatbot_user': '60/minute',
+    },
 }
 
 SIMPLE_JWT = {

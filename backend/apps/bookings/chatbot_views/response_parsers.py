@@ -1,8 +1,9 @@
-"""Trích gợi ý và tiến trình đặt phòng từ câu trả lời."""
+"""Trích gợi ý phòng/dịch vụ và tra cứu tiến trình đặt phòng (cá nhân & đoàn) có kiểm soát quyền."""
 import re
 import logging
+from django.db.models import Q
 
-from ..models import Booking
+from ..models import Booking, GroupBooking
 
 logger = logging.getLogger(__name__)
 from .constants import DEFAULT_ROOM_IMAGES, DEFAULT_SERVICE_IMAGES
@@ -10,26 +11,30 @@ from .text_utils import format_currency_multilingual
 from .nlp_parser import resolve_room_from_conversation
 
 
+STAFF_LOOKUP_ROLES = {'admin', 'owner', 'manager', 'receptionist', 'cashier'}
+
+
 def extract_suggestions(message, hotel_context, lang='vi', history=None):
     """
     Trích xuất danh sách Interactive Cards (phòng nghỉ hoặc dịch vụ) phù hợp với ý định câu hỏi:
-    - Tự động đính kèm `check_in`, `check_out`, `nights` từ `queried_dates` vào từng thẻ phòng
-      để nút [Đặt ngay] trên Frontend truyền thẳng ngày sang trang Checkout!
-    - Tự động gợi ý thẻ Xe đưa đón VIP khi khách hỏi về du lịch Đà Nẵng / sân bay.
+    - Ưu tiên hạng phòng khớp tên hoặc đáp ứng đủ số lượng khách (`guest_count`) & còn phòng trống.
+    - Tự động đính kèm `check_in`, `check_out`, `nights` từ `queried_dates` vào từng thẻ phòng.
+    - Tự động sắp xếp thẻ dịch vụ theo chủ đề (Xe đưa đón / Spa / Ẩm thực).
     """
     msg_lower = message.strip().lower()
     suggested_rooms = []
     suggested_services = []
     d_info = hotel_context.get('queried_dates', {})
     rooms = hotel_context.get('rooms', [])
+    guest_count = hotel_context.get('guest_count')
 
     # 1. Phát hiện câu hỏi liên quan đến phòng hoặc câu hỏi nối tiếp về phòng
     specific_room = resolve_room_from_conversation(message, history, rooms)
-    is_room_query = bool(specific_room) or any(k in msg_lower for k in [
+    is_room_query = bool(specific_room) or bool(guest_count and any(k in msg_lower for k in ['phòng', 'room', 'đặt', 'book', 'ngủ', 'ở', '객실', '房'])) or any(k in msg_lower for k in [
         'phòng', 'giá', 'trống', 'còn phòng', 'hạng phòng', 'loại phòng',
         'room', 'rooms', 'rate', 'rates', 'price', 'cost', 'available', 'availability',
         'đêm', 'bao nhiêu', 'đặt phòng', 'suite', 'deluxe', 'penthouse', 'view', 'ngủ', 'ở',
-        'ngày mai', 'cuối tuần', 'bồn tắm', 'jacuzzi', 'ban công',
+        'ngày mai', 'cuối tuần', 'tuần sau', 'bồn tắm', 'jacuzzi', 'ban công',
         '객실', '방', '요금', '가격', '예약', '스위트', '디럭스',
         '房', '客房', '价格', '房价', '预订', '套房', '空房'
     ])
@@ -38,8 +43,9 @@ def extract_suggestions(message, hotel_context, lang='vi', history=None):
             is_exact = 1 if (specific_room and r.get('id') == specific_room.get('id')) else 0
             name_lower = r.get('name', '').lower()
             matched = any(w in name_lower for w in msg_lower.split() if len(w) >= 3 and w in name_lower)
+            fits_guests = 1 if (not guest_count or int(r.get('capacity', 2)) >= int(guest_count)) else 0
             has_avail = 1 if r.get('available_count', 0) > 0 else 0
-            return (is_exact, 1 if matched else 0, has_avail, -r.get('base_price', 0))
+            return (is_exact, 1 if matched else 0, fits_guests, has_avail, -r.get('base_price', 0))
 
         sorted_rooms = sorted(rooms, key=score_room, reverse=True)
         for idx, r in enumerate(sorted_rooms[:4]):
@@ -67,27 +73,29 @@ def extract_suggestions(message, hotel_context, lang='vi', history=None):
     # 2. Phát hiện câu hỏi liên quan đến dịch vụ / ẩm thực / du lịch Đà Nẵng / xe đưa đón
     is_travel_or_shuttle = any(k in msg_lower for k in [
         'du lịch', 'chơi gì', 'đi đâu', 'tham quan', 'lịch trình', 'cầu rồng', 'bà nà', 'cầu vàng',
-        'sơn trà', 'linh ứng', 'hội an', 'ngũ hành sơn', 'xe', 'đưa đón', 'sân bay', 'airport', 'shuttle', 'transfer', 'tour'
+        'sơn trà', 'linh ứng', 'hội an', 'ngũ hành sơn', 'xe', 'đưa đón', 'sân bay', 'airport', 'shuttle', 'transfer', 'tour', 'limousine'
     ])
-    is_service_query = is_travel_or_shuttle or any(k in msg_lower for k in [
-        'dịch vụ', 'ăn', 'ẩm thực', 'nhà hàng', 'spa', 'massage',
-        'giặt', 'bar', 'service', 'menu', 'món', 'bò', 'hải sản',
-        'dining', 'food', 'restaurant', 'laundry',
-        '서비스', '식사', '레스토랑', '스파', '마사지', '공항', '픽업', '샌딩', '조식',
-        '服务', '餐饮', '餐厅', '水疗', '按摩', '机场', '接送', '早餐', '菜单'
+    is_spa_query = any(k in msg_lower for k in ['spa', 'massage', 'xông hơi', 'trị liệu', 'wellness', '스파', '마사지', '水疗', '按摩'])
+    is_dining_query = any(k in msg_lower for k in ['ăn', 'ẩm thực', 'nhà hàng', 'menu', 'món', 'bò', 'hải sản', 'dining', 'food', 'restaurant', 'breakfast', 'dinner', '식사', '레스토랑', '餐饮', '餐厅'])
+    is_service_query = is_travel_or_shuttle or is_spa_query or is_dining_query or any(k in msg_lower for k in [
+        'dịch vụ', 'giặt', 'bar', 'service', 'laundry', '서비스', '공항', '픽업', '샌딩', '조식', '服务', '机场', '接送', '早餐', '菜单'
     ])
+
     if is_service_query:
         all_services = hotel_context.get('services', [])
-        if is_travel_or_shuttle:
-            # Ưu tiên đưa các dịch vụ Xe đưa đón / Sân bay lên đầu danh sách gợi ý
-            def score_service(s):
-                txt = f"{s.get('name', '')} {s.get('category', '')} {s.get('description', '')}".lower()
-                is_transport = any(k in txt for k in ['xe', 'sân bay', 'đưa đón', 'airport', 'transfer', 'limousine', 'shuttle'])
-                return 1 if is_transport else 0
-            sorted_services = sorted(all_services, key=score_service, reverse=True)
-        else:
-            sorted_services = all_services
 
+        def score_service(s):
+            txt = f"{s.get('name', '')} {s.get('category', '')} {s.get('description', '')}".lower()
+            s_score = 0
+            if is_travel_or_shuttle and any(k in txt for k in ['xe', 'sân bay', 'đưa đón', 'airport', 'transfer', 'limousine', 'shuttle']):
+                s_score += 3
+            if is_spa_query and any(k in txt for k in ['spa', 'massage', 'xông hơi', 'trị liệu', 'wellness']):
+                s_score += 3
+            if is_dining_query and any(k in txt for k in ['ăn', 'bò', 'hải sản', 'nhà hàng', 'buffet', 'trà', 'rượu', 'ẩm thực', 'dining', 'food']):
+                s_score += 3
+            return s_score
+
+        sorted_services = sorted(all_services, key=score_service, reverse=True)
         for idx, s in enumerate(sorted_services[:3]):
             fallback_img = DEFAULT_SERVICE_IMAGES[idx % len(DEFAULT_SERVICE_IMAGES)]
             price_val = s.get('price', 0)
@@ -105,12 +113,124 @@ def extract_suggestions(message, hotel_context, lang='vi', history=None):
     return suggested_rooms, suggested_services
 
 
+def _format_booking_tracker_item(bk, request, status_map, lang='vi'):
+    st_info = status_map.get(bk.status, (bk.get_status_display() or bk.status, 1, 'amber'))
+
+    feat_img = None
+    if bk.category:
+        f = bk.category.images.filter(is_feature=True).first() or bk.category.images.first()
+        if f and f.image:
+            feat_img = request.build_absolute_uri(f.image.url) if request else f.image.url
+
+    if lang == 'en':
+        room_str = f"Room {bk.room.room_number}" if bk.room else (bk.category.name if bk.category else "Standard Room")
+        cat_name = bk.category.name if bk.category else 'Standard Category'
+    elif lang == 'ko':
+        room_str = f"{bk.room.room_number}호 객실" if bk.room else (bk.category.name if bk.category else "스탠다드 객실")
+        cat_name = bk.category.name if bk.category else '스탠다드'
+    elif lang == 'zh':
+        room_str = f"{bk.room.room_number}号房" if bk.room else (bk.category.name if bk.category else "标准客房")
+        cat_name = bk.category.name if bk.category else '标准客房'
+    else:
+        room_str = f"Phòng {bk.room.room_number}" if bk.room else (bk.category.name if bk.category else "Tiêu chuẩn")
+        cat_name = bk.category.name if bk.category else 'Hạng tiêu chuẩn'
+
+    return {
+        'id': bk.id,
+        'is_group': False,
+        'booking_code': bk.booking_code,
+        'guest_name': bk.guest.get_full_name() or bk.guest.username,
+        'guest_phone': getattr(bk.guest, 'phone_number', '') or '',
+        'room_category': cat_name,
+        'room_name': room_str,
+        'room_number': bk.room.room_number if bk.room else None,
+        'check_in_date': bk.check_in_date.strftime('%d/%m/%Y'),
+        'check_out_date': bk.check_out_date.strftime('%d/%m/%Y'),
+        'total_amount': format_currency_multilingual(bk.total_amount, lang=lang),
+        'status': bk.status,
+        'status_label': st_info[0],
+        'step_index': st_info[1],
+        'badge_color': st_info[2],
+        'image_url': feat_img or DEFAULT_ROOM_IMAGES[0]
+    }
+
+
+def _format_group_tracker_item(grp, lang='vi'):
+    group_status_i18n = {
+        'vi': {
+            'tentative': ('Giữ chỗ đoàn (Chờ cọc)', 1, 'amber'),
+            'confirmed': ('Đã xác nhận đoàn (Đã cọc)', 2, 'emerald'),
+            'checked_in': ('Đoàn đang lưu trú (In-house)', 3, 'blue'),
+            'checked_out': ('Đoàn đã trả phòng', 4, 'emerald'),
+            'completed': ('Đoàn đã quyết toán hoàn tất', 4, 'emerald'),
+            'cancelled': ('Đã hủy đơn đoàn', -1, 'rose'),
+        },
+        'en': {
+            'tentative': ('Group Tentative (Awaiting Deposit)', 1, 'amber'),
+            'confirmed': ('Group Confirmed (Deposit Paid)', 2, 'emerald'),
+            'checked_in': ('Group In-House', 3, 'blue'),
+            'checked_out': ('Group Checked Out', 4, 'emerald'),
+            'completed': ('Group Settled & Completed', 4, 'emerald'),
+            'cancelled': ('Group Booking Cancelled', -1, 'rose'),
+        },
+        'ko': {
+            'tentative': ('단체 임시 예약 (계약금 대기)', 1, 'amber'),
+            'confirmed': ('단체 예약 확정', 2, 'emerald'),
+            'checked_in': ('단체 투숙 중', 3, 'blue'),
+            'checked_out': ('단체 체크아웃 완료', 4, 'emerald'),
+            'completed': ('단체 정산 완료', 4, 'emerald'),
+            'cancelled': ('단체 예약 취소됨', -1, 'rose'),
+        },
+        'zh': {
+            'tentative': ('团队暂留 (待付定金)', 1, 'amber'),
+            'confirmed': ('团队预订已确认', 2, 'emerald'),
+            'checked_in': ('团队在住中', 3, 'blue'),
+            'checked_out': ('团队已退房', 4, 'emerald'),
+            'completed': ('团队已结清完成', 4, 'emerald'),
+            'cancelled': ('团队预订已取消', -1, 'rose'),
+        }
+    }
+    g_map = group_status_i18n.get(lang, group_status_i18n['vi'])
+    st_info = g_map.get(grp.status, (grp.get_status_display() or grp.status, 1, 'amber'))
+    sub_count = grp.sub_bookings.count()
+
+    if lang == 'en':
+        room_str = f"Group ({sub_count} rooms)"
+    elif lang == 'ko':
+        room_str = f"단체 ({sub_count}객실)"
+    elif lang == 'zh':
+        room_str = f"团队 ({sub_count}间房)"
+    else:
+        room_str = f"Đoàn ({sub_count} phòng)"
+
+    return {
+        'id': f"grp-{grp.id}",
+        'is_group': True,
+        'booking_code': grp.group_code,
+        'guest_name': grp.leader_name,
+        'guest_phone': grp.leader_phone or '',
+        'room_category': grp.group_name,
+        'room_name': room_str,
+        'room_number': None,
+        'check_in_date': grp.check_in_date.strftime('%d/%m/%Y'),
+        'check_out_date': grp.check_out_date.strftime('%d/%m/%Y'),
+        'total_amount': format_currency_multilingual(grp.total_amount, lang=lang),
+        'status': grp.status,
+        'status_label': st_info[0],
+        'step_index': st_info[1],
+        'badge_color': st_info[2],
+        'image_url': DEFAULT_ROOM_IMAGES[1]
+    }
+
+
 def extract_booking_tracker(message, request, hotel_context, lang='vi'):
     """
-    Tự động nhận diện ý định tra cứu đơn đặt phòng thông qua:
-    1. Mã đơn đặt phòng (VD: BK-3C2E8F, BK123456, GRP-ABC12)
-    2. Số điện thoại đặt phòng (VD: 0918889999, 0901234567)
-    3. Hoặc người dùng đã đăng nhập và hỏi về đơn đặt phòng / hóa đơn tạm tính.
+    Nhận diện và tra cứu đơn đặt phòng (BK-...) hoặc đơn đặt đoàn (GRP-...) với kiểm soát quyền chặt chẽ:
+    1. Nhân viên / Quản lý (role staff/admin): tra cứu được mọi đơn theo mã hoặc SĐT.
+    2. Khách đã đăng nhập: tự động xem đơn của chính mình; nếu nhập mã đơn/SĐT khác phải trùng tài khoản.
+    3. Khách vãng lai (chưa đăng nhập): CHỈ được tra cứu khi nhập ĐỒNG THỜI Mã đơn (BK-... / GRP-...)
+       VÀ đúng Số điện thoại đặt đơn trong cùng tin nhắn; nếu thiếu 1 trong 2 -> không lộ dữ liệu
+       và gắn `hotel_context['lookup_verification_hint']`.
     """
     msg = message.strip()
     msg_lower = msg.lower()
@@ -163,10 +283,18 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
         }
     }
     status_map = status_map_i18n.get(lang, status_map_i18n['vi'])
-    found_bookings = []
 
-    # 1. Tìm theo Mã đơn (BK-... hoặc GRP-...)
+    user = getattr(request, 'user', None) if request else None
+    is_authenticated = bool(user and user.is_authenticated)
+    is_staff = bool(
+        is_authenticated and (user.is_superuser or getattr(user, 'role', '') in STAFF_LOOKUP_ROLES)
+    )
+
     code_match = re.search(r'\b((?:BK|GRP)[-_]?[A-Z0-9]{4,10})\b', msg, re.IGNORECASE)
+    phone_match = re.search(r'\b(0[35789]\d{8})\b', msg)
+    phone_num = phone_match.group(1) if phone_match else None
+
+    # 1. Tra cứu theo Mã đơn (BK-... hoặc GRP-...)
     if code_match:
         raw_code = code_match.group(1).upper()
         norm_code = raw_code
@@ -175,19 +303,73 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
         elif raw_code.startswith('GRP') and not raw_code.startswith('GRP-'):
             norm_code = f"GRP-{raw_code[3:]}"
 
-        bks = Booking.objects.filter(booking_code__in=[raw_code, norm_code]).select_related('guest', 'category', 'room')
-        found_bookings.extend(list(bks))
+        if raw_code.startswith('GRP'):
+            grp = GroupBooking.objects.filter(
+                group_code__in=[raw_code, norm_code]
+            ).select_related('corporate_partner').prefetch_related('sub_bookings').first()
+            if grp:
+                user_phone = getattr(user, 'phone_number', '') if is_authenticated else ''
+                user_email = getattr(user, 'email', '') if is_authenticated else ''
+                is_owner = is_authenticated and (
+                    (user_phone and user_phone == grp.leader_phone) or
+                    (user_email and grp.leader_email and user_email.lower() == grp.leader_email.lower()) or
+                    grp.sub_bookings.filter(guest=user).exists()
+                )
+                has_phone_match = bool(phone_num and grp.leader_phone and phone_num == grp.leader_phone)
+                if is_staff or is_owner or has_phone_match:
+                    tracked_bookings.append(_format_group_tracker_item(grp, lang=lang))
+                else:
+                    hotel_context['lookup_verification_hint'] = {
+                        'reason': 'ownership_mismatch' if is_authenticated else 'verification_required',
+                        'code': norm_code
+                    }
+        else:
+            bks = list(
+                Booking.objects.filter(booking_code__in=[raw_code, norm_code])
+                .select_related('guest', 'category', 'room')
+            )
+            if bks:
+                authorized_bks = []
+                for bk in bks:
+                    guest_phone = getattr(bk.guest, 'phone_number', '') or ''
+                    is_owner = is_authenticated and bk.guest_id == user.id
+                    has_phone_match = bool(phone_num and guest_phone and phone_num == guest_phone)
+                    if is_staff or is_owner or has_phone_match:
+                        authorized_bks.append(bk)
 
-    # 2. Tìm theo Số điện thoại (0[3|5|7|8|9]xxxxxxxx)
-    if not found_bookings:
-        phone_match = re.search(r'\b(0[35789]\d{8})\b', msg)
-        if phone_match:
-            phone_num = phone_match.group(1)
+                if authorized_bks:
+                    for bk in authorized_bks:
+                        tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
+                else:
+                    hotel_context['lookup_verification_hint'] = {
+                        'reason': 'ownership_mismatch' if is_authenticated else 'verification_required',
+                        'code': norm_code
+                    }
+        return tracked_bookings
+
+    # 2. Chỉ nhập Số điện thoại (không kèm Mã đơn)
+    if phone_num:
+        if is_staff:
             bks = Booking.objects.filter(guest__phone_number=phone_num).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
-            found_bookings.extend(list(bks))
+            for bk in bks:
+                tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
+            if not tracked_bookings:
+                grp = GroupBooking.objects.filter(leader_phone=phone_num).prefetch_related('sub_bookings').order_by('-created_at').first()
+                if grp:
+                    tracked_bookings.append(_format_group_tracker_item(grp, lang=lang))
+        elif is_authenticated and (getattr(user, 'phone_number', '') or '') == phone_num:
+            bks = Booking.objects.filter(guest=user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
+            for bk in bks:
+                tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
+        else:
+            hotel_context['lookup_verification_hint'] = {
+                'reason': 'phone_only_not_allowed',
+                'phone': phone_num
+            }
+        return tracked_bookings
 
-    # 3. Nếu là hội viên đã đăng nhập và hỏi về đơn đặt phòng / hóa đơn
-    if not found_bookings and request and getattr(request, 'user', None) and request.user.is_authenticated:
+    # 3. Hội viên đã đăng nhập hỏi chung về đơn đặt phòng / hóa đơn của tôi
+    if is_authenticated:
         if any(k in msg_lower for k in [
             'đơn', 'đặt phòng của tôi', 'booking', 'kiểm tra đơn', 'tra cứu đơn', 'lịch sử', 'phòng của tôi',
             'hóa đơn tạm tính', 'tạm tính',
@@ -195,47 +377,8 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
             '내 예약', '예약 내역', '예약 확인', '예약 상태',
             '我的预订', '预订查询', '订单', '预订状态'
         ]):
-            bks = Booking.objects.filter(guest=request.user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
-            found_bookings.extend(list(bks))
-
-    for bk in found_bookings:
-        st_info = status_map.get(bk.status, (bk.get_status_display() or bk.status, 1, 'amber'))
-
-        feat_img = None
-        if bk.category:
-            f = bk.category.images.filter(is_feature=True).first() or bk.category.images.first()
-            if f and f.image:
-                feat_img = request.build_absolute_uri(f.image.url) if request else f.image.url
-
-        if lang == 'en':
-            room_str = f"Room {bk.room.room_number}" if bk.room else (bk.category.name if bk.category else "Standard Room")
-            cat_name = bk.category.name if bk.category else 'Standard Category'
-        elif lang == 'ko':
-            room_str = f"{bk.room.room_number}호 객실" if bk.room else (bk.category.name if bk.category else "스탠다드 객실")
-            cat_name = bk.category.name if bk.category else '스탠다드'
-        elif lang == 'zh':
-            room_str = f"{bk.room.room_number}号房" if bk.room else (bk.category.name if bk.category else "标准客房")
-            cat_name = bk.category.name if bk.category else '标准客房'
-        else:
-            room_str = f"Phòng {bk.room.room_number}" if bk.room else (bk.category.name if bk.category else "Tiêu chuẩn")
-            cat_name = bk.category.name if bk.category else 'Hạng tiêu chuẩn'
-
-        tracked_bookings.append({
-            'id': bk.id,
-            'booking_code': bk.booking_code,
-            'guest_name': bk.guest.get_full_name() or bk.guest.username,
-            'guest_phone': getattr(bk.guest, 'phone_number', '') or '',
-            'room_category': cat_name,
-            'room_name': room_str,
-            'room_number': bk.room.room_number if bk.room else None,
-            'check_in_date': bk.check_in_date.strftime('%d/%m/%Y'),
-            'check_out_date': bk.check_out_date.strftime('%d/%m/%Y'),
-            'total_amount': format_currency_multilingual(bk.total_amount, lang=lang),
-            'status': bk.status,
-            'status_label': st_info[0],
-            'step_index': st_info[1],
-            'badge_color': st_info[2],
-            'image_url': feat_img or DEFAULT_ROOM_IMAGES[0]
-        })
+            bks = Booking.objects.filter(guest=user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
+            for bk in bks:
+                tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
 
     return tracked_bookings

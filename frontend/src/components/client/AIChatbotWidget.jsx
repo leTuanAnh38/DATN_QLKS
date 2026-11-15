@@ -27,13 +27,16 @@ import {
     Gift,
     Copy,
     Check,
-    Calendar
+    Calendar,
+    Wrench,
+    Users
 } from 'lucide-react';
-import { askChatbot } from '../../services/chatbotService';
+import { askChatbot, confirmChatbotAction } from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 
-const STORAGE_KEY = 'ta_hotel_ai_chat_history_v5';
+const getStorageKey = (userId) =>
+    userId ? `ta_hotel_ai_chat_history_v5_u_${userId}` : 'ta_hotel_ai_chat_history_v5_guest';
 
 // Bảng mã ngôn ngữ cho Web Speech API (STT & TTS)
 const SPEECH_LANG_MAP = {
@@ -475,20 +478,25 @@ export default function AIChatbotWidget() {
         location.pathname.startsWith('/checkout');
 
     const { settings } = useHotelSettings();
-    const starCount = settings?.stars || 3;
+    const starCount = settings?.stars || 5;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const welcomeMessages = getWelcomeMessages(starCount, hotelName);
 
     const { user } = useAuth();
+    const userId = user?.id || null;
+    const storageKey = getStorageKey(userId);
+    const prevUserIdRef = useRef(userId);
     const [isOpen, setIsOpen] = useState(false);
     const [showCalloutBubble, setShowCalloutBubble] = useState(false);
     const [selectedLang, setSelectedLang] = useState('vi');
     const [activeStayInfo, setActiveStayInfo] = useState(null);
+    const [actionStates, setActionStates] = useState({});
+    const [handoffForms, setHandoffForms] = useState({});
 
-    // Khởi tạo lịch sử chat từ sessionStorage hoặc localStorage
-    const [messages, setMessages] = useState(() => {
+    // Khởi tạo lịch sử chat tách riêng theo user.id hoặc guest
+    const loadMessagesForKey = (key, langCode = 'vi') => {
         try {
-            const saved = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
+            const saved = sessionStorage.getItem(key) || localStorage.getItem(key);
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
@@ -500,14 +508,48 @@ export default function AIChatbotWidget() {
         }
         return [
             {
-                id: 'welcome-1',
+                id: `welcome-${Date.now()}`,
                 role: 'model',
-                detected_lang: 'vi',
-                text: welcomeMessages.vi,
+                detected_lang: langCode,
+                text: welcomeMessages[langCode] || welcomeMessages.vi,
                 time: 'Bây giờ'
             }
         ];
-    });
+    };
+
+    const [messages, setMessages] = useState(() => loadMessagesForKey(storageKey, 'vi'));
+
+    useEffect(() => {
+        if (prevUserIdRef.current !== userId) {
+            const wasLoggedIn = Boolean(prevUserIdRef.current);
+            prevUserIdRef.current = userId;
+            setActionStates({});
+            setHandoffForms({});
+
+            if (!userId && wasLoggedIn) {
+                setActiveStayInfo(null);
+                const guestKey = getStorageKey(null);
+                try {
+                    sessionStorage.removeItem(guestKey);
+                    localStorage.removeItem(guestKey);
+                } catch {
+                    // ignore
+                }
+                setMessages([
+                    {
+                        id: `welcome-${Date.now()}`,
+                        role: 'model',
+                        detected_lang: selectedLang,
+                        text: welcomeMessages[selectedLang] || welcomeMessages.vi,
+                        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                    }
+                ]);
+            } else {
+                setActiveStayInfo(null);
+                setMessages(loadMessagesForKey(getStorageKey(userId), selectedLang));
+            }
+        }
+    }, [userId]);
 
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -871,8 +913,8 @@ export default function AIChatbotWidget() {
     useEffect(() => {
         try {
             const serialized = JSON.stringify(messages.slice(-30));
-            sessionStorage.setItem(STORAGE_KEY, serialized);
-            localStorage.setItem(STORAGE_KEY, serialized);
+            sessionStorage.setItem(storageKey, serialized);
+            localStorage.setItem(storageKey, serialized);
         } catch (e) {
             console.error('Lỗi ghi chat history:', e);
         }
@@ -955,7 +997,7 @@ export default function AIChatbotWidget() {
                 text: m.text
             }));
 
-            const data = await askChatbot(query, history);
+            const data = await askChatbot(query, history, selectedLang);
 
             const hotlineNum = settings?.hotline || '1900 8899';
             const botTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -980,6 +1022,8 @@ export default function AIChatbotWidget() {
                 source: data?.source || 'ai',
                 detected_lang: detectedLang,
                 queried_dates: data?.queried_dates || null,
+                maintenance_ticket: data?.maintenance_ticket || null,
+                pending_action: data?.pending_action || null,
                 suggested_rooms: Array.isArray(data?.suggested_rooms) ? data.suggested_rooms : [],
                 suggested_services: Array.isArray(data?.suggested_services) ? data.suggested_services : [],
                 tracked_bookings: Array.isArray(data?.tracked_bookings) ? data.tracked_bookings : []
@@ -993,19 +1037,74 @@ export default function AIChatbotWidget() {
         } catch (error) {
             console.error('Lỗi khi gọi API Chatbot:', error);
             const hotlineNum = settings?.hotline || '1900 8899';
+            const isRateLimited = error?.response?.status === 429;
+            const rateLimitText =
+                selectedLang === 'en'
+                    ? 'You are sending messages too quickly. Please wait a moment and try again!'
+                    : selectedLang === 'ko'
+                        ? '요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요!'
+                        : selectedLang === 'zh'
+                            ? '您的发送频率过快，请稍候片刻后再试！'
+                            : 'Dạ Quý khách gửi tin nhắn hơi nhanh ạ. Xin Quý khách vui lòng đợi vài giây rồi thử lại nhé ạ!';
+            const genericErrorText =
+                selectedLang === 'en'
+                    ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
+                    : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`;
             const errorMsg = {
                 id: `error-${Date.now()}`,
                 role: 'model',
                 detected_lang: selectedLang,
-                text:
-                    selectedLang === 'en'
-                        ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
-                        : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`,
+                text: isRateLimited ? rateLimitText : genericErrorText,
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
             };
             setMessages((prev) => [...prev, errorMsg]);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleConfirmPendingAction = async (msgId, pendingAction) => {
+        if (!pendingAction || actionStates[msgId]?.status === 'loading' || actionStates[msgId]?.status === 'done') {
+            return;
+        }
+        setActionStates((prev) => ({ ...prev, [msgId]: { status: 'loading' } }));
+        try {
+            let payload;
+            if (pendingAction.type === 'create_service_request') {
+                payload = {
+                    action_type: 'create_service_request',
+                    booking_id: pendingAction.booking_id,
+                    booking_code: pendingAction.booking_code,
+                    service_id: pendingAction.service_id,
+                    quantity: pendingAction.quantity,
+                    note: pendingAction.note || ''
+                };
+            } else {
+                const form = handoffForms[msgId] || {};
+                payload = {
+                    action_type: 'human_handoff',
+                    name: (form.name ?? pendingAction.default_name ?? '').trim(),
+                    email: (form.email ?? pendingAction.default_email ?? '').trim(),
+                    subject: pendingAction.subject,
+                    message: (form.message ?? pendingAction.suggested_message ?? '').trim()
+                };
+            }
+            const res = await confirmChatbotAction(payload);
+            setActionStates((prev) => ({ ...prev, [msgId]: { status: 'done', message: res?.message } }));
+            const botTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            setMessages((prev) => [
+                ...prev,
+                {
+                    id: `bot-confirm-${Date.now()}`,
+                    role: 'model',
+                    detected_lang: selectedLang,
+                    text: res?.message || 'Đã xác nhận yêu cầu thành công!',
+                    time: botTime
+                }
+            ]);
+        } catch (err) {
+            const errMsg = err?.response?.data?.message || 'Không thể hoàn tất xác nhận. Vui lòng thử lại hoặc liên hệ Lễ tân.';
+            setActionStates((prev) => ({ ...prev, [msgId]: { status: 'error', error: errMsg } }));
         }
     };
 
@@ -1038,8 +1137,8 @@ export default function AIChatbotWidget() {
         setMessages([freshWelcome]);
         setShowResetConfirm(false);
         try {
-            sessionStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(STORAGE_KEY);
+            sessionStorage.removeItem(storageKey);
+            localStorage.removeItem(storageKey);
         } catch {
             // ignore
         }
@@ -1558,13 +1657,17 @@ export default function AIChatbotWidget() {
                                                                 <button
                                                                     onClick={() => {
                                                                         setIsOpen(false);
-                                                                        navigate('/booking-history');
+                                                                        navigate(bk.is_group ? '/corporate-booking' : '/booking-history');
                                                                     }}
                                                                     className="flex-1 py-1.5 px-2 text-[10px] font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
-                                                                    title="Xem chi tiết đơn trong Lịch sử đặt phòng"
+                                                                    title={bk.is_group ? 'Đi tới trang Đặt đoàn & Doanh nghiệp' : 'Xem chi tiết đơn trong Lịch sử đặt phòng'}
                                                                 >
-                                                                    <CalendarCheck className="w-3 h-3 text-amber-700" />
-                                                                    {dict.booking_history}
+                                                                    {bk.is_group ? (
+                                                                        <Users className="w-3 h-3 text-amber-700" />
+                                                                    ) : (
+                                                                        <CalendarCheck className="w-3 h-3 text-amber-700" />
+                                                                    )}
+                                                                    {bk.is_group ? 'Đặt đoàn M.I.C.E' : dict.booking_history}
                                                                 </button>
                                                                 <a
                                                                     href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
@@ -1580,6 +1683,106 @@ export default function AIChatbotWidget() {
                                                 })}
                                             </div>
                                         )}
+
+                                        {/* 2B. THẺ XÁC NHẬN PHIẾU BẢO TRÌ KỸ THUẬT */}
+                                        {msg.maintenance_ticket && (
+                                            <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/90 border border-amber-300/80 text-[11px] text-amber-950 flex items-start gap-2">
+                                                <Wrench className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="font-bold">
+                                                        Phiếu Kỹ Thuật {msg.maintenance_ticket.ticket_code} • P.{msg.maintenance_ticket.room_number}
+                                                    </div>
+                                                    <div className="text-[10.5px] text-amber-800">
+                                                        {msg.maintenance_ticket.equipment_name} (Ưu tiên: {msg.maintenance_ticket.priority})
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 2C. THẺ XÁC NHẬN 2 BƯỚC (ĐẶT MÓN PHÒNG / CHUYỂN TIẾP LỄ TÂN) */}
+                                        {msg.pending_action && (() => {
+                                            const act = msg.pending_action;
+                                            const st = actionStates[msg.id] || {};
+                                            const isDone = st.status === 'done';
+                                            const isActLoading = st.status === 'loading';
+                                            const form = handoffForms[msg.id] || {};
+                                            return (
+                                                <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 to-white border border-emerald-200 shadow-xs space-y-2">
+                                                    {act.type === 'create_service_request' ? (
+                                                        <>
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="text-[11px] font-bold text-emerald-900">
+                                                                    Xác nhận đặt dịch vụ • P.{act.room_number}
+                                                                </span>
+                                                                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                                                    #{act.booking_code}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-[11.5px] text-slate-700">
+                                                                <strong>{act.service_name}</strong> × {act.quantity} —{' '}
+                                                                <span className="font-bold text-emerald-700">{act.total_formatted}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleConfirmPendingAction(msg.id, act)}
+                                                                disabled={isDone || isActLoading}
+                                                                className={`w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                                                                    isDone
+                                                                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
+                                                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 disabled:opacity-60'
+                                                                }`}
+                                                            >
+                                                                {isDone ? '✓ Đã xác nhận đặt' : isActLoading ? 'Đang gửi yêu cầu...' : 'Xác nhận đặt ngay'}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="text-[11px] font-bold text-slate-800">
+                                                                Gửi yêu cầu trực tiếp tới Lễ tân & Quản lý
+                                                            </div>
+                                                            {!isDone && (
+                                                                <div className="space-y-1.5">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Họ và tên của Quý khách"
+                                                                        value={form.name ?? act.default_name ?? ''}
+                                                                        onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], name: e.target.value } }))}
+                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
+                                                                    />
+                                                                    <input
+                                                                        type="email"
+                                                                        placeholder="Email liên hệ"
+                                                                        value={form.email ?? act.default_email ?? ''}
+                                                                        onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], email: e.target.value } }))}
+                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
+                                                                    />
+                                                                    <textarea
+                                                                        rows={2}
+                                                                        placeholder="Nội dung cần nhân viên hỗ trợ..."
+                                                                        value={form.message ?? act.suggested_message ?? ''}
+                                                                        onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], message: e.target.value } }))}
+                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400 resize-none"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            <button
+                                                                onClick={() => handleConfirmPendingAction(msg.id, act)}
+                                                                disabled={isDone || isActLoading}
+                                                                className={`w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                                                                    isDone
+                                                                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
+                                                                        : 'bg-slate-900 hover:bg-slate-800 text-amber-300 active:scale-95 disabled:opacity-60'
+                                                                }`}
+                                                            >
+                                                                {isDone ? '✓ Đã chuyển tới Lễ tân' : isActLoading ? 'Đang gửi...' : 'Gửi yêu cầu tới Lễ tân'}
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {st.error && (
+                                                        <div className="text-[10.5px] text-rose-600">{st.error}</div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* 3. GỢI Ý THẺ PHÒNG TƯƠNG TÁC KÈM DEEP-LINK NGÀY CHECK-IN / CHECK-OUT */}
                                         {hasRooms && (
