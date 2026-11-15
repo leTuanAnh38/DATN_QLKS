@@ -5,7 +5,7 @@ export const authService = {
     /**
      * Đăng nhập người dùng bằng Email/Số điện thoại và Mật khẩu
      */
-    async login(identifier, password) {
+    async login(identifier, password, options = {}) {
         try {
             const response = await api.post('/auth/login/', {
                 identifier,
@@ -14,7 +14,8 @@ export const authService = {
 
             if (response.data.success) {
                 const { user, tokens } = response.data;
-                authStore.setAuth(user, tokens);
+                const remember = options.remember !== false;
+                authStore.setAuth(user, tokens, { remember });
                 return { success: true, data: response.data };
             }
 
@@ -34,7 +35,7 @@ export const authService = {
     /**
      * Đăng nhập / Tự động tạo tài khoản khách qua Google Identity Services
      */
-    async googleLogin({ credential, access_token }) {
+    async googleLogin({ credential, access_token }, options = {}) {
         try {
             const response = await api.post('/auth/google-login/', {
                 credential,
@@ -43,7 +44,8 @@ export const authService = {
 
             if (response.data.success) {
                 const { user, tokens } = response.data;
-                authStore.setAuth(user, tokens);
+                const remember = options.remember !== false;
+                authStore.setAuth(user, tokens, { remember });
                 return { success: true, data: response.data };
             }
 

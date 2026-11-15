@@ -12,7 +12,6 @@ import {
     Award,
     Crown,
     UserCheck,
-    BellRing,
     Search,
     Zap,
     FileText,
@@ -43,6 +42,14 @@ import { resolveMediaUrl } from '../../utils/mediaUrl';
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
 const resolveBannerUrl = (url) => resolveMediaUrl(url, '');
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+
+const formatDemoDate = (offsetDays) => {
+    const date = new Date(Date.now() + offsetDays * 86400000);
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+};
 
 const ensureGoogleOAuthLoaded = () =>
     new Promise((resolve, reject) => {
@@ -100,7 +107,7 @@ export default function AuthBookingPage() {
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
-    const [toastNotice, setToastNotice] = useState(null);
+    const [legalModal, setLegalModal] = useState(null); // 'terms' | 'privacy' | null
     const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
     // Login form state
@@ -121,12 +128,8 @@ export default function AuthBookingPage() {
     // Accordion FAQ state
     const [activeFaq, setActiveFaq] = useState(0);
 
-    const triggerNotice = (msg, type = 'info') => {
-        setToastNotice({ msg, type });
-        setTimeout(() => {
-            setToastNotice(null);
-        }, 4000);
-    };
+    const demoCheckIn = formatDemoDate(7);
+    const demoCheckOut = formatDemoDate(10);
 
     const faqs = [
         {
@@ -153,7 +156,9 @@ export default function AuthBookingPage() {
         setErrorMessage(null);
         setSuccessMessage(null);
 
-        const result = await authService.login(loginForm.identifier, loginForm.password);
+        const result = await authService.login(loginForm.identifier, loginForm.password, {
+            remember: rememberMe,
+        });
         setIsLoading(false);
 
         if (result.success) {
@@ -220,7 +225,10 @@ export default function AuthBookingPage() {
                         setErrorMessage(tokenResponse?.error_description || 'Không nhận được xác thực từ Google.');
                         return;
                     }
-                    const result = await authService.googleLogin({ access_token: tokenResponse.access_token });
+                    const result = await authService.googleLogin(
+                        { access_token: tokenResponse.access_token },
+                        { remember: rememberMe }
+                    );
                     setIsGoogleLoading(false);
                     if (result.success) {
                         const loggedInUser = result.data?.user;
@@ -252,23 +260,6 @@ export default function AuthBookingPage() {
             {/* Reusable Navbar */}
             <Navbar />
 
-            {/* FLOATING TOAST NOTIFICATION */}
-            {toastNotice && (
-                <div className="fixed top-20 right-5 z-50 animate-fadeIn max-w-sm sm:max-w-md shadow-2xl rounded-2xl bg-slate-900/95 backdrop-blur-md border border-amber-500/30 text-white p-4 flex items-center gap-3">
-                    <BellRing className="w-5 h-5 text-amber-400 shrink-0" />
-                    <span className="text-xs sm:text-sm font-medium leading-relaxed flex-1">
-                        {toastNotice.msg}
-                    </span>
-                    <button
-                        type="button"
-                        onClick={() => setToastNotice(null)}
-                        className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded-lg transition"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                </div>
-            )}
-
             {/* BREADCRUMB */}
             <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -281,7 +272,7 @@ export default function AuthBookingPage() {
             </div>
 
             {/* MAIN AUTH SECTION (CHUẨN RESORT LUXURY 5 SAO) */}
-            <main className="relative py-12 lg:py-16 overflow-hidden flex items-center bg-slate-950 border-b border-slate-800">
+            <main className="relative py-6 sm:py-12 lg:py-16 overflow-hidden flex items-center bg-slate-950 border-b border-slate-800">
                 {/* 1. Ảnh nền Resort thư thái, sang trọng */}
                 <img
                     src={bannerLoginUrl}
@@ -301,21 +292,21 @@ export default function AuthBookingPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
                         
                         {/* CỘT TRÁI: QUẢN LÝ KỲ NGHỈ & THẺ VÉ VIP MOCKUP */}
-                        <div className="order-2 lg:order-1 lg:col-span-6 bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-7 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
+                        <div className="order-2 lg:order-1 lg:col-span-6 bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
                             <div className="relative z-10">
                                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-4 shadow-xs">
                                     <Award className="w-3.5 h-3.5 text-amber-300" />
                                     <span>Cổng Dịch Vụ Khách Hàng Thân Thiết</span>
                                 </div>
-                                <h1 className="font-serif text-3xl sm:text-4xl font-bold leading-tight mb-3">
+                                <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight mb-3">
                                     Quản lý kỳ nghỉ dễ dàng & tiện lợi
                                 </h1>
                                 <p className="text-slate-300/90 text-xs sm:text-sm font-light leading-relaxed mb-6">
                                     Đăng nhập để xem lịch sử lưu trú, lưu sẵn thông tin check-in, nhận ưu đãi độc quyền dành cho hội viên và thay đổi lịch trình linh hoạt.
                                 </p>
 
-                                {/* MOCKUP BOOKING CONFIRMATION TICKET CỰC ĐẸP (BOARDING PASS RESORT) */}
-                                <div className="bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-5 mb-6 shadow-xl relative overflow-hidden group">
+                                {/* MOCKUP BOOKING CONFIRMATION TICKET (ẨN TRÊN MOBILE NHỎ ĐỂ TRÁNH DÀI TRANG) */}
+                                <div className="hidden sm:block bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-5 mb-6 shadow-xl relative overflow-hidden group">
                                     {/* Họa tiết ánh sáng hổ phách */}
                                     <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -359,14 +350,14 @@ export default function AuthBookingPage() {
                                                     <Calendar className="w-3 h-3 text-amber-400" />
                                                     Nhận phòng (Check-in)
                                                 </span>
-                                                <strong className="text-slate-100 text-[12px] block mt-1">14:00 - 28/03/2026</strong>
+                                                <strong className="text-slate-100 text-[12px] block mt-1">14:00 - {demoCheckIn}</strong>
                                             </div>
                                             <div>
                                                 <span className="text-slate-400 flex items-center gap-1.5 text-[10px] uppercase font-semibold">
                                                     <Clock className="w-3 h-3 text-orange-400" />
                                                     Trả phòng (Check-out)
                                                 </span>
-                                                <strong className="text-slate-100 text-[12px] block mt-1">12:00 - 31/03/2026 (3 đêm)</strong>
+                                                <strong className="text-slate-100 text-[12px] block mt-1">12:00 - {demoCheckOut} (3 đêm)</strong>
                                             </div>
                                         </div>
 
@@ -387,12 +378,8 @@ export default function AuthBookingPage() {
                                             <MapPin className="w-3.5 h-3.5 text-amber-400" />
                                             <span>{hotelName} • Bãi biển Mỹ Khê</span>
                                         </span>
-                                        <span
-                                            onClick={() => triggerNotice('Đang tải bản xem trước mã Voucher điện tử & thẻ phòng kỹ thuật số...')}
-                                            className="text-amber-300 hover:text-amber-200 font-semibold cursor-pointer transition flex items-center gap-1"
-                                        >
-                                            <span>Xem voucher điện tử</span>
-                                            <ArrowRight className="w-3.5 h-3.5" />
+                                        <span className="text-amber-300/90 font-semibold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20">
+                                            Thẻ minh họa hội viên
                                         </span>
                                     </div>
                                 </div>
@@ -449,8 +436,8 @@ export default function AuthBookingPage() {
                                 </div>
                             </div>
 
-                            {/* Hotline chân cột trái */}
-                            <div className="relative z-10 pt-6 mt-6 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+                            {/* Hotline chân cột trái (ẩn trên mobile để tránh lặp lại hotline dưới form) */}
+                            <div className="relative z-10 pt-6 mt-6 border-t border-white/10 hidden lg:flex items-center justify-between text-xs text-slate-400">
                                 <span className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-xs shadow-emerald-400 animate-pulse" />
                                     <span>Hỗ trợ khách hàng trực tuyến 24/7</span>
@@ -463,7 +450,7 @@ export default function AuthBookingPage() {
                         </div>
 
                         {/* CỘT PHẢI: FORM ĐĂNG NHẬP / ĐĂNG KÝ SANG TRỌNG */}
-                        <div className="order-1 lg:order-2 lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-slate-100 shadow-2xl p-7 sm:p-9 flex flex-col justify-between">
+                        <div className="order-1 lg:order-2 lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-slate-100 shadow-2xl p-5 sm:p-9 flex flex-col justify-between">
                             <div>
                                 {/* BANNER NẾU ĐÃ ĐĂNG NHẬP */}
                                 {isAuthenticated && (
@@ -555,7 +542,9 @@ export default function AuthBookingPage() {
                                                 : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                     >
-                                        <span>Đăng Ký Tài Khoản</span>
+                                        <span>
+                                            Đăng Ký<span className="hidden sm:inline"> Tài Khoản</span>
+                                        </span>
                                         <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold border border-amber-200/50">
                                             Mới
                                         </span>
@@ -757,7 +746,31 @@ export default function AuthBookingPage() {
                                                     className="mt-0.5 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer shrink-0"
                                                 />
                                                 <span>
-                                                    Tôi đồng ý với <a href="#dieu-khoan" className="text-amber-600 font-semibold hover:underline">Điều khoản dịch vụ</a> và <a href="#bao-mat" className="text-amber-600 font-semibold hover:underline">Chính sách bảo mật</a> của {hotelName}.
+                                                    Tôi đồng ý với{' '}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setLegalModal('terms');
+                                                        }}
+                                                        className="text-amber-600 font-semibold hover:underline cursor-pointer"
+                                                    >
+                                                        Điều khoản dịch vụ
+                                                    </button>{' '}
+                                                    và{' '}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setLegalModal('privacy');
+                                                        }}
+                                                        className="text-amber-600 font-semibold hover:underline cursor-pointer"
+                                                    >
+                                                        Chính sách bảo mật
+                                                    </button>{' '}
+                                                    của {hotelName}.
                                                 </span>
                                             </label>
                                         </div>
@@ -830,7 +843,7 @@ export default function AuthBookingPage() {
             </main>
 
             {/* 3 BƯỚC TRẢI NGHIỆM TIỆN ÍCH KHI CÓ TÀI KHOẢN (GIAO DIỆN SÁNG, DỊU MẮT) */}
-            <section className="py-16 bg-white border-b border-slate-200">
+            <section className="py-10 sm:py-16 bg-white border-b border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-2xl mx-auto mb-12">
                         <span className="text-xs uppercase font-extrabold tracking-widest text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200/80">
@@ -885,7 +898,7 @@ export default function AuthBookingPage() {
             </section>
 
             {/* CÂU HỎI THƯỜNG GẶP (FAQ) & BANNER DOANH NGHIỆP */}
-            <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
                     {/* FAQ Accordion */}
                     <div className="lg:col-span-7 space-y-4">
@@ -971,6 +984,76 @@ export default function AuthBookingPage() {
                     setSuccessMessage('Mật khẩu của quý khách đã được cập nhật thành công! Vui lòng nhập mật khẩu mới để đăng nhập.');
                 }}
             />
+
+            {/* Modal Điều Khoản & Bảo Mật */}
+            {legalModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs"
+                    onClick={() => setLegalModal(null)}
+                >
+                    <div
+                        className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+                            <div>
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+                                    {hotelName}
+                                </span>
+                                <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
+                                    {legalModal === 'terms' ? 'Điều Khoản Dịch Vụ Hội Viên' : 'Chính Sách Bảo Mật Thông Tin'}
+                                </h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setLegalModal(null)}
+                                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                aria-label="Đóng"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="py-4 space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto">
+                            {legalModal === 'terms' ? (
+                                <>
+                                    <p>
+                                        Khi đăng ký tài khoản hội viên tại <strong className="text-slate-800">{hotelName}</strong>, quý khách đồng ý cung cấp thông tin cá nhân chính xác để phục vụ việc đặt phòng, làm thủ tục nhận phòng và xuất hóa đơn theo quy định.
+                                    </p>
+                                    <p>
+                                        • Chính sách đổi/hủy đặt phòng áp dụng theo từng hạng phòng và điều kiện của đơn đặt phòng cụ thể.
+                                    </p>
+                                    <p>
+                                        • Điểm thưởng và ưu đãi hội viên chỉ có giá trị sử dụng trên hệ thống của {hotelName} và không có giá trị quy đổi thành tiền mặt.
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <p>
+                                        <strong className="text-slate-800">{hotelName}</strong> cam kết bảo mật tuyệt đối họ tên, số điện thoại, địa chỉ email và lịch sử lưu trú của quý khách.
+                                    </p>
+                                    <p>
+                                        • Dữ liệu cá nhân chỉ được dùng để xác thực tài khoản, xử lý yêu cầu đặt phòng, hỗ trợ chăm sóc khách hàng và gửi thông báo liên quan đến kỳ nghỉ.
+                                    </p>
+                                    <p>
+                                        • Chúng tôi không chia sẻ thông tin khách hàng cho bên thứ ba ngoài phạm vi phục vụ lưu trú hoặc yêu cầu hợp pháp của cơ quan chức năng.
+                                    </p>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setLegalModal(null)}
+                                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer"
+                            >
+                                Đã hiểu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Reusable Footer */}
             <Footer />
