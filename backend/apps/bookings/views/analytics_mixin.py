@@ -9,6 +9,7 @@ from ..models import Booking, BookingExtraService
 from ...rooms.models import Room, RoomCategory
 from ...services.models import ServiceRequest
 from ...payments.models import Invoice, Payment
+from ...payments.revenue import get_net_revenue_summary
 
 
 class BookingAnalyticsMixin:
@@ -554,52 +555,16 @@ class BookingAnalyticsMixin:
             prev_end = timezone.make_aware(datetime.combine(datetime(prev_y, prev_m, prev_days).date(), datetime.max.time()))
             prev_label = "so với tháng trước"
 
-        # 2. TÍNH TOÁN DOANH THU THỰC TẾ
-        # Hóa đơn thanh toán trong kỳ (Invoice status='paid')
-        invoices_period = Invoice.objects.filter(
-            status='paid',
-            paid_at__gte=start_date,
-            paid_at__lte=end_date
-        )
-        inv_agg = invoices_period.aggregate(
-            total=Sum('total_amount'),
-            room=Sum('room_charge'),
-            service=Sum('service_charge'),
-            discount=Sum('discount')
-        )
-        current_inv_revenue = float(inv_agg['total'] or 0)
-        current_room_revenue = float(inv_agg['room'] or 0)
-        current_service_revenue = float(inv_agg['service'] or 0)
-        paid_invoices_count = invoices_period.count()
+        # 2. TÍNH TOÁN DOANH THU THUẦN ĐÃ QUYẾT TOÁN (đồng bộ chuẩn với Báo cáo & Phân tích)
+        current_rev = get_net_revenue_summary(start_date, end_date)
+        current_revenue = current_rev['total_revenue']
+        current_room_revenue = current_rev['room_revenue']
+        current_service_revenue = current_rev['service_revenue']
+        paid_invoices_count = current_rev['paid_invoices_count']
 
-        # Kiểm tra thêm nếu có đơn đặt phòng completed trong kỳ nhưng chưa có invoice
-        completed_bookings_period = Booking.objects.filter(
-            status='completed',
-            invoice__isnull=True
-        ).filter(
-            Q(actual_check_out__gte=start_date, actual_check_out__lte=end_date) |
-            Q(actual_check_out__isnull=True, updated_at__gte=start_date, updated_at__lte=end_date)
-        )
-        comp_agg = completed_bookings_period.aggregate(total=Sum('total_amount'))
-        extra_room_rev = float(comp_agg['total'] or 0)
-        current_room_revenue += extra_room_rev
-        current_revenue = current_inv_revenue + extra_room_rev
-
-        # Doanh thu kỳ trước
-        prev_invoices = Invoice.objects.filter(
-            status='paid',
-            paid_at__gte=prev_start,
-            paid_at__lte=prev_end
-        )
-        prev_inv_agg = prev_invoices.aggregate(total=Sum('total_amount'))
-        prev_extra = float(Booking.objects.filter(
-            status='completed',
-            invoice__isnull=True
-        ).filter(
-            Q(actual_check_out__gte=prev_start, actual_check_out__lte=prev_end) |
-            Q(actual_check_out__isnull=True, updated_at__gte=prev_start, updated_at__lte=prev_end)
-        ).aggregate(total=Sum('total_amount'))['total'] or 0)
-        prev_revenue = float(prev_inv_agg['total'] or 0) + prev_extra
+        # Doanh thu thuần kỳ trước
+        prev_rev = get_net_revenue_summary(prev_start, prev_end)
+        prev_revenue = prev_rev['total_revenue']
 
         # Tính tỷ lệ tăng trưởng
         if prev_revenue > 0:

@@ -678,11 +678,11 @@ export default function InvoiceManagement() {
                             ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-sm'
                             : 'border-slate-200/80 hover:border-slate-300'
                     }`}
-                    title="Bấm để xem tất cả giao dịch"
+                    title="Tổng dòng tiền thu vào từ giao dịch thành công (gồm tiền cọc đặt trước, chưa trừ phiếu chi hoàn cọc)"
                 >
                     <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
                         <span className="flex items-center gap-1.5">
-                            <span>Tổng tiền đã thu (Thực thu)</span>
+                            <span>Tổng tiền đã thu (Gộp)</span>
                             {stats.isFilteredByDate && (
                                 <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
                                     Kỳ lọc
@@ -696,7 +696,7 @@ export default function InvoiceManagement() {
                     <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-1 font-sans tabular-nums tracking-tight">
                         {formatVND(stats.totalRevenue)}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Từ {stats.completedCount} giao dịch thành công</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Từ {stats.completedCount} giao dịch (gồm cọc, chưa trừ hoàn tiền)</p>
                 </div>
 
                 <div 

@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated, BasePermission
 
 from ..bookings.models import Booking, GroupBooking, CorporatePartner
 from ..payments.models import Invoice, Payment, CashOutVoucher
+from ..payments.revenue import get_net_revenue_summary
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
 from ..users.views import check_role_permission
@@ -112,38 +113,13 @@ class ReportsAnalyticsView(APIView):
         # =====================================================================
         # PHẦN 1: TỔNG QUAN (KPIs)
         # =====================================================================
-        # Doanh thu trong kỳ (Hóa đơn đã thanh toán)
-        period_invoices = Invoice.objects.filter(
-            status='paid',
-            paid_at__gte=start_date,
-            paid_at__lte=end_date
-        )
-        period_rev_agg = period_invoices.aggregate(
-            total=Coalesce(Sum('total_amount'), Decimal(0)),
-            count=Count('id')
-        )
-        period_refunds = float(CashOutVoucher.objects.filter(
-            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
-            created_at__gte=start_date,
-            created_at__lte=end_date
-        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
-        period_revenue = max(0.0, float(period_rev_agg['total']) - period_refunds)
+        # Doanh thu thuần trong kỳ (Hóa đơn đã thanh toán trừ phiếu chi hoàn trả)
+        period_rev_summary = get_net_revenue_summary(start_date, end_date)
+        period_invoices = period_rev_summary['invoices_qs']
+        period_revenue = period_rev_summary['total_revenue']
 
-        # Doanh thu kỳ trước (để tính tăng trưởng)
-        prev_invoices = Invoice.objects.filter(
-            status='paid',
-            paid_at__gte=prev_start,
-            paid_at__lte=prev_end
-        )
-        prev_rev_agg = prev_invoices.aggregate(
-            total=Coalesce(Sum('total_amount'), Decimal(0))
-        )
-        prev_refunds = float(CashOutVoucher.objects.filter(
-            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
-            created_at__gte=prev_start,
-            created_at__lte=prev_end
-        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
-        prev_revenue = max(0.0, float(prev_rev_agg['total']) - prev_refunds)
+        # Doanh thu thuần kỳ trước (để tính tăng trưởng)
+        prev_revenue = get_net_revenue_summary(prev_start, prev_end)['total_revenue']
 
         if prev_revenue > 0:
             growth_rate = round(((period_revenue - prev_revenue) / prev_revenue) * 100, 1)
@@ -152,14 +128,8 @@ class ReportsAnalyticsView(APIView):
         else:
             growth_rate = 0.0
 
-        # Tổng doanh thu toàn thời gian (đã trừ hoàn trả)
-        all_time_rev_agg = Invoice.objects.filter(status='paid').aggregate(
-            total=Coalesce(Sum('total_amount'), Decimal(0))
-        )
-        all_time_refunds = float(CashOutVoucher.objects.filter(
-            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL']
-        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
-        all_time_revenue = max(0.0, float(all_time_rev_agg['total']) - all_time_refunds)
+        # Tổng doanh thu thuần toàn thời gian (đã trừ hoàn trả)
+        all_time_revenue = get_net_revenue_summary()['total_revenue']
 
         # Tổng số booking có lưu trú giao nhau trong kỳ (loại trừ cancelled và no_show)
         period_start_d = start_date.date()
@@ -502,13 +472,9 @@ class ReportsAnalyticsView(APIView):
         # =====================================================================
         # PHẦN 7: CHỈ SỐ KHÁCH SẠN CHUYÊN SÂU (ADR, RevPAR, ALOS) & CƠ CẤU DOANH THU
         # =====================================================================
-        # Doanh thu phòng & dịch vụ từ hóa đơn trong kỳ (sold_room_nights đã tính ở Phần 1)
-        period_breakdown = period_invoices.aggregate(
-            room_tot=Coalesce(Sum('room_charge'), Decimal(0)),
-            svc_tot=Coalesce(Sum('service_charge'), Decimal(0))
-        )
-        period_room_revenue = float(period_breakdown['room_tot'])
-        period_service_revenue = float(period_breakdown['svc_tot'])
+        # Doanh thu phòng & dịch vụ thuần từ hóa đơn trong kỳ (sold_room_nights đã tính ở Phần 1)
+        period_room_revenue = period_rev_summary['room_revenue']
+        period_service_revenue = period_rev_summary['service_revenue']
 
         # ADR (Average Daily Rate) = Tổng doanh thu phòng / Tổng số đêm phòng thực tế đã bán
         adr = round(period_room_revenue / sold_room_nights, 0) if sold_room_nights > 0 else 0.0

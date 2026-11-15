@@ -1058,11 +1058,14 @@ export default function HotelAdminDashboard({ initialTab }) {
                             {/* ========================================================================= */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                                 {/* Thẻ 1: Tổng Doanh thu */}
-                                <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-blue-400 hover:shadow-md transition">
+                                <div
+                                    className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-blue-400 hover:shadow-md transition"
+                                    title="Doanh thu thuần từ hóa đơn đã quyết toán (đã trừ giảm giá & phiếu chi hoàn tiền)"
+                                >
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                                                Tổng Doanh Thu ({dashboardData?.period_label?.toUpperCase() || 'KỲ HIỆN TẠI'})
+                                                Tổng Doanh Thu Thuần ({dashboardData?.period_label?.toUpperCase() || 'KỲ HIỆN TẠI'})
                                             </span>
                                             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-200/60">
                                                 <DollarSign className="w-4 h-4" />
@@ -1112,7 +1115,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 text-[10px]">
                                                 {dashboardData?.revenue?.total_revenue > 0
                                                     ? `Chiếm ${Math.round(((dashboardData.revenue.room_revenue || 0) / dashboardData.revenue.total_revenue) * 100)}% tổng thu`
-                                                    : 'Chiếm 82%'}
+                                                    : 'Chiếm 0% tổng thu'}
                                             </span>
                                             <span className="text-[11px] text-slate-400 truncate">Lưu trú buồng phòng</span>
                                         </div>
