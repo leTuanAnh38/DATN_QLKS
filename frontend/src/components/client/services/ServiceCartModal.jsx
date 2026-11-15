@@ -37,14 +37,16 @@ export default function ServiceCartModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             <div
                 className="fixed inset-0"
                 onClick={() => !isSubmittingCart && onClose()}
                 aria-hidden="true"
             />
             <div
-                className="relative bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10"
+                className={`relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10 ${
+                    cart.length > 0 ? 'h-[92dvh] sm:h-auto sm:max-h-[92vh]' : 'max-h-[90dvh] sm:max-h-[92vh]'
+                }`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header (Clean White Theme) */}
@@ -115,9 +117,9 @@ export default function ServiceCartModal({
                     </div>
                 ) : (
                     <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                        <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
+                        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-5">
                             {/* 1. Danh sách món trong giỏ */}
-                            <div className="space-y-2.5">
+                            <div className="space-y-2 sm:space-y-2.5">
                                 <label className="block text-xs font-bold text-slate-700 flex items-center justify-between">
                                     <span>Danh sách món đã chọn ({cart.length})</span>
                                     <span className="text-[11px] font-semibold text-slate-500">
@@ -125,11 +127,12 @@ export default function ServiceCartModal({
                                     </span>
                                 </label>
 
-                                <div className="space-y-2.5 max-h-60 sm:max-h-68 overflow-y-auto pr-1">
+                                {/* Bỏ cuộn lồng nhau trên mobile để cuộn mượt 1 lần qua toàn bộ giỏ hàng */}
+                                <div className="space-y-2 sm:space-y-2.5 sm:max-h-72 sm:overflow-y-auto sm:pr-1">
                                     {cart.map((ci) => (
                                         <div
                                             key={ci.id}
-                                            className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 transition hover:border-amber-300"
+                                            className="p-2.5 sm:p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5 sm:space-y-2 transition hover:border-amber-300"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <img
@@ -378,19 +381,20 @@ export default function ServiceCartModal({
                         </div>
 
                         {/* Footer */}
-                        <div className="px-5 sm:px-6 py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-between gap-3 shrink-0">
+                        <div className="px-3.5 sm:px-6 py-3 sm:py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-between gap-2 sm:gap-3 shrink-0">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSubmittingCart}
-                                className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center whitespace-nowrap"
                             >
-                                Chọn thêm món khác
+                                Thêm món
+                                <span className="hidden sm:inline"> khác</span>
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmittingCart}
-                                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                className="flex-[1.6] sm:flex-initial px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                             >
                                 {isSubmittingCart ? (
                                     <>
@@ -400,7 +404,7 @@ export default function ServiceCartModal({
                                 ) : (
                                     <>
                                         <BellRing className="w-4 h-4" />
-                                        <span>Xác nhận gửi tất cả ({totalCartCount} món)</span>
+                                        <span>Gửi đơn ({totalCartCount} món)</span>
                                     </>
                                 )}
                             </button>

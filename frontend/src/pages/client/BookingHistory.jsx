@@ -163,11 +163,14 @@ export default function BookingHistory() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(5);
 
-    // 3. State Modal Hủy phòng
+    // 3. State Modal Hủy phòng / Yêu cầu hủy đoàn
     const [cancelModalBooking, setCancelModalBooking] = useState(null);
     const [cancelScope, setCancelScope] = useState('single'); // 'single' | 'group'
     const [cancelReason, setCancelReason] = useState('Thay đổi lịch trình chuyến đi');
     const [customReason, setCustomReason] = useState('');
+    const [refundBankName, setRefundBankName] = useState('');
+    const [refundAccountNumber, setRefundAccountNumber] = useState('');
+    const [refundAccountHolder, setRefundAccountHolder] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
     // 4. State sao chép mã
@@ -400,17 +403,85 @@ export default function BookingHistory() {
         };
     }, [isAuthenticated]);
 
-    // Xử lý Hủy đặt phòng (Khách lẻ hoặc Hủy đoàn)
+    const handleOpenCancelModal = (booking) => {
+        const groupInfo = getGroupBookingInfo(booking);
+        const isGroupDeposited = Boolean(
+            groupInfo.isGroup && (booking.is_group_deposit_paid || booking.group_status === 'confirmed')
+        );
+        const existingReq = booking.group_cancel_request;
+        setCancelModalBooking(booking);
+        setCancelScope(isGroupDeposited ? 'group' : 'single');
+        if (isGroupDeposited && existingReq && existingReq.status === 'pending') {
+            const presetReasons = [
+                'Thay đổi lịch trình chuyến đi',
+                'Đặt nhầm ngày hoặc thông tin phòng',
+                'Tìm thấy mức giá hoặc nơi ở khác phù hợp hơn'
+            ];
+            if (existingReq.reason && presetReasons.includes(existingReq.reason)) {
+                setCancelReason(existingReq.reason);
+                setCustomReason('');
+            } else if (existingReq.reason) {
+                setCancelReason('Khác');
+                setCustomReason(existingReq.reason);
+            }
+            setRefundBankName(existingReq.refund_bank_name || '');
+            setRefundAccountNumber(existingReq.refund_account_number || '');
+            setRefundAccountHolder(existingReq.refund_account_holder || '');
+        } else {
+            setCancelReason('Thay đổi lịch trình chuyến đi');
+            setCustomReason('');
+            setRefundBankName('');
+            setRefundAccountNumber('');
+            setRefundAccountHolder('');
+        }
+    };
+
+    // Xử lý Hủy đặt phòng (Khách lẻ, Hủy đoàn chưa cọc, hoặc Gửi YC hủy đoàn đã cọc)
     const handleConfirmCancel = async () => {
         if (!cancelModalBooking) return;
 
         const finalReason = cancelReason === 'Khác' ? customReason.trim() || 'Lý do cá nhân' : cancelReason;
         const groupInfo = getGroupBookingInfo(cancelModalBooking);
+        const isGroupDeposited = Boolean(
+            groupInfo.isGroup && (cancelModalBooking.is_group_deposit_paid || cancelModalBooking.group_status === 'confirmed')
+        );
 
         try {
             setIsCancelling(true);
-            if (cancelScope === 'group' && groupInfo.isGroup) {
-                // Hủy toàn bộ các phòng trong đoàn
+            if (isGroupDeposited) {
+                const targetGroupId = groupInfo.groupId || groupInfo.groupCode;
+                const res = await bookingService.requestCancelGroupBooking(targetGroupId, {
+                    reason: finalReason,
+                    refund_bank_name: refundBankName.trim(),
+                    refund_account_number: refundAccountNumber.trim(),
+                    refund_account_holder: refundAccountHolder.trim()
+                });
+                if (res && res.success) {
+                    showToast('success', res.message || `Đã gửi yêu cầu hủy đoàn #${groupInfo.groupCode}.`);
+                    setBookings((prev) =>
+                        prev.map((b) => {
+                            const bGroup = getGroupBookingInfo(b);
+                            if (bGroup.isGroup && bGroup.groupCode === groupInfo.groupCode) {
+                                return {
+                                    ...b,
+                                    group_cancel_request: res.cancel_request || b.group_cancel_request,
+                                    group_cancel_policy: res.cancel_policy || b.group_cancel_policy
+                                };
+                            }
+                            return b;
+                        })
+                    );
+                    setCancelModalBooking(null);
+                    setCustomReason('');
+                    setRefundBankName('');
+                    setRefundAccountNumber('');
+                    setRefundAccountHolder('');
+                    setCancelScope('single');
+                } else {
+                    showToast('error', res?.message || 'Không thể gửi yêu cầu hủy đoàn. Vui lòng thử lại sau.');
+                }
+            } else if (cancelScope === 'group' && groupInfo.isGroup) {
+                // Hủy toàn bộ các phòng trong đoàn (đoàn chưa cọc)
                 const targetGroupId = groupInfo.groupId || groupInfo.groupCode;
                 const res = await bookingService.cancelGroupBooking(targetGroupId, finalReason);
                 if (res && res.success) {
@@ -991,6 +1062,13 @@ export default function BookingHistory() {
                                         extraServices.reduce((sum, s) => sum + Number(s.total_price || (s.price * (s.quantity || 1)) || 0), 0);
                                     const hasExtraServices = extraServices.length > 0;
                                     const groupInfo = getGroupBookingInfo(booking);
+                                    const isGroupDeposited = Boolean(
+                                        groupInfo.isGroup && (booking.is_group_deposit_paid || booking.group_status === 'confirmed')
+                                    );
+                                    const groupCancelReq = booking.group_cancel_request;
+                                    const hasPendingGroupCancelRequest = Boolean(
+                                        groupInfo.isGroup && groupCancelReq && groupCancelReq.status === 'pending'
+                                    );
 
                                     return (
                                         <div
@@ -1333,18 +1411,27 @@ export default function BookingHistory() {
                                                                 </button>
                                                             )}
 
-                                                            {/* Nút Hủy đặt phòng (Hỗ trợ cả khách lẻ và đơn đoàn) */}
+                                                            {/* Nút Hủy đặt phòng / Yêu cầu hủy đoàn & Hoàn cọc */}
                                                             {canCancel && (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
-                                                                        setCancelModalBooking(booking);
-                                                                        setCancelScope('single');
-                                                                    }}
-                                                                    className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    onClick={() => handleOpenCancelModal(booking)}
+                                                                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
+                                                                        isGroupDeposited
+                                                                            ? 'border-amber-300 bg-amber-50/70 text-amber-800 hover:bg-amber-100'
+                                                                            : 'border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300'
+                                                                    }`}
                                                                 >
-                                                                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
-                                                                    <span>{groupInfo.isGroup ? 'Hủy phòng / Hủy đoàn' : 'Hủy đặt phòng'}</span>
+                                                                    <XCircle className={`w-3.5 h-3.5 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-500'}`} />
+                                                                    <span>
+                                                                        {hasPendingGroupCancelRequest
+                                                                            ? 'Xem / Cập nhật YC hủy đoàn'
+                                                                            : isGroupDeposited
+                                                                            ? 'Yêu cầu hủy đoàn & Hoàn cọc'
+                                                                            : groupInfo.isGroup
+                                                                            ? 'Hủy phòng / Hủy đoàn'
+                                                                            : 'Hủy đặt phòng'}
+                                                                    </span>
                                                                 </button>
                                                             )}
 
@@ -1499,6 +1586,12 @@ export default function BookingHistory() {
                                                                 : 'Phòng thuộc danh sách phân bổ của đoàn.'}
                                                         </span>
                                                     </div>
+                                                    {hasPendingGroupCancelRequest && (
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold">
+                                                            <Clock className="w-3 h-3 text-amber-700" />
+                                                            <span>Đã gửi YC hủy đoàn &amp; hoàn cọc — Chờ Lễ tân xử lý</span>
+                                                        </span>
+                                                    )}
                                                 </div>
                                             )}
 
@@ -1552,7 +1645,7 @@ export default function BookingHistory() {
                 )}
             </main>
 
-            {/* 1. Modal xác nhận hủy phòng */}
+            {/* 1. Modal xác nhận hủy phòng / yêu cầu hủy đoàn */}
             <CancelBookingModal
                 booking={cancelModalBooking}
                 onClose={() => setCancelModalBooking(null)}
@@ -1564,6 +1657,13 @@ export default function BookingHistory() {
                 setCustomReason={setCustomReason}
                 cancelScope={cancelScope}
                 setCancelScope={setCancelScope}
+                refundBankName={refundBankName}
+                setRefundBankName={setRefundBankName}
+                refundAccountNumber={refundAccountNumber}
+                setRefundAccountNumber={setRefundAccountNumber}
+                refundAccountHolder={refundAccountHolder}
+                setRefundAccountHolder={setRefundAccountHolder}
+                cancellationFreeHours={settings?.cancellation_free_hours || 48}
                 getGroupBookingInfo={getGroupBookingInfo}
                 formatDateDisplay={formatDateDisplay}
             />

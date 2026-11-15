@@ -747,6 +747,19 @@ class BookingViewSet(
         }, status=status.HTTP_200_OK)
 
 
+    def _check_group_subbooking_cancel_forbidden(self, booking):
+        """Chặn khách tự hủy lẻ phòng con thuộc đơn đặt đoàn đã xác nhận/đặt cọc."""
+        grp = getattr(booking, 'group_booking', None)
+        if grp and (grp.is_deposit_paid or grp.status == 'confirmed'):
+            return Response({
+                'success': False,
+                'message': (
+                    f'Phòng này thuộc đơn đặt đoàn đã xác nhận/đặt cọc (#{grp.group_code}). '
+                    f'Vui lòng sử dụng chức năng Gửi yêu cầu hủy đoàn & Hoàn cọc hoặc liên hệ Lễ tân để đối soát.'
+                )
+            }, status=status.HTTP_403_FORBIDDEN)
+        return None
+
     @action(detail=False, methods=['post'], url_path='cancel-booking', permission_classes=[AllowAny])
     def cancel_booking(self, request):
         """
@@ -802,6 +815,10 @@ class BookingViewSet(
                         'success': False,
                         'message': 'Xác thực không thành công. Vui lòng cung cấp đúng mã đơn (booking_code) hoặc số CCCD khi đặt phòng.'
                     }, status=status.HTTP_403_FORBIDDEN)
+
+            grp_err = self._check_group_subbooking_cancel_forbidden(booking)
+            if grp_err:
+                return grp_err
 
         if booking.status not in ['pending', 'confirmed', 'paid', 'PAID']:
             return Response({'success': False, 'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -891,6 +908,10 @@ class BookingViewSet(
         # Xử lý trường hợp tài khoản là khách hàng
         if is_guest:
             if new_status == 'cancelled':
+                grp_err = self._check_group_subbooking_cancel_forbidden(booking)
+                if grp_err:
+                    return grp_err
+
                 if booking.status not in ['pending', 'paid', 'PAID']:
                     return Response({
                         'success': False,

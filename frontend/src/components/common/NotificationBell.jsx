@@ -450,7 +450,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2.5 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1.25rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[82vh] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2 top-[64px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-76px)] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}
@@ -576,8 +576,8 @@ export default function NotificationBell({ theme = 'light' }) {
                         )}
                     </div>
 
-                    {/* Danh sách thông báo */}
-                    <div className="flex-1 min-h-0 max-h-[58vh] sm:max-h-[480px] md:max-h-[520px] overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
+                    {/* Danh sách thông báo - tận dụng tối đa chiều cao popover trên mobile */}
+                    <div className="flex-1 min-h-0 sm:max-h-[480px] md:max-h-[520px] overflow-y-auto divide-y divide-slate-100 divide-opacity-60">
                         {isLoading && notifications.length === 0 ? (
                             <div className="p-8 text-center text-slate-400 text-xs">
                                 <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-500" />
@@ -605,7 +605,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                         <div
                                             key={notif.id}
                                             onClick={() => handleNotificationClick(notif)}
-                                            className={`p-3.5 transition-all duration-150 cursor-pointer relative group ${
+                                            className={`p-2.5 sm:p-3.5 transition-all duration-150 cursor-pointer relative group ${
                                                 isUnread
                                                     ? 'bg-blue-50/70 hover:bg-blue-100/60 border-l-3 border-blue-500'
                                                     : 'bg-white hover:bg-slate-50/90 text-slate-700'

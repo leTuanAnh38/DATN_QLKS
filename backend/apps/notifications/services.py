@@ -640,6 +640,84 @@ def send_group_booking_notification(group_booking, event_type, actor=None, extra
                     )
                 )
 
+        # ==============================================================================
+        # SỰ KIỆN 5: KHÁCH GỬI YÊU CẦU HỦY ĐOÀN & HOÀN CỌC ('cancel_requested')
+        # ==============================================================================
+        elif event_type == 'cancel_requested':
+            reason = extra_data.get('reason') or 'Khách hàng yêu cầu hủy đoàn'
+            is_free_eligible = bool(extra_data.get('is_free_cancel_eligible', False))
+            free_hours = extra_data.get('free_hours', 48)
+            refund_info = extra_data.get('refund_info') or 'Chưa cung cấp STK'
+            policy_label = (
+                f"Đủ điều kiện xem xét hoàn cọc (trước ≥ {free_hours}h)"
+                if is_free_eligible
+                else f"Cận ngày nhận phòng (< {free_hours}h) — Cần đối soát phí phạt"
+            )
+
+            # 5.1. Thông báo cho Trưởng đoàn
+            if leader_user:
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"Đã tiếp nhận yêu cầu hủy đoàn #{group_booking.group_code}",
+                        message=(
+                            f"Khách sạn TA đã ghi nhận yêu cầu hủy toàn bộ đoàn '{group_booking.group_name}' "
+                            f"(Số tiền đã cọc: {deposit_amount:,.0f}đ). Tình trạng đối chiếu chính sách: {policy_label}. "
+                            f"Bộ phận Lễ tân & Thu ngân sẽ kiểm tra và xử lý hoàn cọc trong thời gian sớm nhất."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='high'
+                    )
+                )
+
+            # 5.2. Thông báo cho Lễ tân, Quản lý, Thu ngân & Admin
+            staff_users = User.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True) |
+                models.Q(role__in=['admin', 'owner', 'manager', 'receptionist', 'cashier'])
+            )
+            if leader_user:
+                staff_users = staff_users.exclude(id=leader_user.id)
+            staff_users = staff_users.distinct()
+            for staff in staff_users:
+                new_notifications.append(
+                    Notification(
+                        recipient=staff,
+                        title=f"Yêu cầu hủy đoàn #{group_booking.group_code} ({group_booking.leader_name})",
+                        message=(
+                            f"Khách hàng yêu cầu hủy đoàn '{group_booking.group_name}'{comp_display} ({total_rooms} phòng, "
+                            f"đã cọc {deposit_amount:,.0f}đ). Chính sách: {policy_label}. "
+                            f"Lý do: {reason}. Thông tin hoàn cọc: {refund_info}. "
+                            f"Vui lòng vào Chi tiết đoàn để duyệt hủy và lập phiếu chi hoàn cọc (nếu hợp lệ)."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/admin/bookings",
+                        priority='high'
+                    )
+                )
+
+        # ==============================================================================
+        # SỰ KIỆN 6: ĐOÀN ĐÃ ĐƯỢC HỦY ('cancelled')
+        # ==============================================================================
+        elif event_type == 'cancelled':
+            reason = extra_data.get('reason') or ''
+            if leader_user:
+                reason_txt = f" Lý do: {reason}." if reason else ""
+                new_notifications.append(
+                    Notification(
+                        recipient=leader_user,
+                        title=f"Đơn đặt đoàn #{group_booking.group_code} đã được hủy",
+                        message=(
+                            f"Đơn đặt đoàn '{group_booking.group_name}' ({total_rooms} phòng) đã chuyển sang trạng thái Đã hủy "
+                            f"và toàn bộ phòng đã được giải phóng.{reason_txt} "
+                            f"Nếu có khoản cọc cần hoàn lại, Thu ngân khách sạn sẽ liên hệ đối soát theo thông tin đã đăng ký."
+                        ),
+                        notification_type='group_booking',
+                        action_url="/booking-history",
+                        priority='high'
+                    )
+                )
+
         # Lưu thông báo vào database
         if new_notifications:
             Notification.objects.bulk_create(new_notifications)

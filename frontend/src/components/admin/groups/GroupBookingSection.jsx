@@ -696,25 +696,33 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                             </td>
 
                                             <td className="py-3 px-4">
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border shadow-2xs ${
-                                                    m.isCancelled
-                                                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                                        : m.isCheckedIn
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                        : m.isCompleted
-                                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                                        : m.isConfirmed
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                                                }`}>
-                                                    {m.isCancelled
-                                                        ? 'Đã hủy'
-                                                        : m.isCheckedIn
-                                                        ? 'Đang ở'
-                                                        : m.isCompleted
-                                                        ? 'Hoàn tất'
-                                                        : (group.status_display || group.status)}
-                                                </span>
+                                                <div className="flex flex-col items-start gap-1">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border shadow-2xs ${
+                                                        m.isCancelled
+                                                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                                            : m.isCheckedIn
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            : m.isCompleted
+                                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                                            : m.isConfirmed
+                                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    }`}>
+                                                        {m.isCancelled
+                                                            ? 'Đã hủy'
+                                                            : m.isCheckedIn
+                                                            ? 'Đang ở'
+                                                            : m.isCompleted
+                                                            ? 'Hoàn tất'
+                                                            : (group.status_display || group.status)}
+                                                    </span>
+                                                    {!m.isCancelled && group.cancel_request?.status === 'pending' && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-1 animate-pulse">
+                                                            <AlertCircle className="w-3 h-3 text-rose-600" />
+                                                            <span>YC hủy đoàn</span>
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -810,6 +818,14 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                                                 : (group.status_display || group.status)}
                                                         </span>
                                                     </span>
+
+                                                    {/* Badge yêu cầu hủy đoàn từ khách */}
+                                                    {!m.isCancelled && group.cancel_request?.status === 'pending' && (
+                                                        <span className="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                                                            <AlertCircle className="w-3 h-3 text-rose-600" />
+                                                            <span>Khách yêu cầu hủy đoàn</span>
+                                                        </span>
+                                                    )}
 
                                                     {/* Badge đối tác Doanh nghiệp B2B (tinh chỉnh không lặp tên công ty nếu tiêu đề đã có) */}
                                                     {m.partner && (

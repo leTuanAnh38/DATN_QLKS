@@ -53,22 +53,22 @@ export default function ServiceHistoryModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
             <div
-                className="relative bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up z-10"
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-3xl w-full h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header: Tối ưu nhỏ gọn, cân đối, không bị lệch trên mobile */}
                 <div className="bg-white text-slate-900 px-3.5 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between border-b border-slate-200/80 shrink-0 gap-2">
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-xs">
                             <History className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                                 <h3 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate">
-                                    Lịch Sử Đặt Món & Dịch Vụ
+                                    Lịch Sử Đặt Món &amp; Dịch Vụ
                                 </h3>
                                 {activeOrdersCount > 0 && (
                                     <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase shadow-xs shrink-0">
@@ -111,7 +111,7 @@ export default function ServiceHistoryModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
+                            className="w-9 h-9 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
                             title="Đóng"
                         >
                             <X className="w-4 h-4" />
@@ -120,7 +120,7 @@ export default function ServiceHistoryModal({
                 </div>
 
                 {/* Filter Tabs - Ghim cố định dưới Header, chỉ cho phép cuộn ngang (X), khóa hoàn toàn cuộn dọc (Y) */}
-                <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50/90 border-b border-slate-200/80 flex items-center gap-2 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 touch-pan-x select-none">
+                <div className="px-3.5 sm:px-6 py-2 sm:py-3 bg-slate-50/90 border-b border-slate-200/80 flex items-center gap-1.5 sm:gap-2 overflow-x-auto overflow-y-hidden no-scrollbar shrink-0 touch-pan-x select-none">
                     {[
                         { key: 'all', label: 'Tất cả', icon: Layers, count: historyStats.total },
                         { key: 'pending', label: 'Chờ xác nhận', icon: Clock, count: historyStats.pending },
@@ -159,7 +159,7 @@ export default function ServiceHistoryModal({
                 </div>
 
                 {/* Modal Body / Request List */}
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-2.5 sm:space-y-4">
                     {isLoadingHistory && orderHistory.length === 0 ? (
                         <div className="py-16 text-center space-y-3">
                             <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -218,147 +218,143 @@ export default function ServiceHistoryModal({
                                     key={item.id}
                                     className="bg-white rounded-2xl border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition overflow-hidden shadow-2xs"
                                 >
-                                    {/* Thẻ Header: Mã đơn + Phòng + Trạng thái */}
-                                    <div className="bg-slate-50/80 px-4 sm:px-5 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono font-bold text-slate-800">
+                                    {/* Thẻ Header: Mã đơn + Phòng + Trạng thái (gọn trên 1 dòng trên mobile) */}
+                                    <div className="bg-slate-50/80 px-3 sm:px-5 py-2 sm:py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 text-xs">
+                                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                            <span className="font-mono font-bold text-slate-800 text-[11px] sm:text-xs shrink-0">
                                                 #SRQ-{item.id}
                                             </span>
-                                            <span className="text-slate-300">•</span>
-                                            <span className="font-semibold text-slate-800 bg-white px-2 py-0.5 rounded-md border border-slate-200/80 flex items-center gap-1.5 shadow-2xs">
-                                                <BedDouble className="w-3.5 h-3.5 text-amber-600" />
-                                                Phòng {item.room_number || 'Lưu trú'}
+                                            <span className="text-slate-300 shrink-0">•</span>
+                                            <span className="font-semibold text-slate-800 bg-white px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-200/80 flex items-center gap-1 shadow-2xs text-[11px] sm:text-xs truncate">
+                                                <BedDouble className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
+                                                <span className="truncate">P.{item.room_number || 'Lưu trú'}</span>
                                             </span>
                                             {item.booking_code && (
-                                                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                                                <span className="text-[11px] text-slate-400 font-mono hidden sm:inline shrink-0">
                                                     (Mã #{item.booking_code})
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[11px] text-slate-400 hidden sm:inline flex items-center gap-1">
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className="text-[11px] text-slate-400 hidden sm:inline-flex items-center gap-1">
                                                 <Clock className="w-3 h-3 text-slate-400" />
                                                 {formatDateTimeDisplay(item.created_at || item.request_time)}
                                             </span>
                                             {/* Status Badge */}
                                             {isPending && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                                     {labels.badgePending}
                                                 </span>
                                             )}
                                             {isInProgress && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200">
+                                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-sky-50 text-sky-800 border border-sky-200 whitespace-nowrap">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-ping"></span>
                                                     {labels.badgeInProgress}
                                                 </span>
                                             )}
                                             {isDelivering && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200 whitespace-nowrap">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-ping"></span>
                                                     {labels.badgeDelivering}
                                                 </span>
                                             )}
                                             {isCompleted && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+                                                    <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600" />
                                                     {labels.badgeCompleted}
                                                 </span>
                                             )}
                                             {isCancelled && (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200">
-                                                    <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-rose-50 text-rose-800 border border-rose-200 whitespace-nowrap">
+                                                    <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600" />
                                                     Đã hủy
                                                 </span>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Body thẻ: Dịch vụ + Chi tiết */}
-                                    <div className="p-4 sm:p-5">
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                            <div className="flex items-center gap-3.5 flex-1">
+                                    {/* Body thẻ: Dịch vụ + Chi tiết (Nằm ngang gọn trên mobile) */}
+                                    <div className="p-3 sm:p-5">
+                                        <div className="flex flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+                                            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
                                                 {item.service_image ? (
                                                     <img
                                                         src={item.service_image}
                                                         alt={item.service_name}
-                                                        className="w-16 h-16 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
+                                                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                                                         onError={(e) => {
                                                             e.target.src =
                                                                 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80';
                                                         }}
                                                     />
                                                 ) : (
-                                                    <div className="w-16 h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
+                                                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
                                                         {renderCategoryIcon(
                                                             item.category_name,
                                                             item.category_icon,
-                                                            'w-6 h-6 text-amber-600'
+                                                            'w-5 h-5 sm:w-6 sm:h-6 text-amber-600'
                                                         )}
                                                     </div>
                                                 )}
 
-                                                <div className="space-y-1">
-                                                    <h4 className="font-bold text-slate-900 text-sm">
+                                                <div className="space-y-1 min-w-0 flex-1">
+                                                    <h4 className="font-bold text-slate-900 text-[13px] sm:text-sm leading-snug line-clamp-2">
                                                         {item.service_name}
                                                     </h4>
-                                                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                                                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">
+                                                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500">
+                                                        <span className="px-1.5 sm:px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[10px] sm:text-[11px]">
                                                             {item.category_name || 'Dịch vụ phòng'}
                                                         </span>
-                                                        <span>•</span>
                                                         <span className="font-bold text-slate-900">
-                                                            Số lượng: x{item.quantity}
+                                                            x{item.quantity}
                                                         </span>
                                                         {item.service_price && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span className="text-slate-400 text-[11px]">
-                                                                    ({Number(item.service_price).toLocaleString('vi-VN')} đ/lần)
-                                                                </span>
-                                                            </>
+                                                            <span className="text-slate-400 text-[10px] sm:text-[11px] hidden sm:inline">
+                                                                • ({Number(item.service_price).toLocaleString('vi-VN')} đ/lần)
+                                                            </span>
                                                         )}
                                                     </div>
                                                     {item.is_scheduled && item.request_time && (
-                                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-300">
-                                                            <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 text-[10px] sm:text-[11px] font-bold border border-amber-300">
+                                                            <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                                                             <span>Hẹn giao: {formatDateTimeDisplay(item.request_time)}</span>
                                                         </div>
                                                     )}
                                                     {item.note && (
-                                                        <div className="text-[11px] text-amber-900 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60 italic">
-                                                            Ghi chú: "{item.note}"
+                                                        <div className="text-[10.5px] sm:text-[11px] text-amber-900 bg-amber-50/80 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border border-amber-200/60 italic line-clamp-2">
+                                                            Ghi chú: &ldquo;{item.note}&rdquo;
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            <div className="text-left sm:text-right shrink-0">
-                                                <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
+                                            <div className="text-right shrink-0">
+                                                <span className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider block font-medium">
                                                     Thành tiền
                                                 </span>
-                                                <div className="text-base font-black text-rose-600">
-                                                    {priceNum.toLocaleString('vi-VN')}{' '}
-                                                    <span className="text-xs font-bold text-slate-500">VND</span>
+                                                <div className="text-sm sm:text-base font-black text-rose-600 whitespace-nowrap">
+                                                    {priceNum.toLocaleString('vi-VN')}
+                                                    <span className="text-[10px] sm:text-xs font-bold text-slate-500 ml-0.5">đ</span>
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 block">
+                                                <span className="text-[10px] text-slate-400 hidden sm:block">
                                                     (Tính vào hóa đơn phòng)
                                                 </span>
                                             </div>
                                         </div>
 
                                         {/* THANH TIẾN ĐỘ TRẠNG THÁI XỬ LÝ (4 BƯỚC) */}
-                                        <div className="mt-5 pt-4 border-t border-slate-100">
+                                        <div className="mt-2.5 pt-2.5 sm:mt-5 sm:pt-4 border-t border-slate-100">
                                             {!isCancelled ? (
-                                                <div className="space-y-3">
-                                                    {/* Interactive Step Timeline */}
-                                                    <div className="relative flex items-start justify-between px-2 pt-1 pb-1">
-                                                        <div className="absolute top-4 sm:top-[18px] left-6 right-6 h-1 bg-slate-100 rounded-full z-0" />
+                                                <div className="space-y-2 sm:space-y-3">
+                                                    {/* Interactive Step Timeline: Luôn hiện với đơn đang xử lý; với đơn đã xong chỉ hiện trên sm+ để mobile thoáng */}
+                                                    <div className={`${isCompleted ? 'hidden sm:flex' : 'flex'} relative items-start justify-between px-1 sm:px-2 pt-0.5 pb-0.5 sm:pt-1 sm:pb-1`}>
+                                                        <div className="absolute top-3.5 sm:top-[18px] left-5 right-5 sm:left-6 sm:right-6 h-1 bg-slate-100 rounded-full z-0" />
                                                         <div
-                                                            className="absolute top-4 sm:top-[18px] left-6 h-1 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-500 rounded-full z-0 transition-all duration-700 ease-out"
+                                                            className="absolute top-3.5 sm:top-[18px] left-5 sm:left-6 h-1 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-500 rounded-full z-0 transition-all duration-700 ease-out"
                                                             style={{
-                                                                width: `calc(${progressPercent}% * (100% - 48px) / 100)`
+                                                                width: `calc(${progressPercent}% * (100% - 44px) / 100)`
                                                             }}
                                                         />
 
@@ -376,24 +372,24 @@ export default function ServiceHistoryModal({
                                                                     className="relative z-10 flex flex-col items-center"
                                                                 >
                                                                     <div
-                                                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                                                                        className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                                                                             isPassed
-                                                                                ? 'bg-emerald-500 text-white shadow-xs ring-4 ring-emerald-50'
+                                                                                ? 'bg-emerald-500 text-white shadow-xs ring-2 sm:ring-4 ring-emerald-50'
                                                                                 : isCurrent
                                                                                 ? isCompleted
-                                                                                    ? 'bg-emerald-500 text-white shadow-md ring-4 ring-emerald-100'
-                                                                                    : 'bg-amber-500 text-white shadow-md ring-4 ring-amber-100 scale-105 font-black'
+                                                                                    ? 'bg-emerald-500 text-white shadow-md ring-2 sm:ring-4 ring-emerald-100'
+                                                                                    : 'bg-amber-500 text-white shadow-md ring-2 sm:ring-4 ring-amber-100 scale-105 font-black'
                                                                                 : 'bg-white text-slate-400 border-2 border-slate-200'
                                                                         }`}
                                                                     >
                                                                         {isPassed || (isCurrent && isCompleted) ? (
-                                                                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                                                                            <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
                                                                         ) : (
                                                                             <span>{step.num}</span>
                                                                         )}
                                                                     </div>
                                                                     <span
-                                                                        className={`mt-1.5 text-[9.5px] sm:text-[11px] font-semibold text-center leading-tight max-w-[68px] sm:max-w-none break-words transition-colors ${
+                                                                        className={`mt-1 sm:mt-1.5 text-[9px] sm:text-[11px] font-semibold text-center leading-tight max-w-[64px] sm:max-w-none break-words transition-colors ${
                                                                             isCurrent
                                                                                 ? isCompleted
                                                                                     ? 'text-emerald-700 font-bold'
@@ -412,19 +408,19 @@ export default function ServiceHistoryModal({
 
                                                     {/* Thông báo trạng thái & nút Hủy */}
                                                     <div
-                                                        className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+                                                        className={`px-2.5 py-2 sm:p-3 rounded-xl border flex flex-row items-center justify-between gap-2 text-xs transition-all ${
                                                             isCompleted
                                                                 ? 'bg-emerald-50/70 border-emerald-200/80 text-emerald-900'
                                                                 : 'bg-amber-50/70 border-amber-200/80 text-amber-950'
                                                         }`}
                                                     >
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                                                             {isCompleted ? (
-                                                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
                                                             ) : (
-                                                                <Clock className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+                                                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0 animate-pulse" />
                                                             )}
-                                                            <span className="font-medium text-[11px] sm:text-xs">
+                                                            <span className="font-medium text-[11px] sm:text-xs leading-snug">
                                                                 {isPending && labels.pendingMessage}
                                                                 {isInProgress && labels.inProgressMessage}
                                                                 {isDelivering && labels.deliveringMessage}
@@ -437,28 +433,28 @@ export default function ServiceHistoryModal({
                                                                 type="button"
                                                                 disabled={cancellingRequestId === item.id}
                                                                 onClick={() => onCancelOrder(item)}
-                                                                className="self-end sm:self-auto px-2.5 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-100/60 border border-rose-200 text-[11px] font-bold transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                                                                className="shrink-0 px-2.5 py-1 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-100/60 border border-rose-200 text-[11px] font-bold transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
                                                             >
                                                                 <X className="w-3 h-3" />
                                                                 <span>
                                                                     {cancellingRequestId === item.id
                                                                         ? 'Đang hủy...'
-                                                                        : 'Hủy yêu cầu'}
+                                                                        : 'Hủy'}
                                                                 </span>
                                                             </button>
                                                         )}
                                                         {isPending && item.is_paid && (
-                                                            <span className="self-end sm:self-auto px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                                                                Đã thanh toán trước (Liên hệ Lễ tân nếu cần đổi/hủy)
+                                                            <span className="shrink-0 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
+                                                                Đã thanh toán
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex items-center gap-2 text-xs text-rose-700 bg-rose-50/80 p-3 rounded-xl border border-rose-200">
-                                                    <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                                <div className="flex items-center gap-2 text-[11px] sm:text-xs text-rose-700 bg-rose-50/80 px-2.5 py-2 sm:p-3 rounded-xl border border-rose-200">
+                                                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
                                                     <span>
-                                                        Yêu cầu đã được hủy bỏ. Dịch vụ không thực hiện và không phát sinh bất kỳ chi phí nào.
+                                                        Yêu cầu đã hủy — không phát sinh chi phí.
                                                     </span>
                                                 </div>
                                             )}
@@ -468,55 +464,55 @@ export default function ServiceHistoryModal({
                             );
                         })
                     )}
+
+                    {/* Phân trang lịch sử đơn đặt món (nằm cuối vùng cuộn để không chiếm chiều cao cố định trên mobile) */}
+                    {totalHistoryPages > 1 && (
+                        <div className="pt-2 pb-1 flex flex-wrap items-center justify-between gap-2 text-xs select-none">
+                            <div className="text-slate-500 font-medium text-[11px]">
+                                Trang <strong className="text-slate-800">{historyPage}</strong> / {totalHistoryPages} ({sortedHistory.length} đơn)
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    disabled={historyPage <= 1}
+                                    onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+                                >
+                                    <ChevronLeft className="w-3 h-3" />
+                                    <span>Trước</span>
+                                </button>
+                                {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map((p) => (
+                                    <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setHistoryPage(p)}
+                                        className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                            historyPage === p
+                                                ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-xs'
+                                                : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                                        }`}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                                <button
+                                    type="button"
+                                    disabled={historyPage >= totalHistoryPages}
+                                    onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+                                >
+                                    <span>Sau</span>
+                                    <ChevronRight className="w-3 h-3" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Phân trang lịch sử đơn đặt món */}
-                {totalHistoryPages > 1 && (
-                    <div className="px-4 sm:px-6 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs shrink-0 select-none">
-                        <div className="text-slate-500 font-medium text-[11px]">
-                            Hiển thị trang <strong className="text-slate-800">{historyPage}</strong> / {totalHistoryPages} ({sortedHistory.length} đơn)
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <button
-                                type="button"
-                                disabled={historyPage <= 1}
-                                onClick={() => setHistoryPage((prev) => Math.max(1, prev - 1))}
-                                className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
-                            >
-                                <ChevronLeft className="w-3 h-3" />
-                                <span>Trước</span>
-                            </button>
-                            {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map((p) => (
-                                <button
-                                    key={p}
-                                    type="button"
-                                    onClick={() => setHistoryPage(p)}
-                                    className={`w-7 h-7 rounded-lg text-xs font-bold transition cursor-pointer ${
-                                        historyPage === p
-                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-xs'
-                                            : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
-                                    }`}
-                                >
-                                    {p}
-                                </button>
-                            ))}
-                            <button
-                                type="button"
-                                disabled={historyPage >= totalHistoryPages}
-                                onClick={() => setHistoryPage((prev) => Math.min(totalHistoryPages, prev + 1))}
-                                className="px-2.5 py-1 rounded-lg text-xs font-bold border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
-                            >
-                                <span>Sau</span>
-                                <ChevronRight className="w-3 h-3" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
                 {/* Modal Footer */}
-                <div className="bg-slate-50 px-4 sm:px-6 py-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0">
+                <div className="bg-slate-50 px-3.5 sm:px-6 py-2 sm:py-3.5 border-t border-slate-200 flex items-center justify-between gap-3 text-xs shrink-0">
                     <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
-                        <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
+                        <PhoneCall className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                         <span>
                             Cần hỗ trợ khẩn cấp, vui lòng bấm phím <strong className="text-slate-900 font-black">0</strong> trên điện thoại bàn phòng.
                         </span>
@@ -524,7 +520,7 @@ export default function ServiceHistoryModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-full sm:w-auto px-6 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 transition shadow-xs cursor-pointer"
+                        className="hidden sm:inline-flex px-6 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 transition shadow-xs cursor-pointer"
                     >
                         Đóng
                     </button>

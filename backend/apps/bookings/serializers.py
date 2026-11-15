@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.db.models import Prefetch
 from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking, HotelSetting
+from .cancel_policy import get_cancellation_free_hours, get_group_cancel_eligibility, parse_group_cancel_request
 from ..rooms.models import Room, RoomCategory, MinibarCheck
 from ..users.models import User
 import datetime
@@ -144,6 +145,8 @@ class BookingSerializer(serializers.ModelSerializer):
     group_status = serializers.CharField(source='group_booking.status', read_only=True, default=None)
     group_payment_method = serializers.SerializerMethodField()
     group_payment_method_display = serializers.SerializerMethodField()
+    group_cancel_request = serializers.SerializerMethodField()
+    group_cancel_policy = serializers.SerializerMethodField()
     latest_inspection = serializers.SerializerMethodField()
 
     class Meta:
@@ -170,6 +173,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'group_status',
             'group_payment_method',
             'group_payment_method_display',
+            'group_cancel_request',
+            'group_cancel_policy',
             'latest_inspection',
             'review',
             'category',
@@ -926,6 +931,21 @@ class BookingSerializer(serializers.ModelSerializer):
             return 'Đã cọc đoàn'
         return 'Chờ cọc đoàn'
 
+    def _get_free_hours(self):
+        if not hasattr(self, '_cached_free_hours'):
+            self._cached_free_hours = get_cancellation_free_hours()
+        return self._cached_free_hours
+
+    def get_group_cancel_request(self, obj):
+        if not obj.group_booking:
+            return None
+        return parse_group_cancel_request(obj.group_booking)
+
+    def get_group_cancel_policy(self, obj):
+        if not obj.group_booking:
+            return None
+        return get_group_cancel_eligibility(obj.group_booking, free_hours=self._get_free_hours())
+
     def get_latest_inspection(self, obj):
         try:
             booking_checks = sorted(obj.minibar_checks.all(), key=lambda c: _ts(c.created_at), reverse=True)
@@ -990,6 +1010,8 @@ class GroupBookingSerializer(serializers.ModelSerializer):
     nights = serializers.SerializerMethodField()
     deposit_status = serializers.SerializerMethodField()
     remaining_balance = serializers.SerializerMethodField()
+    cancel_request = serializers.SerializerMethodField()
+    cancel_policy = serializers.SerializerMethodField()
 
     class Meta:
         model = GroupBooking
@@ -1001,10 +1023,22 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             'deposit_status', 'remaining_balance',
             'billing_type', 'billing_type_display',
             'status', 'status_display', 'note', 'internal_note',
+            'cancel_request', 'cancel_policy',
             'total_rooms', 'sub_bookings', 'rooms_summary',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'group_code', 'created_at', 'updated_at']
+
+    def _get_free_hours(self):
+        if not hasattr(self, '_cached_free_hours'):
+            self._cached_free_hours = get_cancellation_free_hours()
+        return self._cached_free_hours
+
+    def get_cancel_request(self, obj):
+        return parse_group_cancel_request(obj)
+
+    def get_cancel_policy(self, obj):
+        return get_group_cancel_eligibility(obj, free_hours=self._get_free_hours())
 
     def get_nights(self, obj):
         if obj.check_in_date and obj.check_out_date:

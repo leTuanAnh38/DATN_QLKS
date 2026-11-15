@@ -17,6 +17,11 @@ from ...users.models import User, GuestProfile, log_action
 from ...users.views import check_role_permission
 from ...payments.models import Invoice, Payment
 from ..serializers import GroupBookingSerializer
+from ..cancel_policy import (
+    get_group_cancel_eligibility,
+    mark_group_cancel_request_approved,
+    upsert_group_cancel_request,
+)
 from ..email_service import send_group_booking_email_async
 from ...notifications.services import send_group_booking_notification
 from core_project.pagination import StandardResultsSetPagination
@@ -39,8 +44,8 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
 
 
     def get_permissions(self):
-        # Cho phép tạo đơn đoàn công khai từ Web Client hoặc hủy đơn đoàn
-        if self.action in ['create', 'cancel_group']:
+        # Cho phép tạo đơn đoàn công khai từ Web Client, hủy đơn đoàn hoặc gửi yêu cầu hủy đoàn
+        if self.action in ['create', 'cancel_group', 'request_cancel']:
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -759,69 +764,64 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
         }, status=status.HTTP_200_OK)
 
 
-    @action(detail=True, methods=['post'], url_path='cancel', permission_classes=[AllowAny])
-    def cancel_group(self, request, pk=None):
-        """
-        API POST /api/bookings/groups/<id>/cancel/
-        Hủy toàn bộ đơn đặt đoàn Master và đồng bộ hủy toàn bộ các phòng con (sub_bookings) thuộc đoàn.
-        Quyền hạn:
-        - Admin / Lễ tân: Được phép hủy mọi đoàn.
-        - Khách hàng (Trưởng đoàn / HR): Được phép hủy đoàn của mình trước giờ nhận phòng.
-        - Khách vãng lai: Phải xác thực số điện thoại hoặc email người liên hệ của đoàn.
-        """
+    def _get_group_for_cancel(self, pk):
+        """Tìm đơn đoàn theo ID hoặc group_code, trả về (group, error_response)."""
         try:
+            qs = GroupBooking.objects.prefetch_related('sub_bookings', 'sub_bookings__room')
             if str(pk).isdigit():
-                group = GroupBooking.objects.prefetch_related('sub_bookings', 'sub_bookings__room').get(id=int(pk))
-            else:
-                group = GroupBooking.objects.prefetch_related('sub_bookings', 'sub_bookings__room').get(group_code=str(pk))
+                return qs.get(id=int(pk)), None
+            return qs.get(group_code=str(pk)), None
         except GroupBooking.DoesNotExist:
-            return Response({'success': False, 'message': 'Không tìm thấy đơn đặt đoàn.'}, status=status.HTTP_404_NOT_FOUND)
+            return None, Response({'success': False, 'message': 'Không tìm thấy đơn đặt đoàn.'}, status=status.HTTP_404_NOT_FOUND)
 
+    def _authorize_group_actor(self, request, group, forbidden_msg='Bạn không có quyền thao tác với đơn đặt đoàn này.'):
+        """Xác thực quyền nhân viên hoặc trưởng đoàn/khách thuộc đoàn (chống IDOR)."""
         user = request.user
         is_authenticated = user and user.is_authenticated
         is_staff_or_admin = is_authenticated and (
-            user.is_superuser or 
-            check_role_permission(user, 'bookings', 'update') or 
-            getattr(user, 'role', '') in ['admin', 'staff', 'manager', 'receptionist']
+            user.is_superuser or
+            check_role_permission(user, 'bookings', 'update') or
+            getattr(user, 'role', '') in ['admin', 'staff', 'manager', 'receptionist', 'owner']
         )
 
-        # Phân quyền bảo mật chống IDOR:
-        if not is_staff_or_admin:
-            if is_authenticated:
-                is_leader = (
-                    (user.phone_number and user.phone_number == group.leader_phone) or
-                    (user.email and user.email == group.leader_email) or
-                    (group.corporate_partner and group.corporate_partner.contact_email == user.email) or
-                    group.sub_bookings.filter(guest=user).exists()
-                )
-                if not is_leader:
-                    return Response({
-                        'success': False,
-                        'message': 'Bạn không có quyền hủy đơn đặt đoàn này.'
-                    }, status=status.HTTP_403_FORBIDDEN)
-            else:
-                # Khách chưa đăng nhập: Phải xác thực phone hoặc email
-                provided_phone = str(request.data.get('leader_phone') or request.data.get('phone', '')).strip()
-                provided_email = str(request.data.get('leader_email') or request.data.get('email', '')).strip().lower()
-                clean_phone = ''.join(c for c in provided_phone if c.isdigit())
-                group_clean_phone = ''.join(c for c in str(group.leader_phone) if c.isdigit())
+        if is_staff_or_admin:
+            return True, None
 
-                phone_match = clean_phone and clean_phone == group_clean_phone
-                email_match = provided_email and provided_email == str(group.leader_email or '').lower()
+        if is_authenticated:
+            user_email = (user.email or '').strip().lower()
+            leader_email = (group.leader_email or '').strip().lower()
+            corp_email = (group.corporate_partner.contact_email or '').strip().lower() if group.corporate_partner else ''
+            user_phone = ''.join(c for c in str(user.phone_number or '') if c.isdigit())
+            leader_phone = ''.join(c for c in str(group.leader_phone or '') if c.isdigit())
 
-                if not (phone_match or email_match):
-                    return Response({
-                        'success': False,
-                        'message': 'Xác thực không thành công. Vui lòng cung cấp đúng Số điện thoại hoặc Email người liên hệ của đoàn.'
-                    }, status=status.HTTP_403_FORBIDDEN)
+            is_leader = (
+                (user_phone and leader_phone and user_phone == leader_phone) or
+                (user_email and leader_email and user_email == leader_email) or
+                (user_email and corp_email and user_email == corp_email) or
+                group.sub_bookings.filter(guest=user).exists()
+            )
+            if not is_leader:
+                return False, Response({'success': False, 'message': forbidden_msg}, status=status.HTTP_403_FORBIDDEN)
+            return False, None
 
-        if not is_staff_or_admin and (group.is_deposit_paid or group.status == 'confirmed'):
-            return Response({
+        # Khách chưa đăng nhập: phải xác thực đúng SĐT hoặc Email trưởng đoàn
+        provided_phone = str(request.data.get('leader_phone') or request.data.get('phone', '')).strip()
+        provided_email = str(request.data.get('leader_email') or request.data.get('email', '')).strip().lower()
+        clean_phone = ''.join(c for c in provided_phone if c.isdigit())
+        group_clean_phone = ''.join(c for c in str(group.leader_phone or '') if c.isdigit())
+
+        phone_match = clean_phone and group_clean_phone and clean_phone == group_clean_phone
+        email_match = provided_email and provided_email == str(group.leader_email or '').strip().lower()
+        if not (phone_match or email_match):
+            return False, Response({
                 'success': False,
-                'message': 'Đơn đặt đoàn đã xác nhận/đặt cọc, vui lòng liên hệ Lễ tân hoặc Quản lý để thực hiện hủy và đối soát hoàn cọc.'
+                'message': 'Xác thực không thành công. Vui lòng cung cấp đúng Số điện thoại hoặc Email người liên hệ của đoàn.'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # Chặn hủy khi đoàn hoặc bất kỳ phòng nào trong đoàn đang lưu trú (In-house)
+        return False, None
+
+    def _validate_group_cancellable_state(self, group):
+        """Kiểm tra trạng thái hiện tại của đoàn có cho phép hủy/yêu cầu hủy hay không."""
         if group.status == 'checked_in' or group.sub_bookings.filter(status='checked_in').exists():
             return Response({
                 'success': False,
@@ -840,6 +840,146 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                 'message': 'Đơn đặt đoàn này đã được hủy trước đó.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        return None
+
+    @action(detail=True, methods=['post'], url_path='request-cancel', permission_classes=[AllowAny])
+    def request_cancel(self, request, pk=None):
+        """
+        API POST /api/bookings/groups/<id>/request-cancel/
+        Khách hàng gửi yêu cầu hủy đơn đặt đoàn ĐÃ CỌC / ĐÃ XÁC NHẬN kèm thông tin hoàn cọc.
+        Hệ thống đối chiếu mốc hủy miễn phí (HotelSetting.cancellation_free_hours) và thông báo cho Lễ tân / Thu ngân / Quản lý.
+        """
+        group, err_res = self._get_group_for_cancel(pk)
+        if err_res:
+            return err_res
+
+        _, auth_err = self._authorize_group_actor(
+            request, group, forbidden_msg='Bạn không có quyền gửi yêu cầu hủy cho đơn đặt đoàn này.'
+        )
+        if auth_err:
+            return auth_err
+
+        state_err = self._validate_group_cancellable_state(group)
+        if state_err:
+            return state_err
+
+        if not (group.is_deposit_paid or group.status == 'confirmed'):
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt đoàn này chưa đặt cọc, quý khách có thể hủy trực tiếp ngay.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        reason = str(request.data.get('reason') or '').strip() or 'Khách hàng yêu cầu hủy đơn đặt đoàn'
+        bank_name = str(request.data.get('refund_bank_name') or '').strip()
+        account_number = str(request.data.get('refund_account_number') or '').strip()
+        account_holder = str(request.data.get('refund_account_holder') or '').strip()
+        refund_info_raw = str(request.data.get('refund_info') or '').strip()
+
+        if bank_name or account_number or account_holder:
+            parts = [p for p in [bank_name, account_number, account_holder] if p]
+            refund_info_str = ' - '.join(parts)
+        else:
+            refund_info_str = refund_info_raw
+
+        eligibility = get_group_cancel_eligibility(group) or {
+            'free_hours': 48,
+            'hours_until_checkin': 0,
+            'is_free_cancel_eligible': False,
+        }
+
+        user = request.user
+        is_authenticated = user and user.is_authenticated
+        requester_name = (user.get_full_name() or user.username) if is_authenticated else group.leader_name
+
+        req_payload = {
+            'status': 'pending',
+            'requested_at': timezone.now().isoformat(),
+            'requested_by': requester_name,
+            'reason': reason,
+            'refund_bank_name': bank_name,
+            'refund_account_number': account_number,
+            'refund_account_holder': account_holder,
+            'refund_info': refund_info_str,
+            'free_hours': eligibility['free_hours'],
+            'hours_until_checkin': eligibility['hours_until_checkin'],
+            'is_free_cancel_eligible': eligibility['is_free_cancel_eligible'],
+        }
+
+        with transaction.atomic():
+            upsert_group_cancel_request(group, req_payload)
+            group.save(update_fields=['internal_note', 'updated_at'])
+
+            log_action(
+                user=user if is_authenticated else None,
+                action='UPDATE',
+                module='BOOKING',
+                description=(
+                    f"Khách gửi yêu cầu hủy đoàn #{group.group_code} (đã cọc {float(group.deposit_amount or 0):,.0f}đ). "
+                    f"Lý do: {reason}"
+                ),
+                request=request
+            )
+
+        try:
+            send_group_booking_notification(
+                group,
+                'cancel_requested',
+                actor=user if is_authenticated else None,
+                extra_data={
+                    'reason': reason,
+                    'is_free_cancel_eligible': eligibility['is_free_cancel_eligible'],
+                    'free_hours': eligibility['free_hours'],
+                    'refund_info': refund_info_str or 'Khách chưa cung cấp STK (liên hệ SĐT trưởng đoàn)',
+                }
+            )
+        except Exception:
+            pass
+
+        policy_note = (
+            f"Đơn đủ điều kiện xem xét hoàn cọc (còn ≥ {eligibility['free_hours']} giờ trước giờ nhận phòng)."
+            if eligibility['is_free_cancel_eligible']
+            else f"Đơn cận ngày nhận phòng (< {eligibility['free_hours']} giờ), bộ phận Lễ tân sẽ đối soát theo chính sách hợp đồng."
+        )
+
+        return Response({
+            'success': True,
+            'message': f'Đã gửi yêu cầu hủy đoàn #{group.group_code} thành công. {policy_note}',
+            'cancel_request': req_payload,
+            'cancel_policy': eligibility,
+            'group_booking': GroupBookingSerializer(group, context={'request': request}).data
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='cancel', permission_classes=[AllowAny])
+    def cancel_group(self, request, pk=None):
+        """
+        API POST /api/bookings/groups/<id>/cancel/
+        Hủy toàn bộ đơn đặt đoàn Master và đồng bộ hủy toàn bộ các phòng con (sub_bookings) thuộc đoàn.
+        Quyền hạn:
+        - Admin / Lễ tân: Được phép hủy mọi đoàn (kể cả đã cọc để xử lý yêu cầu hủy & lập phiếu chi hoàn cọc).
+        - Khách hàng (Trưởng đoàn / HR / Vãng lai): Được phép tự hủy trực tiếp khi đoàn CHƯA đặt cọc/chưa xác nhận.
+        """
+        group, err_res = self._get_group_for_cancel(pk)
+        if err_res:
+            return err_res
+
+        is_staff_or_admin, auth_err = self._authorize_group_actor(
+            request, group, forbidden_msg='Bạn không có quyền hủy đơn đặt đoàn này.'
+        )
+        if auth_err:
+            return auth_err
+
+        if not is_staff_or_admin and (group.is_deposit_paid or group.status == 'confirmed'):
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt đoàn đã xác nhận/đặt cọc, vui lòng sử dụng chức năng Gửi yêu cầu hủy đoàn & Hoàn cọc hoặc liên hệ Lễ tân.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        state_err = self._validate_group_cancellable_state(group)
+        if state_err:
+            return state_err
+
+        user = request.user
+        is_authenticated = user and user.is_authenticated
         reason = str(request.data.get('reason', 'Khách hàng / Quản lý yêu cầu hủy đoàn')).strip()
         now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
         acting_name = user.get_full_name() or user.username if is_authenticated else f"Trưởng đoàn ({group.leader_name})"
@@ -847,7 +987,10 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
         with transaction.atomic():
             group.status = 'cancelled'
             group.note = f"{group.note or ''}\n[Hủy toàn bộ đoàn bởi {acting_name} lúc {now_str}]: {reason}".strip()
-            group.save(update_fields=['status', 'note', 'updated_at'])
+            update_fields = ['status', 'note', 'updated_at']
+            if mark_group_cancel_request_approved(group, resolved_by=acting_name):
+                update_fields.append('internal_note')
+            group.save(update_fields=update_fields)
 
             sub_bookings = list(group.sub_bookings.all())
             cancelled_rooms_count = 0
@@ -888,6 +1031,17 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                 description=f"Hủy toàn bộ đơn đoàn #{group.group_code} ({cancelled_rooms_count} phòng). Lý do: {reason}",
                 request=request
             )
+
+        if is_staff_or_admin:
+            try:
+                send_group_booking_notification(
+                    group,
+                    'cancelled',
+                    actor=user if is_authenticated else None,
+                    extra_data={'reason': reason}
+                )
+            except Exception:
+                pass
 
         return Response({
             'success': True,

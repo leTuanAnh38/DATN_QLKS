@@ -45,11 +45,11 @@ export default function BookingConfirmationModal({
                     onClose();
                 }
             }}
-            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
         >
-            <div className="bg-white rounded-3xl border border-slate-200/80 max-w-xl w-full shadow-2xl overflow-hidden my-4 sm:my-8 animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-xl w-full h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
-                <div className="bg-white border-b border-slate-100 p-3.5 sm:p-6 relative flex items-center justify-between gap-3">
+                <div className="bg-white border-b border-slate-100 p-3.5 sm:p-6 relative flex items-center justify-between gap-3 shrink-0">
                     <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                         <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-600 shrink-0 shadow-xs">
                             <ShieldCheck className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -75,7 +75,7 @@ export default function BookingConfirmationModal({
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-5 sm:p-6 space-y-4 max-h-[calc(85vh-160px)] overflow-y-auto text-xs sm:text-sm">
+                <div className="flex-1 min-h-0 p-3.5 sm:p-6 space-y-3.5 sm:space-y-4 overflow-y-auto text-xs sm:text-sm">
                     {/* Thông báo lỗi nếu có */}
                     {modalError && (
                         <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 animate-in fade-in duration-150">
@@ -239,7 +239,7 @@ export default function BookingConfirmationModal({
                 </div>
 
                 {/* Modal Actions */}
-                <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+                <div className="p-3.5 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 shrink-0">
                     <button
                         type="button"
                         onClick={onClose}

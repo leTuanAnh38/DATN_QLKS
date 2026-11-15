@@ -970,6 +970,54 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
 
                 {/* 2. SCROLLABLE BODY */}
                 <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
+                    {/* CẢNH BÁO YÊU CẦU HỦY ĐOÀN & HOÀN CỌC TỪ KHÁCH */}
+                    {!isCancelled && !isCompleted && groupData.cancel_request?.status === 'pending' && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-amber-50/70 to-rose-50 border border-rose-200 shadow-xs space-y-2.5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                                    <span className="text-xs font-black text-rose-900 uppercase tracking-wider">
+                                        Khách hàng đã gửi Yêu cầu Hủy Đoàn &amp; Hoàn Cọc
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                                        groupData.cancel_request.is_free_cancel_eligible
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                            : 'bg-amber-100 text-amber-900 border-amber-300'
+                                    }`}>
+                                        {groupData.cancel_request.is_free_cancel_eligible
+                                            ? `Đủ ĐK hoàn cọc (≥ ${groupData.cancel_request.free_hours || 48}h)`
+                                            : `Cận giờ (< ${groupData.cancel_request.free_hours || 48}h)`}
+                                    </span>
+                                </div>
+                                {!hasInHouseRoom && (
+                                    <button
+                                        type="button"
+                                        disabled={isActionLoading}
+                                        onClick={handleCancelGroup}
+                                        className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition cursor-pointer active:scale-95 disabled:opacity-50 shrink-0"
+                                    >
+                                        Duyệt Hủy Toàn Đoàn
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 bg-white/80 rounded-xl p-3 border border-rose-100">
+                                <div>
+                                    <span className="text-slate-500">Lý do khách chọn: </span>
+                                    <strong className="text-slate-900">{groupData.cancel_request.reason || '—'}</strong>
+                                </div>
+                                <div>
+                                    <span className="text-slate-500">TK nhận hoàn cọc: </span>
+                                    <strong className="text-indigo-800 font-mono">
+                                        {groupData.cancel_request.refund_info || 'Khách chưa cung cấp (liên hệ SĐT)'}
+                                    </strong>
+                                </div>
+                            </div>
+                            <p className="text-[11px] text-rose-700/90 font-medium">
+                                Sau khi bấm <strong>Duyệt Hủy Toàn Đoàn</strong>, vui lòng vào mục <strong>Quản lý Hóa đơn / Thu ngân</strong> lập Phiếu chi hoàn cọc (<code>REFUND_CANCEL</code>) nếu đoàn đủ điều kiện hoàn {formatCurrency(groupData.deposit_amount)}.
+                            </p>
+                        </div>
+                    )}
+
                     {/* ACTION MESSAGE */}
                     {actionMessage && (
                         <div className={`p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2 ${

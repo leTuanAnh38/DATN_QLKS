@@ -483,3 +483,148 @@ class ChatbotSecurityAndLogicTests(APITestCase):
             self.assertEqual(r2.status_code, 200)
             self.assertEqual(r3.status_code, 429)
 
+
+class GroupBookingCancellationTests(APITestCase):
+    def setUp(self):
+        self.leader = User.objects.create_user(
+            username='group_leader',
+            email='leader@example.com',
+            password='Password123!',
+            phone_number='0905556666',
+            role='guest',
+        )
+        self.other_guest = User.objects.create_user(
+            username='other_guest',
+            email='other@example.com',
+            password='Password123!',
+            phone_number='0907778888',
+            role='guest',
+        )
+        self.receptionist = User.objects.create_user(
+            username='grp_rec',
+            email='grprec@example.com',
+            password='Password123!',
+            role='receptionist',
+        )
+        self.cat_std = RoomCategory.objects.create(
+            name='Standard Group',
+            slug='standard-group',
+            size=30.0,
+            bed_type='1 Giường Đôi',
+            capacity=2,
+            base_price=Decimal('1000000'),
+        )
+        self.today = timezone.localdate()
+
+    def _create_group_with_subs(self, *, is_deposit_paid=False, status='tentative', days_until=5, count=2):
+        c_in = self.today + timedelta(days=days_until)
+        c_out = c_in + timedelta(days=2)
+        group = GroupBooking.objects.create(
+            group_name='Đoàn Test',
+            leader_name='Nguyen Leader',
+            leader_phone='0905556666',
+            leader_email='leader@example.com',
+            check_in_date=c_in,
+            check_out_date=c_out,
+            total_amount=Decimal('4000000'),
+            deposit_amount=Decimal('2000000'),
+            is_deposit_paid=is_deposit_paid,
+            status=status,
+        )
+        sub_status = 'confirmed' if is_deposit_paid else 'pending'
+        subs = []
+        for _ in range(count):
+            subs.append(
+                Booking.objects.create(
+                    guest=self.leader,
+                    category=self.cat_std,
+                    group_booking=group,
+                    is_master_billed=True,
+                    check_in_date=c_in,
+                    check_out_date=c_out,
+                    total_amount=Decimal('2000000'),
+                    status=sub_status,
+                )
+            )
+        return group, subs
+
+    def test_tentative_group_can_be_cancelled_directly_by_leader(self):
+        group, subs = self._create_group_with_subs(is_deposit_paid=False, status='tentative', days_until=5)
+        self.client.force_authenticate(user=self.leader)
+        res = self.client.post(f'/api/bookings/groups/{group.id}/cancel/', {'reason': 'Đổi lịch'}, format='json')
+        self.assertEqual(res.status_code, 200)
+        group.refresh_from_db()
+        self.assertEqual(group.status, 'cancelled')
+        for s in subs:
+            s.refresh_from_db()
+            self.assertEqual(s.status, 'cancelled')
+
+    def test_deposited_group_blocks_direct_and_single_subbooking_bypass_but_allows_request_cancel(self):
+        group, subs = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=5)
+
+        # Other guest cannot request cancel (IDOR protection)
+        self.client.force_authenticate(user=self.other_guest)
+        res_idor = self.client.post(f'/api/bookings/groups/{group.id}/request-cancel/', {'reason': 'Test'}, format='json')
+        self.assertEqual(res_idor.status_code, 403)
+
+        # Leader cannot bypass via direct group cancel, cancel-booking, or PATCH
+        self.client.force_authenticate(user=self.leader)
+        res_direct = self.client.post(f'/api/bookings/groups/{group.id}/cancel/', {'reason': 'Hủy thẳng'}, format='json')
+        self.assertEqual(res_direct.status_code, 403)
+
+        res_single = self.client.post('/api/bookings/cancel-booking/', {'booking_id': subs[0].id, 'reason': 'Lách'}, format='json')
+        self.assertEqual(res_single.status_code, 403)
+
+        res_patch = self.client.patch(f'/api/bookings/{subs[0].id}/', {'status': 'cancelled'}, format='json')
+        self.assertEqual(res_patch.status_code, 403)
+
+        # Leader CAN submit a cancellation & refund request (>= 48h -> eligible)
+        res_req = self.client.post(
+            f'/api/bookings/groups/{group.id}/request-cancel/',
+            {
+                'reason': 'Hoãn chuyến công tác',
+                'refund_bank_name': 'MB Bank',
+                'refund_account_number': '0123456789',
+                'refund_account_holder': 'NGUYEN LEADER',
+            },
+            format='json',
+        )
+        self.assertEqual(res_req.status_code, 200)
+        self.assertTrue(res_req.data['success'])
+        self.assertEqual(res_req.data['cancel_request']['status'], 'pending')
+        self.assertTrue(res_req.data['cancel_request']['is_free_cancel_eligible'])
+
+        # Group remains confirmed (rooms still held) until staff approves
+        group.refresh_from_db()
+        self.assertEqual(group.status, 'confirmed')
+
+        # Notifications created for both leader and receptionist
+        self.assertTrue(Notification.objects.filter(recipient=self.receptionist, notification_type='group_booking').exists())
+        self.assertTrue(Notification.objects.filter(recipient=self.leader, notification_type='group_booking').exists())
+
+        # Booking list API exposes group_cancel_request & group_cancel_policy
+        res_list = self.client.get('/api/bookings/')
+        self.assertEqual(res_list.status_code, 200)
+        items = res_list.data.get('results', res_list.data)
+        self.assertEqual(items[0]['group_cancel_request']['status'], 'pending')
+        self.assertTrue(items[0]['group_cancel_policy']['is_free_cancel_eligible'])
+
+        # Staff approves cancellation -> group & subs become cancelled, request marked approved
+        self.client.force_authenticate(user=self.receptionist)
+        res_approve = self.client.post(f'/api/bookings/groups/{group.id}/cancel/', {'reason': 'Duyệt hoàn cọc'}, format='json')
+        self.assertEqual(res_approve.status_code, 200)
+        self.assertEqual(res_approve.data['group_booking']['status'], 'cancelled')
+        self.assertEqual(res_approve.data['group_booking']['cancel_request']['status'], 'approved')
+
+    def test_deposited_group_near_checkin_marks_not_free_cancel_eligible(self):
+        group, _ = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=1)
+        self.client.force_authenticate(user=self.leader)
+        res_req = self.client.post(
+            f'/api/bookings/groups/{group.id}/request-cancel/',
+            {'reason': 'Hủy sát giờ'},
+            format='json',
+        )
+        self.assertEqual(res_req.status_code, 200)
+        self.assertFalse(res_req.data['cancel_request']['is_free_cancel_eligible'])
+
+

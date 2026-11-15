@@ -1006,6 +1006,10 @@ export const bookingService = {
     async cancelGroupBooking(id, reason = 'Khách hàng / Quản lý yêu cầu hủy đoàn') {
         try {
             const response = await api.post(`/bookings/groups/${id}/cancel/`, { reason });
+            try {
+                localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                window.dispatchEvent(new Event('pms_booking_created'));
+            } catch {}
             return {
                 success: true,
                 message: response.data?.message || 'Đã hủy toàn bộ đoàn thành công!',
@@ -1016,6 +1020,33 @@ export const bookingService = {
             return {
                 success: false,
                 message: error.response?.data?.message || 'Không thể hủy đơn đặt đoàn.'
+            };
+        }
+    },
+
+    /**
+     * Khách hàng gửi yêu cầu hủy đoàn đã cọc & hoàn cọc
+     * POST /api/bookings/groups/:id/request-cancel/
+     */
+    async requestCancelGroupBooking(id, payload = {}) {
+        try {
+            const response = await api.post(`/bookings/groups/${id}/request-cancel/`, payload);
+            try {
+                localStorage.setItem('pms_last_booking_event', Date.now().toString());
+                window.dispatchEvent(new Event('pms_booking_created'));
+            } catch {}
+            return {
+                success: true,
+                message: response.data?.message || 'Đã gửi yêu cầu hủy đoàn thành công!',
+                cancel_request: response.data?.cancel_request,
+                cancel_policy: response.data?.cancel_policy,
+                data: response.data?.group_booking
+            };
+        } catch (error) {
+            console.error('Lỗi khi gửi yêu cầu hủy đơn đoàn:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể gửi yêu cầu hủy đơn đoàn.'
             };
         }
     },

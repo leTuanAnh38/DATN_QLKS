@@ -1747,14 +1747,14 @@ export default function CorporateBooking() {
                                                             {/* Lưới danh sách dịch vụ */}
                                                             {availableServices.length > 0 ? (
                                                                 filteredServices.length > 0 ? (
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+                                                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5 max-h-[42dvh] sm:max-h-72 overflow-y-auto pr-1">
                                                                         {filteredServices.map((svcItem) => {
                                                                             const existingInRoom = (room.services || []).find((s) => s.service_id === svcItem.id);
                                                                             const qtyInRoom = existingInRoom ? existingInRoom.quantity : 0;
                                                                             return (
                                                                                 <div
                                                                                     key={svcItem.id}
-                                                                                    className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
+                                                                                    className={`p-2 sm:p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
                                                                                         qtyInRoom > 0
                                                                                             ? 'bg-amber-100/70 border-amber-300 ring-1 ring-amber-400/30'
                                                                                             : 'bg-white border-slate-200 hover:border-amber-300 shadow-2xs'
@@ -1762,7 +1762,7 @@ export default function CorporateBooking() {
                                                                                 >
                                                                                     <div className="min-w-0">
                                                                                         <div className="flex items-center justify-between gap-1 mb-1">
-                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[130px] inline-flex items-center gap-1">
+                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[90px] sm:max-w-[130px] inline-flex items-center gap-1">
                                                                                                 <Tag className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                                                                                                 <span className="truncate">{svcItem.category?.name || svcItem.category_name || 'Tiện ích'}</span>
                                                                                             </span>
@@ -2091,16 +2091,16 @@ export default function CorporateBooking() {
 
                 {/* MODAL DÁN NHANH DANH SÁCH KHÁCH ĐOÀN TỪ EXCEL */}
                 {showFastPasteModal && (
-                    <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                    <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+                        <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[92dvh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                             {/* HEADER */}
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 shadow-2xs">
-                                        <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                            <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-slate-100 shrink-0">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0 shadow-2xs">
+                                        <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                     </div>
-                                    <div>
-                                        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                                    <div className="min-w-0">
+                                        <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">
                                             {fastPasteTarget === 'all'
                                                 ? 'Dán nhanh danh sách khách TOÀN ĐOÀN từ Excel'
                                                 : (() => {
@@ -2108,7 +2108,7 @@ export default function CorporateBooking() {
                                                     return `Dán nhanh khách vào Phòng #${targetRoom?.global_index || ''} (${targetRoom?.category_name || ''}) từ Excel`;
                                                 })()}
                                         </h3>
-                                        <p className="text-[11px] text-slate-500">
+                                        <p className="text-[11px] text-slate-500 line-clamp-1">
                                             {fastPasteTarget === 'all'
                                                 ? 'Hệ thống tự động phân bổ lần lượt từng khách vào các phòng theo đúng sức chứa tối đa.'
                                                 : (() => {
@@ -2124,64 +2124,67 @@ export default function CorporateBooking() {
                                         setShowFastPasteModal(false);
                                         setFastPasteError('');
                                     }}
-                                    className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                    className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
-                            {/* HƯỚNG DẪN ĐỊNH DẠNG EXCEL */}
-                            <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-emerald-950 text-xs space-y-1.5">
-                                <div className="font-bold flex items-center gap-1.5 text-emerald-900">
-                                    <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    <span>Định dạng hỗ trợ mỗi dòng (Copy từ bảng tính Excel, Google Sheets hoặc Zalo):</span>
-                                </div>
-                                <code className="block bg-white p-2 rounded-xl font-mono text-[11px] text-slate-800 border border-emerald-200/80 shadow-2xs">
-                                    Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
-                                </code>
-                                <p className="text-[10px] text-emerald-800 italic">
-                                    Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 20/10/1995"
-                                </p>
-                            </div>
-
-                            {/* TEXTAREA NHẬP LIỆU */}
-                            <div>
-                                <textarea
-                                    rows={8}
-                                    value={fastPasteText}
-                                    onChange={(e) => {
-                                        setFastPasteText(e.target.value);
-                                        if (fastPasteError) setFastPasteError('');
-                                    }}
-                                    placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988&#10;Phạm Minh Tuấn	048095007890	Nam	18/06/1992"
-                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition placeholder:text-slate-400"
-                                />
-                                {fastPasteError && (
-                                    <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
-                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{fastPasteError}</span>
+                            {/* BODY CUỘN ĐƯỢC */}
+                            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-3.5 sm:space-y-4">
+                                {/* HƯỚNG DẪN ĐỊNH DẠNG EXCEL */}
+                                <div className="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-emerald-950 text-xs space-y-1.5">
+                                    <div className="font-bold flex items-center gap-1.5 text-emerald-900">
+                                        <Info className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                        <span>Định dạng hỗ trợ mỗi dòng (Copy từ bảng tính Excel, Google Sheets hoặc Zalo):</span>
+                                    </div>
+                                    <code className="block bg-white p-2 rounded-xl font-mono text-[11px] text-slate-800 border border-emerald-200/80 shadow-2xs overflow-x-auto">
+                                        Họ và tên [Tab hoặc Phẩy] Số CCCD [Tab hoặc Phẩy] Giới tính [Tab hoặc Phẩy] Ngày sinh
+                                    </code>
+                                    <p className="text-[10px] text-emerald-800 italic">
+                                        Ví dụ: "Trần Thị Lan &nbsp;&nbsp;&nbsp; 048198005678 &nbsp;&nbsp;&nbsp; Nữ &nbsp;&nbsp;&nbsp; 20/10/1995"
                                     </p>
-                                )}
+                                </div>
+
+                                {/* TEXTAREA NHẬP LIỆU */}
+                                <div>
+                                    <textarea
+                                        rows={6}
+                                        value={fastPasteText}
+                                        onChange={(e) => {
+                                            setFastPasteText(e.target.value);
+                                            if (fastPasteError) setFastPasteError('');
+                                        }}
+                                        placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988&#10;Phạm Minh Tuấn	048095007890	Nam	18/06/1992"
+                                        className="w-full min-h-[140px] sm:min-h-[180px] p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition placeholder:text-slate-400"
+                                    />
+                                    {fastPasteError && (
+                                        <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
+                                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                            <span>{fastPasteError}</span>
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* NÚT THAO TÁC */}
-                            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-end gap-2 sm:gap-2.5 px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-100 bg-slate-50/70 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setShowFastPasteModal(false);
                                         setFastPasteError('');
                                     }}
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                    className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleApplyFastPaste}
-                                    className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95 flex items-center gap-1.5"
+                                    className="flex-1 sm:flex-initial px-4 sm:px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
                                 >
-                                    <CheckCircle2 className="w-4 h-4" />
+                                    <CheckCircle2 className="w-4 h-4 shrink-0" />
                                     <span>Phân tích & Nạp vào danh sách</span>
                                 </button>
                             </div>
