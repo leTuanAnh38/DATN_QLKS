@@ -204,8 +204,8 @@ class BookingRoomAssignmentMixin:
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
                 ).filter(
-                    Q(status__in=['confirmed', 'checked_in']) |
-                    Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+                    Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                    Q(status='pending', created_at__gte=pending_timeout)
                 )
                 unassigned_or_clean_bookings = active_bookings.filter(
                     Q(room__isnull=True) | ~Q(room_id__in=busy_physical_ids)
@@ -220,8 +220,8 @@ class BookingRoomAssignmentMixin:
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
                 ).filter(
-                    Q(status__in=['confirmed', 'checked_in']) |
-                    Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+                    Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                    Q(status='pending', created_at__gte=pending_timeout)
                 ).count()
                 avail = max(0, total - booked)
                 return total, booked, avail

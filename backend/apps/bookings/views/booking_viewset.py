@@ -74,6 +74,7 @@ class BookingViewSet(
             getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
             getattr(user, 'role', '') != 'guest'
         )
+        user_email = user.email.strip() if user.email else ''
 
         # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Trang Chi tiết Khách hàng)
         guest_id = self.request.query_params.get('guest_id') or self.request.query_params.get('guest')
@@ -87,6 +88,13 @@ class BookingViewSet(
             else:
                 base_qs = base_qs.filter(guest_filter)
             return base_qs.order_by('-created_at')
+
+        # Bảo mật chống IDOR: Khách hàng chỉ được tìm kiếm trên chính đơn của mình
+        if not is_staff_or_admin:
+            if user_email:
+                base_qs = base_qs.filter(Q(guest=user) | Q(guest__email=user_email))
+            else:
+                base_qs = base_qs.filter(guest=user)
 
         # Lọc tìm kiếm theo từ khóa (Mã đặt phòng, Tên khách, SĐT, Số CCCD, Số phòng)
         search_query = (self.request.query_params.get('search') or '').strip()
@@ -306,8 +314,8 @@ class BookingViewSet(
                 check_in_date__lt=check_out,
                 check_out_date__gt=check_in
             ).filter(
-                Q(status__in=['confirmed', 'checked_in']) |
-                Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                Q(status='pending', created_at__gte=pending_timeout)
             ).count()
             available_rooms = max(0, total_rooms - booked_rooms)
 
@@ -320,8 +328,8 @@ class BookingViewSet(
                         check_in_date__lt=check_out,
                         check_out_date__gt=check_in
                     ).filter(
-                        Q(status__in=['confirmed', 'checked_in']) |
-                        Q(status__in=['pending', 'paid', 'PAID'], created_at__gte=pending_timeout)
+                        Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                        Q(status='pending', created_at__gte=pending_timeout)
                     ).count()
                     other_avail = max(0, other_total - other_booked)
                     if other_avail > 0:
@@ -358,17 +366,30 @@ class BookingViewSet(
             price_per_night = category_instance.promo_price or category_instance.base_price
             subtotal = Decimal(str(price_per_night * nights))
 
-            # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách)
+            # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách riêng biệt)
             if request.user and request.user.is_authenticated:
                 guest_user = request.user
             else:
-                # Tìm hoặc gán tài khoản khách
                 guest_user = None
                 if guest_email:
                     guest_user = User.objects.filter(email=guest_email).first()
                 if not guest_user:
-                    # Gán vào tài khoản khách mặc định
-                    guest_user = User.objects.filter(role='guest').first() or User.objects.first()
+                    import uuid as _uuid
+                    raw_suffix = _uuid.uuid4().hex[:10]
+                    name_parts = guest_name.split() if guest_name else []
+                    last_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else ''
+                    first_name = name_parts[-1] if name_parts else 'Khách vãng lai'
+                    guest_user = User.objects.create(
+                        username=f"guest_{raw_suffix}",
+                        email=guest_email or f"guest_{raw_suffix}@guest.local",
+                        first_name=first_name[:150],
+                        last_name=last_name[:150],
+                        phone_number=guest_phone[:20] if guest_phone else '',
+                        role='guest',
+                        is_active=False,
+                    )
+                    guest_user.set_unusable_password()
+                    guest_user.save(update_fields=['password'])
 
             # 5. Xử lý Giảm giá Hạng thành viên (Loyalty & Membership Program)
             membership_discount = Decimal('0')

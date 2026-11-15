@@ -635,6 +635,27 @@ class BookingFrontDeskMixin:
             booking.room = new_room
             move_fields = ['room', 'internal_note', 'updated_at']
             if new_room.category_id and booking.category_id != new_room.category_id:
+                # Chốt giá phòng cũ vào Invoice trước khi đổi hạng phòng để không phát sinh chênh lệch giá ngoài ý muốn
+                existing_inv = getattr(booking, 'invoice', None)
+                if not existing_inv or not existing_inv.room_charge or Decimal(str(existing_inv.room_charge)) <= Decimal('0'):
+                    from ...payments.models import Invoice
+                    nights_stay = max(1, (booking.check_out_date - booking.check_in_date).days) if (booking.check_in_date and booking.check_out_date) else 1
+                    old_cat = booking.category or old_room.category
+                    old_rate = Decimal(str((old_cat.promo_price or old_cat.base_price) if old_cat else 0))
+                    locked_room_charge = max(
+                        Decimal('0'),
+                        old_rate * Decimal(str(nights_stay))
+                        - Decimal(str(getattr(booking, 'membership_discount', 0) or 0))
+                        - Decimal(str(getattr(booking, 'promotion_discount', 0) or 0))
+                    )
+                    if locked_room_charge > Decimal('0'):
+                        Invoice.objects.update_or_create(
+                            booking=booking,
+                            defaults={
+                                'room_charge': locked_room_charge,
+                                'total_amount': booking.total_amount or locked_room_charge,
+                            }
+                        )
                 booking.category = new_room.category
                 move_fields.append('category')
             booking.save(update_fields=move_fields)
@@ -776,6 +797,14 @@ class BookingFrontDeskMixin:
         note = str(request.data.get('note') or '').strip()
 
         with transaction.atomic():
+            # Khóa bi quan bản ghi Booking để tránh race condition khi nhân viên bấm Check-out đồng thời
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+            if booking.status != 'checked_in':
+                return Response({
+                    'success': False,
+                    'message': f"Đơn đặt phòng đang ở trạng thái '{booking.get_status_display()}', chỉ có thể Check-out khi khách đã Check-in."
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # 1. Tính toán room_charge, total_service_charge, grand_total
             check_in = booking.check_in_date
             check_out = booking.check_out_date

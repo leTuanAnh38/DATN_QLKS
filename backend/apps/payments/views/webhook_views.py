@@ -23,17 +23,22 @@ class SepayWebhookView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # 1. Xác thực API Key từ SePay (nếu có cấu hình SEPAY_WEBHOOK_SECRET)
+        # 1. Xác thực API Key từ SePay (bắt buộc fail-closed nếu thiếu secret)
         secret = os.getenv('SEPAY_WEBHOOK_SECRET', '').strip().strip('"').strip("'")
         auth_header = request.headers.get('Authorization', '')
-        
-        if secret:
-            token = auth_header.replace('Apikey', '').strip()
-            if not auth_header or token != secret:
-                return Response(
-                    {"success": False, "message": "Sai hoặc thiếu API Key xác thực SePay."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+
+        if not secret:
+            return Response(
+                {"success": False, "message": "SEPAY_WEBHOOK_SECRET chưa được cấu hình trên máy chủ."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        token = auth_header.replace('Apikey', '').strip()
+        if not auth_header or token != secret:
+            return Response(
+                {"success": False, "message": "Sai hoặc thiếu API Key xác thực SePay."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
         data = request.data
         transfer_type = data.get('transferType', 'in')
@@ -71,12 +76,6 @@ class SepayWebhookView(APIView):
                 booking = Booking.objects.filter(booking_code__iexact=f"BK-{clean_suffix}").first()
                 if not booking:
                     booking = Booking.objects.filter(booking_code__icontains=clean_suffix).first()
-
-        # Fallback: nếu không thấy BK-xxx hay GRP-xxx, thử tìm theo ID số trong content
-        if not booking and not group_booking:
-            id_match = re.search(r'\b(\d{1,6})\b', content)
-            if id_match:
-                booking = Booking.objects.filter(id=int(id_match.group(1))).first()
 
         if not booking and not group_booking:
             return Response(
