@@ -825,18 +825,16 @@ class BookingSerializer(serializers.ModelSerializer):
         return None
 
     def get_payment_method_display(self, obj):
+        from ..payments.methods import format_payment_methods_display
         method = self.get_payment_method(obj)
-        if method == 'MIXED':
-            return 'Hỗn hợp (Tiền mặt & VietQR)'
-        if method == 'CASH':
-            return 'Tiền mặt'
-        if method == 'TRANSFER':
-            return 'VietQR'
-        if method == 'CREDIT_CARD':
-            return 'Thẻ tín dụng'
-        if method == 'MOMO':
-            return 'Ví MoMo'
-        return 'Chưa xác định'
+        payments = []
+        try:
+            payments = list(obj.payments.all())
+            if not payments and obj.group_booking_id and obj.group_booking:
+                payments = list(obj.group_booking.payments.all())
+        except Exception:
+            payments = []
+        return format_payment_methods_display(payments, method)
 
     def get_group_payment_method(self, obj):
         if not obj.group_booking_id or not obj.group_booking:
@@ -895,18 +893,15 @@ class BookingSerializer(serializers.ModelSerializer):
         return None
 
     def get_group_payment_method_display(self, obj):
+        from ..payments.methods import format_payment_methods_display
         m = self.get_group_payment_method(obj)
-        if m == 'MIXED':
-            return 'Hỗn hợp (Tiền mặt & VietQR)'
-        if m == 'CASH':
-            return 'Tiền mặt'
-        if m == 'TRANSFER':
-            return 'VietQR'
-        if m == 'CREDIT_CARD':
-            return 'Thẻ tín dụng'
-        if m == 'MOMO':
-            return 'Ví MoMo'
-        return None
+        if not m:
+            return None
+        try:
+            payments = list(obj.group_booking.payments.all()) if obj.group_booking else []
+        except Exception:
+            payments = []
+        return format_payment_methods_display(payments, m)
 
     def get_is_company_all_inclusive(self, obj):
         if obj.group_booking:

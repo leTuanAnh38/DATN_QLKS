@@ -99,7 +99,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         normalizedMethods.add('CASH');
                     } else if (['transfer', 'bank_transfer', 'vietqr', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(m)) {
                         normalizedMethods.add('TRANSFER');
-                    } else if (['credit_card', 'card', 'the_tin_dung'].includes(m)) {
+                    } else if (['credit_card', 'card', 'pos', 'the_tin_dung'].includes(m)) {
                         normalizedMethods.add('CREDIT_CARD');
                     } else if (['momo'].includes(m)) {
                         normalizedMethods.add('MOMO');
@@ -157,7 +157,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         if (['transfer', 'bank_transfer', 'vietqr', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower)) {
             return 'TRANSFER';
         }
-        if (['credit_card', 'card', 'the_tin_dung', 'thẻ tín dụng'].includes(rawLower)) {
+        if (['credit_card', 'card', 'pos', 'the_tin_dung', 'thẻ tín dụng', 'quẹt thẻ pos'].includes(rawLower)) {
             return 'CREDIT_CARD';
         }
         if (['momo'].includes(rawLower)) {
@@ -166,14 +166,19 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
         // Kiểm tra tiếp trong booking.note
         const noteLower = (booking?.note || '').toLowerCase();
-        if ((noteLower.includes('vietqr') || noteLower.includes('chuyển khoản')) && 
-            (noteLower.includes('tiền mặt') || noteLower.includes('tại quầy') || noteLower.includes('reception') || noteLower.includes('cash'))) {
+        const hasQrNote = noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer');
+        const hasCashNote = noteLower.includes('tiền mặt') || noteLower.includes('tại quầy') || noteLower.includes('reception') || noteLower.includes('cash');
+        const hasPosNote = noteLower.includes('quẹt thẻ') || noteLower.includes('pos') || noteLower.includes('credit_card');
+        if ([hasQrNote, hasCashNote, hasPosNote].filter(Boolean).length > 1) {
             return 'MIXED';
         }
-        if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
+        if (hasPosNote) {
+            return 'CREDIT_CARD';
+        }
+        if (hasQrNote) {
             return 'TRANSFER';
         }
-        if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
+        if (hasCashNote || noteLower.includes('tại lễ tân')) {
             return 'CASH';
         }
 
@@ -182,6 +187,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             const grpRaw = String(booking?.group_payment_method || booking?.group_booking?.payment_method || '').toUpperCase();
             if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(grpRaw)) {
                 return 'TRANSFER';
+            }
+            if (['CREDIT_CARD', 'CARD', 'POS'].includes(grpRaw)) {
+                return 'CREDIT_CARD';
             }
             if (grpRaw === 'MIXED') return 'MIXED';
             if (grpRaw === 'CASH') return 'CASH';
@@ -195,13 +203,46 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         return 'CASH';
     };
 
+    const resolveDynamicMixedLabel = () => {
+        if (booking?.payment_method_display && String(booking.payment_method_display).includes('Hỗn hợp')) {
+            return booking.payment_method_display;
+        }
+        const labelMap = {
+            CASH: 'Tiền mặt',
+            TRANSFER: 'VietQR',
+            CREDIT_CARD: 'Quẹt thẻ POS',
+            MOMO: 'Ví MoMo',
+        };
+        const completed = Array.isArray(booking?.payments)
+            ? booking.payments.filter((p) => p.payment_status === 'COMPLETED')
+            : [];
+        const uniqueLabels = [];
+        const seen = new Set();
+        completed.forEach((p) => {
+            const m = String(p.payment_method || '').trim().toLowerCase();
+            let ch = '';
+            if (['cash', 'tiền mặt', 'tien_mat', 'reception'].includes(m)) ch = 'CASH';
+            else if (['transfer', 'bank_transfer', 'vietqr', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(m)) ch = 'TRANSFER';
+            else if (['credit_card', 'card', 'pos', 'the_tin_dung'].includes(m)) ch = 'CREDIT_CARD';
+            else if (['momo', 'zalopay'].includes(m)) ch = 'MOMO';
+            if (ch && !seen.has(ch)) {
+                seen.add(ch);
+                uniqueLabels.push(labelMap[ch]);
+            }
+        });
+        if (uniqueLabels.length > 1) {
+            return `Hỗn hợp (${uniqueLabels.join(' & ')})`;
+        }
+        return 'Thanh toán hỗn hợp';
+    };
+
     // Nhãn trạng thái phương thức thanh toán cho bảng Chi tiết tiền phòng
     const getPaidMethodLabel = () => {
         const code = resolvePaymentMethodCode();
-        if (code === 'MIXED') return 'Đã thanh toán (Hỗn hợp Tiền mặt & VietQR)';
+        if (code === 'MIXED') return `Đã thanh toán (${resolveDynamicMixedLabel()})`;
         if (code === 'CASH') return 'Đã thanh toán (Tiền mặt)';
         if (code === 'TRANSFER') return 'Đã thanh toán (VietQR)';
-        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Thẻ tín dụng)';
+        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Quẹt thẻ POS)';
         if (code === 'MOMO') return 'Đã thanh toán (Ví MoMo)';
         return 'Đã thanh toán';
     };
@@ -210,14 +251,23 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const getServicePaymentBadgeLabel = (service) => {
         if (!service) return 'Đã thanh toán';
         const method = String(service.payment_method || '').toUpperCase();
-        if (method === 'CASH' || (service.note && service.note.toLowerCase().includes('tiền mặt'))) {
+        const svcNote = (service.note || '').toLowerCase();
+        if (['CARD', 'CREDIT_CARD', 'POS'].includes(method) || svcNote.includes('quẹt thẻ') || svcNote.includes('pos')) {
+            return 'Đã thanh toán (Quẹt thẻ POS)';
+        }
+        if (method === 'CASH' || svcNote.includes('tiền mặt')) {
             return 'Đã thanh toán (Tiền mặt)';
         }
         if (method === 'TRANSFER' || method === 'VIETQR' || method === 'BANK_TRANSFER') {
             return 'Đã thanh toán (VietQR)';
         }
         const payList = Array.isArray(booking?.payments) ? booking.payments.filter(p => p.payment_status === 'COMPLETED') : [];
-        const labelOf = (m) => ['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(String(m || '').toUpperCase()) ? 'Đã thanh toán (VietQR)' : 'Đã thanh toán (Tiền mặt)';
+        const labelOf = (m) => {
+            const up = String(m || '').toUpperCase();
+            if (['CARD', 'CREDIT_CARD', 'POS'].includes(up)) return 'Đã thanh toán (Quẹt thẻ POS)';
+            if (['TRANSFER', 'VIETQR', 'BANK_TRANSFER'].includes(up)) return 'Đã thanh toán (VietQR)';
+            return 'Đã thanh toán (Tiền mặt)';
+        };
         const coPay = payList.find(p => String(p.transaction_id || '').startsWith('TXN-CHECKOUT'));
         if (service.is_paid && (service.source === 'service_request' || service.request_id || String(service.id).startsWith('req_'))) {
             const reqId = service.request_id || String(service.id).replace('req_', '');
@@ -233,10 +283,10 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     // Nhãn dòng khấu trừ đã thanh toán trong khối Tổng kết
     const getPaidAdvanceLabel = () => {
         const code = resolvePaymentMethodCode();
-        if (code === 'MIXED') return 'Đã thanh toán (Hỗn hợp Tiền mặt & VietQR):';
+        if (code === 'MIXED') return `Đã thanh toán (${resolveDynamicMixedLabel()}):`;
         if (code === 'CASH') return 'Đã thanh toán (Tiền mặt):';
         if (code === 'TRANSFER') return 'Đã thanh toán (VietQR):';
-        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Thẻ tín dụng):';
+        if (code === 'CREDIT_CARD') return 'Đã thanh toán (Quẹt thẻ POS):';
         if (code === 'MOMO') return 'Đã thanh toán (Ví MoMo):';
         return 'Đã thanh toán:';
     };
@@ -258,17 +308,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
     const getPaymentMethod = () => {
         const code = resolvePaymentMethodCode();
-        const methodDisplay = code === 'TRANSFER' ? 'VietQR' : code === 'CASH' ? 'Tiền mặt' : code === 'MIXED' ? 'Hỗn hợp (Tiền mặt & VietQR)' : '';
+        const methodDisplay =
+            code === 'TRANSFER' ? 'VietQR' :
+            code === 'CASH' ? 'Tiền mặt' :
+            code === 'CREDIT_CARD' ? 'Quẹt thẻ POS' :
+            code === 'MIXED' ? resolveDynamicMixedLabel() : '';
         if (isGroupMaster) {
             return booking.payment_method_display || (methodDisplay ? `Hợp đồng Doanh nghiệp B2B (${methodDisplay})` : (booking.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'));
         }
         if (isGroupRoom) {
             return `Gộp HĐ đoàn #${booking.group_booking_code || ''} (Master-Billing${methodDisplay ? ` • ${methodDisplay}` : ''})`;
         }
-        if (code === 'MIXED') return 'Hỗn hợp (Tiền mặt & Chuyển khoản VietQR)';
+        if (code === 'MIXED') return resolveDynamicMixedLabel();
         if (code === 'CASH') return 'Tiền mặt (Tại quầy lễ tân)';
         if (code === 'TRANSFER') return 'Chuyển khoản VietQR';
-        if (code === 'CREDIT_CARD') return 'Thẻ tín dụng / Ghi nợ';
+        if (code === 'CREDIT_CARD') return 'Quẹt thẻ POS / Tín dụng';
         if (code === 'MOMO') return 'Ví điện tử MoMo';
         if (booking.note && booking.note.includes('Thanh toán:')) {
             const method = booking.note.split('Thanh toán:')[1].trim().split('|')[0].trim();

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 import { reviewService } from '../../../services/reviewService';
+import { useScrollAfterPageChange } from '../../../utils/scrollUtils';
 
 const REVIEWS_PER_PAGE = 4;
 
@@ -73,13 +74,15 @@ export default function RoomReviewsSection({
         return filteredReviews.slice(start, start + REVIEWS_PER_PAGE);
     }, [filteredReviews, currentPage]);
 
+    const requestPageScroll = useScrollAfterPageChange(currentPage, 'danh-gia', {
+        offset: 88,
+        fallbackTop: 0,
+    });
+
     const handlePageChange = (newPage) => {
         if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+        requestPageScroll();
         setCurrentPage(newPage);
-        const el = document.getElementById('danh-gia');
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
     };
 
     const getPageNumbers = () => {
@@ -151,6 +154,7 @@ export default function RoomReviewsSection({
         <div
             id="danh-gia"
             className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6 sm:space-y-8 scroll-mt-24"
+            style={{ overflowAnchor: 'none' }}
         >
             {/* 1. TIÊU ĐỀ & ĐIỂM TỔNG QUAN */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b border-slate-100">

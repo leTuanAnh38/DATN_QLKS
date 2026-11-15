@@ -488,33 +488,68 @@ class ReportsAnalyticsView(APIView):
         # =====================================================================
         # PHẦN 8: CƠ CẤU KÊNH THANH TOÁN (Payment Methods Breakdown)
         # =====================================================================
-        pm_agg = period_invoices.values('payment_method').annotate(
-            tot=Coalesce(Sum('total_amount'), Decimal(0)),
-            cnt=Count('id')
-        )
-        pm_dict = {str(item['payment_method']).lower(): (float(item['tot']), item['cnt']) for item in pm_agg if item['payment_method']}
+        from ..payments.methods import canonical_payment_channel
 
         vietqr_amt, vietqr_cnt = 0.0, 0
         cash_amt, cash_cnt = 0.0, 0
         card_amt, card_cnt = 0.0, 0
         momo_amt, momo_cnt = 0.0, 0
 
-        for m_name, (amt, cnt) in pm_dict.items():
-            if any(k in m_name for k in ['transfer', 'bank_transfer', 'vietqr']):
-                vietqr_amt += amt
-                vietqr_cnt += cnt
-            elif 'cash' in m_name:
-                cash_amt += amt
-                cash_cnt += cnt
-            elif any(k in m_name for k in ['credit', 'card', 'pos']):
-                card_amt += amt
-                card_cnt += cnt
-            elif any(k in m_name for k in ['momo', 'zalopay']):
-                momo_amt += amt
-                momo_cnt += cnt
+        def _add_channel_amount(channel, share_amt, count_inc=0):
+            nonlocal vietqr_amt, vietqr_cnt, cash_amt, cash_cnt, card_amt, card_cnt, momo_amt, momo_cnt
+            if channel == 'TRANSFER':
+                vietqr_amt += share_amt
+                vietqr_cnt += count_inc
+            elif channel == 'CASH':
+                cash_amt += share_amt
+                cash_cnt += count_inc
+            elif channel == 'CREDIT_CARD':
+                card_amt += share_amt
+                card_cnt += count_inc
+            elif channel == 'MOMO':
+                momo_amt += share_amt
+                momo_cnt += count_inc
             else:
-                vietqr_amt += amt
-                vietqr_cnt += cnt
+                vietqr_amt += share_amt
+                vietqr_cnt += count_inc
+
+        period_inv_list = list(period_invoices.values('id', 'booking_id', 'group_booking_id', 'payment_method', 'total_amount'))
+        mixed_booking_ids = [inv['booking_id'] for inv in period_inv_list if str(inv.get('payment_method') or '').lower() == 'mixed' and inv.get('booking_id')]
+        mixed_group_ids = [inv['group_booking_id'] for inv in period_inv_list if str(inv.get('payment_method') or '').lower() == 'mixed' and inv.get('group_booking_id')]
+
+        mixed_payments_by_booking = {}
+        if mixed_booking_ids:
+            for p in Payment.objects.filter(booking_id__in=mixed_booking_ids, payment_status='COMPLETED').values('booking_id', 'payment_method', 'amount'):
+                mixed_payments_by_booking.setdefault(p['booking_id'], []).append(p)
+
+        mixed_payments_by_group = {}
+        if mixed_group_ids:
+            for p in Payment.objects.filter(group_booking_id__in=mixed_group_ids, payment_status='COMPLETED').values('group_booking_id', 'payment_method', 'amount'):
+                mixed_payments_by_group.setdefault(p['group_booking_id'], []).append(p)
+
+        for inv in period_inv_list:
+            amt = float(inv['total_amount'] or 0)
+            raw_pm = str(inv.get('payment_method') or '').strip().lower()
+            if raw_pm == 'mixed':
+                rel_payments = (
+                    mixed_payments_by_booking.get(inv['booking_id'])
+                    or mixed_payments_by_group.get(inv['group_booking_id'])
+                    or []
+                )
+                channel_totals = {}
+                for p in rel_payments:
+                    ch = canonical_payment_channel(p['payment_method'])
+                    if ch:
+                        channel_totals[ch] = channel_totals.get(ch, 0.0) + float(p['amount'] or 0)
+                sum_paid = sum(channel_totals.values())
+                if sum_paid > 0:
+                    for ch, ch_paid in channel_totals.items():
+                        _add_channel_amount(ch, amt * (ch_paid / sum_paid), count_inc=1)
+                else:
+                    _add_channel_amount('CASH', amt, count_inc=1)
+            else:
+                ch = canonical_payment_channel(raw_pm)
+                _add_channel_amount(ch, amt, count_inc=1)
 
         total_pm = (vietqr_amt + cash_amt + card_amt + momo_amt) or 1.0
 

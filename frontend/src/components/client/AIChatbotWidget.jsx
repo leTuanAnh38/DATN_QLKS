@@ -1503,7 +1503,7 @@ export default function AIChatbotWidget() {
 
                                                             {!isCancelled ? (
                                                                 <div className="mt-3 pt-2.5 border-t border-slate-100">
-                                                                    <div className="relative flex items-center justify-between px-3">
+                                                                    <div className="relative flex items-start justify-between px-3">
                                                                         <div className="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 z-0 overflow-hidden rounded-full">
                                                                             <div
                                                                                 className="h-full bg-emerald-500 transition-all duration-500 rounded-full"

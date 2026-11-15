@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from ..bookings.models import Booking
+from ..bookings.models import Booking, BookingExtraService
+from ..bookings.serializers import BookingSerializer
 from ..rooms.models import RoomCategory, Room
 from .models import Invoice, CashOutVoucher, Payment, CashierShift
 
@@ -247,3 +248,59 @@ class PosCardCheckoutTests(APITestCase):
         self.assertEqual(shift_summary['card_in'], 1500000.0)
         self.assertEqual(shift_summary['transfer_in'], 0.0)
         self.assertEqual(shift_summary['cash_in'], 0.0)
+
+    def test_mixed_cash_checkin_and_pos_checkout_displays_and_reports_accurately(self):
+        # Reset booking to have CASH payment at check-in (1.5M) + extra service paid by POS (300k)
+        mixed_booking = Booking.objects.create(
+            guest=self.guest,
+            category=self.cat,
+            room=self.room,
+            check_in_date=timezone.localdate() - timedelta(days=1),
+            check_out_date=timezone.localdate(),
+            total_amount=Decimal('1500000'),
+            status='checked_in',
+        )
+        Payment.objects.create(
+            booking=mixed_booking,
+            amount=Decimal('1500000'),
+            payment_method='CASH',
+            payment_status='COMPLETED',
+            shift=self.shift,
+            transaction_id='TXN-MIX-CASH',
+        )
+        BookingExtraService.objects.create(
+            booking=mixed_booking,
+            service_name='Spa VIP',
+            quantity=1,
+            price=Decimal('300000'),
+            is_paid=False,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        confirm_res = self.client.post('/api/payments/confirm/', {
+            'booking_id': mixed_booking.id,
+            'amount': '300000',
+            'payment_method': 'CREDIT_CARD',
+        }, format='json')
+        self.assertEqual(confirm_res.status_code, 200)
+
+        checkout_res = self.client.post(f'/api/bookings/{mixed_booking.id}/check-out/', {
+            'payment_method': 'credit_card',
+            'confirm_settle': True,
+        }, format='json')
+        self.assertEqual(checkout_res.status_code, 200)
+
+        mixed_booking.refresh_from_db()
+        inv = Invoice.objects.get(booking=mixed_booking)
+        self.assertEqual(inv.payment_method, 'mixed')
+
+        serialized = BookingSerializer(mixed_booking).data
+        self.assertEqual(serialized['payment_method'], 'MIXED')
+        self.assertEqual(serialized['payment_method_display'], 'Hỗn hợp (Tiền mặt & Quẹt thẻ POS)')
+
+        rep_res = self.client.get('/api/reports/?filter=year')
+        self.assertEqual(rep_res.status_code, 200)
+        channels = {item['code']: item['amount'] for item in rep_res.data['payment_methods']}
+        self.assertEqual(channels['CASH'], 1500000)
+        self.assertEqual(channels['CARD'], 300000)
+        self.assertEqual(channels['VIETQR'], 0)

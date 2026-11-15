@@ -353,10 +353,10 @@ export default function ServiceHistoryModal({
                                             {!isCancelled ? (
                                                 <div className="space-y-3">
                                                     {/* Interactive Step Timeline */}
-                                                    <div className="relative flex items-center justify-between px-2 pt-1 pb-1">
-                                                        <div className="absolute top-4 left-6 right-6 h-1 bg-slate-100 rounded-full z-0" />
+                                                    <div className="relative flex items-start justify-between px-2 pt-1 pb-1">
+                                                        <div className="absolute top-4 sm:top-[18px] left-6 right-6 h-1 bg-slate-100 rounded-full z-0" />
                                                         <div
-                                                            className="absolute top-4 left-6 h-1 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-500 rounded-full z-0 transition-all duration-700 ease-out"
+                                                            className="absolute top-4 sm:top-[18px] left-6 h-1 bg-gradient-to-r from-amber-500 via-amber-600 to-emerald-500 rounded-full z-0 transition-all duration-700 ease-out"
                                                             style={{
                                                                 width: `calc(${progressPercent}% * (100% - 48px) / 100)`
                                                             }}

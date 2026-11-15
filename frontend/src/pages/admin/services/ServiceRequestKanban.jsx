@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import hotelService from '../../../services/hotelService';
 import { formatTimeAgo } from '../../../utils/formatters';
+import { useScrollAfterPageChange } from '../../../utils/scrollUtils';
 import { CreateServiceOrderModal, ServiceOrderDetailModal } from '../../../components/admin/services';
 import {
     Clock,
@@ -707,11 +708,15 @@ export default function ServiceRequestKanban() {
         setCompletedDisplayCount(8);
     }, [searchKeyword, selectedCategoryFilter, statusTab, viewMode]);
 
+    const requestListPageScroll = useScrollAfterPageChange(safePage, 'service-request-list', {
+        offset: 80,
+        fallbackTop: 0,
+    });
+
     const handleListPageChange = (page) => {
         if (page < 1 || page > listTotalPages || page === safePage) return;
+        requestListPageScroll();
         setCurrentPage(page);
-        const el = document.getElementById('service-request-list');
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     const listPageNumbers = (() => {
@@ -901,7 +906,11 @@ export default function ServiceRequestKanban() {
 
             {/* CHẾ ĐỘ DANH SÁCH: MỖI YÊU CẦU 1 HÀNG (giống Quản lý đơn đặt phòng) */}
             {viewMode === 'list' && (
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div
+                    id="service-request-list"
+                    className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden scroll-mt-20"
+                    style={{ overflowAnchor: 'none' }}
+                >
                     {/* Tab lọc theo trạng thái (Sticky trên Mobile để dễ chuyển tab khi cuộn) */}
                     <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-md flex items-center gap-2 overflow-x-auto px-4 py-3 border-b border-slate-100 scrollbar-none">
                         {statusTabs.map((tab) => {
@@ -929,7 +938,7 @@ export default function ServiceRequestKanban() {
                     </div>
 
                     {/* BẢNG CHO MÀN HÌNH MÁY TÍNH (>= md) */}
-                    <div id="service-request-list" className="hidden md:block overflow-x-auto scroll-mt-4">
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
                                 <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">

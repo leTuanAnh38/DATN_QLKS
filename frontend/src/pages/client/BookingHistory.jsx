@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useScrollAfterPageChange } from '../../utils/scrollUtils';
 import {
     Calendar,
     Clock,
@@ -526,9 +527,15 @@ export default function BookingHistory() {
         return filteredBookings.slice(start, start + pageSize);
     }, [filteredBookings, currentPage, pageSize]);
 
+    const requestPageScroll = useScrollAfterPageChange(currentPage, 'booking-history-list', {
+        offset: 88,
+        fallbackTop: 300,
+    });
+
     const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+        requestPageScroll();
         setCurrentPage(newPage);
-        window.scrollTo({ top: 300, behavior: 'smooth' });
     };
 
     // Cấu hình Badge Trạng thái chuẩn Luxury
@@ -626,7 +633,10 @@ export default function BookingHistory() {
             </header>
 
             {/* MAIN CONTENT */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+            <main
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full"
+                style={{ overflowAnchor: 'none' }}
+            >
                 {/* TOAST THÔNG BÁO NỔI (Căn chỉnh an toàn trên màn hình điện thoại) */}
                 {toastMessage && (
                     <div
@@ -862,7 +872,7 @@ export default function BookingHistory() {
 
                         {/* DANH SÁCH CÁC ĐƠN DẠNG THẺ (CARD LAYOUT) XẾP THEO CHIỀU DỌC */}
                         {!isLoading && filteredBookings.length > 0 && (
-                            <div className="space-y-5">
+                            <div id="booking-history-list" className="space-y-5 scroll-mt-24 min-h-[55vh]">
                                 {paginatedBookings.map((booking) => {
                                     // Xác định ảnh thumbnail phòng
                                     const roomThumbnail =
@@ -896,7 +906,7 @@ export default function BookingHistory() {
                                                         normMethods.add('CASH');
                                                     } else if (['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(m)) {
                                                         normMethods.add('TRANSFER');
-                                                    } else if (['credit_card', 'card', 'the_tin_dung'].includes(m)) {
+                                                    } else if (['credit_card', 'card', 'pos', 'the_tin_dung'].includes(m)) {
                                                         normMethods.add('CREDIT_CARD');
                                                     } else if (m) {
                                                         normMethods.add(m.toUpperCase());
@@ -926,19 +936,24 @@ export default function BookingHistory() {
                                         if (['transfer', 'vietqr', 'bank_transfer', 'chuyen_khoan', 'chuyển khoản', 'qr'].includes(rawLower)) {
                                             return 'TRANSFER';
                                         }
-                                        if (['credit_card', 'card', 'the_tin_dung', 'thẻ tín dụng'].includes(rawLower)) {
+                                        if (['credit_card', 'card', 'pos', 'the_tin_dung', 'thẻ tín dụng', 'quẹt thẻ pos'].includes(rawLower)) {
                                             return 'CREDIT_CARD';
                                         }
 
                                         const noteLower = (booking.note || '').toLowerCase();
-                                        if ((noteLower.includes('vietqr') || noteLower.includes('chuyển khoản')) && 
-                                            (noteLower.includes('tiền mặt') || noteLower.includes('tại quầy') || noteLower.includes('reception') || noteLower.includes('cash'))) {
+                                        const hasQrNote = noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer');
+                                        const hasCashNote = noteLower.includes('tiền mặt') || noteLower.includes('tại quầy') || noteLower.includes('reception') || noteLower.includes('cash');
+                                        const hasPosNote = noteLower.includes('quẹt thẻ') || noteLower.includes('pos') || noteLower.includes('credit_card');
+                                        if ([hasQrNote, hasCashNote, hasPosNote].filter(Boolean).length > 1) {
                                             return 'MIXED';
                                         }
-                                        if (noteLower.includes('vietqr') || noteLower.includes('chuyển khoản') || noteLower.includes('transfer')) {
+                                        if (hasPosNote) {
+                                            return 'CREDIT_CARD';
+                                        }
+                                        if (hasQrNote) {
                                             return 'TRANSFER';
                                         }
-                                        if (noteLower.includes('reception') || noteLower.includes('tiền mặt') || noteLower.includes('cash') || noteLower.includes('tại lễ tân') || noteLower.includes('tại quầy')) {
+                                        if (hasCashNote || noteLower.includes('tại lễ tân')) {
                                             return 'CASH';
                                         }
                                         if (['completed', 'checked_out'].includes(booking.status)) {
@@ -951,6 +966,10 @@ export default function BookingHistory() {
                                     const isMixed = methodCode === 'MIXED';
                                     const isCash = methodCode === 'CASH';
                                     const isTransfer = methodCode === 'TRANSFER';
+                                    const isCard = methodCode === 'CREDIT_CARD';
+                                    const mixedMethodLabel = (booking.payment_method_display && String(booking.payment_method_display).includes('Hỗn hợp'))
+                                        ? booking.payment_method_display
+                                        : 'Thanh toán hỗn hợp';
                                     const grandTotalNum = Number(booking.grand_total_amount ?? booking.total_amount) || 0;
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
                                     const paidAmountNum = Number(booking.paid_amount || 0);
@@ -1059,7 +1078,7 @@ export default function BookingHistory() {
                                                                 title={`Đã thanh toán trước ${paidAmountNum.toLocaleString('vi-VN')} đ. Còn phải thanh toán thêm ${remainingBalanceNum.toLocaleString('vi-VN')} đ khi trả phòng.`}
                                                             >
                                                                 <CreditCard className="w-3 h-3 text-amber-600" />
-                                                                <span>{isMixed ? 'Hỗn hợp (Còn thanh toán)' : (isCash ? 'Tiền mặt (Còn thanh toán)' : (isTransfer ? 'VietQR (Còn thanh toán)' : 'Đã TT một phần'))}</span>
+                                                                <span>{isMixed ? 'Hỗn hợp (Còn thanh toán)' : (isCash ? 'Tiền mặt (Còn thanh toán)' : (isTransfer ? 'VietQR (Còn thanh toán)' : (isCard ? 'Quẹt thẻ POS (Còn thanh toán)' : 'Đã TT một phần')))}</span>
                                                             </span>
                                                         ) : (hasRemainingPayment && paidAmountNum === 0) ? (
                                                             <span
@@ -1072,10 +1091,10 @@ export default function BookingHistory() {
                                                         ) : (booking.payment_status === 'COMPLETED' || isPaid) ? (
                                                             <span
                                                                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
-                                                                title={isMixed ? "Đã thanh toán kết hợp tiền mặt & chuyển khoản VietQR" : (isCash ? "Đã thanh toán bằng tiền mặt tại quầy lễ tân" : (isTransfer ? "Đã thanh toán thành công qua VietQR" : "Đã thanh toán"))}
+                                                                title={isMixed ? mixedMethodLabel : (isCash ? "Đã thanh toán bằng tiền mặt tại quầy lễ tân" : (isTransfer ? "Đã thanh toán thành công qua VietQR" : (isCard ? "Đã thanh toán qua máy quẹt thẻ POS" : "Đã thanh toán")))}
                                                             >
                                                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                                                <span>{isMixed ? 'Hỗn hợp (Tiền mặt & VietQR)' : (isCash ? 'Tiền mặt (Đã TT)' : (isTransfer ? 'VietQR (Đã TT)' : 'Đã thanh toán'))}</span>
+                                                                <span>{isMixed ? mixedMethodLabel : (isCash ? 'Tiền mặt (Đã TT)' : (isTransfer ? 'VietQR (Đã TT)' : (isCard ? 'Quẹt thẻ POS (Đã TT)' : 'Đã thanh toán')))}</span>
                                                             </span>
                                                         ) : (
                                                             <span

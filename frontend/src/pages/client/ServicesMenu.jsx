@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import hotelService from '../../services/hotelService';
 import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useScrollAfterPageChange } from '../../utils/scrollUtils';
 import {
     ServiceSuccessModal,
     ServiceOrderModal,
@@ -449,12 +450,16 @@ export default function ServicesMenu() {
         setCurrentPage(1);
     }, [selectedCategory, searchQuery]);
 
-    // Chuyển trang và cuộn mượt về đầu lưới dịch vụ
+    const requestPageScroll = useScrollAfterPageChange(safePage, 'services-menu-grid', {
+        offset: 88,
+        fallbackTop: 0,
+    });
+
+    // Chuyển trang và cuộn mượt về đầu lưới dịch vụ sau khi DOM cập nhật
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages || page === safePage) return;
+        requestPageScroll();
         setCurrentPage(page);
-        const grid = document.getElementById('services-menu-grid');
-        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     // Danh sách số trang hiển thị (có dấu ... khi quá nhiều trang)
@@ -907,7 +912,10 @@ export default function ServicesMenu() {
                 />
 
                 {/* KHU VỰC MENU CHÍNH */}
-                <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-32 sm:pb-12 space-y-8">
+                <main
+                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-32 sm:pb-12 space-y-8"
+                    style={{ overflowAnchor: 'none' }}
+                >
                     {/* BỘ LỌC DANH MỤC & TÌM KIẾM */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
                         {/* Tabs danh mục */}
@@ -1008,7 +1016,7 @@ export default function ServicesMenu() {
                             </button>
                         </div>
                     ) : (
-                        <div id="services-menu-grid" className="scroll-mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div id="services-menu-grid" className="scroll-mt-24 min-h-[60vh] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {paginatedItems.map((item) => {
                                 const itemImg =
                                     item.display_image ||

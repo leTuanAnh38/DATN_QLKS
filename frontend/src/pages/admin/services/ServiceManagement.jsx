@@ -26,6 +26,7 @@ import {
 import hotelService from '../../../services/hotelService';
 import { useAuth } from '../../../store/authStore';
 import { useHasPermission } from '../../../utils/permission';
+import { useScrollAfterPageChange } from '../../../utils/scrollUtils';
 
 export default function ServiceManagement() {
     const { user } = useAuth();
@@ -164,11 +165,15 @@ export default function ServiceManagement() {
         setCurrentPage(1);
     }, [selectedCategory, statusFilter, searchQuery, viewMode]);
 
+    const requestPageScroll = useScrollAfterPageChange(safePage, 'admin-services-list', {
+        offset: 80,
+        fallbackTop: 0,
+    });
+
     const handlePageChange = (page) => {
         if (page < 1 || page > totalPages || page === safePage) return;
+        requestPageScroll();
         setCurrentPage(page);
-        const list = document.getElementById('admin-services-list');
-        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     // Số trang hiển thị (có dấu … khi quá nhiều trang)

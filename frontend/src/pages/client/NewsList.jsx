@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import postService from '../../services/postService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useScrollAfterPageChange } from '../../utils/scrollUtils';
 import {
     Search,
     Eye,
@@ -126,15 +127,15 @@ export default function NewsList() {
         return regularSourcePosts.slice(start, start + pageSize);
     }, [regularSourcePosts, safeCurrentPage, pageSize]);
 
+    const requestPageScroll = useScrollAfterPageChange(safeCurrentPage, 'news-grid-section', {
+        offset: 88,
+        fallbackTop: 0,
+    });
+
     const handlePageChange = (newPage) => {
         if (newPage < 1 || newPage > totalPages || newPage === safeCurrentPage) return;
+        requestPageScroll();
         setCurrentPage(newPage);
-        const section = document.getElementById('news-grid-section');
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-            window.scrollTo({ top: 380, behavior: 'smooth' });
-        }
     };
 
     return (
@@ -185,7 +186,10 @@ export default function NewsList() {
             </header>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 space-y-12">
+            <main
+                className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 space-y-12"
+                style={{ overflowAnchor: 'none' }}
+            >
                 {/* BỘ LỌC DANH MỤC & TÌM KIẾM SANG TRỌNG */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
                     {/* Tabs danh mục */}
@@ -315,7 +319,7 @@ export default function NewsList() {
                 )}
 
                 {/* GRID CÁC THẺ BÀI VIẾT (CARDS) */}
-                <div id="news-grid-section" className="scroll-mt-8">
+                <div id="news-grid-section" className="scroll-mt-24 min-h-[60vh]">
                     <div className="flex items-center gap-2.5 mb-6">
                         <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 shadow-2xs">
                             <BookOpen className="w-4 h-4" />
