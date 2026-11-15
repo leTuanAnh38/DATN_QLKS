@@ -1180,7 +1180,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                 </div>
 
                                 {/* Grid các Card phòng của Tầng */}
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+                                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
                                     {floorRooms.map((room) => (
                                         <RoomCard
                                             key={room.id}
@@ -1219,7 +1219,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             ) : (
                 /* CHẾ ĐỘ 2: TRẢI PHẲNG TẤT CẢ CÁC THẺ PHÒNG */
                 <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
                         {rooms.map((room) => (
                             <RoomCard
                                 key={room.id}

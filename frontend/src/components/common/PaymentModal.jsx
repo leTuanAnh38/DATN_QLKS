@@ -374,7 +374,7 @@ export default function PaymentModal({
                 </div>
 
                 {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
                     {/* ========================================================================= */}
                     {/* CỘT TRÁI: THÔNG TIN THANH TOÁN                                             */}
@@ -430,7 +430,7 @@ export default function PaymentModal({
                             {/* Tên khách */}
                             <div className="flex items-center justify-between gap-3 py-1 border-t border-slate-200/60 pt-2.5">
                                 <span className="text-slate-500 shrink-0">Tên khách hàng:</span>
-                                <strong className="text-slate-900">{guest}</strong>
+                                <strong className="text-slate-900 min-w-0 break-words text-right">{guest}</strong>
                             </div>
 
                             {/* Ngân hàng */}
@@ -449,8 +449,8 @@ export default function PaymentModal({
                             {/* Số tài khoản */}
                             <div className="flex items-center justify-between gap-3 py-1 border-t border-slate-200/60 pt-2.5">
                                 <span className="text-slate-500 shrink-0">Số tài khoản:</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-mono text-base font-black text-slate-900 tracking-wider">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="font-mono text-sm sm:text-base font-black text-slate-900 tracking-wider break-all text-right">
                                         {bankConfig.account_no}
                                     </span>
                                     <button
@@ -532,7 +532,7 @@ export default function PaymentModal({
                     {/* ========================================================================= */}
                     {/* CỘT PHẢI: MÃ VIETQR VỚI HIỆU ỨNG VIỀN ĐỨT NÉT                            */}
                     {/* ========================================================================= */}
-                    <div className="flex flex-col items-center justify-center p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
+                    <div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 shadow-2xs mb-4">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             VietQR • Quét Mã Chuyển Khoản 24/7

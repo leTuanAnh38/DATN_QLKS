@@ -178,7 +178,7 @@ export default function Navbar({
                     </Link>
 
                     {/* Desktop Navigation Links */}
-                    <nav className="hidden lg:flex items-center space-x-2.5 xl:space-x-5 2xl:space-x-6 text-xs xl:text-[13px] 2xl:text-sm font-medium shrink-0">
+                    <nav className="hidden xl:flex items-center space-x-4 2xl:space-x-6 text-[13px] 2xl:text-sm font-medium shrink-0">
                         {navItems.map((item) => {
                             const active = item.isActive(location.pathname);
                             return (
@@ -369,7 +369,7 @@ export default function Navbar({
                         <button
                             type="button"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="lg:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+                            className="xl:hidden min-w-[40px] min-h-[40px] p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none flex items-center justify-center"
                             aria-label="Toggle Menu"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,7 +385,7 @@ export default function Navbar({
 
                 {/* Mobile Navigation Dropdown */}
                 {mobileMenuOpen && (
-                    <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn max-h-[calc(100vh-4.5rem)] overflow-y-auto overscroll-contain">
+                    <div className="xl:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn max-h-[calc(100vh-4.5rem)] overflow-y-auto overscroll-contain">
                         {/* Mobile User Status */}
                         {isAuthenticated && (
                             <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">

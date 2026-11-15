@@ -111,7 +111,7 @@ export default function ServiceHistoryModal({
                         <button
                             type="button"
                             onClick={onClose}
-                            className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
+                            className="min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center cursor-pointer"
                             title="Đóng"
                         >
                             <X className="w-4 h-4" />
@@ -393,7 +393,7 @@ export default function ServiceHistoryModal({
                                                                         )}
                                                                     </div>
                                                                     <span
-                                                                        className={`mt-1.5 text-[10px] sm:text-[11px] font-semibold text-center whitespace-nowrap transition-colors ${
+                                                                        className={`mt-1.5 text-[9.5px] sm:text-[11px] font-semibold text-center leading-tight max-w-[68px] sm:max-w-none break-words transition-colors ${
                                                                             isCurrent
                                                                                 ? isCompleted
                                                                                     ? 'text-emerald-700 font-bold'

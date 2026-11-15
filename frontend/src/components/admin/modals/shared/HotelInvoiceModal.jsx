@@ -585,7 +585,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 }
             `}</style>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden my-2 sm:my-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-y-auto max-h-[90vh] my-2 sm:my-6">
                 {/* THANH ĐIỀU KHIỂN (Ẩn khi in) - Sticky top */}
                 <div className="no-print sticky top-0 z-20 bg-slate-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between border-b border-slate-800 shadow-xs">
                     <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">

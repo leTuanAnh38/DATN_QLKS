@@ -33,29 +33,30 @@ export default function ModalDialog({
             onClick={closeOnBackdrop ? onClose : undefined}
         >
             <div
-                className={`bg-white rounded-2xl w-full ${maxWidth} shadow-2xl border border-slate-100 overflow-hidden transform transition-all my-8 ${className}`}
+                className={`bg-white rounded-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform transition-all ${className}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {(title || onClose) && (
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                        <div className="flex items-center gap-3">
+                    <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white shrink-0 z-10">
+                        <div className="flex items-center gap-3 min-w-0">
                             {Icon && (
                                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                                     <Icon className="w-5 h-5" />
                                 </div>
                             )}
-                            <div>
-                                {title && <h3 className="text-lg font-bold text-slate-900">{title}</h3>}
-                                {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+                            <div className="min-w-0">
+                                {title && <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{title}</h3>}
+                                {subtitle && <p className="text-xs text-slate-500 mt-0.5 truncate">{subtitle}</p>}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                             {headerActions}
                             {onClose && (
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                    className="min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer flex items-center justify-center"
+                                    aria-label="Đóng"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -63,7 +64,7 @@ export default function ModalDialog({
                         </div>
                     </div>
                 )}
-                <div className="p-6">
+                <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
                     {children}
                 </div>
             </div>

@@ -108,7 +108,7 @@ export default function RoomCard({
                             <button
                                 type="button"
                                 onClick={() => onReportMaintenance(room)}
-                                className="w-6 h-6 rounded-md hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                className="w-8 h-8 sm:w-6 sm:h-6 rounded-md hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Báo hỏng thiết bị & Đưa vào bảo trì"
                             >
                                 <Wrench className="w-3.5 h-3.5" />
@@ -118,7 +118,7 @@ export default function RoomCard({
                             <button
                                 type="button"
                                 onClick={() => onEdit(room)}
-                                className="w-6 h-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                className="w-8 h-8 sm:w-6 sm:h-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Chỉnh sửa thông tin phòng"
                             >
                                 <Edit3 className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ export default function RoomCard({
             </div>
 
             {/* Giá cơ bản & Trạng thái badge */}
-            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex items-center justify-between">
+            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-1">
                 <span className="text-[11px] font-bold text-slate-900">
                     {formatCurrency(room.category_base_price)}
                     <span className="text-[9px] font-normal text-slate-500">/đêm</span>

@@ -45,7 +45,7 @@ export default function ConfirmDialog({
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden transform transition-all"
+                className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto transform transition-all"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-4 sm:p-6">

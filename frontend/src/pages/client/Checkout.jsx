@@ -999,7 +999,7 @@ export default function Checkout() {
                                                 value={checkInDate}
                                                 onChange={handleCheckInChange}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
@@ -1019,7 +1019,7 @@ export default function Checkout() {
                                                 value={checkOutDate}
                                                 onChange={(e) => setCheckOutDate(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
@@ -1267,7 +1267,7 @@ export default function Checkout() {
                                             value={guestName}
                                             onChange={(e) => setGuestName(e.target.value)}
                                             required
-                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                         />
                                     </div>
 
@@ -1288,7 +1288,7 @@ export default function Checkout() {
                                                     if (bookingError) setBookingError('');
                                                 }}
                                                 required
-                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-mono font-medium text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-mono font-medium text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
                                             <span className="absolute left-3.5 top-3.5 text-slate-400">
                                                 <IdCard className="w-4 h-4" />
@@ -1322,7 +1322,7 @@ export default function Checkout() {
                                                 value={guestPhone}
                                                 onChange={(e) => setGuestPhone(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
                                         </div>
 
@@ -1337,7 +1337,7 @@ export default function Checkout() {
                                                 value={guestEmail}
                                                 onChange={(e) => setGuestEmail(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
                                         </div>
                                     </div>
@@ -1875,7 +1875,7 @@ export default function Checkout() {
                                     placeholder="Ví dụ: Cần phòng tầng cao, view thoáng, hỗ trợ nhận phòng sớm lúc 13:00, chuẩn bị bánh kỉ niệm..."
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                 />
 
                                 {/* Chips chọn nhanh */}

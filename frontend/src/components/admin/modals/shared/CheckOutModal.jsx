@@ -1553,8 +1553,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                                 <span className="text-[11px] text-slate-400">Đơn vị: VNĐ</span>
                             </div>
 
-                            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-                                <table className="w-full text-xs text-left">
+                            <div className="border border-slate-200 rounded-2xl overflow-x-auto shadow-xs">
+                                <table className="w-full min-w-[540px] text-xs text-left">
                                     <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
                                         <tr>
                                             <th className="py-2.5 px-4 w-[52%]">Khoản mục thanh toán</th>

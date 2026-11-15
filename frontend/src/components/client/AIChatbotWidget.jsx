@@ -1185,7 +1185,7 @@ export default function AIChatbotWidget() {
             {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
             {isOpen && (
                 <div
-                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-0 rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]"
+                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]"
                     style={{
                         boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)'
                     }}
@@ -1214,10 +1214,10 @@ export default function AIChatbotWidget() {
                                         Concierge
                                     </span>
                                 </div>
-                                <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 whitespace-nowrap">
-                                    <span>{hotelName}</span>
-                                    <span className="text-slate-300">•</span>
-                                    <span className="text-emerald-600 font-medium">Online 24/7</span>
+                                <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 min-w-0">
+                                    <span className="truncate">{hotelName}</span>
+                                    <span className="text-slate-300 shrink-0">•</span>
+                                    <span className="text-emerald-600 font-medium whitespace-nowrap shrink-0">Online 24/7</span>
                                 </p>
                             </div>
                         </div>
@@ -1981,7 +1981,7 @@ export default function AIChatbotWidget() {
                                 onKeyDown={handleKeyDown}
                                 placeholder={currentDict.input_placeholder}
                                 disabled={isLoading}
-                                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 focus:bg-white transition-all disabled:opacity-50"
+                                className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-600 focus:bg-white transition-all disabled:opacity-50"
                             />
 
                             {/* Nút Micro thu âm câu hỏi bằng giọng nói (Voice AI) */}

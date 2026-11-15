@@ -6,7 +6,7 @@ export default function ServiceSuccessModal({ orderInfo, onClose }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-            <div className="bg-white rounded-3xl p-4 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center space-y-4 sm:space-y-5 animate-scale-up">
+            <div className="bg-white rounded-3xl p-4 sm:p-8 max-w-md w-full shadow-2xl border border-slate-100 text-center space-y-4 sm:space-y-5 animate-scale-up max-h-[90vh] overflow-y-auto">
                 <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-lg shadow-amber-500/10">
                     <BellRing className="w-8 h-8 text-amber-600 animate-pulse" />
                 </div>

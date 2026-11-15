@@ -44,7 +44,7 @@ export default function LogoutConfirmModal({
             <div 
                 role="dialog"
                 aria-modal="true"
-                className="relative w-full max-w-md bg-white rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left"
+                className="relative w-full max-w-md bg-white rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left max-h-[90vh] overflow-y-auto"
             >
                 {/* Nút đóng góc phải */}
                 <button

@@ -152,14 +152,14 @@ export default function Pagination({
             </div>
 
             {/* Các nút điều hướng và số trang bên phải */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
                 {/* Nút [« Trang đầu] */}
                 <button
                     type="button"
                     onClick={handleFirst}
                     disabled={activePage <= 1}
                     title="Trang đầu"
-                    className={`p-1.5 rounded-lg text-xs font-semibold transition border ${
+                    className={`min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] p-1.5 rounded-lg text-xs font-semibold transition border flex items-center justify-center ${
                         activePage <= 1
                             ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 cursor-pointer shadow-2xs'
@@ -173,7 +173,7 @@ export default function Pagination({
                     type="button"
                     onClick={handlePrev}
                     disabled={activePage <= 1}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                    className={`inline-flex items-center justify-center gap-1 min-h-[40px] sm:min-h-[32px] px-3 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         activePage <= 1
                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 cursor-pointer shadow-2xs'
@@ -203,7 +203,7 @@ export default function Pagination({
                                 key={`page-${item}`}
                                 type="button"
                                 onClick={() => handleSelectPage(item)}
-                                className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-semibold transition border flex items-center justify-center cursor-pointer ${
+                                className={`min-w-[40px] h-10 sm:min-w-[32px] sm:h-8 px-2 rounded-lg text-xs font-semibold transition border flex items-center justify-center cursor-pointer ${
                                     isCurrent
                                         ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                                         : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 shadow-2xs'
@@ -220,7 +220,7 @@ export default function Pagination({
                     type="button"
                     onClick={handleNext}
                     disabled={activePage >= effectiveTotalPages}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                    className={`inline-flex items-center justify-center gap-1 min-h-[40px] sm:min-h-[32px] px-3 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         activePage >= effectiveTotalPages
                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 cursor-pointer shadow-2xs'
@@ -236,7 +236,7 @@ export default function Pagination({
                     onClick={handleLast}
                     disabled={activePage >= effectiveTotalPages}
                     title="Trang cuối"
-                    className={`p-1.5 rounded-lg text-xs font-semibold transition border ${
+                    className={`min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] p-1.5 rounded-lg text-xs font-semibold transition border flex items-center justify-center ${
                         activePage >= effectiveTotalPages
                             ? 'bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 cursor-pointer shadow-2xs'

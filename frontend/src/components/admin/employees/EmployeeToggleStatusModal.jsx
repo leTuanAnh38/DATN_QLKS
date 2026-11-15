@@ -20,7 +20,7 @@ export default function EmployeeToggleStatusModal({
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-6 text-center space-y-4">

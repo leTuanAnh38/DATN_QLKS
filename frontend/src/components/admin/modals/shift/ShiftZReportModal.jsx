@@ -385,7 +385,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                                     <Banknote className="w-4 h-4 text-emerald-600" />
                                     <span>I. Cân Đối Quỹ Tiền Mặt Trong Két</span>
                                 </h3>
-                                <div className="border border-slate-300 rounded-xl overflow-hidden">
+                                <div className="border border-slate-300 rounded-xl overflow-x-auto">
                                     <table className="w-full text-xs">
                                         <tbody className="divide-y divide-slate-200">
                                             <tr className="bg-slate-50">
@@ -531,7 +531,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                                     <ShieldCheck className="w-4 h-4 text-blue-600" />
                                     <span>III. Tổng Kết Doanh Thu Theo Phương Thức Thanh Toán</span>
                                 </h3>
-                                <div className="border border-slate-300 rounded-xl overflow-hidden">
+                                <div className="border border-slate-300 rounded-xl overflow-x-auto">
                                     <table className="w-full text-xs">
                                         <tbody className="divide-y divide-slate-200">
                                             <tr>

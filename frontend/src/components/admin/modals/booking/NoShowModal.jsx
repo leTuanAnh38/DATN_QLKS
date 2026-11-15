@@ -53,7 +53,7 @@ export default function NoShowModal({
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-lg w-full p-6 shadow-2xl text-left animate-in zoom-in-95 duration-200 relative">
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-lg w-full p-5 sm:p-6 shadow-2xl text-left animate-in zoom-in-95 duration-200 relative max-h-[90vh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-start justify-between pb-3 border-b border-slate-100 mb-4">
                     <div className="flex items-center gap-3">

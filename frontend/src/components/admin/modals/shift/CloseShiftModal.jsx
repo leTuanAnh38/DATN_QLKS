@@ -336,8 +336,8 @@ export default function CloseShiftModal({ isOpen, onClose, shift, onShiftClosed 
 
                             {countMode === 'DENOMINATION' ? (
                                 <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
-                                    <div className="max-h-56 overflow-y-auto">
-                                        <table className="w-full text-xs">
+                                    <div className="max-h-56 overflow-y-auto overflow-x-auto">
+                                        <table className="w-full min-w-[360px] text-xs">
                                             <thead className="bg-slate-50 text-slate-500 sticky top-0 border-b border-slate-100 font-semibold">
                                                 <tr>
                                                     <th className="py-2.5 px-4 text-left">Mệnh giá tiền VNĐ</th>
