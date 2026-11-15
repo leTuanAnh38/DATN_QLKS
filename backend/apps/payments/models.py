@@ -67,7 +67,7 @@ class Invoice(models.Model):
             (self.booking and getattr(self.booking, 'customer_type', '') == 'CORPORATE') or
             self.group_booking_id
         )
-        if is_corp and self.total_amount and Decimal(str(self.total_amount)) > 0:
+        if is_corp and self.total_amount and Decimal(str(self.total_amount)) > 0 and (not self.pk or not self.tax):
             try:
                 from ..bookings.models import HotelSetting
                 hs = HotelSetting.get_solo()
@@ -153,19 +153,25 @@ class CashierShift(models.Model):
         from django.utils import timezone
         end_time = self.closed_at or timezone.now()
 
-        # Payments gắn trực tiếp với ca HOẶC phát sinh trong khung giờ ca nếu chưa gắn
-        shift_payments = Payment.objects.filter(
-            models.Q(shift=self) | (
-                models.Q(shift__isnull=True) &
-                models.Q(created_at__gte=self.opened_at) &
-                models.Q(created_at__lte=end_time)
-            ),
-            payment_status='COMPLETED'
-        )
+        # Chỉ gán các payment chưa có shift vào ca mở mới nhất để tránh đếm trùng khi nhiều ca cùng mở
+        latest_open_id = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').values_list('id', flat=True).first()
+        if self.status == 'OPEN' and self.id == latest_open_id:
+            shift_payments = Payment.objects.filter(
+                models.Q(shift=self) | (
+                    models.Q(shift__isnull=True) &
+                    ~models.Q(transaction_id__startswith='TXN-') &
+                    models.Q(created_at__gte=self.opened_at) &
+                    models.Q(created_at__lte=end_time)
+                ),
+                payment_status='COMPLETED'
+            )
+        else:
+            shift_payments = Payment.objects.filter(shift=self, payment_status='COMPLETED')
 
         cash_in = Decimal('0')
         transfer_in = Decimal('0')
         card_in = Decimal('0')
+        other_in = Decimal('0')
 
         for p in shift_payments:
             pm = str(p.payment_method).upper()
@@ -177,23 +183,27 @@ class CashierShift(models.Model):
             elif pm in ['CARD', 'CREDIT_CARD', 'POS']:
                 card_in += amt
             else:
-                transfer_in += amt
+                other_in += amt
 
         # Phiếu chi tiền mặt và chuyển khoản gắn trực tiếp với ca
         cash_out = Decimal('0')
         transfer_out = Decimal('0')
-        all_shift_vouchers = self.cash_outs.all() if hasattr(self, 'cash_outs') else []
+        refund_out = Decimal('0')
+        all_shift_vouchers = list(self.cash_outs.all()) if hasattr(self, 'cash_outs') else []
         for v in all_shift_vouchers:
             amt = Decimal(str(v.amount or 0))
             if str(v.payment_method).upper() == 'TRANSFER':
                 transfer_out += amt
             else:
                 cash_out += amt
+            if getattr(v, 'voucher_type', '') in ('REFUND_DEPOSIT', 'REFUND_CANCEL'):
+                refund_out += amt
 
         if cash_out == Decimal('0') and self.total_cash_out:
             cash_out = Decimal(str(self.total_cash_out))
 
         expected = Decimal(str(self.opening_cash or 0)) + cash_in - cash_out
+        gross_revenue = cash_in + transfer_in + card_in + other_in
 
         return {
             'opening_cash': float(self.opening_cash or 0),
@@ -203,12 +213,15 @@ class CashierShift(models.Model):
             'total_transfer_in': float(transfer_in),
             'card_in': float(card_in),
             'total_card_in': float(card_in),
+            'other_in': float(other_in),
             'cash_out': float(cash_out),
             'total_cash_out': float(cash_out),
             'transfer_out': float(transfer_out),
             'total_transfer_out': float(transfer_out),
+            'refund_out': float(refund_out),
             'expected_cash': float(expected),
-            'total_revenue': float(cash_in + transfer_in + card_in),
+            'total_revenue': float(gross_revenue),
+            'net_revenue': float(gross_revenue - refund_out),
             'net_transfer': float(transfer_in - transfer_out),
             'payments_count': shift_payments.count(),
             'cash_outs_count': len(all_shift_vouchers),

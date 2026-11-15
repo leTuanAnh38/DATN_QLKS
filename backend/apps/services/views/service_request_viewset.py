@@ -571,6 +571,13 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                     'message': 'Yêu cầu dịch vụ này đã hoàn thành và được tính vào hóa đơn phòng, không thể thay đổi trạng thái.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Chặn hủy nếu yêu cầu dịch vụ đã thanh toán (tránh xóa Payment mất đối soát)
+            if new_status == 'cancelled' and service_req.is_paid:
+                return Response({
+                    'success': False,
+                    'message': 'Yêu cầu dịch vụ này đã thanh toán, không thể hủy trực tiếp. Vui lòng thực hiện quy trình hoàn tiền.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Kiểm tra điều kiện bắt đầu / thực hiện dịch vụ phòng (khóa dịch vụ)
             if new_status in ['in_progress', 'delivering', 'completed']:
                 lock_response = self._check_service_lock(service_req)
@@ -592,10 +599,8 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                     clean_name = service_req.service.name if service_req.service else "Dịch vụ phòng"
                     service_name_bill = f"{clean_name} [Yêu cầu #{service_req.id}]"
                     existing_bes = BookingExtraService.objects.filter(
-                        booking=service_req.booking
-                    ).filter(
-                        Q(service_name__contains=f"[Yêu cầu #{service_req.id}]") |
-                        Q(service_name__icontains=clean_name)
+                        booking=service_req.booking,
+                        service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).first()
 
                     if existing_bes:
@@ -641,7 +646,8 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).delete()
                     from ...payments.models import Payment
-                    Payment.objects.filter(transaction_id=f"SVC-REQ-{service_req.id}").delete()
+                    if not service_req.is_paid:
+                        Payment.objects.filter(transaction_id=f"SVC-REQ-{service_req.id}").delete()
                 except Exception as e:
                     print(f"Lỗi khi gỡ phụ phí và thanh toán BookingExtraService: {e}")
 

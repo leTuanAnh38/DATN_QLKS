@@ -673,6 +673,11 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
     // Tự động phát hiện trả phòng muộn (Late Check-out Detection) theo Cài đặt hệ thống
     const lateCheckOutInfo = useMemo(() => {
         if (!booking?.check_out_date) return null;
+        const hasRecordedLateFee = Array.isArray(summary?.extra_services) && summary.extra_services.some(
+            (s) => (s.service_name || '').toLowerCase().includes('phụ thu trả phòng muộn') || (s.service_name || '').toLowerCase().includes('late check-out')
+        );
+        if (hasRecordedLateFee) return null;
+
         const now = new Date();
         const y = now.getFullYear();
         const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -707,8 +712,9 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
         }
 
         const nights = Math.max(1, Number(summary?.nights || booking.nights) || 1);
-        const rawRoom = Number(summary?.room_charge ?? booking.room_amount ?? booking.total_amount ?? 0);
-        const dailyRate = nights > 0 ? (rawRoom / nights) : rawRoom;
+        const explicitDailyRate = Number(summary?.daily_rate || 0);
+        const rawRoom = Number(summary?.room_subtotal ?? summary?.room_charge ?? booking.room_amount ?? booking.total_amount ?? 0);
+        const dailyRate = explicitDailyRate > 0 ? explicitDailyRate : (nights > 0 ? (rawRoom / nights) : rawRoom);
         const amount = Math.round((dailyRate * percent) / 100);
 
         const currentTimeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -771,7 +777,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
             await paymentService.confirmPayment({
                 booking_id: booking.id,
                 amount: currentRemainingBalance,
-                payment_method: paymentMethod === 'bank_transfer' ? 'TRANSFER' : 'CASH'
+                payment_method: paymentMethod === 'bank_transfer' ? 'TRANSFER' : 'CASH',
+                late_checkout_surcharge: lateChargeAmount
             });
 
             // Đánh dấu đã giải quyết xong công nợ -> Nút Hoàn tất Check-out sẽ sáng lên

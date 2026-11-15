@@ -1,6 +1,6 @@
 """Phiếu chi tiền mặt và hoàn tiền."""
 from decimal import Decimal
-from django.db import models
+from django.db import models, transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -47,6 +47,9 @@ class CreateCashOutView(APIView):
         group_booking_id = request.data.get('group_booking_id')
 
         # 1. Validation cơ bản
+        if payment_method not in ('CASH', 'TRANSFER'):
+            return Response({'success': False, 'message': 'Phương thức chi chỉ hỗ trợ CASH hoặc TRANSFER.'}, status=status.HTTP_400_BAD_REQUEST)
+
         if not recipient_name:
             return Response({'success': False, 'message': 'Vui lòng nhập họ tên người nhận tiền.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -60,28 +63,7 @@ class CreateCashOutView(APIView):
         except (ValueError, TypeError):
             return Response({'success': False, 'message': 'Số tiền chi không đúng định dạng số hợp lệ.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Tìm ca trực hiện tại tại quầy
-        active_shift = CashierShift.objects.filter(user=user, status='OPEN').first()
-        if not active_shift:
-            active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
-
-        # 3. Nếu chi TIỀN MẶT từ két: Bắt buộc phải có ca trực mở và két phải đủ tiền
-        if payment_method == 'CASH':
-            if not active_shift:
-                return Response({
-                    'success': False,
-                    'message': 'Quầy hiện chưa có ca trực nào đang mở. Không thể chi tiền mặt từ két khi chưa mở ca làm việc!'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            summary = active_shift.calculate_current_summary()
-            current_cash_in_drawer = Decimal(str(summary.get('expected_cash', 0)))
-            if amount > current_cash_in_drawer:
-                return Response({
-                    'success': False,
-                    'message': f"Số tiền mặt trong két hiện tại ({current_cash_in_drawer:,.0f} đ) không đủ để chi số tiền {amount:,.0f} đ!"
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 4. Tìm booking liên quan nếu có
+        # 2. Tìm booking liên quan nếu có
         booking_obj = None
         if booking_id:
             from ...bookings.models import Booking
@@ -92,26 +74,45 @@ class CreateCashOutView(APIView):
             from ...bookings.models import GroupBooking
             group_booking_obj = GroupBooking.objects.filter(models.Q(id=group_booking_id) | models.Q(group_code=group_booking_id)).first()
 
-        # 5. Tạo phiếu chi
-        voucher = CashOutVoucher.objects.create(
-            shift=active_shift,
-            voucher_type=voucher_type,
-            payment_method=payment_method,
-            amount=amount,
-            booking=booking_obj,
-            group_booking=group_booking_obj,
-            recipient_name=recipient_name,
-            recipient_phone=recipient_phone,
-            reason=reason,
-            user=user,
-            approved_by=approved_by or (user.get_full_name() or user.username)
-        )
+        # 3. Khóa ca trực trong transaction để chống race condition rút âm két tiền mặt
+        with transaction.atomic():
+            active_shift = CashierShift.objects.select_for_update().filter(user=user, status='OPEN').first()
+            if not active_shift:
+                active_shift = CashierShift.objects.select_for_update().filter(status='OPEN').order_by('-opened_at').first()
 
-        # Cập nhật số tiền total_cash_out của ca nếu chi tiền mặt
-        if payment_method == 'CASH' and active_shift:
-            summary = active_shift.calculate_current_summary()
-            active_shift.total_cash_out = Decimal(str(summary.get('cash_out', 0)))
-            active_shift.save(update_fields=['total_cash_out'])
+            if payment_method == 'CASH':
+                if not active_shift:
+                    return Response({
+                        'success': False,
+                        'message': 'Quầy hiện chưa có ca trực nào đang mở. Không thể chi tiền mặt từ két khi chưa mở ca làm việc!'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                summary = active_shift.calculate_current_summary()
+                current_cash_in_drawer = Decimal(str(summary.get('expected_cash', 0)))
+                if amount > current_cash_in_drawer:
+                    return Response({
+                        'success': False,
+                        'message': f"Số tiền mặt trong két hiện tại ({current_cash_in_drawer:,.0f} đ) không đủ để chi số tiền {amount:,.0f} đ!"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            voucher = CashOutVoucher.objects.create(
+                shift=active_shift,
+                voucher_type=voucher_type,
+                payment_method=payment_method,
+                amount=amount,
+                booking=booking_obj,
+                group_booking=group_booking_obj,
+                recipient_name=recipient_name,
+                recipient_phone=recipient_phone,
+                reason=reason,
+                user=user,
+                approved_by=approved_by or (user.get_full_name() or user.username)
+            )
+
+            if payment_method == 'CASH' and active_shift:
+                summary = active_shift.calculate_current_summary()
+                active_shift.total_cash_out = Decimal(str(summary.get('cash_out', 0)))
+                active_shift.save(update_fields=['total_cash_out'])
 
         # Ghi log kiểm toán
         log_action(

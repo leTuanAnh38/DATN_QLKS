@@ -428,11 +428,6 @@ class BookingViewSet(
                             discount_amount = calc_discount
                         else:
                             discount_amount = min(subtotal, Decimal(str(promo.discount_value)))
-                elif data.get('discount_amount'):
-                    try:
-                        discount_amount = Decimal(str(data.get('discount_amount')))
-                    except (ValueError, TypeError):
-                        pass
 
             # 7. Xử lý Dịch vụ đi kèm (Add-on Services Upselling)
             selected_services = data.get('selected_services', [])
@@ -800,6 +795,10 @@ class BookingViewSet(
             booking.room.status = 'available'
             booking.room.save(update_fields=['status'])
 
+        # Hoàn lại lượt dùng mã khuyến mãi (nếu có)
+        if booking.applied_promotion_id:
+            Promotion.objects.filter(id=booking.applied_promotion_id, used_count__gt=0).update(used_count=F('used_count') - 1)
+
         # Hủy các ServiceRequest đang chờ của phòng này (nếu có)
         try:
             from ...services.models import ServiceRequest
@@ -816,7 +815,7 @@ class BookingViewSet(
                 group.note = f"{group.note or ''}\n[Toàn bộ phòng trong đoàn đã hủy lúc {now_str}]".strip()
                 group.save(update_fields=['status', 'note', 'updated_at'])
             else:
-                new_total = sum(Decimal(str(b.grand_total_amount or b.total_amount or 0)) for b in active_subs)
+                new_total = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
                 group.total_amount = new_total
                 group.save(update_fields=['total_amount', 'updated_at'])
 
@@ -877,6 +876,25 @@ class BookingViewSet(
                 if booking.room and booking.room.status == 'occupied':
                     booking.room.status = 'available'
                     booking.room.save(update_fields=['status'])
+
+                if booking.applied_promotion_id:
+                    Promotion.objects.filter(id=booking.applied_promotion_id, used_count__gt=0).update(used_count=F('used_count') - 1)
+
+                try:
+                    from ...services.models import ServiceRequest
+                    ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')
+                except Exception:
+                    pass
+
+                if booking.group_booking:
+                    group = booking.group_booking
+                    active_subs = group.sub_bookings.exclude(status='cancelled')
+                    if not active_subs.exists():
+                        group.status = 'cancelled'
+                        group.save(update_fields=['status', 'updated_at'])
+                    else:
+                        group.total_amount = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
+                        group.save(update_fields=['total_amount', 'updated_at'])
 
                 serializer = self.get_serializer(booking, context={'request': request})
                 return Response({

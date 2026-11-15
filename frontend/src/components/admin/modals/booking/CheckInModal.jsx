@@ -489,9 +489,10 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
 
     const dailyRate = useMemo(() => {
         if (booking?.daily_rate) return Number(booking.daily_rate);
-        const nights = booking?.nights || 1;
-        return Number(baseRoomCharge / nights);
-    }, [booking, baseRoomCharge]);
+        const nights = Math.max(1, Number(booking?.nights) || 1);
+        const rawRoom = Number(booking?.room_subtotal ?? booking?.room_charge ?? booking?.room_amount ?? booking?.total_amount ?? 0);
+        return Number(rawRoom / nights);
+    }, [booking]);
 
     // Tiền phụ thu dự kiến khi đến sớm
     const estimatedEarlyCharge = useMemo(() => {
@@ -536,10 +537,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
             rule = `06:00 - 09:00 (+${percent}%)`;
         }
 
-        const nights = Math.max(1, Number(booking.nights) || 1);
-        const rawRoom = Number(booking?.room_charge ?? booking?.room_amount ?? booking?.total_amount ?? 0);
-        const dayRate = nights > 0 ? (rawRoom / nights) : rawRoom;
-        const amount = Math.round((dayRate * percent) / 100);
+        const amount = Math.round((dailyRate * percent) / 100);
 
         const currentTimeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
@@ -549,7 +547,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
             rule,
             currentTime: currentTimeStr
         };
-    }, [booking, isEarlyCheckIn, isLateCheckIn, isExpiredCheckIn, hotelSettings]);
+    }, [booking, isEarlyCheckIn, isLateCheckIn, isExpiredCheckIn, hotelSettings, dailyRate]);
 
     const sameDayEarlySurcharge = (sameDayEarlyCheckInInfo && applySameDayEarlyCharge) ? sameDayEarlyCheckInInfo.amount : 0;
 
@@ -845,7 +843,9 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
             await paymentService.confirmPayment({
                 booking_id: booking.id,
                 amount: effectiveRemainingBalance,
-                payment_method: paymentMethod === 'transfer' ? 'TRANSFER' : 'CASH'
+                payment_method: paymentMethod === 'transfer' ? 'TRANSFER' : 'CASH',
+                same_day_early_surcharge: sameDayEarlySurcharge,
+                early_checkin_surcharge: (isEarlyCheckIn && applyEarlyCharge) ? estimatedEarlyCharge : 0
             });
 
             const methodLabel = paymentMethod === 'transfer' ? 'VietQR' : 'Tiền mặt';

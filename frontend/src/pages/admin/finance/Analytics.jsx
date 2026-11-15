@@ -220,7 +220,7 @@ export default function Analytics({ onNavigateToCustomer }) {
         csv += '5. TOP 5 PHÒNG ĐƯỢC ĐẶT NHIỀU NHẤT\n';
         csv += 'Hạng,Số phòng,Loại phòng,Số lượt đặt,Doanh thu mang lại (VND)\n';
         topR.forEach((r, idx) => {
-            csv += `${idx + 1},"${r.room_number}","${r.category_name || ''}",${r.booking_count || 0},${r.revenue || 0}\n`;
+            csv += `${idx + 1},"${r.room_number}","${r.category_name || ''}",${r.booking_count || 0},${r.total_revenue ?? r.revenue ?? 0}\n`;
         });
         csv += '\n';
 
@@ -264,6 +264,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             return revenueByCategory.map((c, idx) => ({
                 name: c.name || c.category_name,
                 value: c.revenue,
+                revenue: c.revenue,
                 percentage: c.percentage,
                 booking_count: c.booking_count,
                 color: c.color || CATEGORY_COLORS[idx % CATEGORY_COLORS.length]

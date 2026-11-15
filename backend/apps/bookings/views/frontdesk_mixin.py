@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.db.models import Q
 from django.db import transaction
 from ..models import Booking, BookingExtraService, BookingGuest
@@ -239,12 +239,15 @@ class BookingFrontDeskMixin:
                 old_room.status = 'available'
                 old_room.save(update_fields=['status'])
 
-            # Việc 1: Cập nhật bảng Booking (gán room_id, status='checked_in', actual_check_in=now)
+            # Việc 1: Cập nhật bảng Booking (gán room_id, category_id, status='checked_in', actual_check_in=now)
             booking.room = target_room
             booking.status = 'checked_in'
             booking.actual_check_in = now
 
             update_fields = ['room', 'status', 'actual_check_in', 'internal_note', 'updated_at']
+            if target_room.category_id and booking.category_id != target_room.category_id:
+                booking.category = target_room.category
+                update_fields.append('category')
 
             receptionist_note = request.data.get('internal_note', '').strip()
             time_str = now.strftime('%H:%M • %d/%m/%Y')
@@ -258,6 +261,11 @@ class BookingFrontDeskMixin:
                 if additional_amount > 0:
                     booking.total_amount = float(booking.total_amount or 0) + additional_amount
                     update_fields.append('total_amount')
+                    if hasattr(booking, 'invoice') and booking.invoice:
+                        inv = booking.invoice
+                        inv.room_charge = float(inv.room_charge or 0) + additional_amount
+                        inv.total_amount = float(inv.total_amount or 0) + additional_amount
+                        inv.save(update_fields=['room_charge', 'total_amount'])
                     early_log = f"[Early Check-in sớm {early_days} ngày lúc {time_str} bởi {receptionist_name}]: Nhận phòng sớm từ ngày {today.strftime('%d/%m/%Y')} (lịch cũ {old_check_in_date.strftime('%d/%m/%Y')}). Phụ thu tiền phòng: +{additional_amount:,.0f} VND ({early_days} đêm x {daily_rate:,.0f}đ)."
                 else:
                     early_log = f"[Early Check-in sớm {early_days} ngày lúc {time_str} bởi {receptionist_name}]: Nhận phòng sớm từ ngày {today.strftime('%d/%m/%Y')} (lịch cũ {old_check_in_date.strftime('%d/%m/%Y')}) - Miễn phí phụ thu."
@@ -275,7 +283,9 @@ class BookingFrontDeskMixin:
 
             # Xử lý phụ thu nhận phòng sớm trong ngày (Same-day Early Check-in Surcharge)
             same_day_surcharge = float(request.data.get('same_day_early_surcharge', 0) or 0)
-            if same_day_surcharge > 0:
+            if same_day_surcharge > 0 and not booking.extra_services.filter(
+                service_name__icontains='Phụ thu nhận phòng sớm trong ngày'
+            ).exists():
                 booking.total_amount = float(booking.total_amount or 0) + same_day_surcharge
                 if 'total_amount' not in update_fields:
                     update_fields.append('total_amount')
@@ -572,10 +582,13 @@ class BookingFrontDeskMixin:
 
         # Kiểm tra xung đột lịch: Phòng mới có bị khách khác đặt trước trong khoảng từ hôm nay đến check-out không
         today = timezone.localdate()
+        hold_cutoff = timezone.now() - timedelta(minutes=15)
         conflict_move = Booking.objects.filter(
-            room=new_room,
-            status__in=['confirmed', 'checked_in']
+            room=new_room
         ).exclude(id=booking.id).filter(
+            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+            Q(status='pending', created_at__gte=hold_cutoff)
+        ).filter(
             check_in_date__lt=booking.check_out_date,
             check_out_date__gt=today
         ).first()
@@ -618,7 +631,11 @@ class BookingFrontDeskMixin:
                 booking.internal_note = log_entry
 
             booking.room = new_room
-            booking.save(update_fields=['room', 'internal_note', 'updated_at'])
+            move_fields = ['room', 'internal_note', 'updated_at']
+            if new_room.category_id and booking.category_id != new_room.category_id:
+                booking.category = new_room.category
+                move_fields.append('category')
+            booking.save(update_fields=move_fields)
 
             # 3. Cập nhật phòng cũ sang 'maintenance' hoặc 'cleaning'
             old_room.status = old_room_status
@@ -747,11 +764,11 @@ class BookingFrontDeskMixin:
                 'message': 'Bạn không có quyền thực hiện thủ tục Check-out trả phòng (Yêu cầu quyền Cập nhật đơn đặt phòng).'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        # Kiểm tra trạng thái hợp lệ để Check-out (chỉ khi đang checked_in hoặc confirmed)
-        if booking.status not in ['checked_in', 'confirmed']:
+        # Kiểm tra trạng thái hợp lệ để Check-out (chỉ khi đang checked_in)
+        if booking.status != 'checked_in':
             return Response({
                 'success': False,
-                'message': f"Đơn đặt phòng đang ở trạng thái '{booking.get_status_display()}', không thể thực hiện Check-out."
+                'message': f"Đơn đặt phòng đang ở trạng thái '{booking.get_status_display()}', chỉ có thể Check-out khi khách đã Check-in."
             }, status=status.HTTP_400_BAD_REQUEST)
 
         payment_method = request.data.get('payment_method', 'cash')
@@ -801,7 +818,11 @@ class BookingFrontDeskMixin:
             room_charge = pure_room_charge
 
             # Tính phí dịch vụ phát sinh & đặt trước
-            valid_requests = booking.service_requests.exclude(status='cancelled').select_related('service')
+            valid_requests = booking.service_requests.exclude(
+                status='cancelled'
+            ).exclude(
+                Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp')
+            ).select_related('service')
             total_service_charge = float(sum(
                 (req.total_price or ((req.service.price if req.service else 0) * req.quantity))
                 for req in valid_requests
@@ -811,13 +832,18 @@ class BookingFrontDeskMixin:
             for bes in booking.extra_services.all():
                 raw_name = (bes.service_name or '').strip()
                 if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
-                    clean_name = re.sub(r'\[.*?\]', '', raw_name).strip()
-                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
+                    clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+                    clean_name = re.sub(r'\[Đền bù hư hại\]\s*', 'Đền bù hư hại: ', clean_name, flags=re.IGNORECASE)
+                    clean_name = re.sub(r'\[Minibar\]\s*', 'Minibar: ', clean_name, flags=re.IGNORECASE)
+                    clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
+                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() and r.quantity == bes.quantity for r in valid_requests):
                         total_service_charge += float((bes.price or 0) * (bes.quantity or 1))
 
             # Phụ thu Trả phòng muộn (Late Check-out Surcharge)
             late_checkout_surcharge = float(request.data.get('late_checkout_surcharge', 0) or 0)
-            if late_checkout_surcharge > 0:
+            if late_checkout_surcharge > 0 and not booking.extra_services.filter(
+                service_name__icontains='Phụ thu trả phòng muộn'
+            ).exists():
                 BookingExtraService.objects.create(
                     booking=booking,
                     service_name='Phụ thu trả phòng muộn (Late Check-out)',
@@ -840,8 +866,11 @@ class BookingFrontDeskMixin:
             for bes in booking.extra_services.filter(is_paid=True):
                 raw_name = (bes.service_name or '').strip()
                 if not re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
-                    clean_name = re.sub(r'\[.*?\]', '', raw_name).strip()
-                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
+                    clean_name = re.sub(r'\(x\d+\)', '', raw_name)
+                    clean_name = re.sub(r'\[Đền bù hư hại\]\s*', 'Đền bù hư hại: ', clean_name, flags=re.IGNORECASE)
+                    clean_name = re.sub(r'\[Minibar\]\s*', 'Minibar: ', clean_name, flags=re.IGNORECASE)
+                    clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()
+                    if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() and r.quantity == bes.quantity for r in valid_requests):
                         prepaid_svc_total += float((bes.price or 0) * (bes.quantity or 1))
 
             # Xác định số tiền đã thanh toán trước và số tiền còn lại phải thu
@@ -873,7 +902,7 @@ class BookingFrontDeskMixin:
                 sub_invoice_total = 0.0
             elif is_group_sub_room:
                 # Tiền phòng chuyển vào Master Folio của đoàn, số tiền khách lẻ tại quầy phải trả chỉ là dịch vụ phát sinh chưa thanh toán
-                remaining_amount = max(0.0, float(total_service_charge - paid_amount))
+                remaining_amount = max(0.0, float(total_service_charge - prepaid_svc_total))
                 sub_room_charge = 0.0
                 sub_invoice_total = float(total_service_charge)
             else:
@@ -1263,27 +1292,7 @@ class BookingFrontDeskMixin:
 
         room = booking.room
 
-        # 5. Logic kiểm tra xung đột (Conflict Check):
-        # Truy vấn xem từ check_out_date (cũ) đến new_check_out_date có bất kỳ đơn Đặt phòng nào khác (trạng thái confirmed hoặc checked_in) đang giữ room_id này không
-        conflict_query = Booking.objects.filter(
-            room=room,
-            status__in=['confirmed', 'checked_in']
-        ).exclude(id=booking.id).filter(
-            check_in_date__lt=new_check_out_date,
-            check_out_date__gt=old_check_out_date
-        )
-
-        if conflict_query.exists():
-            conflicting_booking = conflict_query.first()
-            conflict_info = f" (Đơn #{conflicting_booking.booking_code}: {conflicting_booking.check_in_date.strftime('%d/%m/%Y')} - {conflicting_booking.check_out_date.strftime('%d/%m/%Y')})"
-            return Response({
-                'success': False,
-                'conflict': True,
-                'conflicting_booking_code': conflicting_booking.booking_code,
-                'message': f"Gia hạn thất bại. Phòng này đã có khách khác đặt trước trong khoảng thời gian trên.{conflict_info if is_staff_or_admin else ''}"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # 6. Tính số đêm phát sinh & số tiền phát sinh
+        # 5. Tính số đêm phát sinh & số tiền phát sinh, đồng thời khóa & kiểm tra xung đột trong transaction
         extra_nights = (new_check_out_date - old_check_out_date).days
         cat = booking.category or room.category
         if cat:
@@ -1295,9 +1304,36 @@ class BookingFrontDeskMixin:
         extra_amount = Decimal(extra_nights) * Decimal(nightly_rate)
 
         with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(pk=booking.pk)
+            hold_cutoff = timezone.now() - timedelta(minutes=15)
+            conflict_query = Booking.objects.filter(
+                room=room
+            ).exclude(id=booking.id).filter(
+                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                Q(status='pending', created_at__gte=hold_cutoff)
+            ).filter(
+                check_in_date__lt=new_check_out_date,
+                check_out_date__gt=old_check_out_date
+            )
+
+            if conflict_query.exists():
+                conflicting_booking = conflict_query.first()
+                conflict_info = f" (Đơn #{conflicting_booking.booking_code}: {conflicting_booking.check_in_date.strftime('%d/%m/%Y')} - {conflicting_booking.check_out_date.strftime('%d/%m/%Y')})"
+                return Response({
+                    'success': False,
+                    'conflict': True,
+                    'conflicting_booking_code': conflicting_booking.booking_code,
+                    'message': f"Gia hạn thất bại. Phòng này đã có khách khác đặt trước trong khoảng thời gian trên.{conflict_info if is_staff_or_admin else ''}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Cập nhật booking
             booking.check_out_date = new_check_out_date
             booking.total_amount = Decimal(booking.total_amount) + extra_amount
+
+            if booking.group_booking_id:
+                group = booking.group_booking
+                group.total_amount = Decimal(group.total_amount or 0) + extra_amount
+                group.save(update_fields=['total_amount', 'updated_at'])
             
             actor_name = user.get_full_name() or user.username
             actor_role_label = "Lễ tân/Quản lý" if is_staff_or_admin else "Khách hàng"

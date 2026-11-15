@@ -334,22 +334,28 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             extraServices.reduce((sum, s) => sum + (Number(s.price || 0) * Number(s.quantity || 1)), 0));
 
     // Tính tiền phòng thuần:
-    // Nếu là đoàn và có danh sách phòng con: tính tổng tiền phòng thực tế của các phòng con
+    // Nếu là đoàn và có danh sách phòng con: tính tổng tiền phòng thực tế của các phòng con (bỏ qua phòng đã hủy)
     const groupPureRoomsAmount = React.useMemo(() => {
         if (!isGroupMaster || !Array.isArray(booking?.sub_bookings) || booking.sub_bookings.length === 0) {
             return null;
         }
-        return booking.sub_bookings.reduce((sum, sub) => {
-            const subServices = Array.isArray(sub.extra_services)
-                ? sub.extra_services.reduce((sSum, s) => sSum + (Number(s.price || 0) * Number(s.quantity || 1)), 0)
-                : 0;
-            const subTotal = Number(sub.total_amount || 0);
-            const subRoom = subTotal > subServices 
-                ? (subTotal - subServices) 
-                : Number(sub.room_charge != null ? sub.room_charge : (sub.room_amount || subTotal));
-            return sum + (subRoom > 0 ? subRoom : 0);
-        }, 0);
-    }, [isGroupMaster, booking?.sub_bookings]);
+        return booking.sub_bookings
+            .filter((sub) => sub.status !== 'cancelled')
+            .reduce((sum, sub) => {
+                if (!isGroupAllInclusive) {
+                    const pure = Number(sub.room_charge != null ? sub.room_charge : (sub.room_amount ?? sub.total_amount ?? 0));
+                    return sum + (pure > 0 ? pure : 0);
+                }
+                const subServices = Array.isArray(sub.extra_services)
+                    ? sub.extra_services.reduce((sSum, s) => sSum + (Number(s.price || 0) * Number(s.quantity || 1)), 0)
+                    : 0;
+                const subTotal = Number(sub.total_amount || 0);
+                const subRoom = subTotal > subServices
+                    ? (subTotal - subServices)
+                    : Number(sub.room_charge != null ? sub.room_charge : (sub.room_amount || subTotal));
+                return sum + (subRoom > 0 ? subRoom : 0);
+            }, 0);
+    }, [isGroupMaster, isGroupAllInclusive, booking?.sub_bookings]);
 
     const rawRoomAmount = Number(booking.room_amount || booking.total_amount) || 0;
     const roomAmount = isGroupMaster
@@ -818,7 +824,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 </thead>
                                 <tbody>
                                     {isGroupMaster && Array.isArray(booking.sub_bookings) && booking.sub_bookings.length > 0 ? (
-                                        booking.sub_bookings.map((sub, idx) => {
+                                        booking.sub_bookings.filter((sub) => sub.status !== 'cancelled').map((sub, idx) => {
                                             const subRoomNum = sub.room?.room_number || sub.room_number;
                                             const subCatName = sub.category?.name || sub.room_name || 'Phòng tiêu chuẩn';
                                             const subGuest = sub.guest_name || sub.customer_name || 'Theo danh sách đoàn';

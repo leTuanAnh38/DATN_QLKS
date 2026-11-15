@@ -42,11 +42,16 @@ class GroupBookingStayMixin:
         with transaction.atomic():
             checked_in_count = 0
             for b in sub_bookings:
-                # Nếu chưa có phòng vật lý, gán phòng trống thuộc hạng đó
-                if not b.room:
-                    avail_room = b.category.rooms.filter(status='available').first()
+                # Nếu chưa có phòng vật lý hoặc phòng gán sẵn không ở trạng thái available, gán phòng trống thuộc hạng đó
+                if not b.room or b.room.status != 'available':
+                    avail_room = b.category.rooms.filter(status='available').first() if b.category else None
                     if avail_room:
                         b.room = avail_room
+                    elif b.room and b.room.status != 'available':
+                        return Response({
+                            'success': False,
+                            'message': f'Phòng {b.room.room_number} hiện đang ở trạng thái "{b.room.get_status_display()}", không thể Check-in.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
 
                 if b.room:
                     b.room.status = 'occupied'
@@ -114,7 +119,10 @@ class GroupBookingStayMixin:
             sub_ids = list(group.sub_bookings.values_list('id', flat=True))
             unpaid_bes = None
             if getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
-                unpaid_bes = BookingExtraService.objects.filter(booking_id__in=sub_ids, is_paid=False)
+                unpaid_bes = BookingExtraService.objects.filter(
+                    booking_id__in=sub_ids,
+                    is_paid=False
+                ).exclude(service_name__icontains='[Đặt kèm đoàn]')
                 unpaid_incidental_services = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
 
             # Tính toán chính xác số tiền đã thanh toán (Cọc + các đợt thanh toán trước)

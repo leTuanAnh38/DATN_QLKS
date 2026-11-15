@@ -7,13 +7,27 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from ...bookings.models import Booking, GroupBooking
+from ...bookings.models import Booking, GroupBooking, BookingExtraService
 from ...bookings.email_service import send_booking_email_async, send_group_booking_email_async
 from ...users.models import log_action
 from ...users.views import check_role_permission
 from ..models import Payment, Invoice, PaymentConfig, CashierShift
 from ..serializers import PaymentSerializer, PaymentListSerializer, PaymentConfigSerializer
 from .permissions import IsAdminOrOwnerUser
+
+
+def _map_invoice_payment_method(raw_method):
+    """Chuẩn hóa mã phương thức thanh toán từ Payment sang Invoice.METHOD_CHOICES."""
+    m = str(raw_method or 'TRANSFER').upper()
+    if m == 'CASH':
+        return 'cash'
+    if m in ('CARD', 'CREDIT_CARD', 'POS'):
+        return 'credit_card'
+    if m in ('MOMO', 'ZALOPAY'):
+        return 'momo'
+    if m == 'MIXED':
+        return 'mixed'
+    return 'bank_transfer'
 
 
 class ConfirmPaymentView(APIView):
@@ -91,38 +105,69 @@ class ConfirmPaymentView(APIView):
             )
 
         if group_booking:
+            if group_booking.status in ['cancelled', 'no_show']:
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"Đơn đoàn {group_booking.group_code} đang ở trạng thái '{group_booking.get_status_display()}', không thể thực hiện thanh toán."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             try:
                 amount_dec = Decimal(str(amount))
             except (ValueError, TypeError):
-                amount_dec = group_booking.deposit_amount or group_booking.total_amount
+                amount_dec = Decimal(str(group_booking.deposit_amount or group_booking.total_amount or 0))
+
+            if amount_dec <= Decimal('0'):
+                return Response(
+                    {"success": False, "message": "Số tiền thanh toán phải lớn hơn 0 VND."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             with transaction.atomic():
                 group_booking = GroupBooking.objects.select_for_update().get(pk=group_booking.pk)
-                payment, _ = Payment.objects.update_or_create(
-                    group_booking=group_booking,
-                    defaults={
-                        'amount': amount_dec,
-                        'payment_method': payment_method or 'TRANSFER',
-                        'payment_status': 'COMPLETED'
-                    }
-                )
-                group_booking.is_deposit_paid = True
-                if group_booking.status == 'tentative':
-                    group_booking.status = 'confirmed'
-                group_booking.save(update_fields=['is_deposit_paid', 'status'])
+                active_shift = None
+                if request.user and request.user.is_authenticated:
+                    active_shift = CashierShift.objects.filter(user=request.user, status='OPEN').first()
+                    if not active_shift:
+                        active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
 
-                if hasattr(group_booking, 'master_invoice') and group_booking.master_invoice:
+                payment = Payment.objects.create(
+                    group_booking=group_booking,
+                    amount=amount_dec,
+                    payment_method=payment_method or 'TRANSFER',
+                    payment_status='COMPLETED',
+                    shift=active_shift
+                )
+
+                total_group_paid = sum(
+                    Decimal(str(p.amount)) for p in group_booking.payments.filter(payment_status='COMPLETED')
+                )
+                deposit_required = Decimal(str(group_booking.deposit_amount or 0))
+                full_required = Decimal(str(group_booking.total_amount or 0))
+
+                if deposit_required <= Decimal('0') or total_group_paid >= (deposit_required - Decimal('1000')):
+                    group_booking.is_deposit_paid = True
+                    if group_booking.status == 'tentative':
+                        group_booking.status = 'confirmed'
+                    group_booking.save(update_fields=['is_deposit_paid', 'status'])
+
+                is_group_fully_paid = full_required > Decimal('0') and total_group_paid >= (full_required - Decimal('1000'))
+                if is_group_fully_paid and hasattr(group_booking, 'master_invoice') and group_booking.master_invoice:
                     inv = group_booking.master_invoice
                     inv.status = 'paid'
+                    inv.payment_method = _map_invoice_payment_method(payment_method)
                     inv.paid_at = timezone.now()
                     inv.save()
 
                 for sub_b in group_booking.sub_bookings.all():
-                    if sub_b.status in ['pending', 'unconfirmed']:
+                    if group_booking.is_deposit_paid and sub_b.status in ['pending', 'unconfirmed']:
                         sub_b.status = 'confirmed'
                         sub_b.save(update_fields=['status'])
-                    sub_b.service_requests.filter(is_paid=False).update(is_paid=True)
-                    sub_b.extra_services.filter(is_paid=False).update(is_paid=True)
+                    if is_group_fully_paid:
+                        sub_b.service_requests.filter(is_paid=False).update(is_paid=True)
+                        sub_b.extra_services.filter(is_paid=False).update(is_paid=True)
 
             log_action(
                 user=request.user if request.user.is_authenticated else None,
@@ -215,6 +260,36 @@ class ConfirmPaymentView(APIView):
                 if not any((r.service.name if r.service else '').strip().lower() == clean_name.lower() for r in valid_requests):
                     service_charge += Decimal(str((bes.price or 0) * (bes.quantity or 1)))
 
+        try:
+            late_checkout_surcharge = Decimal(str(request.data.get('late_checkout_surcharge', 0) or 0))
+        except (ValueError, TypeError):
+            late_checkout_surcharge = Decimal('0')
+
+        try:
+            same_day_early_surcharge = Decimal(str(request.data.get('same_day_early_surcharge', 0) or 0))
+        except (ValueError, TypeError):
+            same_day_early_surcharge = Decimal('0')
+
+        try:
+            early_checkin_surcharge = Decimal(str(request.data.get('early_checkin_surcharge', 0) or 0))
+        except (ValueError, TypeError):
+            early_checkin_surcharge = Decimal('0')
+
+        has_late_surcharge_record = booking.extra_services.filter(
+            service_name__icontains='Phụ thu trả phòng muộn'
+        ).exists()
+        if late_checkout_surcharge > Decimal('0') and not has_late_surcharge_record:
+            service_charge += late_checkout_surcharge
+
+        has_same_day_early_record = booking.extra_services.filter(
+            service_name__icontains='Phụ thu nhận phòng sớm trong ngày'
+        ).exists()
+        if same_day_early_surcharge > Decimal('0') and not has_same_day_early_record:
+            service_charge += same_day_early_surcharge
+
+        if early_checkin_surcharge > Decimal('0'):
+            service_charge += early_checkin_surcharge
+
         grand_total = pure_room_charge + service_charge
 
         # Số tiền đã thanh toán trước đó (COMPLETED payments)
@@ -288,9 +363,9 @@ class ConfirmPaymentView(APIView):
 
             # Nếu số tiền thanh toán gửi lên vượt quá số dư còn nợ thực tế
             current_remaining = max(Decimal('0'), grand_total - total_already_paid)
-            if total_already_paid > Decimal('0') and amount_dec > (current_remaining + Decimal('1000')):
+            if amount_dec > (current_remaining + Decimal('1000')):
                 # Nếu đã trả đủ tiền phòng rồi và amount_dec bằng đúng tiền phòng (thao tác trùng từ modal cũ)
-                if total_already_paid >= pure_room_charge:
+                if total_already_paid > Decimal('0') and total_already_paid >= pure_room_charge:
                     latest_payment = completed_payments.order_by('-id').first()
                     return Response(
                         {
@@ -313,6 +388,7 @@ class ConfirmPaymentView(APIView):
             recent_duplicate = Payment.objects.filter(
                 booking=booking,
                 amount=amount_dec,
+                payment_method=payment_method or 'TRANSFER',
                 payment_status='COMPLETED',
                 created_at__gte=thirty_seconds_ago
             ).first()
@@ -360,19 +436,22 @@ class ConfirmPaymentView(APIView):
                     shift=active_shift
                 )
 
+            is_fully_paid = (total_already_paid + amount_dec) >= (grand_total - Decimal('1000'))
+
             # 4.3 Cập nhật hóa đơn nếu có
             try:
                 invoice = getattr(booking, 'invoice', None)
                 if invoice:
-                    invoice.status = 'paid'
-                    invoice.payment_method = 'bank_transfer'
-                    invoice.paid_at = timezone.now()
+                    invoice.payment_method = _map_invoice_payment_method(payment_method)
+                    if is_fully_paid:
+                        invoice.status = 'paid'
+                        invoice.paid_at = timezone.now()
                     invoice.save()
             except Exception:
                 pass
 
             # 4.4 Sau khi Payment đã tạo thành công 100%: Cập nhật bảng Booking
-            if booking.status == 'pending':
+            if is_fully_paid and booking.status == 'pending':
                 booking.status = 'paid'
             note_str = (booking.note or '').strip()
             method_label = 'Tiền mặt' if str(payment_method).upper() == 'CASH' else 'VietQR'
@@ -381,9 +460,35 @@ class ConfirmPaymentView(APIView):
                 booking.note = f"{note_str} | {pay_note}" if note_str else pay_note
             booking.save(update_fields=['status', 'note'])
 
-            # 4.5 Cập nhật tất cả dịch vụ đi kèm của đơn sang is_paid = True
-            booking.service_requests.filter(is_paid=False).update(is_paid=True)
-            booking.extra_services.filter(is_paid=False).update(is_paid=True)
+            # 4.4b Ghi nhận phụ thu trả phòng muộn / nhận phòng sớm trong ngày (nếu có)
+            if late_checkout_surcharge > Decimal('0') and not booking.extra_services.filter(
+                service_name__icontains='Phụ thu trả phòng muộn'
+            ).exists():
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name='Phụ thu trả phòng muộn (Late Check-out)',
+                    quantity=1,
+                    price=late_checkout_surcharge,
+                    is_paid=is_fully_paid
+                )
+
+            if same_day_early_surcharge > Decimal('0') and not booking.extra_services.filter(
+                service_name__icontains='Phụ thu nhận phòng sớm trong ngày'
+            ).exists():
+                BookingExtraService.objects.create(
+                    booking=booking,
+                    service_name='Phụ thu nhận phòng sớm trong ngày (Early Check-in)',
+                    quantity=1,
+                    price=same_day_early_surcharge,
+                    is_paid=is_fully_paid
+                )
+                booking.total_amount = Decimal(str(booking.total_amount or 0)) + same_day_early_surcharge
+                booking.save(update_fields=['total_amount'])
+
+            # 4.5 Chỉ cập nhật dịch vụ đi kèm sang is_paid = True khi đã thanh toán đủ
+            if is_fully_paid:
+                booking.service_requests.filter(is_paid=False).update(is_paid=True)
+                booking.extra_services.filter(is_paid=False).update(is_paid=True)
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         acting_user = request.user if (request.user and request.user.is_authenticated) else getattr(booking, 'guest', None)
@@ -438,7 +543,7 @@ class PaymentListView(APIView):
             new_payments = []
             for inv in missing_invoices:
                 method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status == 'cancelled' else 'PENDING')
+                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status in ['cancelled', 'refunded'] else 'PENDING')
                 new_payments.append(Payment(
                     booking=inv.booking,
                     amount=inv.total_amount,
@@ -820,6 +925,24 @@ class ConfirmPaymentByIdView(APIView):
                 'data': PaymentSerializer(payment).data
             }, status=status.HTTP_200_OK)
 
+        if payment.payment_status == 'FAILED':
+            return Response({
+                'success': False,
+                'message': 'Không thể xác nhận giao dịch đã thất bại (FAILED).'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if payment.booking and payment.booking.status in ['cancelled', 'no_show']:
+            return Response({
+                'success': False,
+                'message': f"Đơn đặt phòng {payment.booking.booking_code} đã bị hủy/không đến, không thể xác nhận thanh toán."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if payment.group_booking and payment.group_booking.status in ['cancelled', 'no_show']:
+            return Response({
+                'success': False,
+                'message': f"Đơn đoàn {payment.group_booking.group_code} đã bị hủy/không đến, không thể xác nhận thanh toán."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         new_method = request.data.get('payment_method')
         note = (request.data.get('note') or '').strip()
 
@@ -847,8 +970,9 @@ class ConfirmPaymentByIdView(APIView):
                 inv = getattr(b, 'invoice', None)
                 if inv:
                     inv.status = 'paid'
+                    inv.payment_method = _map_invoice_payment_method(payment.payment_method)
                     inv.paid_at = timezone.now()
-                    inv.save(update_fields=['status', 'paid_at'])
+                    inv.save(update_fields=['status', 'payment_method', 'paid_at'])
 
                 # Đồng bộ dịch vụ
                 b.service_requests.filter(is_paid=False).update(is_paid=True)
@@ -882,8 +1006,9 @@ class ConfirmPaymentByIdView(APIView):
                 if hasattr(grp, 'master_invoice') and grp.master_invoice:
                     inv = grp.master_invoice
                     inv.status = 'paid'
+                    inv.payment_method = _map_invoice_payment_method(payment.payment_method)
                     inv.paid_at = timezone.now()
-                    inv.save(update_fields=['status', 'paid_at'])
+                    inv.save(update_fields=['status', 'payment_method', 'paid_at'])
 
                 for sub_b in grp.sub_bookings.all():
                     if sub_b.status in ['pending', 'unconfirmed']:

@@ -815,6 +815,12 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                         'message': 'Xác thực không thành công. Vui lòng cung cấp đúng Số điện thoại hoặc Email người liên hệ của đoàn.'
                     }, status=status.HTTP_403_FORBIDDEN)
 
+        if not is_staff_or_admin and (group.is_deposit_paid or group.status == 'confirmed'):
+            return Response({
+                'success': False,
+                'message': 'Đơn đặt đoàn đã xác nhận/đặt cọc, vui lòng liên hệ Lễ tân hoặc Quản lý để thực hiện hủy và đối soát hoàn cọc.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         # Chặn hủy khi đoàn hoặc bất kỳ phòng nào trong đoàn đang lưu trú (In-house)
         if group.status == 'checked_in' or group.sub_bookings.filter(status='checked_in').exists():
             return Response({

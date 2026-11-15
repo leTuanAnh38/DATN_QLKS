@@ -1034,8 +1034,25 @@ class GroupBookingSerializer(serializers.ModelSerializer):
         return 'Chưa yêu cầu cọc'
 
     def get_remaining_balance(self, obj):
-        deposit = float(obj.deposit_amount or 0) if obj.is_deposit_paid else 0.0
-        return max(0.0, float(obj.total_amount or 0) - deposit)
+        if obj.status == 'completed':
+            return 0.0
+        paid = 0.0
+        if hasattr(obj, 'payments'):
+            completed_payments = obj.payments.filter(payment_status='COMPLETED')
+            if completed_payments.exists():
+                paid = float(sum(p.amount for p in completed_payments))
+        if paid <= 0 and obj.is_deposit_paid:
+            paid = float(obj.deposit_amount or 0)
+        extra = 0.0
+        if getattr(obj, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
+            sub_ids = list(obj.sub_bookings.exclude(status='cancelled').values_list('id', flat=True))
+            if sub_ids:
+                unpaid_bes = BookingExtraService.objects.filter(
+                    booking_id__in=sub_ids,
+                    is_paid=False
+                ).exclude(service_name__icontains='[Đặt kèm đoàn]')
+                extra = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
+        return max(0.0, float(obj.total_amount or 0) + extra - paid)
 
     def get_sub_bookings(self, obj):
         sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')

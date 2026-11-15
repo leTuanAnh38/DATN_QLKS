@@ -415,7 +415,34 @@ export default function Checkout() {
     const tierDiscountPercent = userTier ? Number(userTier.discount_percent || 0) : 0;
     const tierDiscountAmount = tierDiscountPercent > 0 ? Math.round((subtotal * tierDiscountPercent) / 100) : 0;
 
-    // Tính số tiền giảm giá từ Promo Code (nếu có)
+    // Tính số tiền giảm giá từ Promo Code (tự động tính lại khi đổi ngày/số đêm)
+    useEffect(() => {
+        if (!appliedPromo?.code || subtotal <= 0) return;
+        let active = true;
+        bookingService.validatePromoCode(appliedPromo.code, subtotal)
+            .then((res) => {
+                if (!active) return;
+                if (res && res.valid) {
+                    setAppliedPromo((prev) => prev ? {
+                        ...prev,
+                        discount_amount: res.discount_amount ?? Math.round(subtotal * 0.1),
+                        message: res.message || prev.message
+                    } : prev);
+                    setPromoError('');
+                } else {
+                    setAppliedPromo(null);
+                    setPromoError(res?.message || `Mã khuyến mãi "${appliedPromo.code}" không còn hợp lệ cho đơn mới.`);
+                }
+            })
+            .catch(() => {
+                if (!active) return;
+                if (['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG'].includes(appliedPromo.code)) {
+                    setAppliedPromo((prev) => prev ? { ...prev, discount_amount: Math.round(subtotal * 0.1) } : prev);
+                }
+            });
+        return () => { active = false; };
+    }, [subtotal, appliedPromo?.code]);
+
     const discountAmount = appliedPromo ? Number(appliedPromo.discount_amount || 0) : 0;
     const roomNetTotal = Math.max(0, subtotal - tierDiscountAmount - discountAmount);
 

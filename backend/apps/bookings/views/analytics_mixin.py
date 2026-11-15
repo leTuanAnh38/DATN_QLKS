@@ -374,12 +374,23 @@ class BookingAnalyticsMixin:
             identity_card = (primary_guest.id_number if primary_guest and primary_guest.id_number else b.identity_card) or ''
             occupants = [g.full_name for g in b.guests.all() if g.full_name]
 
-            # Tính tiền dịch vụ phát sinh (ServiceRequest completed + BookingExtraService)
+            # Tính tiền dịch vụ phát sinh (loại trừ dịch vụ [Đặt kèm] vốn đã nằm trong b.total_amount)
+            prebooked_names = set()
+            for bes in b.extra_services.all():
+                raw_name = (bes.service_name or '').strip()
+                if '[đặt kèm]' in raw_name.lower():
+                    c_name = re.sub(r'\(x\d+\)', '', raw_name)
+                    c_name = re.sub(r'\[.*?\]', '', c_name).strip().lower()
+                    if c_name:
+                        prebooked_names.add(c_name)
+
             service_total = 0.0
             seen_services = set()
             for req in b.service_requests.all():
                 if req.status == 'completed':
                     clean_name = (req.service.name if req.service else 'Dịch vụ phòng').strip()
+                    if clean_name.lower() in prebooked_names:
+                        continue
                     price = float(req.service.price if req.service else 0)
                     qty = req.quantity or 1
                     tot = float(req.total_price or (price * qty))
@@ -388,7 +399,7 @@ class BookingAnalyticsMixin:
 
             for bes in b.extra_services.all():
                 raw_name = (bes.service_name or '').strip()
-                if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE):
+                if re.search(r'\[Yêu cầu #\d+\]', raw_name, re.IGNORECASE) or '[đặt kèm]' in raw_name.lower():
                     continue
                 clean_name = re.sub(r'\(x\d+\)', '', raw_name)
                 clean_name = re.sub(r'\[.*?\]', '', clean_name).strip()

@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, BasePermission
 
 from ..bookings.models import Booking, GroupBooking, CorporatePartner
-from ..payments.models import Invoice, Payment
+from ..payments.models import Invoice, Payment, CashOutVoucher
 from ..rooms.models import Room, RoomCategory
 from ..users.models import User
 from ..users.views import check_role_permission
@@ -122,7 +122,12 @@ class ReportsAnalyticsView(APIView):
             total=Coalesce(Sum('total_amount'), Decimal(0)),
             count=Count('id')
         )
-        period_revenue = float(period_rev_agg['total'])
+        period_refunds = float(CashOutVoucher.objects.filter(
+            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
+        period_revenue = max(0.0, float(period_rev_agg['total']) - period_refunds)
 
         # Doanh thu kỳ trước (để tính tăng trưởng)
         prev_invoices = Invoice.objects.filter(
@@ -133,7 +138,12 @@ class ReportsAnalyticsView(APIView):
         prev_rev_agg = prev_invoices.aggregate(
             total=Coalesce(Sum('total_amount'), Decimal(0))
         )
-        prev_revenue = float(prev_rev_agg['total'])
+        prev_refunds = float(CashOutVoucher.objects.filter(
+            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
+            created_at__gte=prev_start,
+            created_at__lte=prev_end
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
+        prev_revenue = max(0.0, float(prev_rev_agg['total']) - prev_refunds)
 
         if prev_revenue > 0:
             growth_rate = round(((period_revenue - prev_revenue) / prev_revenue) * 100, 1)
@@ -142,39 +152,55 @@ class ReportsAnalyticsView(APIView):
         else:
             growth_rate = 0.0
 
-        # Tổng doanh thu toàn thời gian
+        # Tổng doanh thu toàn thời gian (đã trừ hoàn trả)
         all_time_rev_agg = Invoice.objects.filter(status='paid').aggregate(
             total=Coalesce(Sum('total_amount'), Decimal(0))
         )
-        all_time_revenue = float(all_time_rev_agg['total'])
+        all_time_refunds = float(CashOutVoucher.objects.filter(
+            voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL']
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal(0)))['total'])
+        all_time_revenue = max(0.0, float(all_time_rev_agg['total']) - all_time_refunds)
 
-        # Tổng số booking trong kỳ (tính theo ngày tạo hoặc ngày lưu trú trong kỳ)
+        # Tổng số booking có lưu trú giao nhau trong kỳ (loại trừ cancelled và no_show)
+        period_start_d = start_date.date()
+        period_end_d = end_date.date()
         period_bookings = Booking.objects.filter(
-            Q(created_at__gte=start_date, created_at__lte=end_date) |
-            Q(check_in_date__gte=start_date.date(), check_in_date__lte=end_date.date())
-        ).exclude(status='cancelled').distinct()
+            check_in_date__lte=period_end_d,
+            check_out_date__gte=period_start_d
+        ).exclude(status__in=['cancelled', 'no_show']).distinct()
         period_bookings_count = period_bookings.count()
 
         # Tổng booking toàn thời gian
-        all_time_bookings_count = Booking.objects.exclude(status='cancelled').count()
+        all_time_bookings_count = Booking.objects.exclude(status__in=['cancelled', 'no_show']).count()
 
-        # Công suất phòng (Occupancy Rate): Tổng phòng đang ở / Tổng số phòng * 100
+        # Số phòng theo trạng thái hiện tại
         total_rooms_count = Room.objects.count()
         occupied_rooms_count = Room.objects.filter(status='occupied').count()
         available_rooms_count = Room.objects.filter(status='available').count()
         cleaning_rooms_count = Room.objects.filter(status='cleaning').count()
         maintenance_rooms_count = Room.objects.filter(status='maintenance').count()
 
+        # Công suất phòng trong kỳ (Occupancy Rate): Đêm phòng bán được / Đêm phòng khả dụng * 100
+        sold_room_nights = 0
+        period_end_excl = period_end_d + timedelta(days=1)
+        for b in period_bookings.filter(status__in=['confirmed', 'paid', 'PAID', 'checked_in', 'completed', 'checked_out']):
+            if b.check_in_date and b.check_out_date:
+                eff_start = max(b.check_in_date, period_start_d)
+                eff_end = min(b.check_out_date, period_end_excl)
+                diff_n = (eff_end - eff_start).days
+                if diff_n > 0:
+                    sold_room_nights += diff_n
+
+        days_in_period = max(1, (period_end_d - period_start_d).days + 1)
+        available_room_nights = total_rooms_count * days_in_period
         occupancy_rate = 0.0
-        if total_rooms_count > 0:
-            occupancy_rate = round((occupied_rooms_count / total_rooms_count) * 100, 1)
+        if available_room_nights > 0:
+            occupancy_rate = min(100.0, round((sold_room_nights / available_room_nights) * 100, 1))
 
         # Giá trị đơn trung bình (AOV - Average Order Value)
         average_order_value = 0.0
         if period_bookings_count > 0:
             average_order_value = round(period_revenue / period_bookings_count, 0)
-        elif all_time_bookings_count > 0 and period_revenue == 0:
-            average_order_value = round(all_time_revenue / all_time_bookings_count, 0)
 
         # =====================================================================
         # =====================================================================
@@ -342,9 +368,14 @@ class ReportsAnalyticsView(APIView):
             '#0891b2',  # Cyan 600
         ]
 
-        # Thống kê doanh thu theo loại phòng từ hóa đơn đã thanh toán
+        # Thống kê doanh thu theo loại phòng từ hóa đơn đã thanh toán trong kỳ
         cat_rev_qs = (
-            Invoice.objects.filter(status='paid', booking__category__isnull=False)
+            Invoice.objects.filter(
+                status='paid',
+                paid_at__gte=start_date,
+                paid_at__lte=end_date,
+                booking__category__isnull=False
+            )
             .values('booking__category__id', 'booking__category__name')
             .annotate(
                 total_rev=Coalesce(Sum('total_amount'), Decimal(0)),
@@ -370,11 +401,15 @@ class ReportsAnalyticsView(APIView):
             })
 
         # =====================================================================
-        # PHẦN 5: TOP PHÒNG (Top 5 phòng được đặt nhiều nhất)
+        # PHẦN 5: TOP PHÒNG (Top 5 phòng được đặt nhiều nhất trong kỳ)
         # =====================================================================
         top_rooms_qs = (
-            Booking.objects.filter(room__isnull=False)
-            .exclude(status='cancelled')
+            Booking.objects.filter(
+                room__isnull=False,
+                check_in_date__lte=period_end_d,
+                check_out_date__gte=period_start_d
+            )
+            .exclude(status__in=['cancelled', 'no_show'])
             .values(
                 'room__id',
                 'room__room_number',
@@ -383,7 +418,10 @@ class ReportsAnalyticsView(APIView):
             )
             .annotate(
                 booking_count=Count('id'),
-                total_rev=Coalesce(Sum('total_amount'), Decimal(0))
+                total_rev=Coalesce(
+                    Sum('invoice__total_amount', filter=Q(invoice__status='paid')),
+                    Decimal(0)
+                )
             )
             .order_by('-booking_count', '-total_rev')[:5]
         )
@@ -401,20 +439,27 @@ class ReportsAnalyticsView(APIView):
             })
 
         # =====================================================================
-        # PHẦN 6: TOP KHÁCH HÀNG VIP (Top 5 khách có chi tiêu cao nhất)
+        # PHẦN 6: TOP KHÁCH HÀNG VIP (Top 5 khách có chi tiêu cao nhất trong kỳ)
         # =====================================================================
         top_vip_qs = (
             User.objects.annotate(
                 total_spent=Coalesce(
                     Sum(
                         'bookings__invoice__total_amount',
-                        filter=Q(bookings__invoice__status='paid')
+                        filter=Q(
+                            bookings__invoice__status='paid',
+                            bookings__invoice__paid_at__gte=start_date,
+                            bookings__invoice__paid_at__lte=end_date
+                        )
                     ),
                     Decimal(0)
                 ),
                 booking_count=Count(
                     'bookings',
-                    filter=~Q(bookings__status='cancelled')
+                    filter=(
+                        ~Q(bookings__status__in=['cancelled', 'no_show']) &
+                        Q(bookings__check_in_date__lte=period_end_d, bookings__check_out_date__gte=period_start_d)
+                    )
                 )
             )
             .filter(Q(total_spent__gt=0) | Q(booking_count__gt=0))
@@ -457,14 +502,7 @@ class ReportsAnalyticsView(APIView):
         # =====================================================================
         # PHẦN 7: CHỈ SỐ KHÁCH SẠN CHUYÊN SÂU (ADR, RevPAR, ALOS) & CƠ CẤU DOANH THU
         # =====================================================================
-        # Số đêm phòng thực tế đã bán trong kỳ
-        sold_room_nights = 0
-        for b in period_bookings.filter(status__in=['confirmed', 'paid', 'PAID', 'checked_in', 'completed', 'checked_out']):
-            if b.check_in_date and b.check_out_date:
-                diff_n = (b.check_out_date - b.check_in_date).days
-                sold_room_nights += max(1, diff_n)
-
-        # Doanh thu phòng & dịch vụ từ hóa đơn trong kỳ
+        # Doanh thu phòng & dịch vụ từ hóa đơn trong kỳ (sold_room_nights đã tính ở Phần 1)
         period_breakdown = period_invoices.aggregate(
             room_tot=Coalesce(Sum('room_charge'), Decimal(0)),
             svc_tot=Coalesce(Sum('service_charge'), Decimal(0))
@@ -472,21 +510,14 @@ class ReportsAnalyticsView(APIView):
         period_room_revenue = float(period_breakdown['room_tot'])
         period_service_revenue = float(period_breakdown['svc_tot'])
 
-        # Fallback an toàn nếu hệ thống cũ chưa tách chi tiết room_charge
-        if period_room_revenue == 0 and period_revenue > 0:
-            period_room_revenue = round(period_revenue * 0.82)
-            period_service_revenue = round(period_revenue * 0.18)
-
         # ADR (Average Daily Rate) = Tổng doanh thu phòng / Tổng số đêm phòng thực tế đã bán
-        adr = round(period_room_revenue / sold_room_nights, 0) if sold_room_nights > 0 else (average_order_value or 0)
+        adr = round(period_room_revenue / sold_room_nights, 0) if sold_room_nights > 0 else 0.0
 
         # RevPAR (Revenue Per Available Room) = Tổng doanh thu phòng / Tổng số đêm phòng sẵn có
-        days_in_period = max(1, (end_date.date() - start_date.date()).days + 1)
-        available_room_nights = total_rooms_count * days_in_period
         revpar = round(period_room_revenue / available_room_nights, 0) if available_room_nights > 0 else 0
 
         # ALOS (Average Length of Stay) = Số đêm lưu trú trung bình trên mỗi lượt booking
-        alos = round(sold_room_nights / max(1, period_bookings_count), 1) if period_bookings_count > 0 else 1.0
+        alos = round(sold_room_nights / max(1, period_bookings_count), 1) if period_bookings_count > 0 else 0.0
 
         # =====================================================================
         # PHẦN 8: CƠ CẤU KÊNH THANH TOÁN (Payment Methods Breakdown)
@@ -518,13 +549,6 @@ class ReportsAnalyticsView(APIView):
             else:
                 vietqr_amt += amt
                 vietqr_cnt += cnt
-
-        # Fallback nếu chưa ghi nhận payment_method
-        if (vietqr_amt + cash_amt + card_amt + momo_amt) == 0 and period_revenue > 0:
-            vietqr_amt = round(period_revenue * 0.75)
-            vietqr_cnt = max(1, int(period_bookings_count * 0.75))
-            cash_amt = round(period_revenue * 0.25)
-            cash_cnt = max(1, int(period_bookings_count * 0.25))
 
         total_pm = (vietqr_amt + cash_amt + card_amt + momo_amt) or 1.0
 

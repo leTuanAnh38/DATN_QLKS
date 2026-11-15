@@ -117,7 +117,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     const totalContractAmount = useMemo(() => Number(groupData?.total_amount || 0), [groupData?.total_amount]);
     const depositAmount = useMemo(() => {
         if (groupData?.is_deposit_paid) {
-            return Number(groupData?.deposit_amount || (totalContractAmount * 0.5));
+            return Number(groupData?.deposit_amount ?? (totalContractAmount * 0.5));
         }
         return 0;
     }, [groupData?.is_deposit_paid, groupData?.deposit_amount, totalContractAmount]);
@@ -126,21 +126,25 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
         return Boolean(groupData?.is_deposit_paid && Number(groupData?.deposit_amount || 0) >= totalContractAmount && totalContractAmount > 0);
     }, [groupData?.is_deposit_paid, groupData?.deposit_amount, totalContractAmount]);
 
-    // Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE), tổng hợp phụ phí dịch vụ phát sinh chưa thanh toán của các phòng
+    // Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE), tổng hợp phụ phí dịch vụ phát sinh của các phòng
     const unpaidIncidentalsTotal = useMemo(() => {
         if (groupData?.billing_type !== 'ALL_INCLUSIVE') return 0;
+        const isCompleted = groupData?.status === 'completed';
         let sum = 0;
         (subBookings || []).forEach((b) => {
+            if (b.status === 'cancelled') return;
             if (b.extra_services && Array.isArray(b.extra_services)) {
                 b.extra_services.forEach((s) => {
-                    if (!s.is_paid) {
-                        sum += Number(s.total_price || 0);
+                    const nameLower = String(s.service_name || '').toLowerCase();
+                    if (nameLower.includes('[đặt kèm đoàn]')) return;
+                    if (!s.is_paid || isCompleted) {
+                        sum += Number(s.total_price || (Number(s.price || 0) * Number(s.quantity || 1)) || 0);
                     }
                 });
             }
         });
         return sum;
-    }, [groupData?.billing_type, subBookings]);
+    }, [groupData?.billing_type, groupData?.status, subBookings]);
 
     const totalSettlementDue = useMemo(() => {
         return totalContractAmount + unpaidIncidentalsTotal;
