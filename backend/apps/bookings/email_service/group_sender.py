@@ -6,7 +6,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
-from .config import _is_email_configured
+from .config import _is_email_configured, send_email_message
 from .group_template import render_group_booking_email_html
 
 
@@ -101,29 +101,25 @@ def _send_group_booking_email_worker(group_booking_id, email_type='payment_succe
         html_content = render_group_booking_email_html(group_booking)
         text_content = strip_tags(html_content)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{h_name} <{settings.EMAIL_HOST_USER}>"
-
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=to_list,
-            cc=cc_list
-        )
-        msg.attach_alternative(html_content, "text/html")
         try:
-            msg.send(fail_silently=False)
+            send_email_message(
+                subject=subject,
+                text_content=text_content,
+                html_content=html_content,
+                to_emails=to_list,
+                cc_emails=cc_list,
+                sender_name=h_name,
+            )
         except Exception as send_err:
             if cc_list:
                 logger.warning(f"[EMAIL_SERVICE] Gửi email có CC thất bại ({str(send_err)}), thử gửi riêng cho {to_list}...")
-                msg_direct = EmailMultiAlternatives(
+                send_email_message(
                     subject=subject,
-                    body=text_content,
-                    from_email=from_email,
-                    to=to_list
+                    text_content=text_content,
+                    html_content=html_content,
+                    to_emails=to_list,
+                    sender_name=h_name,
                 )
-                msg_direct.attach_alternative(html_content, "text/html")
-                msg_direct.send(fail_silently=False)
             else:
                 raise send_err
 

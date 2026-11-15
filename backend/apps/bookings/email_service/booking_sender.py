@@ -6,7 +6,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.html import strip_tags
 
 logger = logging.getLogger(__name__)
-from .config import _is_email_configured
+from .config import _is_email_configured, send_email_message
 from .booking_template import render_booking_email_html
 
 
@@ -78,16 +78,13 @@ def _send_booking_email_worker(booking_id, email_type='booking_confirmation', cu
         html_content = render_booking_email_html(booking)
         text_content = strip_tags(html_content)
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or f"{h_name} <{settings.EMAIL_HOST_USER}>"
-
-        msg = EmailMultiAlternatives(
+        send_email_message(
             subject=subject,
-            body=text_content,
-            from_email=from_email,
-            to=valid_recipients
+            text_content=text_content,
+            html_content=html_content,
+            to_emails=valid_recipients,
+            sender_name=h_name,
         )
-        msg.attach_alternative(html_content, "text/html")
-        msg.send(fail_silently=False)
 
         logger.info(f"[EMAIL_SERVICE] Gửi email thành công tới {valid_recipients} cho đơn #{booking.booking_code} (Tiêu đề: '{subject}')")
 

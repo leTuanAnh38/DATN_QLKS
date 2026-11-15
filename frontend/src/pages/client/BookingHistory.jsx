@@ -468,8 +468,8 @@ export default function BookingHistory() {
     // Thống kê nhanh số lượng đơn
     const stats = useMemo(() => {
         const total = bookings.length;
-        const pending = bookings.filter((b) => ['pending', 'paid', 'PAID'].includes(b.status)).length;
-        const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+        const pending = bookings.filter((b) => b.status === 'pending').length;
+        const confirmed = bookings.filter((b) => ['confirmed', 'paid', 'PAID'].includes(b.status)).length;
         const checkedIn = bookings.filter((b) => b.status === 'checked_in').length;
         const completed = bookings.filter((b) => b.status === 'completed' || b.status === 'checked_out').length;
         const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
@@ -492,7 +492,9 @@ export default function BookingHistory() {
                 if (statusFilter === 'completed') {
                     if (item.status !== 'completed' && item.status !== 'checked_out') return false;
                 } else if (statusFilter === 'pending') {
-                    if (!['pending', 'paid', 'PAID'].includes(item.status)) return false;
+                    if (item.status !== 'pending') return false;
+                } else if (statusFilter === 'confirmed') {
+                    if (!['confirmed', 'paid', 'PAID'].includes(item.status)) return false;
                 } else if (item.status !== statusFilter) {
                     return false;
                 }
@@ -533,12 +535,18 @@ export default function BookingHistory() {
     const renderStatusBadge = (status) => {
         switch (status) {
             case 'pending':
-            case 'paid':
-            case 'PAID':
                 return (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
                         <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
                         <span>Chờ duyệt</span>
+                    </span>
+                );
+            case 'paid':
+            case 'PAID':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Đã thanh toán</span>
                     </span>
                 );
             case 'confirmed':
@@ -862,7 +870,7 @@ export default function BookingHistory() {
                                         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80';
 
                                     const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
-                                    const isPending = ['pending', 'paid', 'PAID'].includes(booking.status);
+                                    const isPending = booking.status === 'pending';
                                     const canCancel = ['pending', 'confirmed', 'paid', 'PAID'].includes(booking.status);
                                     const isPaid = !isCancelled && Boolean(
                                         booking.payment_status === 'COMPLETED' ||
