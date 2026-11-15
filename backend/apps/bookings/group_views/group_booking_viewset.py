@@ -873,6 +873,13 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                 master_inv.status = 'cancelled'
                 master_inv.save(update_fields=['status'])
 
+            # Hủy các Payment PENDING của đoàn và phòng con
+            from ...payments.models import Payment
+            Payment.objects.filter(
+                Q(group_booking=group) | Q(booking_id__in=sub_booking_ids),
+                payment_status='PENDING'
+            ).update(payment_status='FAILED')
+
             # Log audit
             log_action(
                 user=user if is_authenticated else None,

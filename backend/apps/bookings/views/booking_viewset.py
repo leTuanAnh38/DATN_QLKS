@@ -806,6 +806,16 @@ class BookingViewSet(
         except Exception:
             pass
 
+        # Hủy các Payment PENDING và Invoice chưa thanh toán của đơn đã hủy
+        try:
+            booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
+            inv = getattr(booking, 'invoice', None)
+            if inv and inv.status == 'pending':
+                inv.status = 'cancelled'
+                inv.save(update_fields=['status'])
+        except Exception:
+            pass
+
         # Nếu phòng này thuộc một Đơn Đặt Đoàn (GroupBooking), tự động đồng bộ lại đoàn
         if booking.group_booking:
             group = booking.group_booking
@@ -883,6 +893,15 @@ class BookingViewSet(
                 try:
                     from ...services.models import ServiceRequest
                     ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')
+                except Exception:
+                    pass
+
+                try:
+                    booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
+                    inv = getattr(booking, 'invoice', None)
+                    if inv and inv.status == 'pending':
+                        inv.status = 'cancelled'
+                        inv.save(update_fields=['status'])
                 except Exception:
                     pass
 

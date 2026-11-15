@@ -543,7 +543,7 @@ class PaymentListView(APIView):
             new_payments = []
             for inv in missing_invoices:
                 method_code = 'TRANSFER' if str(inv.payment_method).lower() in ['bank_transfer', 'momo', 'transfer', 'vietqr', 'credit_card'] else 'CASH'
-                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if inv.status in ['cancelled', 'refunded'] else 'PENDING')
+                status_code = 'COMPLETED' if inv.status == 'paid' else ('FAILED' if (inv.status in ['cancelled', 'refunded'] or (inv.booking and inv.booking.status in ['cancelled', 'no_show'])) else 'PENDING')
                 new_payments.append(Payment(
                     booking=inv.booking,
                     amount=inv.total_amount,
@@ -590,6 +590,14 @@ class PaymentListView(APIView):
                 payment_status='PENDING',
                 booking_id__in=completed_booking_ids
             ).delete()
+
+            # Đóng các Payment PENDING của các đơn đã hủy hoặc không đến (tránh hiện nút "Xác nhận thu")
+            Payment.objects.filter(
+                payment_status='PENDING'
+            ).filter(
+                models.Q(booking__status__in=['cancelled', 'no_show']) |
+                models.Q(group_booking__status__in=['cancelled', 'no_show'])
+            ).update(payment_status='FAILED')
 
         queryset = Payment.objects.select_related(
             'booking',
