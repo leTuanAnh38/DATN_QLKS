@@ -149,7 +149,7 @@ export default function MaintenanceModal({
             >
                 {/* 1. Header (Fixed non-scrolling) */}
                 <div className={`p-4 sm:px-6 sm:py-5 border-b shrink-0 flex items-center justify-between ${mode === 'create'
-                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200'
+                        ? 'bg-white border-slate-100'
                         : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
                     }`}>
                     <div className="flex items-center gap-3">

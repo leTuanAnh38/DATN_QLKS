@@ -1142,7 +1142,7 @@ export default function InvoiceManagement() {
                                                 })()}
                                             </td>
 
-                                            {/* 8. Cột Hành động: Nút "Xác nhận thu", "Xem chi tiết" & "In Hóa đơn" */}
+                                            {/* 8. Cột Hành động: Nút "Xác nhận thu" & "Xem & In" */}
                                             <td className="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1.5">
                                                     {isPending && (
@@ -1161,29 +1161,19 @@ export default function InvoiceManagement() {
                                                         </button>
                                                     )}
 
-                                                    {/* Nút Xem chi tiết */}
+                                                    {/* Nút Xem chi tiết / In hóa đơn */}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenPaymentModal(payment)}
-                                                        className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
-                                                        title="Xem chi tiết phiếu thanh toán / hóa đơn"
-                                                    >
-                                                        <Eye className="w-3.5 h-3.5" />
-                                                    </button>
-
-                                                    {/* Nút In hóa đơn */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenPaymentModal(payment)}
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
+                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
                                                             isPending
                                                                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
                                                                 : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-600/20'
                                                         }`}
-                                                        title="In hóa đơn / phiếu thu"
+                                                        title={isPending ? 'Xem chi tiết phiếu thanh toán' : 'Xem chi tiết & in hóa đơn / phiếu thu'}
                                                     >
-                                                        <Printer className="w-3.5 h-3.5" />
-                                                        <span>{isPending ? 'Xem' : 'In'}</span>
+                                                        {isPending ? <Eye className="w-3.5 h-3.5" /> : <Printer className="w-3.5 h-3.5" />}
+                                                        <span>{isPending ? 'Chi tiết' : 'Xem & In'}</span>
                                                     </button>
                                                 </div>
                                             </td>
@@ -1365,24 +1355,15 @@ export default function InvoiceManagement() {
                                         <button
                                             type="button"
                                             onClick={() => handleOpenPaymentModal(payment)}
-                                            className="py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
-                                            title="Xem chi tiết phiếu thanh toán"
-                                        >
-                                            <Eye className="w-3.5 h-3.5" />
-                                            <span>Chi tiết</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenPaymentModal(payment)}
                                             className={`py-2 px-3.5 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                                                 isPending
                                                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
                                                     : 'flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                             }`}
+                                            title={isPending ? 'Xem chi tiết phiếu thanh toán' : 'Xem chi tiết & in hóa đơn / phiếu thu'}
                                         >
-                                            <Printer className="w-3.5 h-3.5" />
-                                            <span>{isPending ? 'Xem' : 'In Hóa đơn'}</span>
+                                            {isPending ? <Eye className="w-3.5 h-3.5" /> : <Printer className="w-3.5 h-3.5" />}
+                                            <span>{isPending ? 'Chi tiết' : 'Xem & In hóa đơn'}</span>
                                         </button>
                                     </div>
                                 </div>
