@@ -291,18 +291,18 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         return 'Đã thanh toán:';
     };
 
-    const isGroupMaster = Boolean(booking.is_group_master || booking.is_group_booking);
+    const isGroupMaster = Boolean(booking?.is_group_master || booking?.is_group_booking);
     const isGroupRoom = !isGroupMaster && Boolean(
-        booking.group_booking || 
-        booking.group_booking_code || 
-        booking.group_booking_id
+        booking?.group_booking || 
+        booking?.group_booking_code || 
+        booking?.group_booking_id
     );
 
     const isCompanyAllInclusive = Boolean(
-        booking.is_company_all_inclusive ||
-        booking.group_billing_type === 'ALL_INCLUSIVE' ||
-        booking.billing_type === 'ALL_INCLUSIVE' ||
-        booking.group_booking?.billing_type === 'ALL_INCLUSIVE'
+        booking?.is_company_all_inclusive ||
+        booking?.group_billing_type === 'ALL_INCLUSIVE' ||
+        booking?.billing_type === 'ALL_INCLUSIVE' ||
+        booking?.group_booking?.billing_type === 'ALL_INCLUSIVE'
     );
 
     // Trích xuất phương thức thanh toán hiển thị trên thông tin đặt phòng
@@ -314,17 +314,17 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             code === 'CREDIT_CARD' ? 'Quẹt thẻ POS' :
             code === 'MIXED' ? resolveDynamicMixedLabel() : '';
         if (isGroupMaster) {
-            return booking.payment_method_display || (methodDisplay ? `Hợp đồng Doanh nghiệp B2B (${methodDisplay})` : (booking.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'));
+            return booking?.payment_method_display || (methodDisplay ? `Hợp đồng Doanh nghiệp B2B (${methodDisplay})` : (booking?.payment_method || 'Hợp đồng Doanh nghiệp B2B (VietQR / Chuyển khoản)'));
         }
         if (isGroupRoom) {
-            return `Gộp HĐ đoàn #${booking.group_booking_code || ''} (Master-Billing${methodDisplay ? ` • ${methodDisplay}` : ''})`;
+            return `Gộp HĐ đoàn #${booking?.group_booking_code || ''} (Master-Billing${methodDisplay ? ` • ${methodDisplay}` : ''})`;
         }
         if (code === 'MIXED') return resolveDynamicMixedLabel();
         if (code === 'CASH') return 'Tiền mặt (Tại quầy lễ tân)';
         if (code === 'TRANSFER') return 'Chuyển khoản VietQR';
         if (code === 'CREDIT_CARD') return 'Quẹt thẻ POS / Tín dụng';
         if (code === 'MOMO') return 'Ví điện tử MoMo';
-        if (booking.note && booking.note.includes('Thanh toán:')) {
+        if (booking?.note && booking.note.includes('Thanh toán:')) {
             const method = booking.note.split('Thanh toán:')[1].trim().split('|')[0].trim();
             if (method) return method;
         }
@@ -333,12 +333,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
     // Trích xuất yêu cầu đặc biệt từ note
     const getSpecialRequest = () => {
-        if (!booking.note) return 'Không có yêu cầu đặc biệt';
+        if (!booking?.note) return 'Không có yêu cầu đặc biệt';
         const cleaned = booking.note.replace(/Thanh toán:[^|]+(\|)?/gi, '').trim();
         return cleaned || 'Không có yêu cầu đặc biệt';
     };
 
-    const nights = Math.max(1, Number(booking.nights) || 1);
+    const nights = Math.max(1, Number(booking?.nights) || 1);
     
     // Đối với đoàn (isGroupMaster): tiền phòng thuần được bóc tách từ các phòng con (không bao gồm tiền dịch vụ đã kê riêng)
     const isGroupAllInclusive = isGroupMaster && (booking?.billing_type === 'ALL_INCLUSIVE' || booking?.is_all_inclusive);
@@ -411,24 +411,24 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             }, 0);
     }, [isGroupMaster, isGroupAllInclusive, booking?.sub_bookings]);
 
-    const rawRoomAmount = Number(booking.room_amount || booking.total_amount) || 0;
+    const rawRoomAmount = Number(booking?.room_amount || booking?.total_amount) || 0;
     const roomAmount = isGroupMaster
         ? (groupPureRoomsAmount != null ? groupPureRoomsAmount : Math.max(0, rawRoomAmount - extraServicesTotal))
         : rawRoomAmount;
     
     // Tách biệt các khoản giảm giá:
     // 1. Giảm giá Hạng thành viên (Loyalty & Membership Program)
-    const membershipDiscount = Number(booking.membership_discount) || 0;
+    const membershipDiscount = Number(booking?.membership_discount) || 0;
     // 2. Mã khuyến mãi (Promotion Voucher)
     const hasPromotion = Boolean(
-        booking.promotion_code || 
-        booking.applied_promotion || 
-        (booking.promotion_discount && Number(booking.promotion_discount) > 0) ||
-        (booking.discount_amount && Number(booking.discount_amount) > 0)
+        booking?.promotion_code || 
+        booking?.applied_promotion || 
+        (booking?.promotion_discount && Number(booking.promotion_discount) > 0) ||
+        (booking?.discount_amount && Number(booking.discount_amount) > 0)
     );
     const hasDiscount = hasPromotion || membershipDiscount > 0;
 
-    let pricePerNight = Number(booking.daily_rate) || 0;
+    let pricePerNight = Number(booking?.daily_rate) || 0;
     if (!pricePerNight || pricePerNight <= 0 || !hasDiscount) {
         pricePerNight = Math.round((roomAmount + membershipDiscount) / nights);
     }
@@ -437,15 +437,15 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const totalDiscount = Math.max(0, roomSubtotal - roomAmount);
 
     // Tính chính xác số tiền giảm cho từng khoản:
-    const promoDiscount = booking.promotion_discount != null && Number(booking.promotion_discount) > 0
+    const promoDiscount = booking?.promotion_discount != null && Number(booking.promotion_discount) > 0
         ? Number(booking.promotion_discount)
         : hasPromotion 
             ? Math.max(0, totalDiscount - membershipDiscount)
             : 0;
 
-    const tierName = booking.guest_tier_name || 
-        booking.guest?.current_tier?.name || 
-        booking.guest_profile?.vip_tier || 
+    const tierName = booking?.guest_tier_name || 
+        booking?.guest?.current_tier?.name || 
+        booking?.guest_profile?.vip_tier || 
         'Hội viên';
 
     // Tổng thanh toán thực tế (Grand Total bao gồm cả tiền phòng và toàn bộ dịch vụ phát sinh)
@@ -454,16 +454,16 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         : (roomAmount + extraServicesTotal);
 
     // Xác định đơn đã hủy hay không
-    const isCancelled = ['cancelled', 'no_show'].includes(booking.status);
-    const isCompleted = ['completed', 'checked_out'].includes(booking.status);
+    const isCancelled = ['cancelled', 'no_show'].includes(booking?.status);
+    const isCompleted = ['completed', 'checked_out'].includes(booking?.status);
 
     // Xác định tiền phòng đã được thanh toán trước hay chưa
     const isRoomPaid = !isCancelled && Boolean(
-        booking.is_paid ||
-        booking.payment_status === 'COMPLETED' ||
-        ['paid', 'PAID', 'completed', 'checked_out'].includes(booking.status) ||
-        (booking.payments && Array.isArray(booking.payments) && booking.payments.some(p => p.payment_status === 'COMPLETED')) ||
-        (booking.note && (
+        booking?.is_paid ||
+        booking?.payment_status === 'COMPLETED' ||
+        ['paid', 'PAID', 'completed', 'checked_out'].includes(booking?.status) ||
+        (booking?.payments && Array.isArray(booking.payments) && booking.payments.some(p => p.payment_status === 'COMPLETED')) ||
+        (booking?.note && (
             booking.note.toLowerCase().includes('vietqr: đã thanh toán') ||
             booking.note.toLowerCase().includes('đã thanh toán thành công')
         ))
@@ -503,19 +503,19 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
     const directGuestPaid = isCancelled ? 0 : (
         completedPayments.length > 0
             ? completedPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0)
-            : Number(booking.paid_amount || 0)
+            : Number(booking?.paid_amount || 0)
     );
 
     const paidAmount = isCancelled ? 0 : (
         isGroupMaster
-            ? (isCompleted ? grandTotal : (booking.is_deposit_paid ? Number(booking.deposit_amount || 0) : 0))
+            ? (isCompleted ? grandTotal : (booking?.is_deposit_paid ? Number(booking?.deposit_amount || 0) : 0))
             : isGroupRoom
                 ? (isCompanyAllInclusive 
                     ? directGuestPaid 
                     : (isCompleted ? (extraServicesTotal || directGuestPaid) : directGuestPaid))
                 : (isCompleted 
                     ? grandTotal 
-                    : Math.max(directGuestPaid, Number(booking.paid_amount ?? (isRoomPaid ? roomAmount : 0)) + paidServicesTotal))
+                    : Math.max(directGuestPaid, Number(booking?.paid_amount ?? (isRoomPaid ? roomAmount : 0)) + paidServicesTotal))
     );
     const balanceDue = isCancelled ? 0 : (
         isGroupMaster
@@ -524,11 +524,12 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 ? (isCompleted || isCompanyAllInclusive ? 0 : Math.max(0, extraServicesTotal - paidAmount))
                 : (isCompleted || paidAmount >= grandTotal ? 0 : Math.max(0, grandTotal - paidAmount)))
     );
-    const bookingCodeDisplay = `#${String(booking.booking_code || booking.group_code || '').replace('-', '')}`;
-    const printDate = formatDateTime(booking.actual_check_in || booking.created_at || new Date().toISOString());
+    const bookingCodeDisplay = `#${String(booking?.booking_code || booking?.group_code || '').replace('-', '')}`;
+    const printDate = formatDateTime(booking?.actual_check_in || booking?.created_at || new Date().toISOString());
 
     // Lắng nghe phím Escape để đóng nhanh modal
     React.useEffect(() => {
+        if (!booking) return;
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
                 onClose();
@@ -536,7 +537,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose]);
+    }, [booking, onClose]);
 
     // Kích hoạt lệnh in trình duyệt
     const handlePrint = () => {

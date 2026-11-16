@@ -1712,10 +1712,12 @@ export default function BookingHistory() {
             />
 
             {/* 5. Modal xem Hóa đơn chi tiết (dùng chung mẫu chuẩn A4 với phía Quản lý) */}
-            <HotelInvoiceModal
-                booking={invoiceModalBooking}
-                onClose={() => setInvoiceModalBooking(null)}
-            />
+            {invoiceModalBooking && (
+                <HotelInvoiceModal
+                    booking={invoiceModalBooking}
+                    onClose={() => setInvoiceModalBooking(null)}
+                />
+            )}
 
             {/* Modal Thanh toán VietQR động khi khách bấm "Thanh toán ngay" */}
             {selectedPaymentBooking && (
