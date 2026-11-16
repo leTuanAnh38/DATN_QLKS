@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Check, Copy } from 'lucide-react';
+import { Building2, Check, Copy, Clock, AlertCircle } from 'lucide-react';
+import { BANK_NAMES_BY_BIN } from '../../common/PaymentModal';
 
 /**
  * Modal thành công & Thanh toán VietQR đơn đặt phòng đoàn
@@ -18,16 +19,54 @@ export default function CorporateSuccessModal({
 }) {
     const navigate = useNavigate();
     const [copiedField, setCopiedField] = useState(null);
+    const [timerState, setTimerState] = useState({ code: null, left: 900 }); // 15 phút giữ phòng đoàn
+    const [failedQrSrc, setFailedQrSrc] = useState('');
+
+    const currentGroupCode = createdGroup?.group_code || null;
+    const timeLeft = timerState.code === currentGroupCode ? timerState.left : 900;
+
+    useEffect(() => {
+        if (!currentGroupCode || isPaidSuccess) return;
+        const timer = setInterval(() => {
+            setTimerState((prev) => {
+                const baseLeft = prev.code === currentGroupCode ? prev.left : 900;
+                return { code: currentGroupCode, left: Math.max(0, baseLeft - 1) };
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [currentGroupCode, isPaidSuccess]);
 
     if (!createdGroup) return null;
 
+    const formatTimer = (seconds) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     const isFull = createdGroup.payment_option === 'FULL';
     const qrNote = isFull ? `TT toan doan ${createdGroup.group_code}` : `Coc doan ${createdGroup.group_code}`;
+    const bankDisplayName = bankConfig.bank_name || BANK_NAMES_BY_BIN[bankConfig.bank_bin]?.short || 'Napas247';
+    const qrImageSrc = `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=${encodeURIComponent(qrNote)}&accountName=${encodeURIComponent(bankConfig.account_name)}`;
+    const qrImageError = failedQrSrc === qrImageSrc;
 
-    const handleCopy = (text, field) => {
-        navigator.clipboard.writeText(text);
-        setCopiedField(field);
-        setTimeout(() => setCopiedField(null), 2000);
+    const handleCopy = async (text, field) => {
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            setCopiedField(field);
+            setTimeout(() => setCopiedField(null), 2000);
+        } catch (err) {
+            console.error('Không thể sao chép nội dung:', err);
+        }
     };
 
     return (
@@ -123,11 +162,29 @@ export default function CorporateSuccessModal({
 
                         {/* Mã VietQR cọc tự động từ cấu hình hệ thống */}
                         <div className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-2xl inline-block mx-auto max-w-sm w-full">
-                            <img
-                                src={`https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${createdGroup.deposit_amount}&addInfo=${encodeURIComponent(qrNote)}&accountName=${encodeURIComponent(bankConfig.account_name)}`}
-                                alt="VietQR Payment"
-                                className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
-                            />
+                            {/* Đồng hồ đếm ngược giữ chỗ 15 phút */}
+                            <div className="flex items-center justify-center gap-1.5 mb-2.5 text-[11px] font-bold text-amber-900 bg-amber-100/80 border border-amber-200 rounded-xl py-1 px-3">
+                                <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                                <span>
+                                    {timeLeft > 0
+                                        ? `Thời gian giữ phòng đoàn còn lại: ${formatTimer(timeLeft)}`
+                                        : 'Đã hết thời gian giữ chỗ 15 phút — vui lòng liên hệ lễ tân nếu cần gia hạn'}
+                                </span>
+                            </div>
+
+                            {qrImageError ? (
+                                <div className="w-48 h-48 mx-auto rounded-xl bg-white border border-dashed border-amber-300 flex flex-col items-center justify-center p-4 text-center text-xs text-slate-500 gap-2">
+                                    <AlertCircle className="w-6 h-6 text-amber-500" />
+                                    <span>Không thể tải ảnh QR. Quý khách vui lòng chuyển khoản thủ công theo thông tin bên dưới.</span>
+                                </div>
+                            ) : (
+                                <img
+                                    src={qrImageSrc}
+                                    alt="VietQR Payment"
+                                    onError={() => setFailedQrSrc(qrImageSrc)}
+                                    className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
+                                />
+                            )}
 
                             {/* Trạng thái lắng nghe giao dịch realtime */}
                             <div className="flex items-center justify-center gap-2 py-1.5 px-3 mt-2 text-[11px] text-amber-900 font-bold bg-white rounded-xl border border-amber-200 shadow-2xs">
@@ -139,7 +196,7 @@ export default function CorporateSuccessModal({
                             <div className="mt-3 p-3 bg-white rounded-xl border border-amber-100 text-left text-xs space-y-1.5 shadow-2xs font-sans tabular-nums">
                                 <div className="flex items-center justify-between">
                                     <span className="text-slate-500 text-[11px]">Ngân hàng:</span>
-                                    <strong className="text-slate-900 font-bold">MB Bank ({bankConfig.bank_bin})</strong>
+                                    <strong className="text-slate-900 font-bold">{bankDisplayName} ({bankConfig.bank_bin})</strong>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-slate-500 text-[11px]">Số tài khoản:</span>

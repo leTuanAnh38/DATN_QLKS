@@ -48,6 +48,10 @@ export default function SimilarRoomsSection({ similarRooms = [] }) {
                                         src={sImg}
                                         alt={sRoom.name}
                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80';
+                                        }}
                                     />
                                     <span className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                                         {sRoom.size ? `${sRoom.size} M²` : 'LUXURY'}

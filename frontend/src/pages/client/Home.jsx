@@ -22,8 +22,10 @@ import Footer from '../../components/layout/Footer';
 import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
 import FeaturedServices from '../../components/client/FeaturedServices';
 import postService from '../../services/postService';
+import roomService from '../../services/roomService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { formatDateToInput, getNextDayString } from '../../utils/formatters';
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối, local media và tự động nâng cấp ảnh mờ)
 const resolveBannerUrl = (url, fallback) => {
@@ -35,22 +37,22 @@ const resolveBannerUrl = (url, fallback) => {
     return resolveMediaUrl(url, fallback || '');
 };
 
-// Tiện ích ngày tháng
-const getTodayStr = () => {
-    const d = new Date();
-    return d.toISOString().split('T')[0];
-};
+// Tiện ích ngày tháng (tính theo giờ địa phương để tránh lệch ngày UTC)
+const getTodayStr = () => formatDateToInput(new Date());
 
 const getTomorrowStr = (baseDateStr) => {
-    const d = baseDateStr ? new Date(baseDateStr) : new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    const base = baseDateStr || getTodayStr();
+    return getNextDayString(base);
 };
 
 const getWeekdayName = (dateStr) => {
     if (!dateStr) return '';
     try {
-        const d = new Date(dateStr);
+        const match = String(dateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        const d = match
+            ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+            : new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
         const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
         return days[d.getDay()];
     } catch {
@@ -79,6 +81,7 @@ export default function TADaNangHotelLanding() {
     const [checkInDate, setCheckInDate] = useState(getTodayStr());
     const [checkOutDate, setCheckOutDate] = useState(getTomorrowStr());
     const [guests, setGuests] = useState('2');
+    const [roomCategories, setRoomCategories] = useState([]);
     const [latestPosts, setLatestPosts] = useState([]);
     const [isLoadingNews, setIsLoadingNews] = useState(true);
 
@@ -214,7 +217,21 @@ export default function TADaNangHotelLanding() {
                 setIsLoadingNews(false);
             }
         };
+
+        const fetchCategories = async () => {
+            try {
+                const res = await roomService.getCategories();
+                const list = res?.categories || res?.results || (Array.isArray(res) ? res : []);
+                if (list.length > 0) {
+                    setRoomCategories(list);
+                }
+            } catch (err) {
+                console.error('Lỗi khi tải hạng phòng trang chủ:', err);
+            }
+        };
+
         fetchNews();
+        fetchCategories();
     }, []);
 
     return (
@@ -333,7 +350,7 @@ export default function TADaNangHotelLanding() {
                     <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-1.5 sm:gap-2.5">
                         {/* Field 1: Hạng phòng */}
                         <div className="flex-1 px-3 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group">
-                            <label className="block text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors">
+                            <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors">
                                 <BedDouble className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
                                 <span>Hạng phòng</span>
                             </label>
@@ -343,15 +360,32 @@ export default function TADaNangHotelLanding() {
                                 className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate leading-snug"
                             >
                                 <option value="all">Tất cả hạng phòng</option>
-                                <option value="deluxe">Hạng Deluxe Biển</option>
-                                <option value="suite">Executive & Grand Suite</option>
-                                <option value="penthouse">Presidential & Penthouse</option>
+                                {roomCategories.length > 0 ? (
+                                    roomCategories.map((cat) => (
+                                        <option key={cat.id} value={String(cat.id)}>
+                                            {cat.name}
+                                        </option>
+                                    ))
+                                ) : (
+                                    <>
+                                        <option value="deluxe">Hạng Deluxe Biển</option>
+                                        <option value="suite">Executive & Grand Suite</option>
+                                        <option value="penthouse">Presidential & Penthouse</option>
+                                    </>
+                                )}
                             </select>
                             <div className="hidden sm:block text-[10.5px] text-amber-700 font-medium truncate mt-0.5">
-                                {roomType === 'all' && 'Tất cả các loại phòng'}
-                                {roomType === 'deluxe' && 'Hướng biển panorama'}
-                                {roomType === 'suite' && 'Phòng khách & Ban công'}
-                                {roomType === 'penthouse' && 'Hồ bơi vô cực trên cao'}
+                                {(() => {
+                                    if (roomType === 'all') return 'Tất cả các loại phòng';
+                                    const matchedCat = roomCategories.find((cat) => String(cat.id) === String(roomType));
+                                    if (matchedCat) {
+                                        return `${matchedCat.capacity || 2} khách • ${matchedCat.view_type || matchedCat.bed_type || 'Không gian cao cấp'}`;
+                                    }
+                                    if (roomType === 'deluxe') return 'Hướng biển panorama';
+                                    if (roomType === 'suite') return 'Phòng khách & Ban công';
+                                    if (roomType === 'penthouse') return 'Hồ bơi vô cực trên cao';
+                                    return 'Hạng phòng đã chọn';
+                                })()}
                             </div>
                         </div>
 

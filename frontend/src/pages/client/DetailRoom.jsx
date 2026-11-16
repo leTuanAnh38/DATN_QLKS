@@ -239,7 +239,14 @@ export default function DetailRoom() {
 
     // State giao diện
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-    const [isSaved, setIsSaved] = useState(false);
+    const [isSaved, setIsSaved] = useState(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem('ta_saved_rooms') || '[]');
+            return Array.isArray(saved) && saved.some((x) => String(x) === String(currentRoomId));
+        } catch {
+            return false;
+        }
+    });
     const [selectedPackage] = useState('standard'); // Gói cố định: 'standard' (đã bỏ lựa chọn gói kèm theo)
     const incomingGuests = location.state?.guestCount || searchParams.get('guests');
     const [guestCount, setGuestCount] = useState(incomingGuests ? Math.max(1, Number(incomingGuests)) : 2);
@@ -267,12 +274,6 @@ export default function DetailRoom() {
     const [reviews, setReviews] = useState([]);
     const [isLoadingReviews, setIsLoadingReviews] = useState(false);
     const [bookingToReview, setBookingToReview] = useState(null);
-    const [cleanlinessScore, setCleanlinessScore] = useState(5);
-    const [serviceScore, setServiceScore] = useState(5);
-    const [locationScore, setLocationScore] = useState(5);
-    const [valueScore, setValueScore] = useState(5);
-    const [reviewComment, setReviewComment] = useState('');
-    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
     const [reviewToast, setReviewToast] = useState(null);
     const [copiedShareLink, setCopiedShareLink] = useState(false);
     const [toastNotice, setToastNotice] = useState(null);
@@ -282,9 +283,21 @@ export default function DetailRoom() {
         setTimeout(() => setToastNotice(null), 3500);
     };
 
-    const showReviewToast = (type, text) => {
-        setReviewToast({ type, text });
-        setTimeout(() => setReviewToast(null), 4000);
+    const handleToggleSaveRoom = () => {
+        const roomKey = String(room?.id || currentRoomId);
+        const nextSaved = !isSaved;
+        setIsSaved(nextSaved);
+        try {
+            const saved = JSON.parse(localStorage.getItem('ta_saved_rooms') || '[]');
+            const list = Array.isArray(saved) ? saved.map(String) : [];
+            const updated = nextSaved
+                ? Array.from(new Set([...list, roomKey]))
+                : list.filter((item) => item !== roomKey);
+            localStorage.setItem('ta_saved_rooms', JSON.stringify(updated));
+        } catch {
+            // Bỏ qua lỗi quota / private storage
+        }
+        showToastNotice('success', nextSaved ? 'Đã lưu hạng phòng vào danh sách yêu thích!' : 'Đã xóa khỏi danh sách yêu thích.');
     };
 
     const fetchRoomReviews = async (categoryId) => {
@@ -388,49 +401,6 @@ export default function DetailRoom() {
         };
     }, [reviews, room?.rating]);
 
-    // Xử lý gửi đánh giá mới
-    const handleSubmitReview = async (e) => {
-        if (e) e.preventDefault();
-        if (!bookingToReview?.id) {
-            showReviewToast('error', 'Không tìm thấy thông tin đơn đặt phòng để đánh giá.');
-            return;
-        }
-        if (!reviewComment.trim()) {
-            showReviewToast('error', 'Vui lòng nhập nội dung nhận xét hoặc chia sẻ trải nghiệm của bạn.');
-            return;
-        }
-
-        try {
-            setIsSubmittingReview(true);
-            const payload = {
-                booking_id: bookingToReview.id,
-                cleanliness_score: cleanlinessScore,
-                service_score: serviceScore,
-                location_score: locationScore,
-                value_score: valueScore,
-                comment: reviewComment.trim()
-            };
-
-            const res = await reviewService.createReview(payload);
-            if (res && res.success) {
-                showReviewToast('success', 'Cảm ơn quý khách đã gửi đánh giá trải nghiệm nghỉ dưỡng!');
-                setReviewComment('');
-                setBookingToReview(null);
-                setEligibleBooking(null);
-                if (room?.id) {
-                    await fetchRoomReviews(room.id);
-                }
-            } else {
-                showReviewToast('error', res?.message || 'Không thể gửi đánh giá. Vui lòng thử lại sau.');
-            }
-        } catch (err) {
-            console.error('Lỗi khi gửi đánh giá:', err);
-            showReviewToast('error', err?.response?.data?.message || err?.message || 'Đã xảy ra lỗi khi gửi đánh giá.');
-        } finally {
-            setIsSubmittingReview(false);
-        }
-    };
-
     // Quản lý ngày Check-in & Check-out (Đồng bộ nhận từ location.state / URL hoặc mặc định hôm nay -> ngày mai)
     const incomingCheckIn = location.state?.checkInDate || searchParams.get('checkIn');
     const incomingCheckOut = location.state?.checkOutDate || searchParams.get('checkOut');
@@ -509,9 +479,19 @@ export default function DetailRoom() {
                 if (res && (res.success || res.category)) {
                     const categoryData = res.category || res;
                     setRoom(categoryData);
-                    // Cập nhật số khách mặc định theo sức chứa
+                    try {
+                        const saved = JSON.parse(localStorage.getItem('ta_saved_rooms') || '[]');
+                        if (Array.isArray(saved)) {
+                            setIsSaved(saved.some((x) => String(x) === String(categoryData.id)));
+                        }
+                    } catch {
+                        // Ignore storage errors
+                    }
+                    // Giữ số khách đã chọn từ trang trước (nếu có), chỉ fallback theo sức chứa khi chưa chọn
                     if (categoryData.capacity) {
-                        setGuestCount(Math.min(categoryData.capacity, 2));
+                        const cap = Number(categoryData.capacity);
+                        const preferredGuests = incomingGuests ? Math.max(1, Number(incomingGuests)) : Math.min(cap, 2);
+                        setGuestCount(Math.min(cap, preferredGuests));
                     }
                     // Tải danh sách đánh giá thực tế của hạng phòng
                     fetchRoomReviews(categoryData.id);
@@ -554,7 +534,7 @@ export default function DetailRoom() {
         return () => {
             isMounted = false;
         };
-    }, [currentRoomId]);
+    }, [currentRoomId, incomingGuests]);
 
     // =========================================================================
     // DỮ LIỆU GALLERY & CÁC HÀM ĐIỀU HƯỚNG ẢNH (Khai báo trước các early return để tuân thủ Rules of Hooks)
@@ -914,7 +894,7 @@ export default function DetailRoom() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setIsSaved(!isSaved)}
+                            onClick={handleToggleSaveRoom}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer ${isSaved ? 'text-rose-500' : 'hover:text-rose-500'}`}
                             title={isSaved ? 'Đã lưu yêu thích' : 'Lưu yêu thích'}
                         >
@@ -992,6 +972,10 @@ export default function DetailRoom() {
                                 src={gallery[safeImageIndex]?.url || gallery[0]?.url}
                                 alt={gallery[safeImageIndex]?.title || room.name}
                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+                                }}
                             />
 
                             {/* Lớp gradient bóng mờ và tiêu đề ảnh */}
@@ -1100,6 +1084,10 @@ export default function DetailRoom() {
                                                 src={img.url}
                                                 alt={img.title}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
+                                                }}
                                             />
                                             <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/10 transition" />
                                             <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] text-white font-medium">

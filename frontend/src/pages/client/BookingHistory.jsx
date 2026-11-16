@@ -48,11 +48,13 @@ import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import PaymentModal from '../../components/common/PaymentModal';
 import Pagination from '../../components/common/Pagination';
+import { getNextDayString } from '../../utils/formatters';
 import {
     CancelBookingModal,
     ReviewModal,
     ViewReviewModal,
-    ExtendStayModal
+    ExtendStayModal,
+    BookingInvoiceModal
 } from '../../components/client/booking-history';
 
 // Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
@@ -194,29 +196,18 @@ export default function BookingHistory() {
     const [isSubmittingExtend, setIsSubmittingExtend] = useState(false);
     const [extendConflictError, setExtendConflictError] = useState(null);
     const [selectedPaymentBooking, setSelectedPaymentBooking] = useState(null);
+    const [invoiceModalBooking, setInvoiceModalBooking] = useState(null);
 
     const handleOpenExtendModal = (booking) => {
         setExtendModalBooking(booking);
         setExtendConflictError(null);
-        try {
-            const curDate = new Date(booking.check_out_date);
-            curDate.setDate(curDate.getDate() + 1);
-            setNewCheckOutDate(curDate.toISOString().split('T')[0]);
-        } catch {
-            setNewCheckOutDate('');
-        }
+        setNewCheckOutDate(getNextDayString(booking?.check_out_date));
     };
 
     // Ngày tối thiểu cho phép chọn (ngày sau check_out_date hiện tại)
     const extendMinDate = useMemo(() => {
         if (!extendModalBooking?.check_out_date) return '';
-        try {
-            const cur = new Date(extendModalBooking.check_out_date);
-            cur.setDate(cur.getDate() + 1);
-            return cur.toISOString().split('T')[0];
-        } catch {
-            return '';
-        }
+        return getNextDayString(extendModalBooking.check_out_date);
     }, [extendModalBooking]);
 
     // Tính toán số đêm & chi phí phát sinh
@@ -1396,20 +1387,18 @@ export default function BookingHistory() {
                                                             </div>
                                                         )}
 
-                                                        {/* NÚT THAO TÁC */}
-                                                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                                                            {/* Nút Thanh toán ngay (VietQR): Chỉ hiện khi đơn khách lẻ CHƯA thanh toán (Ẩn với đơn đoàn Master-Billing) */}
-                                                            {booking.status === 'pending' && !isPaid && (!groupInfo.isGroup || !groupInfo.isMasterBilled) && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setSelectedPaymentBooking(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-sky-900/20 active:scale-95"
-                                                                    title="Mở mã QR quét thanh toán chuyển khoản"
-                                                                >
-                                                                    <QrCode className="w-3.5 h-3.5" />
-                                                                    <span>Thanh toán ngay (VietQR)</span>
-                                                                </button>
-                                                            )}
+                                                        {/* NÚT THAO TÁC (Nút phụ bên trái, nút hành động chính ngoài cùng bên phải) */}
+                                                        <div className="flex flex-col sm:flex-row sm:flex-wrap lg:justify-end items-center gap-2 w-full sm:w-auto">
+                                                            {/* Nút xem Hóa đơn */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setInvoiceModalBooking(booking)}
+                                                                className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-amber-300 text-slate-700 hover:text-amber-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                title="Xem bảng kê chi tiết hóa đơn"
+                                                            >
+                                                                <Receipt className="w-3.5 h-3.5 text-amber-600" />
+                                                                <span>Hóa đơn</span>
+                                                            </button>
 
                                                             {/* Nút Hủy đặt phòng / Yêu cầu hủy đoàn & Hoàn cọc */}
                                                             {canCancel && (
@@ -1447,38 +1436,16 @@ export default function BookingHistory() {
                                                                 </button>
                                                             )}
 
-                                                            {/* ĐƠN HOÀN TẤT (COMPLETED): ĐÁNH GIÁ HOẶC XEM ĐÁNH GIÁ CỦA TÔI */}
-                                                            {booking.status === 'completed' && (
-                                                                <>
-                                                                    {!booking.review ? (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                const catId = booking.category_id || booking.room_category?.id || booking.category;
-                                                                                if (catId) {
-                                                                                    navigate(`/rooms/${catId}?review_booking_id=${booking.id}#danh-gia`, {
-                                                                                        state: { bookingToReview: booking }
-                                                                                    });
-                                                                                } else {
-                                                                                    handleOpenReviewModal(booking);
-                                                                                }
-                                                                            }}
-                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-sky-900/20 active:scale-95"
-                                                                        >
-                                                                            <Star className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
-                                                                            <span>Đánh giá</span>
-                                                                        </button>
-                                                                    ) : (
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleOpenViewReviewModal(booking)}
-                                                                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                                                                        >
-                                                                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                                                                            <span>Xem đánh giá của tôi</span>
-                                                                        </button>
-                                                                    )}
-                                                                </>
+                                                            {/* ĐƠN HOÀN TẤT (COMPLETED): ĐÃ ĐÁNH GIÁ -> XEM ĐÁNH GIÁ */}
+                                                            {booking.status === 'completed' && booking.review && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleOpenViewReviewModal(booking)}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                >
+                                                                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                                                    <span>Xem đánh giá của tôi</span>
+                                                                </button>
                                                             )}
 
                                                             {/* NÚT ĐẶT LẠI: Chỉ hiển thị khi đơn đặt phòng đã hoàn thành (completed) */}
@@ -1490,6 +1457,40 @@ export default function BookingHistory() {
                                                                     <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                                                                     <span>Đặt lại</span>
                                                                 </Link>
+                                                            )}
+
+                                                            {/* ĐƠN HOÀN TẤT (CHƯA ĐÁNH GIÁ): NÚT CHÍNH NGOÀI CÙNG BÊN PHẢI */}
+                                                            {booking.status === 'completed' && !booking.review && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const catId = booking.category_id || booking.room_category?.id || booking.category;
+                                                                        if (catId) {
+                                                                            navigate(`/rooms/${catId}?review_booking_id=${booking.id}#danh-gia`, {
+                                                                                state: { bookingToReview: booking }
+                                                                            });
+                                                                        } else {
+                                                                            handleOpenReviewModal(booking);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-sky-900/20 active:scale-95"
+                                                                >
+                                                                    <Star className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
+                                                                    <span>Đánh giá</span>
+                                                                </button>
+                                                            )}
+
+                                                            {/* Nút Thanh toán ngay (VietQR) đặt ngoài cùng bên phải */}
+                                                            {booking.status === 'pending' && !isPaid && (!groupInfo.isGroup || !groupInfo.isMasterBilled) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setSelectedPaymentBooking(booking)}
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-sky-900/20 active:scale-95"
+                                                                    title="Mở mã QR quét thanh toán chuyển khoản"
+                                                                >
+                                                                    <QrCode className="w-3.5 h-3.5" />
+                                                                    <span>Thanh toán ngay (VietQR)</span>
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1708,6 +1709,16 @@ export default function BookingHistory() {
                 extendCalculation={extendCalculation}
                 settings={settings}
                 formatDateDisplay={formatDateDisplay}
+            />
+
+            {/* 5. Modal xem Hóa đơn chi tiết */}
+            <BookingInvoiceModal
+                booking={invoiceModalBooking}
+                onClose={() => setInvoiceModalBooking(null)}
+                hotelName={hotelName}
+                settings={settings}
+                formatDateDisplay={formatDateDisplay}
+                getGroupBookingInfo={getGroupBookingInfo}
             />
 
             {/* Modal Thanh toán VietQR động khi khách bấm "Thanh toán ngay" */}

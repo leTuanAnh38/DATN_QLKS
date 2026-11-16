@@ -69,6 +69,24 @@ export const formatDateTime = (isoStr, fallback = '—') => {
 export const formatDateTimeDisplay = formatDateTime;
 
 /**
+ * Parse chuỗi ngày YYYY-MM-DD theo múi giờ địa phương để tránh lệch ngày UTC
+ * @param {string|Date} date
+ * @returns {Date|null}
+ */
+const parseLocalDate = (date) => {
+    if (!date) return null;
+    if (date instanceof Date) return isNaN(date.getTime()) ? null : new Date(date.getTime());
+    const str = String(date).trim();
+    const dateOnlyMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+        return new Date(Number(year), Number(month) - 1, Number(day));
+    }
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+/**
  * Định dạng ngày sang định dạng YYYY-MM-DD cho thẻ <input type="date" />
  * @param {string|Date} date Đối tượng Date hoặc chuỗi ngày
  * @returns {string} YYYY-MM-DD
@@ -76,12 +94,33 @@ export const formatDateTimeDisplay = formatDateTime;
 export const formatDateToInput = (date) => {
     if (!date) return '';
     try {
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return '';
+        const d = parseLocalDate(date);
+        if (!d) return '';
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    } catch {
+        return '';
+    }
+};
+
+/**
+ * Định dạng ngày giờ địa phương YYYY-MM-DDTHH:mm cho thẻ <input type="datetime-local" />
+ * @param {string|Date} date Đối tượng Date hoặc chuỗi ngày giờ
+ * @returns {string} YYYY-MM-DDTHH:mm
+ */
+export const formatDateTimeToInput = (date) => {
+    if (!date) return '';
+    try {
+        const d = parseLocalDate(date);
+        if (!d) return '';
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch {
         return '';
     }
@@ -95,8 +134,8 @@ export const formatDateToInput = (date) => {
 export const getNextDayString = (dateStr) => {
     if (!dateStr) return '';
     try {
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
+        const d = parseLocalDate(dateStr);
+        if (!d) return '';
         d.setDate(d.getDate() + 1);
         return formatDateToInput(d);
     } catch {
@@ -138,6 +177,7 @@ export default {
     formatDateTime,
     formatDateTimeDisplay,
     formatDateToInput,
+    formatDateTimeToInput,
     getNextDayString,
     formatTimeAgo,
 };

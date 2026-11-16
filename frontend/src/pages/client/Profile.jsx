@@ -30,6 +30,7 @@ import {
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ChangePasswordModal from '../../components/auth/ChangePasswordModal';
+import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
@@ -1093,40 +1094,15 @@ export default function Profile() {
                 onClose={() => setIsChangePasswordOpen(false)}
             />
 
-            {/* Modal Xác Nhận Đăng Xuất */}
-            {isLogoutConfirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fadeIn">
-                    <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-100 text-center space-y-4">
-                        <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-                            <LogOut className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900">
-                                Đăng xuất tài khoản?
-                            </h3>
-                            <p className="text-xs text-slate-500 mt-1">
-                                Quý khách có chắc chắn muốn đăng xuất khỏi tài khoản khách sạn TA không?
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={() => setIsLogoutConfirmOpen(false)}
-                                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
-                            >
-                                Ở lại
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-sm cursor-pointer"
-                            >
-                                Đăng xuất
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modal Xác Nhận Đăng Xuất (tái sử dụng component chuẩn) */}
+            <LogoutConfirmModal
+                isOpen={isLogoutConfirmOpen}
+                onClose={() => setIsLogoutConfirmOpen(false)}
+                onConfirm={handleLogout}
+                userName={user?.full_name || user?.username}
+                role={getRoleTitle(user?.role, user?.guest_profile?.vip_tier)}
+                message="Quý khách có chắc chắn muốn đăng xuất khỏi tài khoản khách sạn TA không?"
+            />
         </div>
     );
 }

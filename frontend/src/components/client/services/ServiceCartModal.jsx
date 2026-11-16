@@ -10,6 +10,7 @@ import {
     Loader2,
     BellRing
 } from 'lucide-react';
+import { formatDateTimeToInput } from '../../../utils/formatters';
 
 export default function ServiceCartModal({
     isOpen = false,
@@ -32,7 +33,7 @@ export default function ServiceCartModal({
     setCartScheduledDateTime,
     cartGeneralNote = '',
     setCartGeneralNote,
-    formatToLocalDateTimeString = (d) => d.toISOString().slice(0, 16)
+    formatToLocalDateTimeString = formatDateTimeToInput
 }) {
     if (!isOpen) return null;
 

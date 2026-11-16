@@ -94,7 +94,7 @@ export default function OrderSummarySidebar({
                 </div>
 
                 {/* BẢNG KÊ CHI TIẾT TỔNG TIỀN (ORDER SUMMARY) */}
-                <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs">
+                <div className="space-y-2.5 pt-2 border-t border-slate-100 text-xs tabular-nums">
                     {/* 1. Tiền phòng gốc */}
                     <div className="flex justify-between gap-2 text-slate-700">
                         <span>

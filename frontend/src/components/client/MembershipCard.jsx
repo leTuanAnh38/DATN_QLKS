@@ -73,6 +73,8 @@ export default function MembershipCard({ user }) {
     const theme = getCardTheme(currentTier.code || currentTier.name);
     const progressPercent = calculateProgress();
     const discountVal = Number(currentTier.discount_percent) || 0;
+    const pointsNeeded = nextTier ? Math.max(0, Number(nextTier.points_needed || 0)) : 0;
+    const spendNeededVND = pointsNeeded * 100000;
 
     return (
         <div className="bg-gradient-to-b from-white via-amber-50/15 to-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-100/60 relative overflow-hidden mb-8 sm:mb-10">
@@ -117,9 +119,9 @@ export default function MembershipCard({ user }) {
                         <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
 
                         {/* Top: Hotel Brand & Tier Badge */}
-                        <div className="flex justify-between items-start z-10">
-                            <div>
-                                <span className="text-[10px] tracking-[0.25em] font-extrabold uppercase opacity-85 block text-white/90">
+                        <div className="flex justify-between items-start gap-2 z-10">
+                            <div className="min-w-0">
+                                <span className="text-[9.5px] tracking-[0.14em] font-extrabold uppercase opacity-85 block text-white/90 whitespace-nowrap truncate">
                                     TA ĐÀ NẴNG LUXURY RESORT & RETREAT
                                 </span>
                                 <h3 className="text-base font-black tracking-wider flex items-center gap-1.5 mt-0.5 uppercase drop-shadow-sm">
@@ -193,9 +195,9 @@ export default function MembershipCard({ user }) {
                 <div className="lg:col-span-7 space-y-5">
                     {/* Hộp tiến trình */}
                     <div className="bg-slate-50/90 rounded-2xl p-5 border border-slate-200/70">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-800 text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                <span className="font-semibold text-slate-700 text-sm">
                                     Cấp bậc hội viên:
                                 </span>
                                 <span className="font-bold text-slate-900 text-sm">
@@ -204,14 +206,14 @@ export default function MembershipCard({ user }) {
                             </div>
 
                             {nextTier ? (
-                                <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200/80 inline-flex items-center gap-1.5 self-start sm:self-auto">
-                                    <Zap className="w-3.5 h-3.5 text-amber-600" />
-                                    Cần thêm {nextTier.points_needed} điểm để thăng hạng {nextTier.name}
+                                <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200/80 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 tabular-nums">
+                                    <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Còn {pointsNeeded} điểm → {nextTier.name}</span>
                                 </span>
                             ) : (
-                                <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 inline-flex items-center gap-1">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                    Hạng thành viên cao nhất (VIP Diamond)
+                                <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap shrink-0">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>Hạng cao nhất ({currentTier.name})</span>
                                 </span>
                             )}
                         </div>
@@ -225,21 +227,23 @@ export default function MembershipCard({ user }) {
                         </div>
 
                         {/* Câu thông báo tiến trình nổi bật */}
-                        <div className="mt-3 text-xs text-slate-600 leading-relaxed">
+                        <div className="mt-3 text-xs text-slate-600 leading-relaxed tabular-nums">
                             {nextTier ? (
                                 <div className="flex items-start gap-1.5">
                                     <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                                     <span>
-                                        Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints}</strong> điểm. 
-                                        Cần thêm <strong className="text-amber-700 font-bold">{nextTier.points_needed}</strong> điểm nữa 
-                                        để thăng hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
+                                        Quý khách đang có <strong className="text-slate-900 font-bold">{totalPoints.toLocaleString('vi-VN')}</strong> điểm. 
+                                        Cần chi tiêu thêm <strong className="text-amber-700 font-bold">{spendNeededVND.toLocaleString('vi-VN')} VNĐ</strong> (tương đương <strong className="text-amber-700 font-bold">{pointsNeeded} điểm</strong>) 
+                                        để lên hạng <strong className="text-slate-900 font-bold">{nextTier.name}</strong> (Hưởng ưu đãi giảm {Number(nextTier.discount_percent)}% cho các lần đặt phòng tiếp theo).
                                     </span>
                                 </div>
                             ) : (
                                 <div className="flex items-start gap-1.5 text-emerald-700">
                                     <Award className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                                     <span>
-                                        Chúc mừng quý khách đã đạt mức điểm cao nhất trong hệ thống và nhận toàn bộ quyền lợi giảm giá 15% trọn đời!
+                                        {discountVal > 0
+                                            ? `Chúc mừng quý khách đã đạt mức điểm cao nhất trong hệ thống và nhận toàn bộ quyền lợi giảm giá ${discountVal}% trọn đời!`
+                                            : 'Chúc mừng quý khách đã đạt hạng thành viên cao nhất trong hệ thống với đầy đủ đặc quyền trọn đời!'}
                                     </span>
                                 </div>
                             )}

@@ -31,7 +31,7 @@ const DEFAULT_BANK_CONFIG = {
 };
 
 // Từ điển tên viết tắt các ngân hàng phổ biến theo BIN
-const BANK_NAMES_BY_BIN = {
+export const BANK_NAMES_BY_BIN = {
     '970422': { short: 'MB Bank', full: 'Ngân hàng TMCP Quân Đội' },
     '970436': { short: 'Vietcombank', full: 'Ngân hàng TMCP Ngoại Thương VN' },
     '970415': { short: 'VietinBank', full: 'Ngân hàng TMCP Công Thương VN' },
@@ -245,33 +245,40 @@ export default function PaymentModal({
         }
     };
 
-    // 2. XỬ LÝ CALL API XÁC NHẬN THANH TOÁN THÀNH CÔNG
+    // 2. KIỂM TRA TRẠNG THÁI THANH TOÁN THỰC TẾ TỪ BACKEND (KHÔNG TỰ XÁC NHẬN TỪ CLIENT)
     const handleConfirmPayment = async () => {
+        const targetId = bookingId || code;
+        if (!targetId) return;
+
         setIsLoading(true);
         setErrorMessage('');
 
-        const payload = {
-            booking_id: bookingId || code,
-            amount: totalAmount,
-            payment_method: 'TRANSFER'
-        };
-
         try {
-            const response = await api.post('/payments/confirm/', payload);
+            const response = await api.get(`/payments/${targetId}/status/`);
+            const paymentStatus = response.data?.status || response.data?.payment_status;
 
-            if (response.data && response.data.success) {
+            if (paymentStatus === 'COMPLETED') {
+                setIsPollingCompleted(true);
+                const result = {
+                    status: 'COMPLETED',
+                    booking_id: targetId,
+                    booking_code: code,
+                    ...(response.data || {})
+                };
                 if (onSuccess) {
-                    onSuccess(response.data);
+                    onSuccess(result);
                 } else if (onConfirm) {
-                    onConfirm(response.data);
+                    onConfirm(result);
                 } else if (onClose) {
-                    onClose();
+                    onClose({ completed: true, bookingCode: code });
                 }
             } else {
-                setErrorMessage(response.data?.message || 'Xác nhận thanh toán thất bại.');
+                setErrorMessage(
+                    'Hệ thống chưa ghi nhận tiền về tài khoản ngân hàng. Nếu quý khách vừa chuyển khoản, vui lòng đợi thêm 5–10 giây để đối soát tự động xác nhận.'
+                );
             }
         } catch (error) {
-            console.error('Lỗi khi gọi API thanh toán:', error);
+            console.error('Lỗi khi kiểm tra trạng thái thanh toán:', error);
             const serverMsg = error.response?.data?.message || error.message || 'Lỗi kết nối máy chủ.';
             setErrorMessage(serverMsg);
         } finally {
@@ -606,7 +613,7 @@ export default function PaymentModal({
                                     ) : (
                                         <CheckCircle2 className="w-4 h-4" />
                                     )}
-                                    <span>Tôi đã chuyển khoản xong</span>
+                                    <span>Tôi đã chuyển khoản xong (Kiểm tra ngay)</span>
                                 </button>
 
                                 <button

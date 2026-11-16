@@ -102,11 +102,14 @@ export default function AuthBookingPage() {
 
     const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState(null);
     const [successMessage, setSuccessMessage] = useState(null);
+    const [loginErrors, setLoginErrors] = useState({});
+    const [registerErrors, setRegisterErrors] = useState({});
     const [legalModal, setLegalModal] = useState(null); // 'terms' | 'privacy' | null
     const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
@@ -122,6 +125,7 @@ export default function AuthBookingPage() {
         phone: '',
         email: '',
         password: '',
+        confirmPassword: '',
         agreeTerms: true
     });
 
@@ -150,13 +154,48 @@ export default function AuthBookingPage() {
         }
     ];
 
+    const mapServerFieldErrors = (errorsObj, mode) => {
+        if (!errorsObj || typeof errorsObj !== 'object') return {};
+        const pickFirst = (val) => (Array.isArray(val) ? val[0] : val);
+        const mapped = {};
+        if (mode === 'login') {
+            if (errorsObj.identifier || errorsObj.username || errorsObj.email) {
+                mapped.identifier = pickFirst(errorsObj.identifier || errorsObj.username || errorsObj.email);
+            }
+            if (errorsObj.password) mapped.password = pickFirst(errorsObj.password);
+        } else {
+            if (errorsObj.fullName || errorsObj.full_name) {
+                mapped.fullName = pickFirst(errorsObj.fullName || errorsObj.full_name);
+            }
+            if (errorsObj.phone || errorsObj.phone_number) {
+                mapped.phone = pickFirst(errorsObj.phone || errorsObj.phone_number);
+            }
+            if (errorsObj.email) mapped.email = pickFirst(errorsObj.email);
+            if (errorsObj.password) mapped.password = pickFirst(errorsObj.password);
+        }
+        return mapped;
+    };
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         setErrorMessage(null);
         setSuccessMessage(null);
 
-        const result = await authService.login(loginForm.identifier, loginForm.password, {
+        const nextErrors = {};
+        if (!loginForm.identifier.trim()) {
+            nextErrors.identifier = 'Vui lòng nhập tên đăng nhập, email hoặc số điện thoại.';
+        }
+        if (!loginForm.password) {
+            nextErrors.password = 'Vui lòng nhập mật khẩu truy cập.';
+        }
+        if (Object.keys(nextErrors).length > 0) {
+            setLoginErrors(nextErrors);
+            return;
+        }
+        setLoginErrors({});
+        setIsLoading(true);
+
+        const result = await authService.login(loginForm.identifier.trim(), loginForm.password, {
             remember: rememberMe,
         });
         setIsLoading(false);
@@ -177,17 +216,58 @@ export default function AuthBookingPage() {
                 }, 700);
             }
         } else {
+            const serverMapped = mapServerFieldErrors(result.errors, 'login');
+            if (Object.keys(serverMapped).length > 0) {
+                setLoginErrors(serverMapped);
+            }
             setErrorMessage(result.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
         }
     };
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         setErrorMessage(null);
         setSuccessMessage(null);
 
-        const result = await authService.register(registerForm);
+        const nextErrors = {};
+        const cleanName = registerForm.fullName.trim();
+        const cleanPhone = registerForm.phone.replace(/[\s.-]/g, '').trim();
+        const cleanEmail = registerForm.email.trim();
+
+        if (cleanName.length < 2) {
+            nextErrors.fullName = 'Vui lòng nhập họ và tên đầy đủ (tối thiểu 2 ký tự).';
+        }
+        if (!/^(0|\+84)[3-9]\d{8}$/.test(cleanPhone)) {
+            nextErrors.phone = 'Số điện thoại Việt Nam chưa hợp lệ (VD: 0901234567).';
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+            nextErrors.email = 'Địa chỉ email không đúng định dạng.';
+        }
+        if (!registerForm.password || registerForm.password.length < 8) {
+            nextErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự.';
+        }
+        if (!registerForm.confirmPassword) {
+            nextErrors.confirmPassword = 'Vui lòng nhập lại mật khẩu để xác nhận.';
+        } else if (registerForm.confirmPassword !== registerForm.password) {
+            nextErrors.confirmPassword = 'Mật khẩu xác nhận không khớp.';
+        }
+        if (!registerForm.agreeTerms) {
+            nextErrors.agreeTerms = 'Quý khách cần đồng ý với Điều khoản dịch vụ & Chính sách bảo mật.';
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setRegisterErrors(nextErrors);
+            return;
+        }
+        setRegisterErrors({});
+        setIsLoading(true);
+
+        const result = await authService.register({
+            fullName: cleanName,
+            phone: cleanPhone,
+            email: cleanEmail,
+            password: registerForm.password,
+        });
         setIsLoading(false);
 
         if (result.success) {
@@ -196,6 +276,10 @@ export default function AuthBookingPage() {
                 navigate('/');
             }, 800);
         } else {
+            const serverMapped = mapServerFieldErrors(result.errors, 'register');
+            if (Object.keys(serverMapped).length > 0) {
+                setRegisterErrors(serverMapped);
+            }
             setErrorMessage(result.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.');
         }
     };
@@ -521,6 +605,8 @@ export default function AuthBookingPage() {
                                         onClick={() => {
                                             setActiveTab('login');
                                             setErrorMessage(null);
+                                            setLoginErrors({});
+                                            setRegisterErrors({});
                                         }}
                                         className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
                                             activeTab === 'login'
@@ -535,6 +621,8 @@ export default function AuthBookingPage() {
                                         onClick={() => {
                                             setActiveTab('register');
                                             setErrorMessage(null);
+                                            setLoginErrors({});
+                                            setRegisterErrors({});
                                         }}
                                         className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                                             activeTab === 'register'
@@ -553,7 +641,7 @@ export default function AuthBookingPage() {
 
                                 {/* 1. FORM ĐĂNG NHẬP */}
                                 {activeTab === 'login' && (
-                                    <form onSubmit={handleLoginSubmit} className="space-y-4">
+                                    <form onSubmit={handleLoginSubmit} noValidate className="space-y-4">
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Tên đăng nhập, Email hoặc Số điện thoại <span className="text-amber-600">*</span>
@@ -563,14 +651,27 @@ export default function AuthBookingPage() {
                                                     type="text"
                                                     required
                                                     value={loginForm.identifier}
-                                                    onChange={(e) => setLoginForm({ ...loginForm, identifier: e.target.value })}
+                                                    onChange={(e) => {
+                                                        setLoginForm({ ...loginForm, identifier: e.target.value });
+                                                        if (loginErrors.identifier) setLoginErrors((prev) => ({ ...prev, identifier: '' }));
+                                                    }}
                                                     placeholder="Tên đăng nhập, email hoặc số điện thoại"
-                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className={`w-full pl-11 pr-4 py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                        loginErrors.identifier
+                                                            ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                    }`}
                                                 />
-                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.identifier ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
                                                     <User className="w-4 h-4" />
                                                 </div>
                                             </div>
+                                            {loginErrors.identifier && (
+                                                <p className="mt-1.5 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>{loginErrors.identifier}</span>
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
@@ -591,11 +692,18 @@ export default function AuthBookingPage() {
                                                     type={showPassword ? 'text' : 'password'}
                                                     required
                                                     value={loginForm.password}
-                                                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                                                    onChange={(e) => {
+                                                        setLoginForm({ ...loginForm, password: e.target.value });
+                                                        if (loginErrors.password) setLoginErrors((prev) => ({ ...prev, password: '' }));
+                                                    }}
                                                     placeholder="Nhập mật khẩu của quý khách"
-                                                    className="w-full pl-11 pr-11 py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className={`w-full pl-11 pr-11 py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                        loginErrors.password
+                                                            ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                    }`}
                                                 />
-                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
                                                     <Lock className="w-4 h-4" />
                                                 </div>
                                                 <button
@@ -611,6 +719,12 @@ export default function AuthBookingPage() {
                                                     )}
                                                 </button>
                                             </div>
+                                            {loginErrors.password && (
+                                                <p className="mt-1.5 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>{loginErrors.password}</span>
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center justify-between py-1">
@@ -645,7 +759,7 @@ export default function AuthBookingPage() {
 
                                 {/* 2. FORM ĐĂNG KÝ */}
                                 {activeTab === 'register' && (
-                                    <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+                                    <form onSubmit={handleRegisterSubmit} noValidate className="space-y-3.5">
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1">
                                                 Họ và tên khách lưu trú <span className="text-amber-600">*</span>
@@ -655,14 +769,27 @@ export default function AuthBookingPage() {
                                                     type="text"
                                                     required
                                                     value={registerForm.fullName}
-                                                    onChange={(e) => setRegisterForm({ ...registerForm, fullName: e.target.value })}
+                                                    onChange={(e) => {
+                                                        setRegisterForm({ ...registerForm, fullName: e.target.value });
+                                                        if (registerErrors.fullName) setRegisterErrors((prev) => ({ ...prev, fullName: '' }));
+                                                    }}
                                                     placeholder="Nguyễn Văn A (theo CCCD / Hộ chiếu)"
-                                                    className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                    className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                        registerErrors.fullName
+                                                            ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                    }`}
                                                 />
-                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.fullName ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
                                                     <User className="w-4 h-4" />
                                                 </div>
                                             </div>
+                                            {registerErrors.fullName && (
+                                                <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>{registerErrors.fullName}</span>
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -675,14 +802,27 @@ export default function AuthBookingPage() {
                                                         type="tel"
                                                         required
                                                         value={registerForm.phone}
-                                                        onChange={(e) => setRegisterForm({ ...registerForm, phone: e.target.value })}
+                                                        onChange={(e) => {
+                                                            setRegisterForm({ ...registerForm, phone: e.target.value });
+                                                            if (registerErrors.phone) setRegisterErrors((prev) => ({ ...prev, phone: '' }));
+                                                        }}
                                                         placeholder="0901 234 567"
-                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                        className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                            registerErrors.phone
+                                                                ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                        }`}
                                                     />
-                                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.phone ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
                                                         <Phone className="w-4 h-4" />
                                                     </div>
                                                 </div>
+                                                {registerErrors.phone && (
+                                                    <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{registerErrors.phone}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -693,46 +833,133 @@ export default function AuthBookingPage() {
                                                         type="email"
                                                         required
                                                         value={registerForm.email}
-                                                        onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                                                        onChange={(e) => {
+                                                            setRegisterForm({ ...registerForm, email: e.target.value });
+                                                            if (registerErrors.email) setRegisterErrors((prev) => ({ ...prev, email: '' }));
+                                                        }}
                                                         placeholder="vidu@email.com"
-                                                        className="w-full pl-11 pr-4 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                                        className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                            registerErrors.email
+                                                                ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                        }`}
                                                     />
-                                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.email ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
                                                         <Mail className="w-4 h-4" />
                                                     </div>
                                                 </div>
+                                                {registerErrors.email && (
+                                                    <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{registerErrors.email}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                Thiết lập mật khẩu <span className="text-amber-600">*</span>
-                                            </label>
-                                            <div className="relative group">
-                                                <input
-                                                    type={showPassword ? 'text' : 'password'}
-                                                    required
-                                                    minLength={8}
-                                                    value={registerForm.password}
-                                                    onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                                                    placeholder="Tối thiểu 8 ký tự"
-                                                    className="w-full pl-11 pr-11 py-2.5 sm:py-3 bg-slate-50/80 hover:bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
-                                                />
-                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
-                                                    <Lock className="w-4 h-4" />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                                    Thiết lập mật khẩu <span className="text-amber-600">*</span>
+                                                </label>
+                                                <div className="relative group">
+                                                    <input
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        required
+                                                        minLength={8}
+                                                        value={registerForm.password}
+                                                        onChange={(e) => {
+                                                            const nextPwd = e.target.value;
+                                                            setRegisterForm({ ...registerForm, password: nextPwd });
+                                                            setRegisterErrors((prev) => ({
+                                                                ...prev,
+                                                                password: '',
+                                                                confirmPassword:
+                                                                    registerForm.confirmPassword && nextPwd !== registerForm.confirmPassword
+                                                                        ? 'Mật khẩu xác nhận không khớp.'
+                                                                        : ''
+                                                            }));
+                                                        }}
+                                                        placeholder="Tối thiểu 8 ký tự"
+                                                        className={`w-full pl-11 pr-11 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                            registerErrors.password
+                                                                ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                        }`}
+                                                    />
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                        <Lock className="w-4 h-4" />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                                        title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                                    >
+                                                        {showPassword ? (
+                                                            <EyeOff className="w-4 h-4" />
+                                                        ) : (
+                                                            <Eye className="w-4 h-4" />
+                                                        )}
+                                                    </button>
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
-                                                    title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                                                >
-                                                    {showPassword ? (
-                                                        <EyeOff className="w-4 h-4" />
-                                                    ) : (
-                                                        <Eye className="w-4 h-4" />
-                                                    )}
-                                                </button>
+                                                {registerErrors.password && (
+                                                    <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{registerErrors.password}</span>
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                                    Nhập lại mật khẩu <span className="text-amber-600">*</span>
+                                                </label>
+                                                <div className="relative group">
+                                                    <input
+                                                        type={showConfirmPassword ? 'text' : 'password'}
+                                                        required
+                                                        value={registerForm.confirmPassword}
+                                                        onChange={(e) => {
+                                                            const nextConfirm = e.target.value;
+                                                            setRegisterForm({ ...registerForm, confirmPassword: nextConfirm });
+                                                            setRegisterErrors((prev) => ({
+                                                                ...prev,
+                                                                confirmPassword:
+                                                                    nextConfirm && nextConfirm !== registerForm.password
+                                                                        ? 'Mật khẩu xác nhận không khớp.'
+                                                                        : ''
+                                                            }));
+                                                        }}
+                                                        placeholder="Xác nhận lại mật khẩu"
+                                                        className={`w-full pl-11 pr-11 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
+                                                            registerErrors.confirmPassword
+                                                                ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                        }`}
+                                                    />
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.confirmPassword ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                        <Lock className="w-4 h-4" />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                                        title={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                                    >
+                                                        {showConfirmPassword ? (
+                                                            <EyeOff className="w-4 h-4" />
+                                                        ) : (
+                                                            <Eye className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                {registerErrors.confirmPassword && (
+                                                    <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                        <span>{registerErrors.confirmPassword}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
 
@@ -742,7 +969,12 @@ export default function AuthBookingPage() {
                                                     type="checkbox"
                                                     required
                                                     checked={registerForm.agreeTerms}
-                                                    onChange={(e) => setRegisterForm({ ...registerForm, agreeTerms: e.target.checked })}
+                                                    onChange={(e) => {
+                                                        setRegisterForm({ ...registerForm, agreeTerms: e.target.checked });
+                                                        if (e.target.checked && registerErrors.agreeTerms) {
+                                                            setRegisterErrors((prev) => ({ ...prev, agreeTerms: '' }));
+                                                        }
+                                                    }}
                                                     className="mt-0.5 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer shrink-0"
                                                 />
                                                 <span>
@@ -773,6 +1005,12 @@ export default function AuthBookingPage() {
                                                     của {hotelName}.
                                                 </span>
                                             </label>
+                                            {registerErrors.agreeTerms && (
+                                                <p className="mt-1.5 text-[11px] font-medium text-rose-600 flex items-center gap-1">
+                                                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                                                    <span>{registerErrors.agreeTerms}</span>
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Nút Submit Đăng Ký */}

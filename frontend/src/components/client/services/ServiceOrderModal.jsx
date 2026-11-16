@@ -10,6 +10,7 @@ import {
     Clock,
     Loader2
 } from 'lucide-react';
+import { formatDateTimeToInput } from '../../../utils/formatters';
 
 export default function ServiceOrderModal({
     selectedItem,
@@ -27,7 +28,7 @@ export default function ServiceOrderModal({
     setScheduledDateTime,
     note = '',
     setNote,
-    formatToLocalDateTimeString = (d) => d.toISOString().slice(0, 16)
+    formatToLocalDateTimeString = formatDateTimeToInput
 }) {
     if (!selectedItem) return null;
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import notificationService from '../../services/notificationService';
+import { formatDateTime, formatTimeAgo } from '../../utils/formatters';
 
 // Helper loại bỏ các emoji Windows/Unicode thừa ở đầu tiêu đề thông báo, giữ giao diện thanh lịch chuẩn 5 sao
 const cleanNotifTitle = (title) => {
@@ -137,25 +138,15 @@ export default function NotificationBell({ theme = 'light' }) {
         }
     };
 
-    // Hàm định dạng ngày giờ hiển thị theo đúng múi giờ địa phương của trình duyệt (Việt Nam UTC+7)
+    // Hàm định dạng thời gian tương đối thân thiện (VD: "5 phút trước", "2 giờ trước")
     const formatNotifTime = (notif) => {
         if (notif?.created_at) {
-            try {
-                const date = new Date(notif.created_at);
-                if (!isNaN(date.getTime())) {
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = date.getFullYear();
-                    return `${hours}:${minutes} • ${day}/${month}/${year}`;
-                }
-            } catch { }
+            return formatTimeAgo(notif.created_at);
         }
         return notif?.created_at_display || 'Vừa xong';
     };
 
-    // Logic Cập nhật (Polling): Tự động gọi API mỗi 30 giây / 1 lần & Lắng nghe sự kiện đồng bộ
+    // Logic Cập nhật (Polling): Tự động gọi API mỗi 12 giây / 1 lần & Lắng nghe sự kiện đồng bộ
     useEffect(() => {
         if (!isAuthenticated) return;
 
@@ -422,7 +413,7 @@ export default function NotificationBell({ theme = 'light' }) {
             <button
                 type="button"
                 onClick={handleToggleOpen}
-                className={`relative p-2 rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                className={`group relative p-2 rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                     theme === 'dark'
                         ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 border border-slate-200 shadow-xs'
@@ -473,6 +464,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                     aria-label="Đánh dấu tất cả đã đọc"
                                 >
                                     <CheckCheck className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="sm:hidden">Đọc hết</span>
                                     <span className="hidden sm:inline">Đã đọc hết</span>
                                 </button>
                             )}
@@ -641,7 +633,9 @@ export default function NotificationBell({ theme = 'light' }) {
                                                         {notif.message}
                                                     </p>
                                                     <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                                                        <span>{formatNotifTime(notif)}</span>
+                                                        <span title={notif?.created_at ? formatDateTime(notif.created_at) : undefined}>
+                                                            {formatNotifTime(notif)}
+                                                        </span>
                                                         {hasLink ? (
                                                             <span className="inline-flex items-center gap-1 text-blue-600 font-bold group-hover:translate-x-0.5 transition-transform text-[11px]">
                                                                 Xem chi tiết <ArrowRight className="w-3 h-3" />
@@ -701,7 +695,7 @@ export default function NotificationBell({ theme = 'light' }) {
                     <div className="p-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                         <span className="flex items-center gap-1.5 text-[10px]">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Tự động đồng bộ mỗi 30s
+                            Tự động đồng bộ mỗi 12s
                         </span>
                         <button
                             type="button"

@@ -4,6 +4,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import roomService from '../../services/roomService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { formatDate as formatDateDisplay, formatDateToInput, getNextDayString } from '../../utils/formatters';
 import { 
     Search, 
     Building2, 
@@ -18,28 +19,6 @@ import {
     AlertTriangle,
     Compass
 } from 'lucide-react';
-
-// Định dạng ngày hiển thị DD/MM/YYYY
-const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-        return new Date(dateStr).toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    } catch {
-        return dateStr;
-    }
-};
-
-const formatDateToInput = (date) => {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`;
-};
 
 /**
  * Trang Danh sách Phòng nghỉ & Suites dành cho Khách hàng (RoomsPage)
@@ -61,12 +40,10 @@ export default function RoomsAndSuitesPage() {
     const categoryParam = searchParams.get('category') || location.state?.roomType || 'all';
 
     const defaultToday = formatDateToInput(new Date());
-    const defaultTomorrowObj = new Date();
-    defaultTomorrowObj.setDate(defaultTomorrowObj.getDate() + 1);
-    const defaultTomorrow = formatDateToInput(defaultTomorrowObj);
+    const defaultTomorrow = getNextDayString(defaultToday);
 
     const effectiveCheckIn = (checkInParam && checkInParam.trim() !== '') ? checkInParam : defaultToday;
-    const effectiveCheckOut = (checkOutParam && checkOutParam.trim() !== '') ? checkOutParam : defaultTomorrow;
+    const effectiveCheckOut = (checkOutParam && checkOutParam.trim() !== '') ? checkOutParam : getNextDayString(effectiveCheckIn) || defaultTomorrow;
     const effectiveGuests = (guestsParam && guestsParam.trim() !== '') ? guestsParam : '2';
 
     const [categories, setCategories] = useState([]);
@@ -75,17 +52,38 @@ export default function RoomsAndSuitesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTab, setSelectedTab] = useState(categoryParam || 'all');
     const [sortBy, setSortBy] = useState('featured');
+    const [priceRange, setPriceRange] = useState('all'); // 'all' | 'under-2m' | '2m-4m' | 'over-4m'
+    const [capacityFilter, setCapacityFilter] = useState(guestsParam ? String(guestsParam) : 'all');
+    const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'sea' | 'city'
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+    const activeAdvancedCount =
+        (priceRange !== 'all' ? 1 : 0) +
+        (capacityFilter !== 'all' ? 1 : 0) +
+        (viewFilter !== 'all' ? 1 : 0);
 
     const searchNights = (checkInParam && checkOutParam)
         ? Math.max(1, Math.round((new Date(checkOutParam) - new Date(checkInParam)) / (1000 * 60 * 60 * 24)))
         : 0;
 
     const hasActiveSearch = Boolean(checkInParam || checkOutParam || (guestsParam && guestsParam !== '0'));
+    const hasAnyFilter = Boolean(
+        hasActiveSearch ||
+        searchQuery.trim() !== '' ||
+        selectedTab !== 'all' ||
+        priceRange !== 'all' ||
+        capacityFilter !== 'all' ||
+        viewFilter !== 'all'
+    );
 
     const handleClearSearch = () => {
         setSearchParams({});
         setSelectedTab('all');
         setSearchQuery('');
+        setPriceRange('all');
+        setCapacityFilter('all');
+        setViewFilter('all');
+        setSortBy('featured');
     };
 
     // Gọi API lấy toàn bộ danh sách Hạng phòng từ Backend
@@ -113,14 +111,20 @@ export default function RoomsAndSuitesPage() {
         fetchCategories();
     }, []);
 
-    // Đồng bộ categoryParam khi URL thay đổi
+    // Đồng bộ categoryParam & guestsParam khi URL thay đổi
     useEffect(() => {
         if (categoryParam && categoryParam !== 'all') {
             setSelectedTab(categoryParam);
         }
     }, [categoryParam]);
 
-    // Lọc theo từ khóa tìm kiếm, tab danh mục và sức chứa khách
+    useEffect(() => {
+        if (guestsParam && Number(guestsParam) > 0) {
+            setCapacityFilter(String(guestsParam));
+        }
+    }, [guestsParam]);
+
+    // Lọc theo từ khóa tìm kiếm, tab/ID danh mục, sức chứa, khoảng giá và hướng nhìn
     const filteredCategories = categories.filter((room) => {
         const matchesSearch =
             searchQuery.trim() === '' ||
@@ -130,23 +134,54 @@ export default function RoomsAndSuitesPage() {
             room.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
         let matchesTab = true;
-        if (selectedTab === 'deluxe') {
-            matchesTab = room.name.toLowerCase().includes('deluxe');
-        } else if (selectedTab === 'suite') {
-            matchesTab = room.name.toLowerCase().includes('suite');
-        } else if (selectedTab === 'penthouse') {
-            matchesTab =
-                room.name.toLowerCase().includes('penthouse') ||
-                room.name.toLowerCase().includes('president');
+        if (selectedTab && selectedTab !== 'all') {
+            if (selectedTab === 'deluxe') {
+                matchesTab = room.name.toLowerCase().includes('deluxe');
+            } else if (selectedTab === 'suite') {
+                matchesTab = room.name.toLowerCase().includes('suite');
+            } else if (selectedTab === 'penthouse') {
+                matchesTab =
+                    room.name.toLowerCase().includes('penthouse') ||
+                    room.name.toLowerCase().includes('president');
+            } else {
+                // Hỗ trợ lọc chính xác theo ID hoặc slug hạng phòng được chọn từ Trang chủ
+                matchesTab =
+                    String(room.id) === String(selectedTab) ||
+                    (room.slug && String(room.slug) === String(selectedTab));
+            }
         }
 
         let matchesCapacity = true;
-        if (guestsParam && Number(guestsParam) > 0) {
-            matchesCapacity = Number(room.capacity || 2) >= Number(guestsParam);
+        const requiredCapacity = capacityFilter !== 'all' ? Number(capacityFilter) : Number(guestsParam || 0);
+        if (requiredCapacity > 0) {
+            matchesCapacity = Number(room.capacity || 2) >= requiredCapacity;
         }
 
-        return matchesSearch && matchesTab && matchesCapacity;
+        const effectivePrice =
+            room.promo_price && Number(room.promo_price) > 0 && Number(room.promo_price) < Number(room.base_price)
+                ? Number(room.promo_price)
+                : Number(room.base_price || 0);
+        let matchesPrice = true;
+        if (priceRange === 'under-2m') matchesPrice = effectivePrice < 2000000;
+        else if (priceRange === '2m-4m') matchesPrice = effectivePrice >= 2000000 && effectivePrice <= 4000000;
+        else if (priceRange === 'over-4m') matchesPrice = effectivePrice > 4000000;
+
+        let matchesView = true;
+        if (viewFilter !== 'all') {
+            const viewBlob = `${room.view_type || ''} ${room.name || ''} ${room.short_description || ''} ${room.description || ''}`.toLowerCase();
+            if (viewFilter === 'sea') {
+                matchesView = /(biển|ocean|sea|mỹ khê|vịnh)/.test(viewBlob);
+            } else if (viewFilter === 'city') {
+                matchesView = /(thành phố|city|phố|sông|river|cầu rồng)/.test(viewBlob);
+            }
+        }
+
+        return matchesSearch && matchesTab && matchesCapacity && matchesPrice && matchesView;
     });
+
+    const selectedCategoryLabel =
+        categories.find((c) => String(c.id) === String(selectedTab) || (c.slug && String(c.slug) === String(selectedTab)))?.name ||
+        selectedTab;
 
     // Sắp xếp danh sách
     const sortedCategories = [...filteredCategories].sort((a, b) => {
@@ -238,11 +273,22 @@ export default function RoomsAndSuitesPage() {
                                     {tab.label}
                                 </button>
                             ))}
+                            {!['all', 'deluxe', 'suite', 'penthouse'].includes(selectedTab) && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedTab('all')}
+                                    className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 flex items-center gap-1.5"
+                                    title="Bấm để bỏ chọn hạng phòng này"
+                                >
+                                    <span>{selectedCategoryLabel}</span>
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
                         </div>
 
-                        {/* Search & Sort Controls */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
-                            <div className="relative flex-1 md:w-64">
+                        {/* Search, Sort & Toggle Advanced Filter Controls */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+                            <div className="relative flex-1 md:w-52">
                                 <input
                                     type="text"
                                     value={searchQuery}
@@ -255,19 +301,95 @@ export default function RoomsAndSuitesPage() {
                                 </span>
                             </div>
 
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="w-full sm:w-auto shrink-0 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
-                            >
-                                <option value="featured">Đề xuất hàng đầu</option>
-                                <option value="price-asc">Giá: Thấp đến Cao</option>
-                                <option value="price-desc">Giá: Cao đến Thấp</option>
-                                <option value="size-desc">Diện tích rộng nhất</option>
-                                <option value="capacity-desc">Sức chứa nhiều nhất</option>
-                            </select>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="flex-1 sm:flex-initial shrink-0 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                >
+                                    <option value="featured">Đề xuất hàng đầu</option>
+                                    <option value="price-asc">Giá: Thấp đến Cao</option>
+                                    <option value="price-desc">Giá: Cao đến Thấp</option>
+                                    <option value="size-desc">Diện tích rộng nhất</option>
+                                    <option value="capacity-desc">Sức chứa nhiều nhất</option>
+                                </select>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                                    aria-expanded={showAdvancedFilters}
+                                    className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                        showAdvancedFilters || activeAdvancedCount > 0
+                                            ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-2xs'
+                                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                    }`}
+                                >
+                                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Bộ lọc</span>
+                                    {activeAdvancedCount > 0 && (
+                                        <span className="min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">
+                                            {activeAdvancedCount}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Khay Bộ lọc nâng cao (chỉ xổ ra khi bấm nút "Bộ lọc") */}
+                    {showAdvancedFilters && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 animate-in fade-in duration-150">
+                            <div className="flex flex-wrap items-center gap-2 flex-1">
+                                <select
+                                    value={priceRange}
+                                    onChange={(e) => setPriceRange(e.target.value)}
+                                    aria-label="Lọc theo khoảng giá"
+                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                >
+                                    <option value="all">Mọi mức giá</option>
+                                    <option value="under-2m">Dưới 2.000.000đ / đêm</option>
+                                    <option value="2m-4m">2.000.000đ – 4.000.000đ</option>
+                                    <option value="over-4m">Trên 4.000.000đ / đêm</option>
+                                </select>
+
+                                <select
+                                    value={capacityFilter}
+                                    onChange={(e) => setCapacityFilter(e.target.value)}
+                                    aria-label="Lọc theo sức chứa"
+                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                >
+                                    <option value="all">Mọi sức chứa</option>
+                                    <option value="1">Từ 1 người lớn</option>
+                                    <option value="2">Từ 2 người lớn</option>
+                                    <option value="3">Từ 3 người lớn</option>
+                                    <option value="4">Từ 4 người lớn</option>
+                                    <option value="6">Từ 6 người lớn</option>
+                                </select>
+
+                                <select
+                                    value={viewFilter}
+                                    onChange={(e) => setViewFilter(e.target.value)}
+                                    aria-label="Lọc theo hướng nhìn"
+                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                >
+                                    <option value="all">Tất cả hướng nhìn</option>
+                                    <option value="sea">Hướng biển / Mỹ Khê</option>
+                                    <option value="city">Hướng thành phố / Sông Hàn</option>
+                                </select>
+                            </div>
+
+                            {hasAnyFilter && (
+                                <button
+                                    type="button"
+                                    onClick={handleClearSearch}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition cursor-pointer"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    <span>Xóa bộ lọc</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -293,7 +415,7 @@ export default function RoomsAndSuitesPage() {
                                     {guestsParam ? `${guestsParam} khách` : 'Tất cả khách'}
                                     {checkInParam && ` • Nhận: ${formatDateDisplay(checkInParam)}`}
                                     {checkOutParam && ` • Trả: ${formatDateDisplay(checkOutParam)}`}
-                                    {categoryParam && categoryParam !== 'all' && ` • Hạng: ${selectedTab}`}
+                                    {categoryParam && categoryParam !== 'all' && ` • Hạng: ${selectedCategoryLabel}`}
                                 </div>
                             </div>
                         </div>
@@ -355,13 +477,10 @@ export default function RoomsAndSuitesPage() {
                         </p>
                         <button
                             type="button"
-                            onClick={() => {
-                                setSearchQuery('');
-                                setSelectedTab('all');
-                            }}
-                            className="mt-4 px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20"
+                            onClick={handleClearSearch}
+                            className="mt-4 px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 cursor-pointer"
                         >
-                            Xem Tất Cả Hạng Phòng
+                            Xóa Bộ Lọc & Xem Tất Cả
                         </button>
                     </div>
                 )}
@@ -402,7 +521,11 @@ export default function RoomsAndSuitesPage() {
                                 >
                                     {/* Ảnh đại diện chính to ở trên */}
                                     <div className="relative h-64 w-full overflow-hidden bg-slate-900 shrink-0">
-                                        <Link to={`/rooms/${room.id}`} className="block w-full h-full">
+                                        <Link
+                                            to={`/rooms/${room.id}`}
+                                            state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
+                                            className="block w-full h-full"
+                                        >
                                             <img
                                                 src={primaryImage}
                                                 alt={room.name}
@@ -459,7 +582,12 @@ export default function RoomsAndSuitesPage() {
                                         <div>
                                             {/* Tên Hạng Phòng */}
                                             <h3 className="font-serif text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1 min-h-[1.75rem]">
-                                                <Link to={`/rooms/${room.id}`}>{room.name}</Link>
+                                                <Link
+                                                    to={`/rooms/${room.id}`}
+                                                    state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
+                                                >
+                                                    {room.name}
+                                                </Link>
                                             </h3>
 
                                             {/* Mô tả ngắn */}

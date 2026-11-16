@@ -15,6 +15,7 @@ import {
 } from '../../components/client/checkout';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import api from '../../services/api';
+import { formatDateToInput, getNextDayString } from '../../utils/formatters';
 import {
     CalendarDays,
     User,
@@ -46,15 +47,6 @@ import {
     Lightbulb,
     X
 } from 'lucide-react';
-
-// Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
-const formatDateToInput = (date) => {
-    const d = new Date(date);
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${year}-${month}-${day}`;
-};
 
 // Hàm tiện ích format ngày hiển thị tiếng Việt (VD: 05/10/2026)
 const formatDateDisplay = (dateStr) => {
@@ -112,6 +104,7 @@ export default function Checkout() {
     const [companyName, setCompanyName] = useState('');
     const [companyTaxCode, setCompanyTaxCode] = useState('');
     const [companyAddress, setCompanyAddress] = useState('');
+    const [invoiceEmail, setInvoiceEmail] = useState('');
     const [taxCodeError, setTaxCodeError] = useState('');
     const [isBookerTheGuest, setIsBookerTheGuest] = useState(true);
     const [actualGuests, setActualGuests] = useState([
@@ -150,6 +143,7 @@ export default function Checkout() {
             setCompanyName('');
             setCompanyTaxCode('');
             setCompanyAddress('');
+            setInvoiceEmail('');
             setTaxCodeError('');
             setIsBookerTheGuest(true);
         }
@@ -526,7 +520,7 @@ export default function Checkout() {
             }
         } catch {
             // Fallback UI nếu server chưa cấu hình khuyến mãi trong DB
-            if (['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG'].includes(code)) {
+            if (['WELCOME10', 'VIP10', 'SUMMER2026', 'TADANANG', 'VIP2026'].includes(code)) {
                 const disc = Math.round(subtotal * 0.1);
                 setAppliedPromo({
                     code,
@@ -678,6 +672,10 @@ export default function Checkout() {
                 setBookingError('Vui lòng nhập địa chỉ trụ sở / xuất hóa đơn của công ty.');
                 return;
             }
+            if (invoiceEmail.trim() && !emailRegex.test(invoiceEmail.trim())) {
+                setBookingError('Email nhận hóa đơn VAT không đúng định dạng (ví dụ: ketoan@congty.vn).');
+                return;
+            }
         }
 
         // Chuẩn bị danh sách khách lưu trú thực tế (BookingGuest)
@@ -726,6 +724,20 @@ export default function Checkout() {
             return;
         }
 
+        // Kiểm tra định dạng CCCD cho khách lưu trú đi cùng (nếu khách có nhập)
+        if (customerType === 'CORPORATE') {
+            for (let idx = 0; idx < guestsPayload.length; idx++) {
+                const g = guestsPayload[idx];
+                if (!g.is_primary && g.id_type === 'CCCD' && g.identity_card) {
+                    const cleanSubId = g.identity_card.replace(/[\s.-]/g, '');
+                    if (!/^\d{9,12}$/.test(cleanSubId)) {
+                        setBookingError(`Số CCCD của khách "${g.full_name}" phải gồm từ 9 đến 12 chữ số.`);
+                        return;
+                    }
+                }
+            }
+        }
+
         // Chuẩn bị mảng dịch vụ đi kèm theo định dạng chuẩn của Backend
         const servicesPayload = selectedServicesArray.map((item) => ({
             service_id: item.service_id,
@@ -744,12 +756,13 @@ export default function Checkout() {
             company_name: customerType === 'CORPORATE' ? companyName.trim() : '',
             company_tax_code: customerType === 'CORPORATE' ? companyTaxCode.trim() : '',
             company_address: customerType === 'CORPORATE' ? companyAddress.trim() : '',
+            invoice_recipient_email: customerType === 'CORPORATE' && invoiceEmail.trim() ? invoiceEmail.trim() : null,
             guests: guestsPayload,
             promo_code: appliedPromo ? appliedPromo.code : '',
             discount_amount: appliedPromo ? discountAmount : 0,
             selected_services: servicesPayload,
             payment_method: paymentMethod,
-            note: `${note ? note + ' | ' : ''}Khách: ${totalGuestsCount || guestCount} người. CCCD: ${cleanIdCard}.${customerType === 'CORPORATE' ? ` [Công ty: ${companyName.trim()} - MST: ${companyTaxCode.trim()}]` : ''} Thanh toán: ${paymentMethod}`
+            note: `${note ? note + ' | ' : ''}Khách: ${totalGuestsCount || guestCount} người. CCCD: ${cleanIdCard}.${customerType === 'CORPORATE' ? ` [Công ty: ${companyName.trim()} - MST: ${companyTaxCode.trim()}${invoiceEmail.trim() ? ` - Email VAT: ${invoiceEmail.trim()}` : ''}]` : ''} Thanh toán: ${paymentMethod}`
         };
 
         // Lưu thông tin đã validate và mở modal xác nhận trước khi gọi API
@@ -1015,9 +1028,16 @@ export default function Checkout() {
                                         <div className="relative">
                                             <input
                                                 type="date"
-                                                min={checkInDate}
+                                                min={getNextDayString(checkInDate) || checkInDate}
                                                 value={checkOutDate}
-                                                onChange={(e) => setCheckOutDate(e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val && checkInDate && val <= checkInDate) {
+                                                        setCheckOutDate(getNextDayString(checkInDate) || val);
+                                                    } else {
+                                                        setCheckOutDate(val);
+                                                    }
+                                                }}
                                                 required
                                                 className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                             />
@@ -1236,6 +1256,19 @@ export default function Checkout() {
                                                         className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                                                    Email nhận hóa đơn VAT điện tử
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Ví dụ: ketoan@congty.vn (Mặc định gửi về email người đặt nếu bỏ trống)"
+                                                    value={invoiceEmail}
+                                                    onChange={(e) => setInvoiceEmail(e.target.value)}
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                />
                                             </div>
 
                                             <div className="pt-2.5 border-t border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between flex-wrap gap-2">
