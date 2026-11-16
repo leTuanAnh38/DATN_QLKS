@@ -18,17 +18,13 @@ def get_cancellation_free_hours():
         return 48
 
 
-def get_group_cancel_eligibility(group, free_hours=None):
-    """
-    Tính toán điều kiện hủy miễn phí / hoàn cọc của đơn đặt đoàn dựa trên mốc 14:00 ngày nhận phòng.
-    """
-    if not group or not getattr(group, 'check_in_date', None):
+def _compute_hours_until_checkin(check_in_date, free_hours=None):
+    """Tính số giờ còn lại tới 14:00 ngày nhận phòng và điều kiện hủy miễn phí."""
+    if not check_in_date:
         return None
-
     if free_hours is None:
         free_hours = get_cancellation_free_hours()
 
-    check_in_date = group.check_in_date
     if isinstance(check_in_date, str):
         check_in_date = datetime.strptime(check_in_date[:10], '%Y-%m-%d').date()
 
@@ -41,6 +37,51 @@ def get_group_cancel_eligibility(group, free_hours=None):
         'free_hours': int(free_hours),
         'hours_until_checkin': hours_rounded,
         'is_free_cancel_eligible': hours_until >= float(free_hours),
+    }
+
+
+def get_group_cancel_eligibility(group, free_hours=None):
+    """
+    Tính toán điều kiện hủy miễn phí / hoàn cọc của đơn đặt đoàn dựa trên mốc 14:00 ngày nhận phòng.
+    """
+    if not group or not getattr(group, 'check_in_date', None):
+        return None
+    return _compute_hours_until_checkin(group.check_in_date, free_hours=free_hours)
+
+
+def get_booking_cancel_eligibility(booking, free_hours=None):
+    """
+    Tính toán điều kiện hủy miễn phí cho đơn đặt phòng cá nhân (Booking).
+    Đồng bộ mốc 14:00 ngày nhận phòng và quy tắc phân quyền/trạng thái của BookingViewSet.cancel_booking.
+    """
+    if not booking:
+        return None
+
+    st = str(getattr(booking, 'status', '') or '').lower()
+    if free_hours is None:
+        free_hours = get_cancellation_free_hours()
+
+    base = _compute_hours_until_checkin(getattr(booking, 'check_in_date', None), free_hours=free_hours) or {
+        'free_hours': int(free_hours),
+        'hours_until_checkin': 0.0,
+        'is_free_cancel_eligible': False,
+    }
+
+    if st in ('cancelled', 'checked_out', 'completed', 'no_show'):
+        return {**base, 'can_cancel': False, 'reason': f'status_{st}', 'is_group_managed': False}
+    if st == 'checked_in':
+        return {**base, 'can_cancel': False, 'reason': 'already_checked_in', 'is_group_managed': False}
+    if getattr(booking, 'group_booking_id', None):
+        return {**base, 'can_cancel': False, 'reason': 'group_managed', 'is_group_managed': True}
+
+    # Đơn pending (chưa thanh toán) luôn được hủy tự do; đơn confirmed/paid xét theo mốc free_hours
+    is_free = True if st == 'pending' else base['is_free_cancel_eligible']
+    return {
+        **base,
+        'can_cancel': True,
+        'is_free_cancel_eligible': is_free,
+        'reason': 'free_window' if is_free else 'late_window',
+        'is_group_managed': False,
     }
 
 

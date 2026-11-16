@@ -5,7 +5,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def generate_system_prompt(hotel_context, housekeeping_action=None, maintenance_action=None, pending_action=None):
+def generate_system_prompt(
+    hotel_context,
+    housekeeping_action=None,
+    maintenance_action=None,
+    pending_action=None,
+    lost_found_action=None,
+    cancel_eligibility=None,
+    price_estimate=None,
+):
     """
     Sinh System Prompt chuẩn mực cho AI Gemini:
     Đóng vai Trợ lý ảo Lễ tân & Concierge cao cấp của khách sạn,
@@ -182,6 +190,67 @@ def generate_system_prompt(hotel_context, housekeeping_action=None, maintenance_
                 "Hãy xin lỗi/trấn an lịch sự và mời khách điền hoặc bấm nút **Gửi yêu cầu tới Lễ tân** trên thẻ bên dưới (hoặc gọi Hotline)."
             )
 
+    lost_found_str = ""
+    if lost_found_action:
+        if lost_found_action.get('requires_auth'):
+            lost_found_str = (
+                "\n[BẢO MẬT ĐỒ THẤT LẠC (LOST & FOUND)]: Khách vừa hỏi tìm hoặc báo quên đồ nhưng chưa xác thực tài khoản/mã đơn. "
+                "TUYỆT ĐỐI KHÔNG tiết lộ đồ thất lạc của phòng nào. Hãy mời khách đăng nhập hoặc nhắn kèm `BK-... + SĐT` để kiểm tra kho đồ thất lạc ngay."
+            )
+        else:
+            items = lost_found_action.get('matched_items') or []
+            if items:
+                item_desc = "; ".join([
+                    f"{it['tracking_code']} - {it['item_name']} (Vị trí: {it['location_found']}, Cất giữ: {it['storage_location']}, Trạng thái: {it['status_label']})"
+                    for it in items
+                ])
+                lost_found_str = (
+                    f"\n[KHO ĐỒ THẤT LẠC ĐÃ TÌM THẤY (Đơn #{lost_found_action['booking_code']} - P.{lost_found_action['room_number']})]: "
+                    f"{item_desc}. Đã đồng thời gửi thông báo tới Lễ tân & Buồng phòng. Hãy báo tin vui và hướng dẫn khách liên hệ Quầy Lễ tân hoặc Hotline nhận lại đồ."
+                )
+            else:
+                lost_found_str = (
+                    f"\n[ĐÃ BÁO TÌM ĐỒ THẤT LẠC (Đơn #{lost_found_action['booking_code']} - P.{lost_found_action['room_number']})]: "
+                    "Hệ thống chưa thấy vật phẩm ghi nhận sẵn trong kho nhưng đã gửi thông báo khẩn tới Buồng phòng & Lễ tân kiểm tra lại phòng ngay. Hãy trấn an khách và hẹn phản hồi sớm."
+                )
+
+    cancel_elig_str = ""
+    if cancel_eligibility:
+        ce = cancel_eligibility
+        if not ce.get('can_cancel'):
+            cancel_elig_str = (
+                f"\n[ĐIỀU KIỆN HỦY ĐƠN #{ce['booking_code']}]: Đơn hiện có trạng thái `{ce['status']}` (`{ce['reason']}`) "
+                "nên không thể tự hủy online. Hãy giải thích lịch sự và mời khách liên hệ Lễ tân nếu cần hỗ trợ đặc biệt."
+            )
+        elif ce.get('is_free_cancel_eligible'):
+            cancel_elig_str = (
+                f"\n[ĐIỀU KIỆN HỦY ĐƠN #{ce['booking_code']}]: Nhận phòng `{ce['check_in_date']}` (còn khoảng **{ce['hours_until_checkin']} giờ**). "
+                f"Đủ điều kiện **HỦY MIỄN PHÍ** (trước mốc {ce['free_hours']} giờ). Hãy hướng dẫn khách vào `/booking-history` (hoặc `/corporate-booking` nếu đơn đoàn) để thao tác."
+            )
+        else:
+            cancel_elig_str = (
+                f"\n[ĐIỀU KIỆN HỦY ĐƠN #{ce['booking_code']}]: Nhận phòng `{ce['check_in_date']}` (chỉ còn **{ce['hours_until_checkin']} giờ**, "
+                f"đã quá mốc miễn phí {ce['free_hours']} giờ). Hãy thông báo rõ quy định và mời khách liên hệ Lễ tân {h_info['hotline']} để được hỗ trợ đổi ngày/giải quyết."
+            )
+
+    price_est_str = ""
+    if price_estimate:
+        pe = price_estimate
+        disc_parts = []
+        if pe.get('membership_discount_formatted'):
+            disc_parts.append(f"Hội viên {pe['tier_name']} (-{pe['membership_discount_formatted']})")
+        if pe.get('promo_discount_formatted'):
+            disc_parts.append(f"Mã `{pe['promo_code']}` (-{pe['promo_discount_formatted']})")
+        elif pe.get('promo_min_unmet'):
+            disc_parts.append(f"Mã `{pe['promo_code']}` chưa đủ đơn tối thiểu {pe['promo_min_order_formatted']}")
+        disc_txt = " | ".join(disc_parts) if disc_parts else "Chưa áp dụng giảm giá"
+        price_est_str = (
+            f"\n[ƯỚC TÍNH TỔNG TIỀN ĐẶT PHÒNG CHÍNH XÁC]: Hạng **{pe['room_name']}** ({pe['check_in_display']} -> {pe['check_out_display']}, {pe['nights']} đêm):\n"
+            f"- Đơn giá: {pe['unit_price_formatted']}/đêm | Tạm tính: {pe['subtotal_formatted']}\n"
+            f"- Giảm giá: {disc_txt}\n"
+            f"- **TỔNG THANH TOÁN DỰ KIẾN**: **{pe['final_total_formatted']}** ({pe['vat_note']}). Hãy trình bày bảng tính rõ ràng cho khách."
+        )
+
     shuttle_note = (
         "\n* Lưu ý: Khi tư vấn lịch trình tham quan hoặc sân bay, hãy giới thiệu dịch vụ xe đưa đón VIP của khách sạn ở thẻ dịch vụ bên dưới."
         if hotel_context.get('has_shuttle_service')
@@ -225,6 +294,6 @@ MÃ KHUYẾN MÃI & ĐẶC QUYỀN HỘI VIÊN:
 CẨM NANG DU LỊCH ĐÀ NẴNG:
 {guide_text}{shuttle_note}{posts_text}
 
-{user_str}{hk_str}{maint_str}{pending_str}{promo_check_str}{lookup_hint_str}
+{user_str}{hk_str}{maint_str}{pending_str}{lost_found_str}{cancel_elig_str}{price_est_str}{promo_check_str}{lookup_hint_str}
 """
     return system_prompt

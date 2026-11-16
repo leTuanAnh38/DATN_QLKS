@@ -1,7 +1,7 @@
 import calendar
 from datetime import datetime, timedelta
 from decimal import Decimal
-from django.db.models import Sum, Count, Q, F, Value
+from django.db.models import Sum, Count, Avg, Q, F, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from rest_framework.views import APIView
@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, BasePermission
 
-from ..bookings.models import Booking, GroupBooking, CorporatePartner
+from ..bookings.models import Booking, GroupBooking, CorporatePartner, ChatbotInteractionLog
 from ..payments.models import Invoice, Payment, CashOutVoucher
 from ..payments.revenue import get_net_revenue_summary
 from ..rooms.models import Room, RoomCategory
@@ -670,6 +670,11 @@ class ReportsAnalyticsView(APIView):
             })
 
         # =====================================================================
+        # PHẦN 11: THỐNG KÊ HIỆU QUẢ & NHẬT KÝ TRỢ LÝ AI CONCIERGE
+        # =====================================================================
+        chatbot_analytics = _build_chatbot_analytics(start_date, end_date, prev_start, prev_end)
+
+        # =====================================================================
         # PHẢN HỒI JSON TỔNG HỢP TOÀN BỘ DỮ LIỆU THỐNG KÊ
         # =====================================================================
         return Response({
@@ -706,5 +711,120 @@ class ReportsAnalyticsView(APIView):
             'top_corporate_partners': top_corporate_partners,
             'top_rooms': top_rooms_data,
             'top_vip_customers': top_vip_data,
+            'chatbot_analytics': chatbot_analytics,
             'server_time': now.isoformat(),
         }, status=status.HTTP_200_OK)
+
+
+def _build_chatbot_analytics(start_date, end_date, prev_start, prev_end):
+    """Tổng hợp số liệu vận hành Trợ lý AI Concierge trong kỳ báo cáo."""
+    period_logs = ChatbotInteractionLog.objects.filter(
+        created_at__gte=start_date,
+        created_at__lte=end_date,
+    ).select_related('user')
+
+    ask_logs = period_logs.exclude(response_source='confirm_action')
+    total_interactions = ask_logs.count()
+
+    prev_interactions = ChatbotInteractionLog.objects.filter(
+        created_at__gte=prev_start,
+        created_at__lte=prev_end,
+    ).exclude(response_source='confirm_action').count()
+
+    if prev_interactions > 0:
+        growth_rate = round(((total_interactions - prev_interactions) / prev_interactions) * 100, 1)
+    elif total_interactions > 0:
+        growth_rate = 100.0
+    else:
+        growth_rate = 0.0
+
+    ai_responses = ask_logs.filter(
+        response_source__in=['gemini_ai', 'gemini_ai_fallback_model']
+    ).count()
+    fallback_responses = ask_logs.filter(response_source='local_smart_fallback').count()
+    ai_success_rate = round((ai_responses / total_interactions) * 100, 1) if total_interactions > 0 else 0.0
+
+    inhouse_actions_count = period_logs.filter(
+        action_triggered__in=['housekeeping', 'maintenance', 'lost_found', 'service_order_confirmed']
+    ).count()
+    handoff_count = ask_logs.filter(
+        Q(intent_category='human_handoff') | Q(action_triggered='handoff_prompt')
+    ).count()
+    handoff_rate = round((handoff_count / total_interactions) * 100, 1) if total_interactions > 0 else 0.0
+    authenticated_count = ask_logs.filter(is_authenticated_user=True).count()
+    avg_latency_ms = int(round(ask_logs.aggregate(avg=Avg('latency_ms'))['avg'] or 0))
+
+    intent_labels = dict(ChatbotInteractionLog.INTENT_CHOICES)
+    intent_colors = ['#2563eb', '#0891b2', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#64748b']
+    intent_rows = ask_logs.values('intent_category').annotate(cnt=Count('id')).order_by('-cnt')
+    intent_breakdown = []
+    for idx, row in enumerate(intent_rows):
+        code = row['intent_category']
+        cnt = row['cnt']
+        intent_breakdown.append({
+            'code': code,
+            'name': intent_labels.get(code, code),
+            'count': cnt,
+            'percentage': round((cnt / total_interactions) * 100, 1) if total_interactions > 0 else 0.0,
+            'color': intent_colors[idx % len(intent_colors)],
+        })
+
+    lang_meta = {
+        'vi': ('Tiếng Việt', '#2563eb'),
+        'en': ('English', '#059669'),
+        'ko': ('한국어 (Hàn)', '#d97706'),
+        'zh': ('中文 (Trung)', '#db2777'),
+    }
+    lang_rows = ask_logs.values('detected_lang').annotate(cnt=Count('id')).order_by('-cnt')
+    language_breakdown = []
+    for row in lang_rows:
+        code = row['detected_lang'] or 'vi'
+        cnt = row['cnt']
+        label, color = lang_meta.get(code, (code.upper(), '#64748b'))
+        language_breakdown.append({
+            'code': code,
+            'name': label,
+            'count': cnt,
+            'percentage': round((cnt / total_interactions) * 100, 1) if total_interactions > 0 else 0.0,
+            'color': color,
+        })
+
+    recent_logs = []
+    for log in period_logs.order_by('-created_at')[:20]:
+        user_disp = (
+            (log.user.get_full_name() or log.user.username)
+            if log.user
+            else 'Khách vãng lai'
+        )
+        recent_logs.append({
+            'id': log.id,
+            'user_display': user_disp,
+            'is_authenticated': log.is_authenticated_user,
+            'detected_lang': log.detected_lang,
+            'intent_category': log.intent_category,
+            'intent_label': intent_labels.get(log.intent_category, log.intent_category),
+            'response_source': log.response_source,
+            'action_triggered': log.action_triggered,
+            'user_message': log.user_message,
+            'latency_ms': log.latency_ms,
+            'created_at': timezone.localtime(log.created_at).strftime('%H:%M %d/%m'),
+        })
+
+    return {
+        'summary': {
+            'total_interactions': total_interactions,
+            'prev_interactions': prev_interactions,
+            'growth_rate': growth_rate,
+            'ai_responses': ai_responses,
+            'fallback_responses': fallback_responses,
+            'ai_success_rate': ai_success_rate,
+            'inhouse_actions_count': inhouse_actions_count,
+            'handoff_count': handoff_count,
+            'handoff_rate': handoff_rate,
+            'avg_latency_ms': avg_latency_ms,
+            'authenticated_count': authenticated_count,
+        },
+        'intent_breakdown': intent_breakdown,
+        'language_breakdown': language_breakdown,
+        'recent_logs': recent_logs,
+    }

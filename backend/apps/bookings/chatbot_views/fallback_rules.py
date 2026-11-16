@@ -115,9 +115,211 @@ def _promo_status_message(qp, lang='vi'):
     )
 
 
+def _lost_found_message(lf, h_info, lang='vi'):
+    """Sinh phản hồi cho tra cứu / báo đồ thất lạc (Lost & Found)."""
+    if lf.get('requires_auth'):
+        if lang == 'en':
+            return (
+                "To protect guest privacy and check our **Lost & Found** vault for the right room, please **sign in** to your account "
+                "or provide **both your Booking Code (`BK-...`) and Phone Number** in the same message."
+            )
+        if lang == 'ko':
+            return (
+                "분실물 보관 내역 확인 및 보안을 위해 **로그인**하시거나 **예약 번호(`BK-...`)와 전화번호**를 함께 입력해 주세요."
+            )
+        if lang == 'zh':
+            return (
+                "为保障隐私并准确核查**失物招领**记录，请先**登录账号**，或同时提供**预订编号（`BK-...`）和手机号**。"
+            )
+        return (
+            "Dạ để bảo mật thông tin tài sản cá nhân và kiểm tra chính xác kho **Đồ Thất Lạc (Lost & Found)** theo đúng phòng Quý khách đã lưu trú, "
+            "Quý khách vui lòng **đăng nhập tài khoản** HOẶC nhắn kèm **Mã đơn (`BK-...`) + Số điện thoại** trong cùng 1 tin nhắn ạ!"
+        )
+
+    items = lf.get('matched_items') or []
+    r_num = lf.get('room_number')
+    b_code = lf.get('booking_code')
+    if items:
+        if lang == 'en':
+            lines = [f"Great news, **{lf['guest_name']}**! I checked our **Lost & Found** log for **Room P.{r_num}** (`#{b_code}`) and found:\n"]
+            for it in items:
+                lines.append(f"• **`{it['tracking_code']}` — {it['item_name']}** | Storage: **{it['storage_location']}** ({it['status_label']})")
+            lines.append(f"\nI have also notified our Front Desk & Housekeeping. Please contact Hotline **{h_info['hotline']}** or visit Reception to claim your item(s)!")
+            return "\n".join(lines)
+        if lang == 'ko':
+            lines = [f"**{lf['guest_name']}** 고객님, **P.{r_num}호**(`#{b_code}`) 관련 **분실물 보관 내역**을 확인했습니다:\n"]
+            for it in items:
+                lines.append(f"• **`{it['tracking_code']}` — {it['item_name']}** | 보관 위치: **{it['storage_location']}**")
+            lines.append(f"\n프런트 데스크에도 전달 완료되었으니 핫라인 **{h_info['hotline']}**으로 연락해 수령해 주세요!")
+            return "\n".join(lines)
+        if lang == 'zh':
+            lines = [f"尊敬的 **{lf['guest_name']}**，已为您查到 **P.{r_num}号房**（`#{b_code}`）的**失物招领**记录：\n"]
+            for it in items:
+                lines.append(f"• **`{it['tracking_code']}` — {it['item_name']}** | 存放位置: **{it['storage_location']}**")
+            lines.append(f"\n已通知前台妥善保管，请致电 **{h_info['hotline']}** 或前往前台领取！")
+            return "\n".join(lines)
+        lines = [f"Dạ tin vui cho Quý khách **{lf['guest_name']}**! Em đã kiểm tra kho **Đồ Thất Lạc (Lost & Found)** gắn với **Phòng P.{r_num}** (Mã đơn `#{b_code}`) và ghi nhận:\n"]
+        for it in items:
+            lines.append(f"• **Mã `{it['tracking_code']}` — {it['item_name']}** | Nơi tìm thấy: *{it['location_found']}* | Đang cất giữ tại: **{it['storage_location']}** (*{it['status_label']}*)")
+        lines.append(f"\nEm cũng đã gửi thông báo tới Lễ tân & Buồng phòng để chuẩn bị bàn giao lại cho Quý khách. Quý khách vui lòng liên hệ Hotline **{h_info['hotline']}** hoặc Quầy Lễ tân để nhận lại đồ nhé ạ!")
+        return "\n".join(lines)
+
+    if lang == 'en':
+        return (
+            f"Dear **{lf['guest_name']}**, I checked our Lost & Found vault for **Room P.{r_num}** (`#{b_code}`) and no item has been logged yet. "
+            f"I have immediately sent a **high-priority alert** to our Housekeeping & Front Desk team to inspect the room right away. "
+            f"We will contact you shortly, or you may reach our 24/7 Hotline **{h_info['hotline']}**."
+        )
+    if lang == 'ko':
+        return (
+            f"**{lf['guest_name']}** 고객님, **P.{r_num}호**(`#{b_code}`)의 분실물 등록 내역이 아직 없어 하우스키핑과 프런트에 **긴급 확인 요청**을 전송했습니다. "
+            f"확인되는 대로 바로 연락드리겠습니다 (핫라인: **{h_info['hotline']}**)."
+        )
+    if lang == 'zh':
+        return (
+            f"尊敬的 **{lf['guest_name']}**，暂未查到 **P.{r_num}号房**（`#{b_code}`）的已登记失物，我已立即向客房部与前台发送**加急排查通知**。"
+            f"核实后将第一时间联系您（24小时热线：**{h_info['hotline']}**）。"
+        )
+    return (
+        f"Dạ em đã kiểm tra kho đồ thất lạc cho **Phòng P.{r_num}** (Mã đơn `#{b_code}`) nhưng hiện chưa thấy vật phẩm nào được nhập kho ạ.\n\n"
+        f"Em đã lập tức gửi **thông báo khẩn** tới bộ phận **Buồng phòng & Lễ tân** để kiểm tra lại phòng và khu vực liên quan ngay cho Quý khách **{lf['guest_name']}**. "
+        f"Nhân viên sẽ liên hệ lại sớm nhất hoặc Quý khách có thể gọi Hotline 24/7 **{h_info['hotline']}** ạ!"
+    )
+
+
+def _cancel_eligibility_message(ce, h_info, lang='vi'):
+    """Sinh phản hồi điều kiện hủy miễn phí theo thời gian thực cho đơn đã xác thực."""
+    code = ce['booking_code']
+    free_h = ce['free_hours']
+    hrs = ce['hours_until_checkin']
+    target_route = '`/corporate-booking`' if ce.get('is_group') else '`/booking-history`'
+
+    if not ce.get('can_cancel'):
+        if lang == 'en':
+            return (
+                f"Reservation **`#{code}`** (Check-in **{ce['check_in_date']}**) currently has status **`{ce['status']}`** and cannot be cancelled automatically online. "
+                f"Please contact our Front Desk Hotline **{h_info['hotline']}** for direct assistance."
+            )
+        if lang == 'ko':
+            return f"예약 **`#{code}`**은(는) 현재 상태(`{ce['status']}`)상 온라인 자동 취소가 불가합니다. 프런트 핫라인 **{h_info['hotline']}**으로 문의해 주세요."
+        if lang == 'zh':
+            return f"订单 **`#{code}`** 当前状态为 `{ce['status']}`，暂不支持线上直接取消。请联系前台热线 **{h_info['hotline']}** 协助处理。"
+        return (
+            f"Dạ đơn **`#{code}`** (Nhận phòng **{ce['check_in_date']}**) hiện đang ở trạng thái **`{ce['status']}`** nên không thể tự hủy trực tuyến trên hệ thống ạ. "
+            f"Quý khách vui lòng liên hệ Hotline Lễ tân 24/7 **{h_info['hotline']}** để được hỗ trợ trực tiếp nhé ạ!"
+        )
+
+    if ce.get('is_free_cancel_eligible'):
+        if lang == 'en':
+            return (
+                f"Good news! Reservation **`#{code}`** (Check-in **{ce['check_in_date']}**, ~**{hrs} hours** remaining) is **ELIGIBLE FOR FREE CANCELLATION** "
+                f"(before the **{free_h}-hour** policy window).\n\n"
+                f"You can review or cancel it directly on the **My Bookings** ({target_route}) page!"
+            )
+        if lang == 'ko':
+            return (
+                f"예약 **`#{code}`** (체크인 **{ce['check_in_date']}**, 약 **{hrs}시간** 남음)은(는) 체크인 **{free_h}시간** 전 기준을 충족하여 **무료 취소 가능** 대상입니다.\n\n"
+                f"**예약 내역** ({target_route}) 페이지에서 직접 취소하실 수 있습니다!"
+            )
+        if lang == 'zh':
+            return (
+                f"好消息！您的订单 **`#{code}`**（入住日期 **{ce['check_in_date']}**，距离入住约 **{hrs} 小时**）符合入住前 **{free_h} 小时**政策，可享受**免费取消**。\n\n"
+                f"您可直接前往**预订记录**（{target_route}）页面办理取消！"
+            )
+        return (
+            f"Dạ tin vui ạ! Đơn **`#{code}`** (Nhận phòng **{ce['check_in_date']}**, còn khoảng **{hrs} giờ** tới giờ nhận phòng) "
+            f"hiện **ĐỦ ĐIỀU KIỆN HỦY MIỄN PHÍ** (trước mốc quy định **{free_h} giờ**) ạ.\n\n"
+            f"Quý khách có thể vào mục **Lịch sử đặt phòng** ({target_route}) để thao tác hủy hoặc liên hệ Hotline **{h_info['hotline']}** nếu cần hỗ trợ đổi ngày nhé ạ!"
+        )
+
+    if lang == 'en':
+        return (
+            f"Reservation **`#{code}`** (Check-in **{ce['check_in_date']}**, only ~**{hrs} hours** remaining) is currently **past the {free_h}-hour free cancellation window**.\n\n"
+            f"Please contact our Concierge Hotline **{h_info['hotline']}** so our Duty Manager can assist you with rescheduling or special cancellation support."
+        )
+    if lang == 'ko':
+        return (
+            f"예약 **`#{code}`** (체크인 **{ce['check_in_date']}**, 약 **{hrs}시간** 남음)은(는) **무료 취소 가능 기간({free_h}시간 전)이 경과**했습니다.\n\n"
+            f"일정 변경이나 취소 지원이 필요하시면 핫라인 **{h_info['hotline']}**으로 연락해 주세요."
+        )
+    if lang == 'zh':
+        return (
+            f"订单 **`#{code}`**（入住日期 **{ce['check_in_date']}**，距离入住仅剩约 **{hrs} 小时**）已超过 **{free_h} 小时免费取消**时限。\n\n"
+            f"如需改期或申请协助，请联系 24 小时前台热线 **{h_info['hotline']}**。"
+        )
+    return (
+        f"Dạ em đã kiểm tra đơn **`#{code}`** (Nhận phòng **{ce['check_in_date']}**): hiện chỉ còn khoảng **{hrs} giờ** tới giờ nhận phòng, "
+        f"đã quá mốc **hủy miễn phí trước {free_h} giờ** ạ.\n\n"
+        f"Nếu Quý khách muốn dời ngày lưu trú hoặc cần hỗ trợ đặc biệt, vui lòng liên hệ trực tiếp Lễ tân qua Hotline **{h_info['hotline']}** để Quản lý ca trực xem xét hỗ trợ tốt nhất nhé ạ!"
+    )
+
+
+def _price_estimate_message(pe, lang='vi'):
+    """Sinh bảng tính tạm tính tổng tiền đặt phòng (gồm số đêm, hạng hội viên & mã giảm giá)."""
+    disc_lines_vi = []
+    disc_lines_en = []
+    disc_lines_ko = []
+    disc_lines_zh = []
+    if pe.get('membership_discount_formatted'):
+        disc_lines_vi.append(f"• **Ưu đãi Hội viên ({pe['tier_name']} - {int(pe['tier_percent'])}%)**: **-{pe['membership_discount_formatted']}**")
+        disc_lines_en.append(f"• **Membership Discount ({pe['tier_name']} - {int(pe['tier_percent'])}%)**: **-{pe['membership_discount_formatted']}**")
+        disc_lines_ko.append(f"• **멤버십 할인 ({pe['tier_name']} - {int(pe['tier_percent'])}%)**: **-{pe['membership_discount_formatted']}**")
+        disc_lines_zh.append(f"• **会员折扣 ({pe['tier_name']} - {int(pe['tier_percent'])}%)**: **-{pe['membership_discount_formatted']}**")
+    if pe.get('promo_discount_formatted'):
+        disc_lines_vi.append(f"• **Mã khuyến mãi `{pe['promo_code']}`**: **-{pe['promo_discount_formatted']}**")
+        disc_lines_en.append(f"• **Promo Code `{pe['promo_code']}`**: **-{pe['promo_discount_formatted']}**")
+        disc_lines_ko.append(f"• **프로모션 코드 `{pe['promo_code']}`**: **-{pe['promo_discount_formatted']}**")
+        disc_lines_zh.append(f"• **优惠码 `{pe['promo_code']}`**: **-{pe['promo_discount_formatted']}**")
+    elif pe.get('promo_min_unmet'):
+        disc_lines_vi.append(f"• **Mã `{pe['promo_code']}`**: Chưa áp dụng (cần đơn tối thiểu **{pe['promo_min_order_formatted']}**)")
+        disc_lines_en.append(f"• **Promo `{pe['promo_code']}`**: Not applied (min order **{pe['promo_min_order_formatted']}**)")
+        disc_lines_ko.append(f"• **코드 `{pe['promo_code']}`**: 최소 주문 금액(**{pe['promo_min_order_formatted']}**) 미충족")
+        disc_lines_zh.append(f"• **优惠码 `{pe['promo_code']}`**: 未满足最低消费 (**{pe['promo_min_order_formatted']}**)")
+
+    if lang == 'en':
+        extra = ("\n" + "\n".join(disc_lines_en)) if disc_lines_en else ""
+        return (
+            f"Here is the **Estimated Total** for **{pe['room_name']}** ({pe['check_in_display']} ➔ {pe['check_out_display']}, **{pe['nights']} night(s)**):\n\n"
+            f"• **Nightly Rate**: **{pe['unit_price_formatted']}**\n"
+            f"• **Room Subtotal ({pe['nights']} night(s))**: **{pe['subtotal_formatted']}**"
+            f"{extra}\n"
+            f"• **ESTIMATED TOTAL**: **{pe['final_total_formatted']}** *(Taxes & service charge included)*\n\n"
+            f"Tap **[Book Now]** on the room card below to reserve with these dates pre-filled!"
+        )
+    if lang == 'ko':
+        extra = ("\n" + "\n".join(disc_lines_ko)) if disc_lines_ko else ""
+        return (
+            f"**{pe['room_name']}** ({pe['check_in_display']} ~ {pe['check_out_display']}, **{pe['nights']}박**) 예상 결제 금액입니다:\n\n"
+            f"• **1박 요금**: **{pe['unit_price_formatted']}**\n"
+            f"• **객실 소계 ({pe['nights']}박)**: **{pe['subtotal_formatted']}**"
+            f"{extra}\n"
+            f"• **예상 총 결제 금액**: **{pe['final_total_formatted']}** *(세금 및 봉사료 포함)*"
+        )
+    if lang == 'zh':
+        extra = ("\n" + "\n".join(disc_lines_zh)) if disc_lines_zh else ""
+        return (
+            f"以下是 **{pe['room_name']}**（{pe['check_in_display']} 至 {pe['check_out_display']}，共 **{pe['nights']} 晚**）的费用预算明细：\n\n"
+            f"• **每晚房价**: **{pe['unit_price_formatted']}**\n"
+            f"• **房费小计 ({pe['nights']} 晚)**: **{pe['subtotal_formatted']}**"
+            f"{extra}\n"
+            f"• **预计应付总额**: **{pe['final_total_formatted']}** *（已含税费及服务费）*"
+        )
+    extra = ("\n" + "\n".join(disc_lines_vi)) if disc_lines_vi else ""
+    return (
+        f"Dạ em xin gửi Quý khách **Bảng ước tính chi phí đặt phòng** hạng **{pe['room_name']}** "
+        f"({pe['check_in_display']} ➔ {pe['check_out_display']}, **{pe['nights']} đêm**) ạ:\n\n"
+        f"• **Đơn giá mỗi đêm**: **{pe['unit_price_formatted']}**\n"
+        f"• **Tạm tính ({pe['nights']} đêm)**: **{pe['subtotal_formatted']}**"
+        f"{extra}\n"
+        f"• **TỔNG THANH TOÁN DỰ KIẾN**: **{pe['final_total_formatted']}** *({pe['vat_note']})*\n\n"
+        f"Quý khách có thể bấm **[Đặt ngay]** trên thẻ phòng bên dưới để giữ phòng với đúng ngày đã chọn nhé ạ!"
+    )
+
+
 def local_smart_fallback(
     message, user, hotel_context, tracked_bookings=None, lang='vi', history=None,
-    housekeeping_action=None, maintenance_action=None, pending_action=None
+    housekeeping_action=None, maintenance_action=None, pending_action=None,
+    lost_found_action=None, cancel_eligibility=None, price_estimate=None,
 ):
     """
     CƠ CHẾ FALLBACK THÔNG MINH ĐA NGÔN NGỮ (Offline / No Key / Quota Exceeded / Network Error):
@@ -244,6 +446,9 @@ def local_smart_fallback(
             f"Quý khách cần thêm khăn tắm, nước suối hay bất kỳ tiện ích nào khác cứ nhắn cho em bất cứ lúc nào nhé ạ!"
         )
 
+    if lost_found_action:
+        return _lost_found_message(lost_found_action, h_info, lang=lang)
+
     # -------------------------------------------------------------------------
     # 0B. NHẮC XÁC THỰC KHI TRA CỨU ĐƠN KHÔNG HỢP LỆ / THIẾU XÁC MINH
     # -------------------------------------------------------------------------
@@ -324,10 +529,17 @@ def local_smart_fallback(
             )
 
     # -------------------------------------------------------------------------
-    # 0D. KIỂM TRA MÃ KHUYẾN MÃI CỤ THỂ NẾU KHÁCH NHẮC ĐẾN
+    # 0D. ĐIỀU KIỆN HỦY ĐƠN / ƯỚC TÍNH TỔNG TIỀN / KIỂM TRA MÃ KHUYẾN MÃI
     # -------------------------------------------------------------------------
-    if hotel_context.get('queried_promo'):
-        return _promo_status_message(hotel_context['queried_promo'], lang=lang)
+    if cancel_eligibility:
+        return _cancel_eligibility_message(cancel_eligibility, h_info, lang=lang)
+
+    qp = hotel_context.get('queried_promo')
+    if price_estimate and not (qp and not qp.get('valid')):
+        return _price_estimate_message(price_estimate, lang=lang)
+
+    if qp:
+        return _promo_status_message(qp, lang=lang)
 
     # -------------------------------------------------------------------------
     # 1. TRỢ LÝ CHO KHÁCH ĐANG LƯU TRÚ: HÓA ĐƠN TẠM TÍNH / TIẾN TRÌNH ĐỒ ĂN / WIFI & HỒ BƠI

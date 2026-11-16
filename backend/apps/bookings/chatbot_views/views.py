@@ -1,5 +1,7 @@
 """Endpoint chatbot và xác nhận hành động 2 bước."""
 import os
+import re
+import time
 import logging
 import requests
 from django.conf import settings
@@ -13,14 +15,14 @@ from rest_framework import status
 
 
 logger = logging.getLogger(__name__)
-from ..models import Booking
+from ..models import Booking, ChatbotInteractionLog
 from ...services.models import ServiceItem, ServiceRequest
 from ...contacts.models import ContactMessage
 from ...notifications.models import Notification
 from ...users.models import User
-from .context_builder import build_hotel_context
-from .text_utils import detect_language
-from .response_parsers import extract_booking_tracker, extract_suggestions
+from .context_builder import build_hotel_context, build_active_stay_details, estimate_booking_price
+from .text_utils import detect_language, phones_match
+from .response_parsers import extract_booking_tracker, extract_suggestions, evaluate_booking_cancel_context
 from .nlp_parser import extract_dates_from_conversation, extract_guest_count
 from .prompt_builder import generate_system_prompt
 from .inhouse_requests import (
@@ -28,6 +30,7 @@ from .inhouse_requests import (
     handle_inhouse_housekeeping_request,
     handle_inhouse_maintenance_request,
     detect_inhouse_pending_action,
+    handle_lost_and_found_inquiry,
 )
 from .fallback_rules import local_smart_fallback
 
@@ -35,6 +38,97 @@ from .fallback_rules import local_smart_fallback
 MAX_MESSAGE_LENGTH = 1500
 MAX_HISTORY_TURNS = 8
 MAX_HISTORY_TEXT_LENGTH = 1000
+
+
+def _mask_pii_for_log(text):
+    """Che số điện thoại trước khi lưu nhật ký chatbot cho Admin xem."""
+    if not text:
+        return ''
+    masked = re.sub(r'(?<!\d)(?:\+?84|0)[\s.\-]?[35789](?:[\s.\-]?\d){8}(?!\d)', '[SĐT]', str(text))
+    return masked.strip()[:480]
+
+
+def _classify_chatbot_intent(
+    message,
+    hotel_context,
+    maintenance_action=None,
+    housekeeping_action=None,
+    lost_found_action=None,
+    pending_action=None,
+    cancel_eligibility=None,
+    price_estimate=None,
+    tracked_bookings=None,
+    suggested_rooms=None,
+    suggested_services=None,
+):
+    """Phân loại chủ đề câu hỏi & hành động tự động để thống kê trên Admin Analytics."""
+    msg_low = (message or '').strip().lower()
+
+    if maintenance_action:
+        act = 'maintenance_auth_required' if maintenance_action.get('requires_auth') else 'maintenance'
+        return 'maintenance', act
+    if housekeeping_action:
+        act = 'housekeeping_auth_required' if housekeeping_action.get('requires_auth') else 'housekeeping'
+        return 'housekeeping', act
+    if lost_found_action:
+        act = 'lost_found_auth_required' if lost_found_action.get('requires_auth') else 'lost_found'
+        return 'lost_and_found', act
+    if pending_action:
+        p_type = pending_action.get('type')
+        if p_type == 'human_handoff':
+            return 'human_handoff', 'handoff_prompt'
+        if p_type in ('create_service_request', 'create_service_request_auth_required'):
+            return 'service_order', 'service_order_prompt'
+    if cancel_eligibility:
+        return 'cancel_policy', 'cancel_check'
+    if price_estimate:
+        return 'price_estimate', 'price_estimate'
+    if tracked_bookings or hotel_context.get('lookup_verification_hint'):
+        return 'booking_lookup', 'booking_lookup' if tracked_bookings else ''
+    if hotel_context.get('queried_promo'):
+        return 'promo_check', 'promo_check'
+    if any(k in msg_low for k in ['hóa đơn tạm tính', 'tạm tính', 'minibar', 'folio', 'my bill', 'đơn đồ ăn', '정산서', '账单']):
+        return 'inhouse_folio', ''
+    if any(k in msg_low for k in ['chính sách hủy', 'hủy phòng', 'hoàn tiền', 'check-in sớm', 'trả phòng muộn', 'cancellation', '취소', '取消']):
+        return 'cancel_policy', ''
+    if any(k in msg_low for k in ['khuyến mãi', 'voucher', 'ưu đãi', 'giảm giá', 'thành viên', 'vip', 'promo', '할인', '优惠']):
+        return 'promo_check', ''
+    if any(k in msg_low for k in ['du lịch', 'cầu rồng', 'bà nà', 'hội an', 'sơn trà', 'ngũ hành sơn', 'tour', 'travel']):
+        return 'travel_guide', ''
+    if suggested_rooms:
+        return 'room_inquiry', ''
+    if suggested_services:
+        return 'service_inquiry', ''
+    return 'general', ''
+
+
+def _record_chatbot_log(
+    request,
+    detected_lang,
+    intent_category,
+    response_source,
+    action_triggered,
+    user_message,
+    bot_reply='',
+    latency_ms=0,
+):
+    """Ghi log tương tác vào DB một cách an toàn (không làm gián đoạn luồng chat nếu lỗi)."""
+    try:
+        user = getattr(request, 'user', None)
+        is_auth = bool(user and user.is_authenticated)
+        ChatbotInteractionLog.objects.create(
+            user=user if is_auth else None,
+            detected_lang=str(detected_lang or 'vi')[:10],
+            intent_category=str(intent_category or 'general')[:40],
+            response_source=str(response_source or 'local_smart_fallback')[:40],
+            action_triggered=str(action_triggered or '')[:50],
+            user_message=_mask_pii_for_log(user_message),
+            bot_reply_preview=_mask_pii_for_log(bot_reply),
+            latency_ms=max(0, int(latency_ms or 0)),
+            is_authenticated_user=is_auth,
+        )
+    except Exception as e:
+        logger.warning(f"Lỗi ghi ChatbotInteractionLog: {e}")
 
 
 class ChatbotAnonThrottle(AnonRateThrottle):
@@ -64,6 +158,7 @@ class ChatbotAskView(APIView):
     throttle_classes = [ChatbotAnonThrottle, ChatbotUserThrottle]
 
     def post(self, request, *args, **kwargs):
+        start_ts = time.perf_counter()
         message = str(request.data.get('message') or '').strip()
         history = request.data.get('history', [])
         preferred_lang = request.data.get('lang')
@@ -102,22 +197,36 @@ class ChatbotAskView(APIView):
         hotel_context = build_hotel_context(
             request, date_info=date_info, lang=detected_lang, guest_count=guest_count, message=message
         )
-        maintenance_action = handle_inhouse_maintenance_request(message, request)
-        housekeeping_action = None if maintenance_action else handle_inhouse_housekeeping_request(message, request, hotel_context)
-        pending_action = None if (maintenance_action or housekeeping_action) else detect_inhouse_pending_action(
-            message, request, hotel_context, lang=detected_lang
+        maintenance_action = handle_inhouse_maintenance_request(message, request, history=sanitized_history)
+        housekeeping_action = None if maintenance_action else handle_inhouse_housekeeping_request(
+            message, request, hotel_context, history=sanitized_history
+        )
+        lost_found_action = None if (maintenance_action or housekeeping_action) else handle_lost_and_found_inquiry(
+            message, request, history=sanitized_history
+        )
+        pending_action = None if (maintenance_action or housekeeping_action or lost_found_action) else detect_inhouse_pending_action(
+            message, request, hotel_context, lang=detected_lang, history=sanitized_history
         )
         suggested_rooms, suggested_services = extract_suggestions(
             message, hotel_context, lang=detected_lang, history=sanitized_history
         )
         tracked_bookings = extract_booking_tracker(
-            message, request, hotel_context, lang=detected_lang
+            message, request, hotel_context, lang=detected_lang, history=sanitized_history
+        )
+        cancel_eligibility = evaluate_booking_cancel_context(
+            message, request, tracked_bookings=tracked_bookings
+        )
+        price_estimate = estimate_booking_price(
+            message, hotel_context, lang=detected_lang, history=sanitized_history
         )
         system_prompt = generate_system_prompt(
             hotel_context,
             housekeeping_action=housekeeping_action,
             maintenance_action=maintenance_action,
             pending_action=pending_action,
+            lost_found_action=lost_found_action,
+            cancel_eligibility=cancel_eligibility,
+            price_estimate=price_estimate,
         )
 
         active_stay_summary = None
@@ -141,6 +250,29 @@ class ChatbotAskView(APIView):
                 f"- Tổng tiền: {bk['total_amount']} | Trạng thái: {bk['status_label']} (Bước {bk['step_index']}/4)\n"
                 f"Hãy phản hồi đầy đủ thông tin này một cách ân cần, sang trọng."
             )
+            if not active_stay_summary and not bk.get('is_group') and str(bk.get('status', '')).lower() == 'checked_in':
+                bk_obj = (
+                    Booking.objects.filter(id=bk['id'])
+                    .select_related('category', 'room', 'invoice', 'group_booking', 'applied_promotion')
+                    .prefetch_related('extra_services', 'service_requests__service', 'service_requests__assigned_staff', 'payments')
+                    .first()
+                )
+                if bk_obj:
+                    st = build_active_stay_details(bk_obj, lang=detected_lang)
+                    if st:
+                        active_stay_summary = {
+                            'booking_code': st['booking_code'],
+                            'room_number': st['room_number'],
+                            'category_name': st['category_name'],
+                            'is_checked_in': st['is_checked_in'],
+                            'grand_total_formatted': st['grand_total_formatted']
+                        }
+                        system_prompt += (
+                            f"\n- Hóa đơn tạm tính thời gian thực (Provisional Folio): "
+                            f"Tiền phòng {st['room_total_formatted']} | Phụ phí/Minibar {st['extra_total_formatted']} | "
+                            f"Dịch vụ gọi thêm {st['service_total_formatted']} | Tổng cộng {st['grand_total_formatted']} | "
+                            f"Đã thanh toán {st.get('paid_total_formatted', '0 đ')} | Còn lại {st['unpaid_additional_formatted']}."
+                        )
 
         base_meta = {
             'detected_lang': detected_lang,
@@ -169,11 +301,63 @@ class ChatbotAskView(APIView):
                 if pending_action and pending_action.get('type') in ('create_service_request', 'human_handoff')
                 else None
             ),
+            'lost_found_info': (
+                {
+                    'booking_code': lost_found_action.get('booking_code'),
+                    'room_number': lost_found_action.get('room_number'),
+                    'matched_items': lost_found_action.get('matched_items', []),
+                    'staff_notified': lost_found_action.get('staff_notified', False),
+                }
+                if lost_found_action and not lost_found_action.get('requires_auth')
+                else None
+            ),
+            'cancel_eligibility': cancel_eligibility,
+            'price_estimate': price_estimate,
             'lookup_verification_required': bool(hotel_context.get('lookup_verification_hint')),
             'suggested_rooms': suggested_rooms,
             'suggested_services': suggested_services,
             'tracked_bookings': tracked_bookings
         }
+
+        fallback_kwargs = {
+            'tracked_bookings': tracked_bookings,
+            'lang': detected_lang,
+            'history': sanitized_history,
+            'housekeeping_action': housekeeping_action,
+            'maintenance_action': maintenance_action,
+            'pending_action': pending_action,
+            'lost_found_action': lost_found_action,
+            'cancel_eligibility': cancel_eligibility,
+            'price_estimate': price_estimate,
+        }
+
+        intent_category, action_triggered = _classify_chatbot_intent(
+            message,
+            hotel_context,
+            maintenance_action=maintenance_action,
+            housekeeping_action=housekeeping_action,
+            lost_found_action=lost_found_action,
+            pending_action=pending_action,
+            cancel_eligibility=cancel_eligibility,
+            price_estimate=price_estimate,
+            tracked_bookings=tracked_bookings,
+            suggested_rooms=suggested_rooms,
+            suggested_services=suggested_services,
+        )
+
+        def _build_logged_response(reply_text, source):
+            elapsed_ms = int((time.perf_counter() - start_ts) * 1000)
+            _record_chatbot_log(
+                request,
+                detected_lang=detected_lang,
+                intent_category=intent_category,
+                response_source=source,
+                action_triggered=action_triggered,
+                user_message=message,
+                bot_reply=reply_text,
+                latency_ms=elapsed_ms,
+            )
+            return Response({'success': True, 'reply': reply_text, 'source': source, **base_meta})
 
         # 2. Kiểm tra Gemini API Key
         if hasattr(settings, 'GEMINI_API_KEY'):
@@ -189,12 +373,9 @@ class ChatbotAskView(APIView):
 
         if not is_key_valid:
             fallback_reply = local_smart_fallback(
-                message, request.user, hotel_context,
-                tracked_bookings=tracked_bookings, lang=detected_lang,
-                history=sanitized_history, housekeeping_action=housekeeping_action,
-                maintenance_action=maintenance_action, pending_action=pending_action,
+                message, request.user, hotel_context, **fallback_kwargs
             )
-            return Response({'success': True, 'reply': fallback_reply, 'source': 'local_smart_fallback', **base_meta})
+            return _build_logged_response(fallback_reply, 'local_smart_fallback')
 
         # 3. Chuẩn bị nội dung gửi Gemini REST API
         gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={gemini_api_key}"
@@ -229,7 +410,7 @@ class ChatbotAskView(APIView):
                 gemini_url,
                 json=payload,
                 headers=headers,
-                timeout=6
+                timeout=12
             )
 
             if response.status_code == 200:
@@ -239,36 +420,28 @@ class ChatbotAskView(APIView):
                     parts = candidates[0]['content'].get('parts', [])
                     if parts and 'text' in parts[0]:
                         reply_text = parts[0]['text'].strip()
-                        return Response({'success': True, 'reply': reply_text, 'source': 'gemini_ai', **base_meta})
+                        return _build_logged_response(reply_text, 'gemini_ai')
 
             logger.warning(f"Gemini API phản hồi mã lỗi {response.status_code}: {response.text[:200]}")
             if response.status_code in [404, 400]:
                 alt_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-                alt_resp = requests.post(alt_url, json=payload, headers=headers, timeout=5)
+                alt_resp = requests.post(alt_url, json=payload, headers=headers, timeout=8)
                 if alt_resp.status_code == 200:
                     alt_data = alt_resp.json()
                     alt_cand = alt_data.get('candidates', [])
                     if alt_cand and 'content' in alt_cand[0]:
                         alt_parts = alt_cand[0]['content'].get('parts', [])
                         if alt_parts and 'text' in alt_parts[0]:
-                            return Response({
-                                'success': True,
-                                'reply': alt_parts[0]['text'].strip(),
-                                'source': 'gemini_ai_fallback_model',
-                                **base_meta
-                            })
+                            return _build_logged_response(alt_parts[0]['text'].strip(), 'gemini_ai_fallback_model')
 
         except Exception as ex:
             logger.error(f"Lỗi kết nối Gemini API: {ex}")
 
         # 4. Khi gặp sự cố, tự động kích hoạt Local Smart Fallback (có Multi-turn Memory)
         fallback_reply = local_smart_fallback(
-            message, request.user, hotel_context,
-            tracked_bookings=tracked_bookings, lang=detected_lang,
-            history=sanitized_history, housekeeping_action=housekeeping_action,
-            maintenance_action=maintenance_action, pending_action=pending_action,
+            message, request.user, hotel_context, **fallback_kwargs
         )
-        return Response({'success': True, 'reply': fallback_reply, 'source': 'local_smart_fallback', **base_meta})
+        return _build_logged_response(fallback_reply, 'local_smart_fallback')
 
 
 class ChatbotActionConfirmView(APIView):
@@ -329,7 +502,7 @@ class ChatbotActionConfirmView(APIView):
         elif booking_code and phone_number and booking.guest:
             is_authorized = (
                 booking.booking_code.upper() == booking_code
-                and str(getattr(booking.guest, 'phone_number', '') or '').strip() == phone_number
+                and phones_match(getattr(booking.guest, 'phone_number', ''), phone_number)
             )
 
         if not is_authorized:
@@ -358,6 +531,15 @@ class ChatbotActionConfirmView(APIView):
             note=f"[AI Concierge] {note}" if note else "[AI Concierge] Đặt qua trợ lý ảo",
             request_time=timezone.now(),
         )
+        _record_chatbot_log(
+            request,
+            detected_lang=detect_language(note),
+            intent_category='service_order',
+            response_source='confirm_action',
+            action_triggered='service_order_confirmed',
+            user_message=f"[Xác nhận dịch vụ] {quantity}x {service_item.name} (#{booking.booking_code})",
+            bot_reply=f"Đã tạo ServiceRequest #{sr.id}",
+        )
         return Response({
             'success': True,
             'request_id': sr.id,
@@ -376,6 +558,7 @@ class ChatbotActionConfirmView(APIView):
         email = str(data.get('email') or (getattr(user, 'email', '') if is_auth else '')).strip()[:120]
         subject = str(data.get('subject') or '[AI Concierge Handoff] Yêu cầu hỗ trợ trực tiếp').strip()[:200]
         msg_body = str(data.get('message') or '').strip()[:1500]
+        excerpt_raw = data.get('conversation_excerpt')
 
         if not name or not email or '@' not in email or not msg_body:
             return Response(
@@ -383,11 +566,39 @@ class ChatbotActionConfirmView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        excerpt_str = ''
+        if isinstance(excerpt_raw, list):
+            lines = []
+            for turn in excerpt_raw[-6:]:
+                if not isinstance(turn, dict):
+                    continue
+                who = 'Khách' if turn.get('role') == 'user' else 'AI'
+                txt = str(turn.get('text') or '').strip().replace('\n', ' ')[:180]
+                if txt:
+                    lines.append(f"- {who}: {txt}")
+            if lines:
+                excerpt_str = "\n".join(lines)[:1000]
+        elif isinstance(excerpt_raw, str) and excerpt_raw.strip():
+            excerpt_str = excerpt_raw.strip()[:1000]
+
+        full_contact_message = msg_body
+        if excerpt_str:
+            full_contact_message = f"{msg_body}\n\n--- Ngữ cảnh hội thoại AI trước đó ---\n{excerpt_str}"
+
         contact = ContactMessage.objects.create(
             name=name,
             email=email,
             subject=subject,
-            message=msg_body,
+            message=full_contact_message,
+        )
+        _record_chatbot_log(
+            request,
+            detected_lang=detect_language(msg_body),
+            intent_category='human_handoff',
+            response_source='confirm_action',
+            action_triggered='handoff_confirmed',
+            user_message=f"[Xác nhận Handoff] {msg_body[:300]}",
+            bot_reply=f"Đã tạo ContactMessage #{contact.id}",
         )
         try:
             staff_users = User.objects.filter(

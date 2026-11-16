@@ -93,6 +93,78 @@ def detect_language(text, preferred_lang=None):
     return 'vi'
 
 
+def normalize_phone(phone):
+    """Chuẩn hóa số điện thoại về dạng chữ số (chuyển +84/84 đầu số về 0) để so sánh linh hoạt."""
+    if not phone:
+        return ''
+    digits = re.sub(r'\D', '', str(phone))
+    if digits.startswith('84') and len(digits) >= 11:
+        digits = '0' + digits[2:]
+    return digits
+
+
+def phones_match(phone_a, phone_b):
+    """So sánh 2 số điện thoại sau khi chuẩn hóa."""
+    na = normalize_phone(phone_a)
+    nb = normalize_phone(phone_b)
+    return bool(na and nb and na == nb)
+
+
+def extract_code_and_phone(text):
+    """
+    Trích xuất Mã đơn (BK-... / GRP-...) và Số điện thoại (VN hoặc quốc tế 8-15 chữ số) từ tin nhắn.
+    Trả về `(raw_code, norm_code, phone_num)` hoặc `(None, None, None)` cho phần không tìm thấy.
+    """
+    if not text:
+        return None, None, None
+
+    msg = str(text)
+    code_match = re.search(r'\b((?:BK|GRP)[-_]?[A-Z0-9]{4,10})\b', msg, re.IGNORECASE)
+    raw_code = code_match.group(1).upper() if code_match else None
+    norm_code = raw_code
+    if raw_code:
+        if raw_code.startswith('BK') and not raw_code.startswith('BK-'):
+            norm_code = f"BK-{raw_code[2:]}"
+        elif raw_code.startswith('GRP') and not raw_code.startswith('GRP-'):
+            norm_code = f"GRP-{raw_code[3:]}"
+
+    # Loại bỏ ngày tháng và mã đơn trước khi bắt số điện thoại để tránh nhận nhầm
+    cleaned_for_phone = re.sub(r'\b20\d{2}[-/]\d{1,2}[-/]\d{1,2}\b', ' ', msg)
+    cleaned_for_phone = re.sub(r'\b\d{1,2}[-/]\d{1,2}(?:[-/]\d{2,4})?\b', ' ', cleaned_for_phone)
+    if raw_code:
+        cleaned_for_phone = cleaned_for_phone.replace(code_match.group(0), ' ')
+
+    phone_num = None
+    vn_match = re.search(r'(?<!\d)(?:\+?84|0)[\s.\-]?([35789])(?:[\s.\-]?\d){8}(?!\d)', cleaned_for_phone)
+    if vn_match:
+        phone_num = normalize_phone(vn_match.group(0))
+    else:
+        intl_match = re.search(r'(?<!\d)\+?\d(?:[\s.\-]?\d){7,14}(?!\d)', cleaned_for_phone)
+        if intl_match:
+            candidate = normalize_phone(intl_match.group(0))
+            if 8 <= len(candidate) <= 15:
+                phone_num = candidate
+
+    return raw_code, norm_code, phone_num
+
+
+def find_code_phone_pair_in_history(history):
+    """
+    Tìm cặp (Mã đơn, SĐT) đã được người dùng cung cấp đồng thời trong một lượt hội thoại trước đó.
+    Chỉ quét các tin nhắn có role == 'user'.
+    """
+    if not isinstance(history, list):
+        return None, None, None
+    for item in reversed(history[-8:]):
+        if not isinstance(item, dict) or item.get('role') not in ('user', None):
+            continue
+        prev_text = item.get('text') or item.get('content') or ''
+        raw_code, norm_code, phone_num = extract_code_and_phone(prev_text)
+        if raw_code and phone_num:
+            return raw_code, norm_code, phone_num
+    return None, None, None
+
+
 def format_currency_multilingual(amount, lang='vi'):
     """
     Định dạng số tiền sang chuẩn VNĐ và quy đổi tự động sang USD / KRW / CNY cho khách quốc tế:

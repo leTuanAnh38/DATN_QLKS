@@ -11,7 +11,7 @@ from ...services.models import ServiceItem
 from ...users.models import MembershipTier
 
 logger = logging.getLogger(__name__)
-from .nlp_parser import extract_dates_from_conversation
+from .nlp_parser import extract_dates_from_conversation, resolve_room_from_conversation
 from .text_utils import format_currency, format_currency_multilingual, strip_html_tags
 
 
@@ -152,12 +152,18 @@ def build_active_stay_details(bk, lang='vi'):
             'created_time': timezone.localtime(sr.created_at).strftime('%H:%M %d/%m') if sr.created_at else ''
         })
 
+    unassigned_room_labels = {
+        'vi': 'Chờ gán phòng',
+        'en': 'Room assignment pending',
+        'ko': '객실 배정 대기',
+        'zh': '待分配房号',
+    }
     return {
         'booking_id': bk.id,
         'booking_code': bk.booking_code,
         'status': bk.status,
         'is_checked_in': str(bk.status).lower() == 'checked_in',
-        'room_number': room_num or 'Chờ gán phòng',
+        'room_number': room_num or unassigned_room_labels.get(lang, 'Chờ gán phòng'),
         'floor': floor_num,
         'category_name': cat_name,
         'check_in_date': bk.check_in_date.strftime('%d/%m/%Y') if bk.check_in_date else '',
@@ -313,6 +319,9 @@ def evaluate_queried_promo(message):
             'valid': valid,
             'status': status_code,
             'discount': discount_str,
+            'discount_type': matched_promo.discount_type,
+            'discount_value': float(matched_promo.discount_value or 0),
+            'max_discount_amount': float(matched_promo.max_discount_amount) if matched_promo.max_discount_amount else None,
             'min_order': min_order_str,
             'min_order_value': float(matched_promo.min_order_value or 0),
             'remaining_uses': max(0, int(matched_promo.usage_limit - matched_promo.used_count)),
@@ -327,6 +336,9 @@ def evaluate_queried_promo(message):
             'valid': True,
             'status': 'default_system',
             'discount': '10%',
+            'discount_type': 'percentage',
+            'discount_value': 10.0,
+            'max_discount_amount': None,
             'min_order': 'Không giới hạn',
             'min_order_value': 0,
             'remaining_uses': None,
@@ -464,6 +476,10 @@ def build_hotel_context(request, date_info=None, lang='vi', guest_count=None, me
             context_data['hotel_info']['check_out'] = setting.check_out_time or '12:00'
             context_data['hotel_info']['vat'] = f"{setting.vat_percent}%"
             context_data['hotel_info']['service_charge'] = f"{setting.service_charge_percent}%"
+            for opt_key in ('wifi_ssid', 'wifi_pass', 'pool_info', 'breakfast_info', 'spa_gym_info'):
+                opt_val = getattr(setting, opt_key, None)
+                if opt_val:
+                    context_data['hotel_info'][opt_key] = opt_val
             context_data['corporate_policy']['vat_invoice'] = (
                 f"Hỗ trợ xuất hóa đơn tài chính điện tử VAT ({setting.vat_percent}%) nhanh chóng về email doanh nghiệp."
             )
@@ -626,6 +642,11 @@ def build_hotel_context(request, date_info=None, lang='vi', guest_count=None, me
             if hasattr(user, 'guest_profile') and user.guest_profile:
                 points = max(points, getattr(user.guest_profile, 'loyalty_points', 0))
 
+            try:
+                discount_pct_num = float(str(discount_rate).rstrip('%') or 0)
+            except ValueError:
+                discount_pct_num = 0.0
+
             full_name = user.get_full_name() or user.username
             user_data = {
                 'username': user.username,
@@ -633,6 +654,7 @@ def build_hotel_context(request, date_info=None, lang='vi', guest_count=None, me
                 'phone': getattr(user, 'phone_number', '') or '',
                 'vip_tier': vip_tier,
                 'discount_rate': discount_rate,
+                'discount_percent': discount_pct_num,
                 'loyalty_points': points,
                 'recent_bookings': [],
                 'active_stay': None
@@ -694,3 +716,105 @@ def build_hotel_context(request, date_info=None, lang='vi', guest_count=None, me
             logger.warning(f"Lỗi khi nạp user context: {e}")
 
     return context_data
+
+
+def estimate_booking_price(message, hotel_context, lang='vi', history=None):
+    """
+    Tính tạm tính tổng tiền đặt phòng trọn gói (đồng bộ công thức BookingViewSet.create):
+    - `subtotal = effective_price * nights`
+    - Trừ giảm giá Hạng thành viên (nếu user đã đăng nhập có tier > 0%)
+    - Trừ giảm giá Mã khuyến mãi hợp lệ (nếu khách nhắc tới mã hợp lệ & đạt `min_order_value`)
+    - Thuế VAT & phí dịch vụ đã bao gồm theo chính sách niêm yết của khách sạn.
+    """
+    msg_low = f" {(message or '').strip().lower()} "
+    if not msg_low.strip():
+        return None
+
+    # Không nhầm với câu hỏi Hóa đơn tạm tính (In-House Folio)
+    if any(k in msg_low for k in [
+        'hóa đơn tạm tính', 'phòng của tôi', 'phát sinh', 'minibar', 'folio', 'my bill', 'current bill', '정산서', '账单'
+    ]):
+        return None
+
+    rooms = hotel_context.get('rooms', [])
+    if not rooms:
+        return None
+
+    # Chỉ tìm phòng khớp trực tiếp từ câu hỏi hoặc history khi khách hỏi báo giá/tính tiền
+    target_room = resolve_room_from_conversation(message, history, rooms)
+    if not target_room:
+        return None
+
+    qp = hotel_context.get('queried_promo')
+    d_info = hotel_context.get('queried_dates', {})
+    nights = max(1, int(d_info.get('nights') or 1))
+
+    asks_estimate = any(k in msg_low for k in [
+        'tính tiền', 'tổng tiền', 'tổng chi phí', 'hết bao nhiêu', 'tổng cộng', 'báo giá',
+        'tạm tính', 'áp mã', 'dùng mã', 'giảm còn', 'còn bao nhiêu', 'nhiều đêm',
+        'total cost', 'total price', 'estimate', 'how much', 'calculate', 'with code', 'with promo', 'apply code',
+        '총 금액', '총 얼마', '계산', '할인 적용', '总价', '多少钱', '一共', '预算', '使用优惠码'
+    ])
+    mentions_nights = bool(re.search(r'\b\d{1,2}\s*(?:đêm|ngày\s*đêm|nights?|박|晚)', msg_low))
+    if not (asks_estimate or mentions_nights or (qp and qp.get('valid'))):
+        return None
+
+    unit_price = int(target_room.get('effective_price') or target_room.get('base_price') or 0)
+    subtotal = unit_price * nights
+
+    user_ctx = hotel_context.get('user_context') or {}
+    tier_pct = float(user_ctx.get('discount_percent') or 0.0)
+    tier_name = user_ctx.get('vip_tier') if tier_pct > 0 else None
+    membership_discount = int(round(subtotal * tier_pct / 100.0)) if tier_pct > 0 else 0
+
+    promo_discount = 0
+    promo_code = None
+    promo_min_unmet = False
+    promo_min_order_formatted = ''
+    if qp and qp.get('valid'):
+        promo_code = qp['code']
+        min_val = float(qp.get('min_order_value') or 0)
+        if subtotal < min_val:
+            promo_min_unmet = True
+            promo_min_order_formatted = qp.get('min_order', '')
+        else:
+            d_type = qp.get('discount_type', 'percentage')
+            d_val = float(qp.get('discount_value') or 0)
+            if d_type == 'percentage':
+                calc = subtotal * d_val / 100.0
+                max_cap = qp.get('max_discount_amount')
+                if max_cap:
+                    calc = min(calc, float(max_cap))
+                promo_discount = int(round(calc))
+            else:
+                promo_discount = int(min(subtotal, round(d_val)))
+
+    final_total = max(0, subtotal - membership_discount - promo_discount)
+    h_info = hotel_context.get('hotel_info', {})
+
+    return {
+        'room_id': target_room.get('id'),
+        'room_name': target_room.get('name'),
+        'check_in': d_info.get('check_in_str'),
+        'check_out': d_info.get('check_out_str'),
+        'check_in_display': d_info.get('check_in_display'),
+        'check_out_display': d_info.get('check_out_display'),
+        'nights': nights,
+        'unit_price': unit_price,
+        'unit_price_formatted': format_currency_multilingual(unit_price, lang=lang),
+        'subtotal': subtotal,
+        'subtotal_formatted': format_currency_multilingual(subtotal, lang=lang),
+        'tier_name': tier_name,
+        'tier_percent': tier_pct,
+        'membership_discount': membership_discount,
+        'membership_discount_formatted': format_currency_multilingual(membership_discount, lang=lang) if membership_discount > 0 else None,
+        'promo_code': promo_code,
+        'promo_discount': promo_discount,
+        'promo_discount_formatted': format_currency_multilingual(promo_discount, lang=lang) if promo_discount > 0 else None,
+        'promo_min_unmet': promo_min_unmet,
+        'promo_min_order_formatted': promo_min_order_formatted,
+        'final_total': final_total,
+        'final_total_formatted': format_currency_multilingual(final_total, lang=lang),
+        'vat_note': f"Đã bao gồm VAT ({h_info.get('vat', '8%')}) & Phí dịch vụ ({h_info.get('service_charge', '5%')})",
+        'available_count': target_room.get('available_count', 0),
+    }

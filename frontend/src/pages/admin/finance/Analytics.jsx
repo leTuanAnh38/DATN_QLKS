@@ -45,7 +45,11 @@ import {
     ShieldCheck,
     AlertTriangle,
     Wallet,
-    Tag
+    Tag,
+    Bot,
+    MessageSquare,
+    Sparkles,
+    Headphones
 } from 'lucide-react';
 import { reportService } from '../../../services/reportService';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -140,6 +144,7 @@ export default function Analytics({ onNavigateToCustomer }) {
     const [lastUpdated, setLastUpdated] = useState(null);
 
     const [isExportOpen, setIsExportOpen] = useState(false);
+    const [chatbotLogFilter, setChatbotLogFilter] = useState('all'); // 'all' | 'handoff' | 'fallback'
 
     // Fetch dữ liệu báo cáo
     const loadReportData = useCallback(async (showRefreshing = false) => {
@@ -230,6 +235,16 @@ export default function Analytics({ onNavigateToCustomer }) {
             csv += `${idx + 1},"${c.full_name || c.username}","${c.email || ''}","${c.vip_tier || ''}",${c.booking_count || 0},${c.total_spent || 0}\n`;
         });
 
+        const cbSum = reportData?.chatbot_analytics?.summary;
+        if (cbSum) {
+            csv += '\n7. HIỆU QUẢ TRỢ LÝ AI CONCIERGE\n';
+            csv += `Tổng lượt tư vấn AI:,${cbSum.total_interactions || 0}\n`;
+            csv += `Tỷ lệ trả lời Gemini AI:,${cbSum.ai_success_rate || 0}%\n`;
+            csv += `Nghiệp vụ In-house tự động:,${cbSum.inhouse_actions_count || 0}\n`;
+            csv += `Tỷ lệ chuyển tiếp Lễ tân (Handoff):,${cbSum.handoff_rate || 0}%\n`;
+            csv += `Độ trễ trung bình:,${cbSum.avg_latency_ms || 0} ms\n`;
+        }
+
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -257,6 +272,23 @@ export default function Analytics({ onNavigateToCustomer }) {
     const revenueMix = reportData?.revenue_mix || [];
     const customerSegments = reportData?.customer_segments || [];
     const topCorporatePartners = reportData?.top_corporate_partners || [];
+    const chatbotAnalytics = reportData?.chatbot_analytics || {};
+    const chatbotSummary = chatbotAnalytics.summary || {};
+    const chatbotIntents = chatbotAnalytics.intent_breakdown || [];
+    const chatbotLangs = chatbotAnalytics.language_breakdown || [];
+    const chatbotLogs = useMemo(() => chatbotAnalytics.recent_logs || [], [chatbotAnalytics.recent_logs]);
+
+    const filteredChatbotLogs = useMemo(() => {
+        if (chatbotLogFilter === 'handoff') {
+            return chatbotLogs.filter(
+                (l) => l.intent_category === 'human_handoff' || l.action_triggered?.includes('handoff')
+            );
+        }
+        if (chatbotLogFilter === 'fallback') {
+            return chatbotLogs.filter((l) => l.response_source === 'local_smart_fallback');
+        }
+        return chatbotLogs;
+    }, [chatbotLogs, chatbotLogFilter]);
 
     // Tính toán dữ liệu PieChart theo tab được chọn
     const activePieData = useMemo(() => {
@@ -1494,6 +1526,272 @@ export default function Analytics({ onNavigateToCustomer }) {
                             )}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* PHẦN 7: HIỆU QUẢ & NHẬT KÝ TRỢ LÝ AI CONCIERGE                           */}
+            {/* ========================================================================= */}
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <Bot className="w-5 h-5 text-sky-600" />
+                            <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                                Hiệu Quả & Nhật Ký Trợ Lý AI Concierge
+                            </h2>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            Giám sát lưu lượng hỏi đáp, phân bố ngôn ngữ, tỷ lệ Gemini AI và các yêu cầu chuyển tiếp Lễ tân
+                        </p>
+                    </div>
+                    <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 self-start sm:self-auto flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                        Độ trễ TB: {chatbotSummary.avg_latency_ms || 0} ms
+                    </span>
+                </div>
+
+                <div className="p-5 sm:p-6 space-y-6">
+                    {/* 4 thẻ KPI Chatbot */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100">
+                            <div className="flex items-center justify-between text-xs text-sky-800 font-semibold">
+                                <span>Tổng lượt tư vấn AI</span>
+                                <MessageSquare className="w-4 h-4 text-sky-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">
+                                {chatbotSummary.total_interactions || 0}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                                Đã đăng nhập: <strong className="text-slate-700">{chatbotSummary.authenticated_count || 0}</strong> lượt
+                                {typeof chatbotSummary.growth_rate === 'number' && (
+                                    <span className={`ml-2 font-semibold ${chatbotSummary.growth_rate >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                        ({chatbotSummary.growth_rate >= 0 ? '+' : ''}{chatbotSummary.growth_rate}%)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+                            <div className="flex items-center justify-between text-xs text-emerald-800 font-semibold">
+                                <span>Phản hồi Gemini AI</span>
+                                <Sparkles className="w-4 h-4 text-emerald-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">
+                                {chatbotSummary.ai_success_rate || 0}%
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                                AI: <strong className="text-emerald-700">{chatbotSummary.ai_responses || 0}</strong> • Fallback:{' '}
+                                <strong className="text-amber-700">{chatbotSummary.fallback_responses || 0}</strong>
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-100">
+                            <div className="flex items-center justify-between text-xs text-amber-900 font-semibold">
+                                <span>Nghiệp vụ tự động xử lý</span>
+                                <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">
+                                {chatbotSummary.inhouse_actions_count || 0}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                                Dọn phòng, kỹ thuật, đồ thất lạc & đặt món
+                            </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-100">
+                            <div className="flex items-center justify-between text-xs text-rose-900 font-semibold">
+                                <span>Tỷ lệ chuyển tiếp Lễ tân</span>
+                                <Headphones className="w-4 h-4 text-rose-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mt-2 tabular-nums">
+                                {chatbotSummary.handoff_rate || 0}%
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-1">
+                                Tổng yêu cầu gặp nhân viên: <strong className="text-rose-700">{chatbotSummary.handoff_count || 0}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2 Biểu đồ: Chủ đề & Ngôn ngữ */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 p-4 rounded-2xl border border-slate-200/80 bg-slate-50/40">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-bold text-slate-800">Top Chủ Đề Khách Hàng Quan Tâm</h3>
+                                <span className="text-[11px] text-slate-400">Phân loại theo ý định (Intent)</span>
+                            </div>
+                            {chatbotIntents.length === 0 ? (
+                                <div className="h-56 flex items-center justify-center text-xs text-slate-400">
+                                    Chưa có dữ liệu tương tác chatbot trong kỳ này
+                                </div>
+                            ) : (
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chatbotIntents.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 20, left: 10, bottom: 4 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                                            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                                            <YAxis dataKey="name" type="category" width={165} tick={{ fontSize: 11, fill: '#334155' }} />
+                                            <Tooltip
+                                                formatter={(val) => [`${val} lượt`, 'Số câu hỏi']}
+                                                contentStyle={{ borderRadius: '12px', fontSize: '12px', borderColor: '#cbd5e1' }}
+                                            />
+                                            <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={18}>
+                                                {chatbotIntents.slice(0, 8).map((entry) => (
+                                                    <Cell key={entry.code} fill={entry.color} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/40">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-bold text-slate-800">Ngôn Ngữ Giao Tiếp</h3>
+                                <span className="text-[11px] text-slate-400">VI / EN / KO / ZH</span>
+                            </div>
+                            {chatbotLangs.length === 0 ? (
+                                <div className="h-56 flex items-center justify-center text-xs text-slate-400">
+                                    Chưa có dữ liệu ngôn ngữ
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="h-44 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={chatbotLangs}
+                                                    dataKey="count"
+                                                    nameKey="name"
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={42}
+                                                    outerRadius={68}
+                                                    paddingAngle={3}
+                                                >
+                                                    {chatbotLangs.map((entry) => (
+                                                        <Cell key={entry.code} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip formatter={(val) => [`${val} lượt`, 'Số câu hỏi']} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        {chatbotLangs.map((lg) => (
+                                            <div key={lg.code} className="flex items-center justify-between text-xs">
+                                                <span className="flex items-center gap-2 text-slate-700 font-medium">
+                                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: lg.color }} />
+                                                    {lg.name}
+                                                </span>
+                                                <span className="font-bold text-slate-800 tabular-nums">
+                                                    {lg.count} ({lg.percentage}%)
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Bảng Nhật ký câu hỏi gần nhất */}
+                    <div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <h3 className="text-sm font-bold text-slate-800">Nhật Ký Tương Tác Gần Nhất</h3>
+                            <div className="flex items-center gap-1.5">
+                                {[
+                                    { id: 'all', label: 'Tất cả' },
+                                    { id: 'handoff', label: 'Chuyển Lễ tân (Handoff)' },
+                                    { id: 'fallback', label: 'Dùng Fallback' }
+                                ].map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => setChatbotLogFilter(tab.id)}
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
+                                            chatbotLogFilter === tab.id
+                                                ? 'bg-sky-600 text-white shadow-2xs'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto rounded-2xl border border-slate-200/80">
+                            <table className="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr className="bg-slate-50/80 border-b border-slate-200/70 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                        <th className="py-2.5 px-4">Thời gian</th>
+                                        <th className="py-2.5 px-4">Khách hàng</th>
+                                        <th className="py-2.5 px-4">Ngôn ngữ</th>
+                                        <th className="py-2.5 px-4">Chủ đề</th>
+                                        <th className="py-2.5 px-4">Câu hỏi (đã che SĐT)</th>
+                                        <th className="py-2.5 px-4">Nguồn / Độ trễ</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredChatbotLogs.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="py-8 text-center text-slate-400">
+                                                Không có bản ghi nhật ký phù hợp bộ lọc
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredChatbotLogs.map((log) => (
+                                            <tr key={log.id} className="hover:bg-slate-50/80 transition">
+                                                <td className="py-2.5 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                                                    {log.created_at}
+                                                </td>
+                                                <td className="py-2.5 px-4 font-medium text-slate-800 whitespace-nowrap">
+                                                    {log.user_display}
+                                                </td>
+                                                <td className="py-2.5 px-4">
+                                                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px] uppercase">
+                                                        {log.detected_lang}
+                                                    </span>
+                                                </td>
+                                                <td className="py-2.5 px-4 whitespace-nowrap">
+                                                    <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 text-[10px] font-semibold">
+                                                        {log.intent_label}
+                                                    </span>
+                                                </td>
+                                                <td className="py-2.5 px-4 text-slate-700 max-w-xs truncate" title={log.user_message}>
+                                                    {log.user_message}
+                                                </td>
+                                                <td className="py-2.5 px-4 whitespace-nowrap">
+                                                    <span
+                                                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                                            log.response_source.startsWith('gemini')
+                                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                                : log.response_source === 'confirm_action'
+                                                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                                                        }`}
+                                                    >
+                                                        {log.response_source === 'local_smart_fallback'
+                                                            ? 'Fallback'
+                                                            : log.response_source === 'confirm_action'
+                                                            ? 'Xác nhận'
+                                                            : 'Gemini AI'}
+                                                    </span>
+                                                    {log.latency_ms > 0 && (
+                                                        <span className="ml-1.5 font-mono text-[10px] text-slate-400">
+                                                            {log.latency_ms}ms
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

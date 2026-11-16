@@ -4,10 +4,16 @@ import logging
 from django.db.models import Q
 
 from ..models import Booking, GroupBooking
+from ..cancel_policy import get_booking_cancel_eligibility, get_group_cancel_eligibility
 
 logger = logging.getLogger(__name__)
 from .constants import DEFAULT_ROOM_IMAGES, DEFAULT_SERVICE_IMAGES
-from .text_utils import format_currency_multilingual
+from .text_utils import (
+    format_currency_multilingual,
+    extract_code_and_phone,
+    find_code_phone_pair_in_history,
+    phones_match,
+)
 from .nlp_parser import resolve_room_from_conversation
 
 
@@ -223,14 +229,14 @@ def _format_group_tracker_item(grp, lang='vi'):
     }
 
 
-def extract_booking_tracker(message, request, hotel_context, lang='vi'):
+def extract_booking_tracker(message, request, hotel_context, lang='vi', history=None):
     """
     Nhận diện và tra cứu đơn đặt phòng (BK-...) hoặc đơn đặt đoàn (GRP-...) với kiểm soát quyền chặt chẽ:
     1. Nhân viên / Quản lý (role staff/admin): tra cứu được mọi đơn theo mã hoặc SĐT.
     2. Khách đã đăng nhập: tự động xem đơn của chính mình; nếu nhập mã đơn/SĐT khác phải trùng tài khoản.
     3. Khách vãng lai (chưa đăng nhập): CHỈ được tra cứu khi nhập ĐỒNG THỜI Mã đơn (BK-... / GRP-...)
-       VÀ đúng Số điện thoại đặt đơn trong cùng tin nhắn; nếu thiếu 1 trong 2 -> không lộ dữ liệu
-       và gắn `hotel_context['lookup_verification_hint']`.
+       VÀ đúng Số điện thoại đặt đơn trong cùng tin nhắn (hoặc đã xác thực cặp này ở lượt hội thoại trước);
+       nếu thiếu 1 trong 2 -> không lộ dữ liệu và gắn `hotel_context['lookup_verification_hint']`.
     """
     msg = message.strip()
     msg_lower = msg.lower()
@@ -290,19 +296,24 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
         is_authenticated and (user.is_superuser or getattr(user, 'role', '') in STAFF_LOOKUP_ROLES)
     )
 
-    code_match = re.search(r'\b((?:BK|GRP)[-_]?[A-Z0-9]{4,10})\b', msg, re.IGNORECASE)
-    phone_match = re.search(r'\b(0[35789]\d{8})\b', msg)
-    phone_num = phone_match.group(1) if phone_match else None
+    raw_code, norm_code, phone_num = extract_code_and_phone(msg)
+    has_explicit_booking_intent = any(k in msg_lower for k in [
+        'đơn', 'đặt phòng của tôi', 'booking', 'kiểm tra đơn', 'tra cứu đơn', 'lịch sử', 'phòng của tôi',
+        'hóa đơn tạm tính', 'tạm tính', 'hóa đơn phòng', 'tiền phòng của tôi', 'folio', 'my bill', 'current bill',
+        'my booking', 'reservation', 'my room', 'check reservation', 'status', 'progress',
+        '내 예약', '예약 내역', '예약 확인', '예약 상태', '정산서',
+        '我的预订', '预订查询', '订单', '预订状态', '账单'
+    ])
+
+    # Nếu chưa đăng nhập và tin nhắn hiện tại không nhập mã/SĐT nhưng hỏi nối tiếp về đơn/hóa đơn,
+    # kiểm tra xem lượt trước người dùng đã xác thực cặp (Mã đơn + SĐT) chưa.
+    if not is_authenticated and not raw_code and not phone_num and has_explicit_booking_intent and history:
+        h_raw, h_norm, h_phone = find_code_phone_pair_in_history(history)
+        if h_raw and h_phone:
+            raw_code, norm_code, phone_num = h_raw, h_norm, h_phone
 
     # 1. Tra cứu theo Mã đơn (BK-... hoặc GRP-...)
-    if code_match:
-        raw_code = code_match.group(1).upper()
-        norm_code = raw_code
-        if raw_code.startswith('BK') and not raw_code.startswith('BK-'):
-            norm_code = f"BK-{raw_code[2:]}"
-        elif raw_code.startswith('GRP') and not raw_code.startswith('GRP-'):
-            norm_code = f"GRP-{raw_code[3:]}"
-
+    if raw_code:
         if raw_code.startswith('GRP'):
             grp = GroupBooking.objects.filter(
                 group_code__in=[raw_code, norm_code]
@@ -311,11 +322,11 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
                 user_phone = getattr(user, 'phone_number', '') if is_authenticated else ''
                 user_email = getattr(user, 'email', '') if is_authenticated else ''
                 is_owner = is_authenticated and (
-                    (user_phone and user_phone == grp.leader_phone) or
+                    phones_match(user_phone, grp.leader_phone) or
                     (user_email and grp.leader_email and user_email.lower() == grp.leader_email.lower()) or
                     grp.sub_bookings.filter(guest=user).exists()
                 )
-                has_phone_match = bool(phone_num and grp.leader_phone and phone_num == grp.leader_phone)
+                has_phone_match = phones_match(phone_num, grp.leader_phone)
                 if is_staff or is_owner or has_phone_match:
                     tracked_bookings.append(_format_group_tracker_item(grp, lang=lang))
                 else:
@@ -333,7 +344,7 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
                 for bk in bks:
                     guest_phone = getattr(bk.guest, 'phone_number', '') or ''
                     is_owner = is_authenticated and bk.guest_id == user.id
-                    has_phone_match = bool(phone_num and guest_phone and phone_num == guest_phone)
+                    has_phone_match = phones_match(phone_num, guest_phone)
                     if is_staff or is_owner or has_phone_match:
                         authorized_bks.append(bk)
 
@@ -350,14 +361,16 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
     # 2. Chỉ nhập Số điện thoại (không kèm Mã đơn)
     if phone_num:
         if is_staff:
-            bks = Booking.objects.filter(guest__phone_number=phone_num).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
+            all_bks = Booking.objects.select_related('guest', 'category', 'room').order_by('-created_at')[:100]
+            bks = [b for b in all_bks if b.guest and phones_match(getattr(b.guest, 'phone_number', ''), phone_num)][:2]
             for bk in bks:
                 tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
             if not tracked_bookings:
-                grp = GroupBooking.objects.filter(leader_phone=phone_num).prefetch_related('sub_bookings').order_by('-created_at').first()
+                all_grps = GroupBooking.objects.prefetch_related('sub_bookings').order_by('-created_at')[:50]
+                grp = next((g for g in all_grps if phones_match(g.leader_phone, phone_num)), None)
                 if grp:
                     tracked_bookings.append(_format_group_tracker_item(grp, lang=lang))
-        elif is_authenticated and (getattr(user, 'phone_number', '') or '') == phone_num:
+        elif is_authenticated and phones_match(getattr(user, 'phone_number', ''), phone_num):
             bks = Booking.objects.filter(guest=user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
             for bk in bks:
                 tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
@@ -369,16 +382,80 @@ def extract_booking_tracker(message, request, hotel_context, lang='vi'):
         return tracked_bookings
 
     # 3. Hội viên đã đăng nhập hỏi chung về đơn đặt phòng / hóa đơn của tôi
-    if is_authenticated:
-        if any(k in msg_lower for k in [
-            'đơn', 'đặt phòng của tôi', 'booking', 'kiểm tra đơn', 'tra cứu đơn', 'lịch sử', 'phòng của tôi',
-            'hóa đơn tạm tính', 'tạm tính',
-            'my booking', 'reservation', 'my room', 'check reservation', 'status',
-            '내 예약', '예약 내역', '예약 확인', '예약 상태',
-            '我的预订', '预订查询', '订单', '预订状态'
-        ]):
-            bks = Booking.objects.filter(guest=user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
-            for bk in bks:
-                tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
+    if is_authenticated and has_explicit_booking_intent:
+        bks = Booking.objects.filter(guest=user).select_related('guest', 'category', 'room').order_by('-created_at')[:2]
+        for bk in bks:
+            tracked_bookings.append(_format_booking_tracker_item(bk, request, status_map, lang=lang))
 
     return tracked_bookings
+
+
+def evaluate_booking_cancel_context(message, request, tracked_bookings=None):
+    """
+    Kiểm tra điều kiện hủy phòng miễn phí / đổi lịch theo thời gian thực cho đơn đã xác thực
+    khi khách hỏi về hủy đơn, hoàn tiền, mất phí hoặc đổi ngày.
+    """
+    msg_low = f" {(message or '').strip().lower()} "
+    cancel_intent_keywords = [
+        'hủy', 'huỷ', 'hoàn tiền', 'hoàn cọc', 'mất phí', 'phí hủy', 'đổi ngày', 'đổi lịch',
+        'cancel', 'cancellation', 'refund', 'penalty', 'reschedule', 'change date',
+        '취소', '환불', '위약금', '일정 변경', '取消', '退款', '扣费', '改期'
+    ]
+    if not any(k in msg_low for k in cancel_intent_keywords):
+        return None
+
+    target_item = tracked_bookings[0] if tracked_bookings else None
+    bk_obj = None
+    grp_obj = None
+
+    if target_item:
+        if target_item.get('is_group'):
+            raw_id = str(target_item.get('id', '')).replace('grp-', '')
+            if raw_id.isdigit():
+                grp_obj = GroupBooking.objects.filter(pk=int(raw_id)).first()
+        else:
+            bk_obj = Booking.objects.filter(pk=target_item.get('id')).first()
+    else:
+        user = getattr(request, 'user', None) if request else None
+        if user and user.is_authenticated:
+            bk_obj = (
+                Booking.objects.filter(
+                    guest=user,
+                    status__in=['pending', 'confirmed', 'paid', 'PAID'],
+                )
+                .order_by('check_in_date', '-created_at')
+                .first()
+            )
+
+    if grp_obj:
+        elig = get_group_cancel_eligibility(grp_obj)
+        if not elig:
+            return None
+        st = str(grp_obj.status or '').lower()
+        can_cancel = st in ('tentative', 'confirmed')
+        return {
+            'booking_code': grp_obj.group_code,
+            'is_group': True,
+            'status': grp_obj.status,
+            'check_in_date': grp_obj.check_in_date.strftime('%d/%m/%Y') if grp_obj.check_in_date else '',
+            'can_cancel': can_cancel,
+            'is_free_cancel_eligible': elig['is_free_cancel_eligible'] if can_cancel else False,
+            'free_hours': elig['free_hours'],
+            'hours_until_checkin': elig['hours_until_checkin'],
+            'reason': 'free_window' if (can_cancel and elig['is_free_cancel_eligible']) else ('late_window' if can_cancel else f'status_{st}'),
+            'is_group_managed': True,
+        }
+
+    if bk_obj:
+        elig = get_booking_cancel_eligibility(bk_obj)
+        if not elig:
+            return None
+        return {
+            'booking_code': bk_obj.booking_code,
+            'is_group': False,
+            'status': bk_obj.status,
+            'check_in_date': bk_obj.check_in_date.strftime('%d/%m/%Y') if bk_obj.check_in_date else '',
+            **elig,
+        }
+
+    return None

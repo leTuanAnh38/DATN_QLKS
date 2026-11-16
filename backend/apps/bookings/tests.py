@@ -9,7 +9,7 @@ from rest_framework.test import APITestCase
 from .models import Booking, Promotion
 from ..contacts.models import ContactMessage
 from ..payments.models import Invoice
-from ..rooms.models import MaintenanceTicket, Room, RoomCategory
+from ..rooms.models import LostAndFoundItem, MaintenanceTicket, Room, RoomCategory
 
 User = get_user_model()
 
@@ -159,7 +159,7 @@ class BookingSecurityAndLogicTests(APITestCase):
 
 
 from django.test import override_settings
-from .models import BookingExtraService, GroupBooking
+from .models import BookingExtraService, ChatbotInteractionLog, GroupBooking
 from .chatbot_views import (
     build_active_stay_details,
     build_hotel_context,
@@ -482,6 +482,244 @@ class ChatbotSecurityAndLogicTests(APITestCase):
             self.assertEqual(r1.status_code, 200)
             self.assertEqual(r2.status_code, 200)
             self.assertEqual(r3.status_code, 429)
+
+    def test_informational_questions_do_not_trigger_inhouse_db_mutations(self):
+        svc_cat = ServiceCategory.objects.create(name='Drinks')
+        ServiceItem.objects.create(category=svc_cat, name='Cà Phê Sữa Đá', price=Decimal('80000'), is_active=True)
+
+        self.client.force_authenticate(user=self.guest_b)
+        res_maint = self.client.post('/api/chatbot/ask/', {
+            'message': 'Nếu điều hòa phòng bị hỏng thì liên hệ ai?'
+        }, format='json')
+        self.assertEqual(res_maint.status_code, 200)
+        self.assertIsNone(res_maint.data['maintenance_ticket'])
+        self.assertEqual(MaintenanceTicket.objects.count(), 0)
+
+        res_clean = self.client.post('/api/chatbot/ask/', {
+            'message': 'Mấy giờ nhân viên dọn phòng và có mất phí không?'
+        }, format='json')
+        self.assertEqual(res_clean.status_code, 200)
+        self.assertFalse(res_clean.data['housekeeping_triggered'])
+        self.room_101.refresh_from_db()
+        self.assertFalse(self.room_101.is_cleaning_requested)
+
+        res_price = self.client.post('/api/chatbot/ask/', {
+            'message': 'Đặt Cà Phê Sữa Đá giá bao nhiêu?'
+        }, format='json')
+        self.assertEqual(res_price.status_code, 200)
+        self.assertIsNone(res_price.data['pending_action'])
+
+    def test_guest_2fa_multi_turn_memory_intl_phone_and_handoff_excerpt(self):
+        svc_cat = ServiceCategory.objects.create(name='Drinks')
+        ServiceItem.objects.create(category=svc_cat, name='Cà Phê Sữa Đá', price=Decimal('80000'), is_active=True)
+
+        self.client.force_authenticate(user=None)
+        # +84 phone format in turn 1
+        res_1 = self.client.post('/api/chatbot/ask/', {
+            'message': 'Tra cứu BK-TEST99 +84 909 998 888'
+        }, format='json')
+        self.assertEqual(res_1.status_code, 200)
+        self.assertEqual(len(res_1.data['tracked_bookings']), 1)
+        self.assertIsNotNone(res_1.data['active_stay'])
+
+        history = [
+            {'role': 'user', 'text': 'Tra cứu BK-TEST99 +84 909 998 888'},
+            {'role': 'model', 'text': res_1.data['reply']},
+        ]
+
+        # Turn 2 follow-up bill query without repeating code/phone
+        res_2 = self.client.post('/api/chatbot/ask/', {
+            'message': 'Hóa đơn tạm tính của phòng tôi?',
+            'history': history,
+        }, format='json')
+        self.assertEqual(res_2.status_code, 200)
+        self.assertEqual(len(res_2.data['tracked_bookings']), 1)
+        self.assertIn('2.000.000', res_2.data['reply'])
+
+        # Turn 3 service order & 2FA confirm using verified_phone
+        res_3 = self.client.post('/api/chatbot/ask/', {
+            'message': 'Đặt 2 Cà Phê Sữa Đá lên phòng 101',
+            'history': history,
+        }, format='json')
+        self.assertEqual(res_3.status_code, 200)
+        pending = res_3.data['pending_action']
+        self.assertIsNotNone(pending)
+        self.assertEqual(pending['quantity'], 2)
+        self.assertTrue(pending.get('verified_phone'))
+
+        res_confirm = self.client.post('/api/chatbot/confirm-action/', {
+            'action_type': 'create_service_request',
+            'booking_id': pending['booking_id'],
+            'booking_code': pending['booking_code'],
+            'phone_number': pending['verified_phone'],
+            'service_id': pending['service_id'],
+            'quantity': pending['quantity'],
+        }, format='json')
+        self.assertEqual(res_confirm.status_code, 201)
+        self.assertEqual(ServiceRequest.objects.count(), 1)
+
+        # Handoff with conversation_excerpt
+        res_handoff = self.client.post('/api/chatbot/confirm-action/', {
+            'action_type': 'human_handoff',
+            'name': 'Guest B',
+            'email': 'guestb@example.com',
+            'message': 'Cần gặp lễ tân',
+            'conversation_excerpt': history,
+        }, format='json')
+        self.assertEqual(res_handoff.status_code, 201)
+        cm = ContactMessage.objects.latest('id')
+        self.assertIn('Ngữ cảnh hội thoại AI trước đó', cm.message)
+        self.assertIn('BK-TEST99', cm.message)
+
+    def test_lost_and_found_lookup_and_alert_security(self):
+        hk = User.objects.create_user(username='hk1', email='hk1@example.com', password='Password123!', role='housekeeper')
+        lf_item = LostAndFoundItem.objects.create(
+            room=self.room_101,
+            booking=self.bk_b,
+            location_found='Phòng 101',
+            item_name='Sạc dự phòng Anker',
+            category='electronics',
+            storage_location='Két an toàn Lễ tân',
+            status='stored',
+        )
+
+        # Anonymous user cannot probe room 101 lost items
+        self.client.force_authenticate(user=None)
+        res_anon = self.client.post('/api/chatbot/ask/', {
+            'message': 'Tôi để quên sạc dự phòng ở phòng 101'
+        }, format='json')
+        self.assertEqual(res_anon.status_code, 200)
+        self.assertIsNone(res_anon.data['lost_found_info'])
+        self.assertFalse(Notification.objects.filter(recipient=hk, action_url='/admin/lost-and-found').exists())
+
+        # Authenticated booking owner gets item tracking code & notifies housekeeping
+        self.client.force_authenticate(user=self.guest_b)
+        res_auth = self.client.post('/api/chatbot/ask/', {
+            'message': 'Tôi để quên sạc dự phòng ở phòng'
+        }, format='json')
+        self.assertEqual(res_auth.status_code, 200)
+        lf_info = res_auth.data['lost_found_info']
+        self.assertIsNotNone(lf_info)
+        self.assertEqual(len(lf_info['matched_items']), 1)
+        self.assertEqual(lf_info['matched_items'][0]['tracking_code'], lf_item.tracking_code)
+        self.assertIn(lf_item.tracking_code, res_auth.data['reply'])
+        self.assertTrue(Notification.objects.filter(recipient=hk, action_url='/admin/lost-and-found').exists())
+
+    def test_real_time_booking_cancellation_eligibility(self):
+        # Free cancel (> 48h before check-in)
+        bk_far = Booking.objects.create(
+            guest=self.guest_a,
+            category=self.cat_fam,
+            check_in_date=self.today + timedelta(days=5),
+            check_out_date=self.today + timedelta(days=7),
+            total_amount=Decimal('5000000'),
+            status='confirmed',
+            booking_code='BK-FAR999',
+        )
+        self.client.force_authenticate(user=self.guest_a)
+        res_far = self.client.post('/api/chatbot/ask/', {
+            'message': f'Đơn {bk_far.booking_code} hủy bây giờ có mất phí không?'
+        }, format='json')
+        self.assertEqual(res_far.status_code, 200)
+        ce_far = res_far.data['cancel_eligibility']
+        self.assertIsNotNone(ce_far)
+        self.assertTrue(ce_far['can_cancel'])
+        self.assertTrue(ce_far['is_free_cancel_eligible'])
+        self.assertIn('MIỄN PHÍ', res_far.data['reply'])
+
+        # Late cancel (< 48h before check-in)
+        bk_near = Booking.objects.create(
+            guest=self.guest_a,
+            category=self.cat_std,
+            check_in_date=self.today + timedelta(days=1),
+            check_out_date=self.today + timedelta(days=2),
+            total_amount=Decimal('1000000'),
+            status='confirmed',
+            booking_code='BK-NEAR11',
+        )
+        res_near = self.client.post('/api/chatbot/ask/', {
+            'message': f'Hủy đơn {bk_near.booking_code} có được hoàn tiền không?'
+        }, format='json')
+        self.assertEqual(res_near.status_code, 200)
+        ce_near = res_near.data['cancel_eligibility']
+        self.assertTrue(ce_near['can_cancel'])
+        self.assertFalse(ce_near['is_free_cancel_eligible'])
+
+        # Checked-in booking cannot cancel online
+        self.client.force_authenticate(user=self.guest_b)
+        res_in = self.client.post('/api/chatbot/ask/', {
+            'message': f'Tôi muốn hủy đơn {self.bk_b.booking_code}'
+        }, format='json')
+        self.assertEqual(res_in.status_code, 200)
+        self.assertFalse(res_in.data['cancel_eligibility']['can_cancel'])
+        self.assertEqual(res_in.data['cancel_eligibility']['reason'], 'already_checked_in')
+
+    def test_booking_price_estimator_with_tier_and_promo(self):
+        now = timezone.now()
+        Promotion.objects.create(
+            code='VIP500K',
+            name='VIP Fixed',
+            discount_type='fixed',
+            discount_value=Decimal('500000'),
+            valid_from=now - timedelta(days=1),
+            valid_to=now + timedelta(days=10),
+            is_active=True,
+        )
+        # guest_a has Gold tier (12%)
+        self.client.force_authenticate(user=self.guest_a)
+        res = self.client.post('/api/chatbot/ask/', {
+            'message': 'Tính tiền phòng Family Suite 2 đêm ngày mai áp mã VIP500K hết bao nhiêu?'
+        }, format='json')
+        self.assertEqual(res.status_code, 200)
+        pe = res.data['price_estimate']
+        self.assertIsNotNone(pe)
+        self.assertEqual(pe['nights'], 2)
+        self.assertEqual(pe['subtotal'], 5000000)
+        self.assertEqual(pe['membership_discount'], 600000)
+        self.assertEqual(pe['promo_discount'], 500000)
+        self.assertEqual(pe['final_total'], 3900000)
+        self.assertIn('3.900.000', res.data['reply'])
+
+    def test_chatbot_interaction_logging_and_reports_analytics(self):
+        self.client.force_authenticate(user=None)
+        self.client.post('/api/chatbot/ask/', {
+            'message': 'Tra cứu BK-TEST99 0909998888'
+        }, format='json')
+        self.client.post('/api/chatbot/ask/', {
+            'message': 'What rooms are available tomorrow?'
+        }, format='json')
+        self.client.force_authenticate(user=self.guest_b)
+        self.client.post('/api/chatbot/ask/', {
+            'message': 'Dọn phòng giúp tôi'
+        }, format='json')
+
+        self.assertEqual(ChatbotInteractionLog.objects.count(), 3)
+        masked_log = ChatbotInteractionLog.objects.filter(intent_category='booking_lookup').first()
+        self.assertIsNotNone(masked_log)
+        self.assertNotIn('0909998888', masked_log.user_message)
+        self.assertIn('[SĐT]', masked_log.user_message)
+
+        # Guest cannot view /api/reports/
+        res_guest = self.client.get('/api/reports/?filter=month')
+        self.assertEqual(res_guest.status_code, 403)
+
+        # Admin gets chatbot_analytics summary, intents, languages, and recent_logs
+        admin_user = User.objects.create_user(
+            username='cb_admin',
+            email='cb_admin@example.com',
+            password='Password123!',
+            role='admin',
+            is_superuser=True,
+        )
+        self.client.force_authenticate(user=admin_user)
+        res_rep = self.client.get('/api/reports/?filter=month')
+        self.assertEqual(res_rep.status_code, 200)
+        cb = res_rep.data.get('chatbot_analytics')
+        self.assertIsNotNone(cb)
+        self.assertEqual(cb['summary']['total_interactions'], 3)
+        self.assertEqual(cb['summary']['inhouse_actions_count'], 1)
+        self.assertTrue(any(l['code'] == 'en' for l in cb['language_breakdown']))
+        self.assertEqual(len(cb['recent_logs']), 3)
 
 
 class GroupBookingCancellationTests(APITestCase):

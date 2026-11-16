@@ -408,4 +408,53 @@ class HotelSetting(models.Model):
 
     class Meta:
         verbose_name = "Cài đặt Khách Sạn & Vận Hành"
-        verbose_name_plural = "Cài đặt Khách Sạn & Vận Hành"
+        verbose_name_plural = "Cài đặt Khách Sạn & Vận Hành"
+
+
+
+class ChatbotInteractionLog(models.Model):
+    """
+    Nhật ký tương tác Trợ lý ảo AI Concierge phục vụ thống kê & cải thiện vận hành trên Admin Analytics.
+    """
+    INTENT_CHOICES = (
+        ('room_inquiry', 'Tra cứu phòng & Giá'),
+        ('price_estimate', 'Ước tính chi phí đặt phòng'),
+        ('booking_lookup', 'Tra cứu đơn đặt phòng'),
+        ('cancel_policy', 'Chính sách & Điều kiện hủy'),
+        ('inhouse_folio', 'Hóa đơn tạm tính & Đơn phòng'),
+        ('housekeeping', 'Yêu cầu Buồng phòng'),
+        ('maintenance', 'Báo hỏng Kỹ thuật'),
+        ('lost_and_found', 'Báo & Tìm đồ thất lạc'),
+        ('service_order', 'Đặt dịch vụ / Ẩm thực tại phòng'),
+        ('human_handoff', 'Chuyển tiếp Lễ tân / Khiếu nại'),
+        ('promo_check', 'Kiểm tra Khuyến mãi / VIP'),
+        ('travel_guide', 'Cẩm nang Du lịch Đà Nẵng'),
+        ('service_inquiry', 'Tư vấn Dịch vụ & Spa'),
+        ('general', 'Chào hỏi / Tư vấn chung'),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='chatbot_logs',
+        verbose_name="Người dùng"
+    )
+    detected_lang = models.CharField(max_length=10, default='vi', db_index=True, verbose_name="Ngôn ngữ")
+    intent_category = models.CharField(max_length=40, choices=INTENT_CHOICES, default='general', db_index=True, verbose_name="Chủ đề")
+    response_source = models.CharField(max_length=40, default='local_smart_fallback', db_index=True, verbose_name="Nguồn phản hồi")
+    action_triggered = models.CharField(max_length=50, blank=True, default='', db_index=True, verbose_name="Hành động kích hoạt")
+    user_message = models.CharField(max_length=500, verbose_name="Nội dung câu hỏi")
+    bot_reply_preview = models.CharField(max_length=500, blank=True, default='', verbose_name="Tóm tắt phản hồi")
+    latency_ms = models.PositiveIntegerField(default=0, verbose_name="Độ trễ (ms)")
+    is_authenticated_user = models.BooleanField(default=False, verbose_name="Khách đã đăng nhập")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Thời gian")
+
+    class Meta:
+        verbose_name = "Nhật ký Chatbot AI"
+        verbose_name_plural = "Nhật ký Chatbot AI"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"[{self.detected_lang}] {self.intent_category} ({self.response_source})"

@@ -29,7 +29,10 @@ import {
     Check,
     Calendar,
     Wrench,
-    Users
+    Users,
+    PackageSearch,
+    Calculator,
+    ShieldCheck
 } from 'lucide-react';
 import { askChatbot, confirmChatbotAction } from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
@@ -149,8 +152,50 @@ const I18N_DICT = {
         inhouse_badge: (room) => `Đang lưu trú: Phòng P.${room}`,
         btn_folio: 'Hóa đơn tạm tính',
         btn_clean: 'Gọi dọn phòng',
+        folio_query: 'Hóa đơn tạm tính của phòng tôi hiện tại là bao nhiêu?',
+        clean_query: 'Dọn phòng giúp tôi',
         copy_btn: 'Sao chép',
-        copied_btn: 'Đã sao chép'
+        copied_btn: 'Đã sao chép',
+        bubble_title: (s) => `Trợ Lý AI ${s}★`,
+        bubble_greeting: (name) => (name ? `Kính chào ${name}!` : 'Kính chào Quý khách!'),
+        bubble_prompt: 'Em có thể hỗ trợ Quý khách tra cứu phòng trống ngày mai hoặc giải đáp dịch vụ không ạ?',
+        bubble_chip_rooms: 'Phòng trống ngày mai',
+        bubble_chip_rooms_query: 'Ngày mai còn phòng trống không và bảng giá thế nào?',
+        bubble_chip_tour: 'Du lịch Đà Nẵng',
+        bubble_chip_tour_query: 'Gợi ý lịch trình tham quan Đà Nẵng, Cầu Rồng phun lửa và dịch vụ xe đưa đón VIP',
+        reset_confirm_title: 'Làm mới toàn bộ cuộc trò chuyện?',
+        reset_confirm_ok: 'Đồng ý',
+        reset_confirm_cancel: 'Hủy',
+        group_mice_btn: 'Đặt đoàn M.I.C.E',
+        maint_ticket_title: (code, room) => `Phiếu Kỹ Thuật ${code} • P.${room}`,
+        maint_priority_label: 'Ưu tiên',
+        svc_confirm_title: (room) => `Xác nhận đặt dịch vụ • P.${room}`,
+        svc_confirm_btn: 'Xác nhận đặt ngay',
+        svc_confirm_loading: 'Đang gửi yêu cầu...',
+        svc_confirm_done: '✓ Đã xác nhận đặt',
+        handoff_title: 'Gửi yêu cầu trực tiếp tới Lễ tân & Quản lý',
+        handoff_name_ph: 'Họ và tên của Quý khách',
+        handoff_email_ph: 'Email liên hệ',
+        handoff_msg_ph: 'Nội dung cần nhân viên hỗ trợ...',
+        handoff_btn: 'Gửi yêu cầu tới Lễ tân',
+        handoff_sending: 'Đang gửi...',
+        handoff_done: '✓ Đã chuyển tới Lễ tân',
+        confirm_success_fallback: 'Đã xác nhận yêu cầu thành công!',
+        action_error_fallback: 'Không thể hoàn tất xác nhận. Vui lòng thử lại hoặc liên hệ Lễ tân.',
+        generic_error: (hotline) => `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotline}** để được chuyên viên hỗ trợ ngay ạ!`,
+        rate_limit_error: 'Dạ Quý khách gửi tin nhắn hơi nhanh ạ. Xin Quý khách vui lòng đợi vài giây rồi thử lại nhé ạ!',
+        lf_found_title: (room) => `Kho Đồ Thất Lạc • P.${room}`,
+        lf_search_title: (room) => `Đã báo tìm đồ thất lạc • P.${room}`,
+        lf_search_desc: 'Đã gửi thông báo khẩn tới Buồng phòng & Lễ tân kiểm tra phòng ngay.',
+        cancel_free_badge: (code) => `Đơn #${code} • Đủ điều kiện hủy miễn phí`,
+        cancel_late_badge: (code) => `Đơn #${code} • Quá mốc hủy miễn phí`,
+        cancel_blocked_badge: (code) => `Đơn #${code} • Cần hỗ trợ Lễ tân`,
+        cancel_hours_left: (hrs, freeH) => `Còn ~${hrs} giờ tới nhận phòng (quy định ${freeH} giờ)`,
+        cancel_go_btn: 'Mở Lịch sử đặt',
+        est_title: (name, nights) => `Ước tính chi phí • ${name} (${nights} đêm)`,
+        est_subtotal: 'Tạm tính phòng:',
+        est_total: 'Tổng dự kiến:',
+        est_book_btn: 'Đặt ngay với giá này'
     },
     en: {
         quick_title: 'Quick 1-Tap Suggestions:',
@@ -192,8 +237,50 @@ const I18N_DICT = {
         inhouse_badge: (room) => `In-House: Room P.${room}`,
         btn_folio: 'Live Bill',
         btn_clean: 'Make Up Room',
+        folio_query: 'What is my current provisional folio bill?',
+        clean_query: 'Please clean my room',
         copy_btn: 'Copy',
-        copied_btn: 'Copied'
+        copied_btn: 'Copied',
+        bubble_title: (s) => `AI Concierge ${s}★`,
+        bubble_greeting: (name) => (name ? `Welcome, ${name}!` : 'Dear Valued Guest!'),
+        bubble_prompt: 'May I help you check room availability for tomorrow or explore our services?',
+        bubble_chip_rooms: 'Rooms Tomorrow',
+        bubble_chip_rooms_query: 'What rooms are available tomorrow and what are the rates in USD?',
+        bubble_chip_tour: 'Da Nang Guide',
+        bubble_chip_tour_query: 'Recommend Da Nang sightseeing itinerary (Dragon Bridge, Ba Na Hills, Hoi An) and VIP car service.',
+        reset_confirm_title: 'Reset the entire conversation?',
+        reset_confirm_ok: 'Confirm',
+        reset_confirm_cancel: 'Cancel',
+        group_mice_btn: 'Group M.I.C.E',
+        maint_ticket_title: (code, room) => `Maintenance Ticket ${code} • Room P.${room}`,
+        maint_priority_label: 'Priority',
+        svc_confirm_title: (room) => `Confirm Room Service • P.${room}`,
+        svc_confirm_btn: 'Confirm Order Now',
+        svc_confirm_loading: 'Submitting order...',
+        svc_confirm_done: '✓ Order Confirmed',
+        handoff_title: 'Send Request to Front Desk & Duty Manager',
+        handoff_name_ph: 'Your full name',
+        handoff_email_ph: 'Contact email',
+        handoff_msg_ph: 'How can our staff assist you...',
+        handoff_btn: 'Send to Front Desk',
+        handoff_sending: 'Sending...',
+        handoff_done: '✓ Sent to Front Desk',
+        confirm_success_fallback: 'Your request has been confirmed!',
+        action_error_fallback: 'Unable to complete confirmation. Please try again or contact Front Desk.',
+        generic_error: (hotline) => `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotline}** for immediate assistance!`,
+        rate_limit_error: 'You are sending messages too quickly. Please wait a moment and try again!',
+        lf_found_title: (room) => `Lost & Found Vault • P.${room}`,
+        lf_search_title: (room) => `Lost Item Alert Sent • P.${room}`,
+        lf_search_desc: 'Urgent alert sent to Housekeeping & Front Desk to inspect the room.',
+        cancel_free_badge: (code) => `#${code} • Eligible for Free Cancellation`,
+        cancel_late_badge: (code) => `#${code} • Past Free Cancellation Window`,
+        cancel_blocked_badge: (code) => `#${code} • Front Desk Assistance Needed`,
+        cancel_hours_left: (hrs, freeH) => `~${hrs} hrs until check-in (policy: ${freeH} hrs)`,
+        cancel_go_btn: 'Open My Bookings',
+        est_title: (name, nights) => `Price Estimate • ${name} (${nights} night(s))`,
+        est_subtotal: 'Room Subtotal:',
+        est_total: 'Estimated Total:',
+        est_book_btn: 'Book at This Rate'
     },
     ko: {
         quick_title: '빠른 1-터치 추천 질문:',
@@ -235,8 +322,50 @@ const I18N_DICT = {
         inhouse_badge: (room) => `투숙 중: ${room}호`,
         btn_folio: '실시간 정산서',
         btn_clean: '객실 청소',
+        folio_query: '현재 제 객실 실시간 정산서(요금 내역)를 확인해 주세요',
+        clean_query: '객실 청소 요청합니다',
         copy_btn: '복사',
-        copied_btn: '복사완료'
+        copied_btn: '복사완료',
+        bubble_title: (s) => `AI 컨시어지 ${s}★`,
+        bubble_greeting: (name) => (name ? `${name} 고객님, 안녕하세요!` : '고객님, 안녕하십니까!'),
+        bubble_prompt: '내일 예약 가능한 객실이나 호텔 서비스 안내를 도와드릴까요?',
+        bubble_chip_rooms: '내일 잔여 객실',
+        bubble_chip_rooms_query: '내일 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.',
+        bubble_chip_tour: '다낭 여행 코스',
+        bubble_chip_tour_query: '다낭 주요 관광지(용다리 불쇼, 바나힐, 호이안) 코스와 호텔 VIP 차량 서비스 알려주세요.',
+        reset_confirm_title: '대화 내용을 초기화하시겠습니까?',
+        reset_confirm_ok: '확인',
+        reset_confirm_cancel: '취소',
+        group_mice_btn: '단체 M.I.C.E',
+        maint_ticket_title: (code, room) => `시설 점검 접수 ${code} • ${room}호`,
+        maint_priority_label: '우선순위',
+        svc_confirm_title: (room) => `객실 서비스 주문 확인 • ${room}호`,
+        svc_confirm_btn: '지금 주문 확정',
+        svc_confirm_loading: '요청 전송 중...',
+        svc_confirm_done: '✓ 주문 확정 완료',
+        handoff_title: '프런트 데스크 및 매니저에게 직접 연결',
+        handoff_name_ph: '성함',
+        handoff_email_ph: '이메일 주소',
+        handoff_msg_ph: '도움이 필요한 내용을 입력해 주세요...',
+        handoff_btn: '직원에게 요청 보내기',
+        handoff_sending: '전송 중...',
+        handoff_done: '✓ 직원에게 전달됨',
+        confirm_success_fallback: '요청이 성공적으로 확정되었습니다!',
+        action_error_fallback: '요청을 완료하지 못했습니다. 다시 시도하거나 프런트에 문의해 주세요.',
+        generic_error: (hotline) => `일시적인 연결 오류가 발생했습니다. 24시간 컨시어지 핫라인 **${hotline}**으로 연락해 주세요!`,
+        rate_limit_error: '요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요!',
+        lf_found_title: (room) => `분실물 보관함 • ${room}호`,
+        lf_search_title: (room) => `분실물 확인 요청 전송 • ${room}호`,
+        lf_search_desc: '하우스키핑 및 프런트에 객실 확인 요청을 보냈습니다.',
+        cancel_free_badge: (code) => `#${code} • 무료 취소 가능`,
+        cancel_late_badge: (code) => `#${code} • 무료 취소 기간 경과`,
+        cancel_blocked_badge: (code) => `#${code} • 프런트 문의 필요`,
+        cancel_hours_left: (hrs, freeH) => `체크인까지 약 ${hrs}시간 (기준: ${freeH}시간)`,
+        cancel_go_btn: '예약 내역 보기',
+        est_title: (name, nights) => `예상 요금 • ${name} (${nights}박)`,
+        est_subtotal: '객실 소계:',
+        est_total: '예상 총액:',
+        est_book_btn: '이 요금으로 예약'
     },
     zh: {
         quick_title: '快捷一键提问推荐:',
@@ -278,8 +407,50 @@ const I18N_DICT = {
         inhouse_badge: (room) => `在住贵宾: ${room}号房`,
         btn_folio: '实时账单',
         btn_clean: '打扫房间',
+        folio_query: '请帮我查询目前房间的实时账单明细',
+        clean_query: '请安排打扫房间',
         copy_btn: '复制',
-        copied_btn: '已复制'
+        copied_btn: '已复制',
+        bubble_title: (s) => `AI 礼宾顾问 ${s}★`,
+        bubble_greeting: (name) => (name ? `尊敬的 ${name}，您好！` : '尊敬的贵宾，您好！'),
+        bubble_prompt: '需要我为您查询明日空房或介绍酒店专属服务吗？',
+        bubble_chip_rooms: '明日空房查询',
+        bubble_chip_rooms_query: '请问明天有哪些空房和房价（人民币换算）？',
+        bubble_chip_tour: '岘港旅游攻略',
+        bubble_chip_tour_query: '推荐岘港必去景点（龙桥喷火、巴拿山、会安古镇）及酒店豪华专车服务。',
+        reset_confirm_title: '确定要清空并重新开始对话吗？',
+        reset_confirm_ok: '确定',
+        reset_confirm_cancel: '取消',
+        group_mice_btn: '团队 M.I.C.E',
+        maint_ticket_title: (code, room) => `工程报修单 ${code} • ${room}号房`,
+        maint_priority_label: '优先级',
+        svc_confirm_title: (room) => `确认客房服务订单 • ${room}号房`,
+        svc_confirm_btn: '立即确认下单',
+        svc_confirm_loading: '正在提交请求...',
+        svc_confirm_done: '✓ 已确认下单',
+        handoff_title: '直接联系酒店前台与值班经理',
+        handoff_name_ph: '您的姓名',
+        handoff_email_ph: '联系邮箱',
+        handoff_msg_ph: '请填写需要工作人员协助的内容...',
+        handoff_btn: '发送给前台礼宾',
+        handoff_sending: '正在发送...',
+        handoff_done: '✓ 已转交酒店前台',
+        confirm_success_fallback: '您的请求已成功确认！',
+        action_error_fallback: '无法完成确认，请重试或直接联系酒店前台。',
+        generic_error: (hotline) => `非常抱歉，连接暂时中断。请致电24小时礼宾热线 **${hotline}** 获取即时协助！`,
+        rate_limit_error: '您的发送频率过快，请稍候片刻后再试！',
+        lf_found_title: (room) => `失物招领记录 • ${room}号房`,
+        lf_search_title: (room) => `已发送寻物通知 • ${room}号房`,
+        lf_search_desc: '已加急通知客房部与前台协助排查房间。',
+        cancel_free_badge: (code) => `#${code} • 符合免费取消条件`,
+        cancel_late_badge: (code) => `#${code} • 已过免费取消时限`,
+        cancel_blocked_badge: (code) => `#${code} • 请联系前台协助`,
+        cancel_hours_left: (hrs, freeH) => `距入住约 ${hrs} 小时（政策：${freeH} 小时）`,
+        cancel_go_btn: '查看预订记录',
+        est_title: (name, nights) => `费用预算 • ${name} (${nights}晚)`,
+        est_subtotal: '房费小计:',
+        est_total: '预计总额:',
+        est_book_btn: '按此价格预订'
     }
 };
 
@@ -1023,6 +1194,9 @@ export default function AIChatbotWidget() {
                 detected_lang: detectedLang,
                 queried_dates: data?.queried_dates || null,
                 maintenance_ticket: data?.maintenance_ticket || null,
+                lost_found_info: data?.lost_found_info || null,
+                cancel_eligibility: data?.cancel_eligibility || null,
+                price_estimate: data?.price_estimate || null,
                 pending_action: data?.pending_action || null,
                 suggested_rooms: Array.isArray(data?.suggested_rooms) ? data.suggested_rooms : [],
                 suggested_services: Array.isArray(data?.suggested_services) ? data.suggested_services : [],
@@ -1038,23 +1212,12 @@ export default function AIChatbotWidget() {
             console.error('Lỗi khi gọi API Chatbot:', error);
             const hotlineNum = settings?.hotline || '1900 8899';
             const isRateLimited = error?.response?.status === 429;
-            const rateLimitText =
-                selectedLang === 'en'
-                    ? 'You are sending messages too quickly. Please wait a moment and try again!'
-                    : selectedLang === 'ko'
-                        ? '요청이 너무 빠릅니다. 잠시 후 다시 시도해 주세요!'
-                        : selectedLang === 'zh'
-                            ? '您的发送频率过快，请稍候片刻后再试！'
-                            : 'Dạ Quý khách gửi tin nhắn hơi nhanh ạ. Xin Quý khách vui lòng đợi vài giây rồi thử lại nhé ạ!';
-            const genericErrorText =
-                selectedLang === 'en'
-                    ? `I apologize for the temporary interruption. Please contact our 24/7 Concierge Hotline at **${hotlineNum}** for immediate assistance!`
-                    : `Dạ em xin lỗi Quý khách! Kết nối của em đang gặp gián đoạn tạm thời. Quý khách vui lòng liên hệ trực tiếp Hotline lễ tân 24/7 **${hotlineNum}** để được chuyên viên hỗ trợ ngay ạ!`;
+            const errDict = I18N_DICT[selectedLang] || I18N_DICT.vi;
             const errorMsg = {
                 id: `error-${Date.now()}`,
                 role: 'model',
                 detected_lang: selectedLang,
-                text: isRateLimited ? rateLimitText : genericErrorText,
+                text: isRateLimited ? errDict.rate_limit_error : errDict.generic_error(hotlineNum),
                 time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
             };
             setMessages((prev) => [...prev, errorMsg]);
@@ -1067,6 +1230,7 @@ export default function AIChatbotWidget() {
         if (!pendingAction || actionStates[msgId]?.status === 'loading' || actionStates[msgId]?.status === 'done') {
             return;
         }
+        const dict = I18N_DICT[selectedLang] || I18N_DICT.vi;
         setActionStates((prev) => ({ ...prev, [msgId]: { status: 'loading' } }));
         try {
             let payload;
@@ -1075,18 +1239,24 @@ export default function AIChatbotWidget() {
                     action_type: 'create_service_request',
                     booking_id: pendingAction.booking_id,
                     booking_code: pendingAction.booking_code,
+                    phone_number: pendingAction.verified_phone || '',
                     service_id: pendingAction.service_id,
                     quantity: pendingAction.quantity,
                     note: pendingAction.note || ''
                 };
             } else {
                 const form = handoffForms[msgId] || {};
+                const recentExcerpt = messages
+                    .filter((m) => !m.id.startsWith('welcome'))
+                    .slice(-6)
+                    .map((m) => ({ role: m.role === 'model' ? 'model' : 'user', text: m.text }));
                 payload = {
                     action_type: 'human_handoff',
                     name: (form.name ?? pendingAction.default_name ?? '').trim(),
                     email: (form.email ?? pendingAction.default_email ?? '').trim(),
                     subject: pendingAction.subject,
-                    message: (form.message ?? pendingAction.suggested_message ?? '').trim()
+                    message: (form.message ?? pendingAction.suggested_message ?? '').trim(),
+                    conversation_excerpt: recentExcerpt
                 };
             }
             const res = await confirmChatbotAction(payload);
@@ -1098,12 +1268,12 @@ export default function AIChatbotWidget() {
                     id: `bot-confirm-${Date.now()}`,
                     role: 'model',
                     detected_lang: selectedLang,
-                    text: res?.message || 'Đã xác nhận yêu cầu thành công!',
+                    text: res?.message || dict.confirm_success_fallback,
                     time: botTime
                 }
             ]);
         } catch (err) {
-            const errMsg = err?.response?.data?.message || 'Không thể hoàn tất xác nhận. Vui lòng thử lại hoặc liên hệ Lễ tân.';
+            const errMsg = err?.response?.data?.message || dict.action_error_fallback;
             setActionStates((prev) => ({ ...prev, [msgId]: { status: 'error', error: errMsg } }));
         }
     };
@@ -1182,7 +1352,7 @@ export default function AIChatbotWidget() {
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1">
                                     <Bot className="w-3.5 h-3.5 text-sky-600" />
-                                    Trợ Lý AI {starCount}★
+                                    {currentDict.bubble_title(starCount)}
                                 </span>
                             </div>
                             <button
@@ -1198,9 +1368,9 @@ export default function AIChatbotWidget() {
 
                         {/* Lời chào cá nhân hóa */}
                         <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                            Kính chào {user?.full_name ? <strong className="text-slate-900 font-bold">{user.full_name}</strong> : 'Quý khách'}!
+                            <strong className="text-slate-900 font-bold">{currentDict.bubble_greeting(user?.full_name)}</strong>
                             <br />
-                            Em có thể hỗ trợ Quý khách <span className="text-sky-700 font-semibold">tra cứu phòng trống ngày mai</span> hoặc giải đáp dịch vụ không ạ?
+                            {currentDict.bubble_prompt}
                         </p>
 
                         {/* Gợi ý nhanh 1 chạm */}
@@ -1210,24 +1380,24 @@ export default function AIChatbotWidget() {
                                     e.stopPropagation();
                                     setIsOpen(true);
                                     setShowCalloutBubble(false);
-                                    handleSendMessage('Ngày mai còn phòng trống không và bảng giá thế nào?');
+                                    handleSendMessage(currentDict.bubble_chip_rooms_query);
                                 }}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200/80 shadow-2xs transition-all active:scale-95 cursor-pointer"
                             >
                                 <BedDouble className="w-3 h-3 text-sky-600" />
-                                <span>Phòng trống ngày mai</span>
+                                <span>{currentDict.bubble_chip_rooms}</span>
                             </span>
                             <span
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setIsOpen(true);
                                     setShowCalloutBubble(false);
-                                    handleSendMessage('Gợi ý lịch trình tham quan Đà Nẵng, Cầu Rồng phun lửa và dịch vụ xe đưa đón VIP');
+                                    handleSendMessage(currentDict.bubble_chip_tour_query);
                                 }}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 transition-all active:scale-95 cursor-pointer"
                             >
                                 <Compass className="w-3 h-3 text-slate-600" />
-                                <span>Du lịch Đà Nẵng</span>
+                                <span>{currentDict.bubble_chip_tour}</span>
                             </span>
                         </div>
                     </div>
@@ -1393,14 +1563,14 @@ export default function AIChatbotWidget() {
                             <div className="flex items-center gap-1 flex-shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() => handleSendMessage('Hóa đơn tạm tính của phòng tôi hiện tại là bao nhiêu?')}
+                                    onClick={() => handleSendMessage(currentDict.folio_query)}
                                     className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold cursor-pointer transition"
                                 >
                                     {currentDict.btn_folio}
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => handleSendMessage('Dọn phòng giúp tôi')}
+                                    onClick={() => handleSendMessage(currentDict.clean_query)}
                                     className="px-2 py-0.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-medium cursor-pointer transition"
                                 >
                                     {currentDict.btn_clean}
@@ -1414,20 +1584,20 @@ export default function AIChatbotWidget() {
                         <div className="bg-sky-50/95 border-b border-sky-200/80 px-3.5 py-2.5 flex items-center justify-between text-xs text-slate-800 animate-in fade-in slide-in-from-top-1 duration-200">
                             <span className="font-medium flex items-center gap-1.5 text-slate-700">
                                 <RotateCcw className="w-3.5 h-3.5 text-sky-600" />
-                                Làm mới toàn bộ cuộc trò chuyện?
+                                {currentDict.reset_confirm_title}
                             </span>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={confirmResetChat}
                                     className="px-2.5 py-1 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-md text-[11px] font-semibold transition-colors cursor-pointer shadow-xs active:scale-95"
                                 >
-                                    Đồng ý
+                                    {currentDict.reset_confirm_ok}
                                 </button>
                                 <button
                                     onClick={() => setShowResetConfirm(false)}
                                     className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-md text-[11px] font-medium transition-colors cursor-pointer"
                                 >
-                                    Hủy
+                                    {currentDict.reset_confirm_cancel}
                                 </button>
                             </div>
                         </div>
@@ -1667,7 +1837,7 @@ export default function AIChatbotWidget() {
                                                                     ) : (
                                                                         <CalendarCheck className="w-3 h-3 text-amber-700" />
                                                                     )}
-                                                                    {bk.is_group ? 'Đặt đoàn M.I.C.E' : dict.booking_history}
+                                                                    {bk.is_group ? dict.group_mice_btn : dict.booking_history}
                                                                 </button>
                                                                 <a
                                                                     href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
@@ -1690,14 +1860,127 @@ export default function AIChatbotWidget() {
                                                 <Wrench className="w-4 h-4 text-amber-700 flex-shrink-0 mt-0.5" />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="font-bold">
-                                                        Phiếu Kỹ Thuật {msg.maintenance_ticket.ticket_code} • P.{msg.maintenance_ticket.room_number}
+                                                        {dict.maint_ticket_title(msg.maintenance_ticket.ticket_code, msg.maintenance_ticket.room_number)}
                                                     </div>
                                                     <div className="text-[10.5px] text-amber-800">
-                                                        {msg.maintenance_ticket.equipment_name} (Ưu tiên: {msg.maintenance_ticket.priority})
+                                                        {msg.maintenance_ticket.equipment_name} ({dict.maint_priority_label}: {msg.maintenance_ticket.priority})
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
+
+                                        {/* 2B-2. THẺ ĐỒ THẤT LẠC (LOST & FOUND) */}
+                                        {msg.lost_found_info && (
+                                            <div className="mt-2.5 p-2.5 rounded-xl bg-sky-50/90 border border-sky-200 text-[11px] text-slate-800 flex items-start gap-2">
+                                                <PackageSearch className="w-4 h-4 text-sky-700 flex-shrink-0 mt-0.5" />
+                                                <div className="min-w-0 flex-1 space-y-1">
+                                                    <div className="font-bold text-sky-950">
+                                                        {msg.lost_found_info.matched_items?.length > 0
+                                                            ? dict.lf_found_title(msg.lost_found_info.room_number)
+                                                            : dict.lf_search_title(msg.lost_found_info.room_number)}
+                                                    </div>
+                                                    {msg.lost_found_info.matched_items?.length > 0 ? (
+                                                        msg.lost_found_info.matched_items.map((it) => (
+                                                            <div key={it.tracking_code} className="text-[10.5px] text-slate-700 bg-white/80 rounded px-2 py-1 border border-sky-100">
+                                                                <strong className="font-mono text-sky-800">{it.tracking_code}</strong> • {it.item_name} —{' '}
+                                                                <span className="font-semibold">{it.storage_location}</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <div className="text-[10.5px] text-sky-800">{dict.lf_search_desc}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 2B-3. THẺ KIỂM TRA ĐIỀU KIỆN HỦY PHÒNG */}
+                                        {msg.cancel_eligibility && (() => {
+                                            const ce = msg.cancel_eligibility;
+                                            const badgeTitle = !ce.can_cancel
+                                                ? dict.cancel_blocked_badge(ce.booking_code)
+                                                : ce.is_free_cancel_eligible
+                                                ? dict.cancel_free_badge(ce.booking_code)
+                                                : dict.cancel_late_badge(ce.booking_code);
+                                            const tone = !ce.can_cancel
+                                                ? 'bg-slate-50 border-slate-200 text-slate-800'
+                                                : ce.is_free_cancel_eligible
+                                                ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+                                                : 'bg-amber-50/90 border-amber-200 text-amber-950';
+                                            return (
+                                                <div className={`mt-2.5 p-2.5 rounded-xl border text-[11px] flex items-start justify-between gap-2 ${tone}`}>
+                                                    <div className="flex items-start gap-2 min-w-0">
+                                                        <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                                        <div className="min-w-0">
+                                                            <div className="font-bold truncate">{badgeTitle}</div>
+                                                            <div className="text-[10.5px] opacity-85">
+                                                                {dict.cancel_hours_left(ce.hours_until_checkin, ce.free_hours)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsOpen(false);
+                                                            navigate(ce.is_group ? '/corporate-booking' : '/booking-history');
+                                                        }}
+                                                        className="px-2 py-1 rounded-lg bg-white/90 hover:bg-white border border-current/20 text-[10px] font-semibold whitespace-nowrap cursor-pointer active:scale-95"
+                                                    >
+                                                        {ce.is_group ? dict.group_mice_btn : dict.cancel_go_btn}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* 2B-4. THẺ ƯỚC TÍNH TỔNG TIỀN ĐẶT PHÒNG */}
+                                        {msg.price_estimate && (() => {
+                                            const pe = msg.price_estimate;
+                                            const isAvail = (pe.available_count ?? 1) > 0;
+                                            return (
+                                                <div className="mt-2.5 p-3 rounded-xl bg-gradient-to-br from-amber-50/80 to-white border border-amber-200 text-[11px] space-y-1.5">
+                                                    <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                                                        <Calculator className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                                                        <span className="truncate">{dict.est_title(pe.room_name, pe.nights)}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-slate-600 text-[10.5px]">
+                                                        <span>{dict.est_subtotal}</span>
+                                                        <span className="font-semibold text-slate-800">{pe.subtotal_formatted}</span>
+                                                    </div>
+                                                    {pe.membership_discount_formatted && (
+                                                        <div className="flex items-center justify-between text-emerald-700 text-[10.5px]">
+                                                            <span>{pe.tier_name} (-{Math.round(pe.tier_percent)}%)</span>
+                                                            <span className="font-semibold">-{pe.membership_discount_formatted}</span>
+                                                        </div>
+                                                    )}
+                                                    {pe.promo_discount_formatted && (
+                                                        <div className="flex items-center justify-between text-emerald-700 text-[10.5px]">
+                                                            <span>Code {pe.promo_code}</span>
+                                                            <span className="font-semibold">-{pe.promo_discount_formatted}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="pt-1.5 border-t border-amber-200/80 flex items-center justify-between">
+                                                        <span className="font-bold text-slate-800">{dict.est_total}</span>
+                                                        <span className="font-bold text-amber-800 text-xs">{pe.final_total_formatted}</span>
+                                                    </div>
+                                                    {pe.room_id && isAvail && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setIsOpen(false);
+                                                                const qs = pe.check_in && pe.check_out
+                                                                    ? `?checkIn=${encodeURIComponent(pe.check_in)}&checkOut=${encodeURIComponent(pe.check_out)}`
+                                                                    : '';
+                                                                navigate(`/checkout/${pe.room_id}${qs}`, {
+                                                                    state: { checkInDate: pe.check_in, checkOutDate: pe.check_out }
+                                                                });
+                                                            }}
+                                                            className="w-full mt-1 py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white text-[10.5px] font-bold cursor-pointer active:scale-95 transition-all"
+                                                        >
+                                                            {dict.est_book_btn}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
 
                                         {/* 2C. THẺ XÁC NHẬN 2 BƯỚC (ĐẶT MÓN PHÒNG / CHUYỂN TIẾP LỄ TÂN) */}
                                         {msg.pending_action && (() => {
@@ -1712,7 +1995,7 @@ export default function AIChatbotWidget() {
                                                         <>
                                                             <div className="flex items-center justify-between gap-2">
                                                                 <span className="text-[11px] font-bold text-emerald-900">
-                                                                    Xác nhận đặt dịch vụ • P.{act.room_number}
+                                                                    {dict.svc_confirm_title(act.room_number)}
                                                                 </span>
                                                                 <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                                                                     #{act.booking_code}
@@ -1731,33 +2014,33 @@ export default function AIChatbotWidget() {
                                                                         : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 disabled:opacity-60'
                                                                 }`}
                                                             >
-                                                                {isDone ? '✓ Đã xác nhận đặt' : isActLoading ? 'Đang gửi yêu cầu...' : 'Xác nhận đặt ngay'}
+                                                                {isDone ? dict.svc_confirm_done : isActLoading ? dict.svc_confirm_loading : dict.svc_confirm_btn}
                                                             </button>
                                                         </>
                                                     ) : (
                                                         <>
                                                             <div className="text-[11px] font-bold text-slate-800">
-                                                                Gửi yêu cầu trực tiếp tới Lễ tân & Quản lý
+                                                                {dict.handoff_title}
                                                             </div>
                                                             {!isDone && (
                                                                 <div className="space-y-1.5">
                                                                     <input
                                                                         type="text"
-                                                                        placeholder="Họ và tên của Quý khách"
+                                                                        placeholder={dict.handoff_name_ph}
                                                                         value={form.name ?? act.default_name ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], name: e.target.value } }))}
                                                                         className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
                                                                     />
                                                                     <input
                                                                         type="email"
-                                                                        placeholder="Email liên hệ"
+                                                                        placeholder={dict.handoff_email_ph}
                                                                         value={form.email ?? act.default_email ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], email: e.target.value } }))}
                                                                         className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
                                                                     />
                                                                     <textarea
                                                                         rows={2}
-                                                                        placeholder="Nội dung cần nhân viên hỗ trợ..."
+                                                                        placeholder={dict.handoff_msg_ph}
                                                                         value={form.message ?? act.suggested_message ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], message: e.target.value } }))}
                                                                         className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400 resize-none"
@@ -1773,7 +2056,7 @@ export default function AIChatbotWidget() {
                                                                         : 'bg-slate-900 hover:bg-slate-800 text-amber-300 active:scale-95 disabled:opacity-60'
                                                                 }`}
                                                             >
-                                                                {isDone ? '✓ Đã chuyển tới Lễ tân' : isActLoading ? 'Đang gửi...' : 'Gửi yêu cầu tới Lễ tân'}
+                                                                {isDone ? dict.handoff_done : isActLoading ? dict.handoff_sending : dict.handoff_btn}
                                                             </button>
                                                         </>
                                                     )}
