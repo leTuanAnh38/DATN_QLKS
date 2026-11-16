@@ -562,7 +562,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
     return (
         <div
-            className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start justify-center p-2 sm:p-4 backdrop-blur-xs"
+            className="fixed inset-0 z-[110] overflow-y-auto bg-black/60 flex items-start justify-center p-2 sm:p-4 backdrop-blur-xs"
             onClick={(e) => {
                 if (e.target === e.currentTarget) onClose();
             }}

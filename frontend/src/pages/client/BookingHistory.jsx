@@ -53,9 +53,9 @@ import {
     CancelBookingModal,
     ReviewModal,
     ViewReviewModal,
-    ExtendStayModal,
-    BookingInvoiceModal
+    ExtendStayModal
 } from '../../components/client/booking-history';
+import HotelInvoiceModal from '../../components/admin/modals/shared/HotelInvoiceModal';
 
 // Tiện ích format ngày tiếng Việt (VD: 05/10/2026)
 const formatDateDisplay = (dateStr) => {
@@ -1711,14 +1711,10 @@ export default function BookingHistory() {
                 formatDateDisplay={formatDateDisplay}
             />
 
-            {/* 5. Modal xem Hóa đơn chi tiết */}
-            <BookingInvoiceModal
+            {/* 5. Modal xem Hóa đơn chi tiết (dùng chung mẫu chuẩn A4 với phía Quản lý) */}
+            <HotelInvoiceModal
                 booking={invoiceModalBooking}
                 onClose={() => setInvoiceModalBooking(null)}
-                hotelName={hotelName}
-                settings={settings}
-                formatDateDisplay={formatDateDisplay}
-                getGroupBookingInfo={getGroupBookingInfo}
             />
 
             {/* Modal Thanh toán VietQR động khi khách bấm "Thanh toán ngay" */}
