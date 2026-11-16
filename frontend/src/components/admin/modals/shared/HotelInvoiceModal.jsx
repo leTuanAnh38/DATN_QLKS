@@ -672,11 +672,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     </div>
                 </div>
 
-                {/* VÙNG NỘI DUNG HÓA ĐƠN IN ẤN (CHUẨN FORM ẢNH MẪU - ĐEN TRẮNG, KHÔNG ICON, KHÔNG CHỮ MÀU) */}
-                <div className="overflow-x-auto w-full">
+                {/* VÙNG NỘI DUNG HÓA ĐƠN IN ẤN (Responsive trên mobile, chuẩn khổ A4 khi in) */}
+                <div className="w-full">
                     <div
                         id="hotel-invoice-printable"
-                        className="p-5 sm:p-10 bg-white text-slate-900 font-sans tabular-nums min-w-[620px] sm:min-w-0"
+                        className="p-4 sm:p-10 bg-white text-slate-900 font-sans tabular-nums w-full"
                         style={{ color: '#111827' }}
                     >
                     {/* 1. HEADER: THÔNG TIN KHÁCH SẠN VÀ TIÊU ĐỀ HÓA ĐƠN */}
@@ -798,21 +798,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 {booking.customer_type === 'CORPORATE' ? 'NGƯỜI ĐẠI DIỆN LƯU TRÚ / NHẬN PHÒNG:' : 'THÔNG TIN KHÁCH HÀNG:'}
                             </h3>
                             <div className="space-y-2 text-slate-700">
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Họ tên khách:</span>
-                                    <strong className="text-slate-900 font-bold">{booking.guest_name || booking.customer_name || (typeof booking.guest === 'string' ? booking.guest : booking.guest?.name) || 'Khách vãng lai'}</strong>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">Họ tên khách:</span>
+                                    <strong className="text-slate-900 font-bold min-w-0 break-words">{booking.guest_name || booking.customer_name || (typeof booking.guest === 'string' ? booking.guest : booking.guest?.name) || 'Khách vãng lai'}</strong>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Số điện thoại:</span>
-                                    <span className="text-slate-900 font-medium">{booking.guest_phone || booking.guest?.phone_number || '—'}</span>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">Số điện thoại:</span>
+                                    <span className="text-slate-900 font-medium min-w-0 break-words">{booking.guest_phone || booking.guest?.phone_number || '—'}</span>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Email:</span>
-                                    <span className="text-slate-900 font-medium">{booking.guest_email || booking.guest?.email || '—'}</span>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">Email:</span>
+                                    <span className="text-slate-900 font-medium min-w-0 break-all">{booking.guest_email || booking.guest?.email || '—'}</span>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">CCCD / Hộ chiếu:</span>
-                                    <span className="text-slate-900 font-medium">{booking.identity_card || booking.guest?.identity_card || '—'}</span>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">CCCD / Hộ chiếu:</span>
+                                    <span className="text-slate-900 font-medium min-w-0 break-words">{booking.identity_card || booking.guest?.identity_card || '—'}</span>
                                 </div>
                             </div>
                         </div>
@@ -823,28 +823,28 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 THÔNG TIN ĐẶT PHÒNG:
                             </h3>
                             <div className="space-y-2 text-slate-700">
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Mã hợp đồng đoàn:' : 'Mã đặt phòng:'}</span>
-                                    <strong className="text-slate-900 font-bold">{bookingCodeDisplay}</strong>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Mã hợp đồng đoàn:' : 'Mã đặt phòng:'}</span>
+                                    <strong className="text-slate-900 font-bold min-w-0 break-words">{bookingCodeDisplay}</strong>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Quy mô lưu trú:' : 'Phòng lưu trú:'}</span>
-                                    <strong className="text-slate-900 font-bold">
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">{isGroupMaster ? 'Quy mô lưu trú:' : 'Phòng lưu trú:'}</span>
+                                    <strong className="text-slate-900 font-bold min-w-0 break-words">
                                         {isGroupMaster
                                             ? `${booking.total_rooms || booking.sub_bookings?.length || 1} phòng • ${booking.room_name || booking.group_name || 'Khách đoàn'}`
                                             : `${(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : 'Chưa xếp số'} (${booking.room_name || booking.category?.name || booking.room?.room_type_name || 'Tiêu chuẩn'})`
                                         }
                                     </strong>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Thời gian lưu trú:</span>
-                                    <span className="text-slate-900 font-medium">
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">Thời gian lưu trú:</span>
+                                    <span className="text-slate-900 font-medium min-w-0 break-words">
                                         {formatDate(booking.check_in_date)} đến {formatDate(booking.check_out_date)} ({nights} đêm)
                                     </span>
                                 </div>
-                                <div className="flex">
-                                    <span className="w-28 shrink-0 text-slate-500">Phương thức:</span>
-                                    <span className="text-slate-900 font-medium">{getPaymentMethod()}</span>
+                                <div className="flex gap-2">
+                                    <span className="w-24 sm:w-28 shrink-0 text-slate-500">Phương thức:</span>
+                                    <span className="text-slate-900 font-medium min-w-0 break-words">{getPaymentMethod()}</span>
                                 </div>
                             </div>
                         </div>
@@ -856,7 +856,130 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             {isGroupMaster ? 'Bảng kê chi tiết các phòng thuộc hợp đồng đoàn lưu trú:' : 'Chi tiết thanh toán phòng nghỉ:'}
                         </h4>
 
-                        <div className="w-full overflow-x-auto">
+                        {/* Dạng danh sách thẻ gọn dọc cho Điện thoại (< sm), ẩn khi in A4 */}
+                        <div className="sm:hidden print:hidden divide-y divide-slate-200 border-y border-slate-200 text-xs">
+                            {isGroupMaster && Array.isArray(booking.sub_bookings) && booking.sub_bookings.length > 0 ? (
+                                booking.sub_bookings.filter((sub) => sub.status !== 'cancelled').map((sub, idx) => {
+                                    const subRoomNum = sub.room?.room_number || sub.room_number;
+                                    const subCatName = sub.category?.name || sub.room_name || 'Phòng tiêu chuẩn';
+                                    const subGuest = sub.guest_name || sub.customer_name || 'Theo danh sách đoàn';
+                                    const subNights = Math.max(1, Number(sub.nights || nights));
+                                    const subRoomCharge = Number(sub.room_charge != null ? sub.room_charge : (sub.room_amount || 0));
+                                    const subTotal = isGroupAllInclusive
+                                        ? (subRoomCharge > 0 ? subRoomCharge : (Number(sub.daily_rate || 0) * subNights))
+                                        : Number(sub.total_amount || sub.room_amount || 0);
+                                    const subPricePerNight = Number(sub.daily_rate || (subNights > 0 && subTotal > 0 ? Math.round(subTotal / subNights) : subTotal));
+                                    return (
+                                        <div key={sub.id || idx} className="py-3 space-y-1.5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <div className="font-bold text-slate-900">
+                                                        {subRoomNum ? `Phòng ${subRoomNum}` : `Phòng ${idx + 1}`} - {subCatName}
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-500">
+                                                        Mã: #{sub.booking_code} • {subGuest}
+                                                    </div>
+                                                </div>
+                                                <span className="font-bold text-slate-900 whitespace-nowrap shrink-0">
+                                                    {formatCurrency(subTotal)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-2 text-[10.5px]">
+                                                <span className={`font-bold px-2 py-0.5 rounded border ${isCompleted ? 'text-purple-700 bg-purple-50 border-purple-200' : 'text-indigo-700 bg-indigo-50 border-indigo-200'}`}>
+                                                    {isCompleted ? 'Đã quyết toán' : 'Bảo lãnh theo HĐ đoàn'}
+                                                </span>
+                                                <span className="text-slate-500">
+                                                    {formatCurrency(subPricePerNight)} × {subNights} đêm
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="py-3 space-y-1.5">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-900">
+                                                {isGroupMaster ? `Hợp đồng đoàn: ${booking.group_name || booking.room_name || 'Khách đoàn'}` : 'Tiền phòng nghỉ - Room Charge'}
+                                            </div>
+                                            <div className="text-[11px] text-slate-500">
+                                                {isGroupMaster
+                                                    ? `Gói lưu trú đoàn ${booking.total_rooms || 1} phòng (${nights} đêm)`
+                                                    : `${(booking.room_number || booking.room?.room_number) ? `Phòng ${booking.room_number || booking.room?.room_number}` : (booking.room_name || booking.category?.name || 'Phòng tiêu chuẩn')}`}
+                                            </div>
+                                        </div>
+                                        <span className="font-bold text-slate-900 whitespace-nowrap shrink-0">
+                                            {formatCurrency(roomSubtotal)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 text-[10.5px] flex-wrap">
+                                        {isCancelled ? (
+                                            <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Đơn đã hủy</span>
+                                        ) : isCompleted ? (
+                                            <span className="font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">Đã quyết toán</span>
+                                        ) : isGroupRoom ? (
+                                            <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">Gộp HĐ đoàn #{booking.group_booking_code || ''}</span>
+                                        ) : isRoomPaid ? (
+                                            <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{getPaidMethodLabel()}</span>
+                                        ) : (
+                                            <span className="font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">Chưa thanh toán</span>
+                                        )}
+                                        <span className="text-slate-500">
+                                            {formatCurrency(pricePerNight)} × {nights} đêm
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {extraServices.length === 0 && extraServicesTotal > 0 && (
+                                <div className="py-2.5 space-y-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="font-bold text-slate-900">Dịch vụ phát sinh & Tiện ích tại phòng</div>
+                                        <span className="font-bold text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(extraServicesTotal)}</span>
+                                    </div>
+                                    <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                        Chưa thanh toán (Thu khi Check-out)
+                                    </span>
+                                </div>
+                            )}
+
+                            {extraServices.map((service, idx) => {
+                                const cleanName = (service.service_name || '').replace(/\[Yêu cầu #\d+\]/gi, '').replace(/\(x\d+\)/gi, '').trim();
+                                const isDamageCompensation = cleanName.toLowerCase().includes('bồi thường');
+                                const serviceIsPaid = Boolean(service.is_paid || (booking.status === 'completed' && booking.invoice?.status === 'paid'));
+                                return (
+                                    <div key={service.id || idx} className={`py-2.5 space-y-1.5 ${isDamageCompensation ? 'bg-rose-50/30 -mx-1 px-1 rounded' : ''}`}>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className={`font-bold ${isDamageCompensation ? 'text-rose-900' : 'text-slate-900'}`}>{cleanName}</div>
+                                                <div className="text-[10.5px] text-slate-500">
+                                                    {formatCurrency(service.price)} × {service.quantity}
+                                                </div>
+                                            </div>
+                                            <span className="font-bold text-slate-900 whitespace-nowrap shrink-0">
+                                                {formatCurrency(service.total_price || (service.price * service.quantity))}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            {serviceIsPaid || isCompleted ? (
+                                                <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                    {isGroupMaster ? 'Đã quyết toán' : (isGroupRoom && isCompanyAllInclusive) ? 'Gộp HĐ đoàn' : getServicePaymentBadgeLabel(service)}
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${
+                                                    isGroupMaster ? 'text-indigo-700 bg-indigo-50 border-indigo-200' : isDamageCompensation ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-amber-700 bg-amber-50 border-amber-200'
+                                                }`}>
+                                                    {isGroupMaster ? 'Gộp HĐ đoàn (Master-Billing)' : (isDamageCompensation ? 'Chưa thanh toán (Thu bồi thường)' : 'Chưa thanh toán (Thu khi Check-out)')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Bảng 5 cột đầy đủ cho Tablet/Desktop (>= sm) và Chế độ In A4 */}
+                        <div className="hidden sm:block print:block w-full overflow-x-auto">
                             <table className="w-full text-xs border-collapse">
                                 <thead>
                                     <tr className="border-b border-slate-300 text-slate-700">
@@ -1076,21 +1199,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         </div>
 
                         {/* Cột phải: Các dòng cộng tiền, khấu trừ giảm giá, tạm tính, tổng cộng */}
-                        <div className="space-y-2 text-right">
-                            <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                        <div className="space-y-2 text-left sm:text-right">
+                            <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                 <span className="text-slate-500">Cộng tiền phòng:</span>
-                                <span className="font-medium text-slate-900 w-28 text-right">
+                                <span className="font-medium text-slate-900 shrink-0 sm:w-28 text-right">
                                     {formatCurrency(roomSubtotal)}
                                 </span>
                             </div>
 
                             {/* Khấu trừ mã khuyến mãi (nếu có) */}
                             {promoDiscount > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                     <span className="text-slate-500">
                                         Khấu trừ khuyến mãi ({booking.promotion_code || 'ƯU ĐÃI'}):
                                     </span>
-                                    <span className="font-medium text-slate-900 w-28 text-right">
+                                    <span className="font-medium text-slate-900 shrink-0 sm:w-28 text-right">
                                         -{formatCurrency(promoDiscount)}
                                     </span>
                                 </div>
@@ -1098,11 +1221,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                             {/* Ưu đãi Hạng thành viên (nếu có) */}
                             {membershipDiscount > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                     <span className="text-slate-500">
                                         Ưu đãi hạng thành viên ({tierName}):
                                     </span>
-                                    <span className="font-medium text-slate-900 w-28 text-right">
+                                    <span className="font-medium text-slate-900 shrink-0 sm:w-28 text-right">
                                         -{formatCurrency(membershipDiscount)}
                                     </span>
                                 </div>
@@ -1110,49 +1233,49 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                             {/* Trường hợp có chiết khấu nhưng không phân tách được */}
                             {promoDiscount === 0 && membershipDiscount === 0 && totalDiscount > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                     <span className="text-slate-500">
                                         Khấu trừ giảm giá ({booking.promotion_code || 'ƯU ĐÃI'}):
                                     </span>
-                                    <span className="font-medium text-slate-900 w-28 text-right">
+                                    <span className="font-medium text-slate-900 shrink-0 sm:w-28 text-right">
                                         -{formatCurrency(totalDiscount)}
                                     </span>
                                 </div>
                             )}
 
-                            <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                            <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                 <span className="text-slate-500">Tiền phòng sau ưu đãi:</span>
-                                <span className="font-medium text-slate-900 w-28 text-right">
+                                <span className="font-medium text-slate-900 shrink-0 sm:w-28 text-right">
                                     {formatCurrency(roomAmount)}
                                 </span>
                             </div>
 
                             {extraServicesTotal > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-slate-700 font-semibold">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700 font-semibold">
                                     <span>
                                         {isGroupMaster 
                                             ? `Dịch vụ phát sinh tại các phòng (Công ty chi trả toàn bộ${extraServices.length > 0 ? ` - ${extraServices.length} món` : ''}):`
                                             : `Dịch vụ phát sinh${extraServices.length > 0 ? ` (${extraServices.length} món)` : ''}:`
                                         }
                                     </span>
-                                    <span className="w-28 text-right text-slate-900">
+                                    <span className="shrink-0 sm:w-28 text-right text-slate-900">
                                         +{formatCurrency(extraServicesTotal)}
                                     </span>
                                 </div>
                             )}
 
                             {isGroupMaster && !isGroupAllInclusive && groupSubServicesTotal > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-slate-500 italic text-[11px]">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-500 italic text-[11px]">
                                     <span>* Dịch vụ phát sinh ({groupSubExtraServices.length} món): Khách tự thanh toán tại quầy lẻ khi trả phòng</span>
-                                    <span className="w-28 text-right font-medium">({formatCurrency(groupSubServicesTotal)})</span>
+                                    <span className="shrink-0 sm:w-28 text-right font-medium">({formatCurrency(groupSubServicesTotal)})</span>
                                 </div>
                             )}
 
-                            <div className="pt-2 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-6">
+                            <div className="pt-2 border-t border-slate-300 flex justify-between sm:justify-end items-baseline gap-3 sm:gap-6">
                                 <span className="font-bold text-xs text-slate-800 uppercase">
                                     {isGroupMaster && extraServicesTotal > 0 ? 'Tổng hợp đồng (Phòng & Dịch vụ):' : 'Tổng giá trị phòng & dịch vụ:'}
                                 </span>
-                                <span className="font-bold text-sm text-slate-900 w-36 text-right">
+                                <span className="font-bold text-sm text-slate-900 shrink-0 sm:w-36 text-right">
                                     {formatCurrency(grandTotal)}
                                 </span>
                             </div>
@@ -1286,8 +1409,8 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                         </div>
                                     ) : null}
 
-                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
-                                        <div className="flex items-center gap-2">
+                                    <div className="pt-2 border-t-2 border-slate-900 flex flex-wrap justify-between sm:justify-end items-baseline gap-2 sm:gap-6">
+                                        <div className="flex flex-wrap items-center gap-2">
                                             <span className="font-black text-xs sm:text-sm text-slate-900 uppercase">
                                                 {isCompleted || balanceDue === 0 ? 'Còn lại cần thu:' : (paidAmount > 0 ? 'Thực thu khi trả phòng:' : 'Tổng thanh toán:')}
                                             </span>
@@ -1297,7 +1420,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`font-black text-base sm:text-lg w-36 text-right ${balanceDue === 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
+                                        <span className={`font-black text-base sm:text-lg shrink-0 sm:w-36 text-right ${balanceDue === 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
                                             {formatCurrency(balanceDue)}
                                         </span>
                                     </div>
@@ -1307,7 +1430,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                     </div>
 
                     {/* 5. KHỐI CHỮ KÝ: KHÁCH HÀNG KÝ NHẬN & ĐẠI DIỆN KHÁCH SẠN */}
-                    <div className="mt-14 pt-4 grid grid-cols-2 gap-8 text-center text-xs">
+                    <div className="mt-10 sm:mt-14 pt-4 grid grid-cols-2 gap-4 sm:gap-8 text-center text-xs">
                         <div>
                             <p className="font-bold text-slate-900">
                                 {isGroupMaster 
