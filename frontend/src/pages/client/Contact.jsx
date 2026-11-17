@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import api from '../../services/api';
-import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { contactService } from '../../services/contactService';
 import {
     Mail,
@@ -28,6 +27,7 @@ import {
     ShieldCheck,
     ChevronDown,
     ExternalLink,
+    Clock,
     X,
 } from 'lucide-react';
 
@@ -43,8 +43,8 @@ const DEPARTMENT_LABELS = {
 export default function ContactPage() {
     const { settings } = useHotelSettings();
 
-    // Hotel brand & operational settings from backend
-    const [hotelInfo, setHotelInfo] = useState({
+    // Thông tin thương hiệu & vận hành lấy đồng bộ từ hotelSettingStore (đã resolveMediaUrl)
+    const hotelInfo = {
         hotel_name: settings?.hotel_name || 'Khách Sạn TA Đà Nẵng',
         hotel_slogan: settings?.hotel_slogan || 'Khách Sạn & Khu Nghỉ Dưỡng',
         address: settings?.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam',
@@ -53,52 +53,9 @@ export default function ContactPage() {
         email: settings?.email || 'contact@tahotel.vn',
         check_in_time: settings?.check_in_time || '14:00',
         check_out_time: settings?.check_out_time || '12:00',
-        banner_contact: settings?.banner_contact || '',
-        stars: Number(settings?.stars) || 3,
-    });
-
-    useEffect(() => {
-        if (settings) {
-            setHotelInfo(prev => ({
-                ...prev,
-                hotel_name: settings.hotel_name || prev.hotel_name,
-                hotel_slogan: settings.hotel_slogan || prev.hotel_slogan,
-                address: settings.address || prev.address,
-                hotline: settings.hotline || prev.hotline,
-                phone_number: settings.phone_number || prev.phone_number,
-                email: settings.email || prev.email,
-                check_in_time: settings.check_in_time || prev.check_in_time,
-                check_out_time: settings.check_out_time || prev.check_out_time,
-                banner_contact: settings.banner_contact || prev.banner_contact,
-                stars: Number(settings.stars) || prev.stars || 3,
-            }));
-        }
-    }, [settings]);
-
-    useEffect(() => {
-        let isMounted = true;
-        api.get('/hotel-settings/')
-            .then(res => {
-                const data = res.data?.data || res.data;
-                if (data && isMounted) {
-                    setHotelInfo(prev => ({
-                        ...prev,
-                        hotel_name: data.hotel_name || prev.hotel_name,
-                        hotel_slogan: data.hotel_slogan || prev.hotel_slogan,
-                        address: data.address || prev.address,
-                        hotline: data.hotline || prev.hotline,
-                        phone_number: data.phone_number || prev.phone_number,
-                        email: data.email || prev.email,
-                        check_in_time: data.check_in_time || prev.check_in_time,
-                        check_out_time: data.check_out_time || prev.check_out_time,
-                        banner_contact: data.banner_contact || prev.banner_contact,
-                        stars: Number(data.star_rating || data.stars) || prev.stars || 3,
-                    }));
-                }
-            })
-            .catch(() => {});
-        return () => { isMounted = false; };
-    }, []);
+        banner_contact: settings?.banner_contact || DEFAULT_BANNERS.banner_contact,
+        stars: Number(settings?.star_rating || settings?.stars) || 3,
+    };
 
     // Form state
     const [formData, setFormData] = useState({
@@ -113,8 +70,18 @@ export default function ContactPage() {
 
     const [copiedAddress, setCopiedAddress] = useState(false);
     const [activeFaq, setActiveFaq] = useState(null);
-    const [isSubmitting, setIsSugmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState(null); // { type: 'success' | 'error', text }
+
+    const toastTimerRef = useRef(null);
+    const copyTimerRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        };
+    }, []);
 
     // FAQ list - bound to dynamic hotel name and check-in / check-out times
     const faqs = [
@@ -132,26 +99,50 @@ export default function ContactPage() {
         }
     ];
 
-    const handleCopyAddress = () => {
-        const address = hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam';
-        navigator.clipboard.writeText(address);
-        setCopiedAddress(true);
-        setTimeout(() => setCopiedAddress(false), 2500);
+    const showToast = (type, text) => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setToast({ type, text });
+        toastTimerRef.current = setTimeout(() => setToast(null), 4500);
     };
 
-    const showToast = (type, text) => {
-        setToast({ type, text });
-        setTimeout(() => setToast(null), 4500);
+    const handleCopyAddress = async () => {
+        const address = hotelInfo.address;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(address);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = address;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+            setCopiedAddress(true);
+            copyTimerRef.current = setTimeout(() => setCopiedAddress(false), 2500);
+        } catch {
+            showToast('error', 'Không thể tự động sao chép địa chỉ trên trình duyệt này.');
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
-        setIsSugmitting(true);
+
+        const digitsCount = formData.phone.replace(/\D/g, '').length;
+        if (digitsCount < 8) {
+            showToast('error', 'Vui lòng nhập số điện thoại hợp lệ (tối thiểu 8 chữ số).');
+            return;
+        }
+
+        setIsSubmitting(true);
 
         // Backend chỉ lưu name/email/subject/message nên các thông tin bổ sung được đính kèm vào cuối nội dung
         const extraLines = [
-            formData.phone && `Số điện thoại: ${formData.phone}`,
+            formData.phone && `Số điện thoại: ${formData.phone.trim()}`,
             `Bộ phận tiếp nhận: ${DEPARTMENT_LABELS[formData.department] || formData.department}`,
             formData.receiveViaZalo && 'Khách muốn nhận tư vấn qua Zalo / WhatsApp',
         ].filter(Boolean);
@@ -164,7 +155,7 @@ export default function ContactPage() {
             message: messageWithExtras,
         });
 
-        setIsSugmitting(false);
+        setIsSubmitting(false);
 
         if (res.success) {
             showToast('success', 'Gửi liên hệ thành công! Chúng tôi sẽ phản hồi Quý khách trong thời gian sớm nhất.');
@@ -191,7 +182,7 @@ export default function ContactPage() {
             {toast && (
                 <div
                     role="status"
-                    className={`fixed top-24 right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-300 ${
+                    className={`fixed top-24 right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium transition-all duration-300 ${
                         toast.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-emerald-500/10'
                             : 'bg-rose-50 text-rose-800 border-rose-200 shadow-rose-500/10'
@@ -420,17 +411,17 @@ export default function ContactPage() {
                     </div>
 
                     {/* RIGHT: HEADQUARTERS & SPECIALIZED DEPARTMENTS */}
-                    <div className="lg:col-span-5 space-y-6">
+                    <div className="lg:col-span-5 space-y-5">
 
                         {/* Flagship Address Box */}
-                        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-sm">
-                            <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4 mb-2.5">
                                 <div>
                                     <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block">
                                         Trụ sở nghỉ dưỡng Flagship
                                     </span>
                                     <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
-                                        {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
+                                        {hotelInfo.hotel_name}
                                     </h3>
                                 </div>
                                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
@@ -438,19 +429,35 @@ export default function ContactPage() {
                                 </div>
                             </div>
 
-                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-3">
-                                {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Phường Mỹ An, Quận Ngũ Hành Sơn, Thành phố Đà Nẵng, Việt Nam.'}
+                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-2">
+                                {hotelInfo.address}
                             </p>
-                            <p className="text-xs text-slate-500 mb-5 italic">
-                                {hotelInfo.hotel_slogan || 'Kiệt tác nghỉ dưỡng ven biển đẳng cấp quốc tế.'}
+                            <p className="text-xs text-slate-500 mb-3.5 italic">
+                                {hotelInfo.hotel_slogan}
                             </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+                                <a
+                                    href={`mailto:${hotelInfo.email}`}
+                                    className="flex items-center gap-2 text-slate-700 hover:text-amber-700 transition min-w-0"
+                                >
+                                    <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span className="truncate font-medium">{hotelInfo.email}</span>
+                                </a>
+                                <div className="flex items-center gap-2 text-slate-600">
+                                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span className="truncate">
+                                        Nhận {hotelInfo.check_in_time} · Trả {hotelInfo.check_out_time}
+                                    </span>
+                                </div>
+                            </div>
 
                             <div className="flex flex-wrap gap-2.5">
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelInfo.address)}`}
                                     target="_blank"
-                                    rel="noreferrer"
-                                    className="px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/70 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/70 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
                                 >
                                     <Compass className="w-3.5 h-3.5" />
                                     <span>Mở Google Maps</span>
@@ -459,7 +466,7 @@ export default function ContactPage() {
                                 <button
                                     type="button"
                                     onClick={handleCopyAddress}
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                                 >
                                     {copiedAddress ? (
                                         <>
@@ -477,97 +484,82 @@ export default function ContactPage() {
                         </div>
 
                         {/* Specialized Departments Contacts */}
-                        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-sm space-y-5">
-                            <div>
-                                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block mb-1">
-                                    Kênh tiếp nhận chuyên môn
+                        <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between gap-2">
+                                <div>
+                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block mb-0.5">
+                                        Kênh tiếp nhận chuyên môn
+                                    </span>
+                                    <h3 className="font-serif text-lg font-bold text-slate-900">
+                                        Các Phòng Ban Trực Thuộc
+                                    </h3>
+                                </div>
+                                <span className="text-[11px] font-mono font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg shrink-0">
+                                    {hotelInfo.phone_number}
                                 </span>
-                                <h3 className="font-serif text-lg font-bold text-slate-900">
-                                    Các Phòng Ban Trực Thuộc
-                                </h3>
                             </div>
 
-                            <div className="space-y-3.5 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                 {/* 1. Reservations */}
-                                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-3.5">
-                                    <div className="w-9 h-9 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/50">
+                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/50">
                                         <Building2 className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block">Phòng Đặt Phòng (Reservations)</strong>
-                                        <span className="text-slate-500 block text-[11px] mt-0.5">
-                                            {hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-amber-600 font-bold">Ext 1</span>
-                                        </span>
-                                        <a href={`mailto:${hotelInfo.email || 'booking@tadananghotel.com'}`} className="text-slate-600 hover:text-amber-600 hover:underline block truncate mt-0.5">
-                                            {hotelInfo.email || 'booking@tadananghotel.com'}
-                                        </a>
+                                        <strong className="text-slate-900 font-bold block leading-snug">Đặt Phòng (Reservations)</strong>
+                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 1 · Phục vụ 24/7</span>
                                     </div>
                                 </div>
 
                                 {/* 2. Dining & F&B */}
-                                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-3.5">
-                                    <div className="w-9 h-9 rounded-xl bg-orange-100/70 text-orange-700 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-orange-100/70 text-orange-700 flex items-center justify-center shrink-0 border border-orange-200/50">
                                         <UtensilsCrossed className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block">Dịch Vụ Ẩm Thực & Bar (F&B)</strong>
-                                        <span className="text-slate-500 block text-[11px] mt-0.5">
-                                            {hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-amber-600 font-bold">Ext 2</span>
-                                        </span>
-                                        <a href={`mailto:${hotelInfo.email || 'dining@tadananghotel.com'}`} className="text-slate-600 hover:text-amber-600 hover:underline block truncate mt-0.5">
-                                            {hotelInfo.email || 'dining@tadananghotel.com'}
-                                        </a>
+                                        <strong className="text-slate-900 font-bold block leading-snug">Ẩm Thực & Bar (F&B)</strong>
+                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 2 · 06:00 - 23:00</span>
                                     </div>
                                 </div>
 
                                 {/* 3. Spa */}
-                                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-3.5">
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
+                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
                                         <Flower2 className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block">The Lotus Spa & Wellness</strong>
-                                        <span className="text-slate-500 block text-[11px] mt-0.5">
-                                            {hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-amber-600 font-bold">Ext 3</span>
-                                        </span>
-                                        <a href={`mailto:${hotelInfo.email || 'spa@tadananghotel.com'}`} className="text-slate-600 hover:text-amber-600 hover:underline block truncate mt-0.5">
-                                            {hotelInfo.email || 'spa@tadananghotel.com'}
-                                        </a>
+                                        <strong className="text-slate-900 font-bold block leading-snug">The Lotus Spa</strong>
+                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 3 · 09:00 - 21:00</span>
                                     </div>
                                 </div>
 
                                 {/* 4. Events & MICE */}
-                                <div className="p-3.5 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-3.5">
-                                    <div className="w-9 h-9 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50">
+                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50">
                                         <Users className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block">Ban Sự Kiện Đoàn & M.I.C.E</strong>
-                                        <span className="text-slate-500 block text-[11px] mt-0.5">
-                                            {hotelInfo.phone_number || '(+84) 236 388 9900'} - <span className="text-amber-600 font-bold">Ext 4</span>
-                                        </span>
-                                        <a href={`mailto:${hotelInfo.email || 'mice@tadananghotel.com'}`} className="text-slate-600 hover:text-amber-600 hover:underline block truncate mt-0.5">
-                                            {hotelInfo.email || 'mice@tadananghotel.com'}
-                                        </a>
+                                        <strong className="text-slate-900 font-bold block leading-snug">Sự Kiện & M.I.C.E</strong>
+                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 4 · 08:00 - 18:00</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* VIP Emergency Card */}
                             <a
-                                href={`tel:${(hotelInfo.hotline || '1900 8899').replace(/\s+/g, '')}`}
-                                className="block mt-4 p-4.5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 text-white border border-amber-500/30 hover:border-amber-400 shadow-xl transition-all duration-300 hover:scale-[1.01] group"
+                                href={`tel:${hotelInfo.hotline.replace(/\s+/g, '')}`}
+                                className="block p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 text-white border border-amber-500/30 hover:border-amber-400 shadow-xl transition-all duration-300 hover:scale-[1.01] group"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
                                         <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
                                             Hotline Khẩn Cấp VIP 24/7 (Bấm để gọi)
                                         </span>
                                         <strong className="text-xl font-bold font-mono tracking-wider block text-white group-hover:text-amber-300 transition mt-0.5">
-                                            {hotelInfo.hotline || '1900 8899'}
+                                            {hotelInfo.hotline}
                                         </strong>
-                                        <span className="block text-[10px] text-slate-300 mt-0.5">
-                                            Điện thoại bàn: {hotelInfo.phone_number || '(+84) 236 388 9900'}
+                                        <span className="block text-[11px] text-slate-300 mt-0.5 truncate">
+                                            Điện thoại bàn: {hotelInfo.phone_number}
                                         </span>
                                     </div>
                                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
@@ -581,70 +573,70 @@ export default function ContactPage() {
             </main>
 
             {/* INTERACTIVE MAP SECTION & 4 KEY TRAVEL TIMES */}
-            <section className="py-16 bg-white border-t border-slate-200">
+            <section className="py-12 sm:py-16 bg-white border-t border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
                             <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
                                 Tọa độ đắc địa & Khả năng tiếp cận
                             </span>
-                            <h2 className="font-serif text-3xl font-bold text-slate-900 mt-1">
+                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
                                 Bản Đồ Vị Trí & Hướng Dẫn Di Chuyển
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
-                                {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'} sở hữu vị trí đắc địa, kết nối thông suốt với cảng hàng không quốc tế, ga đường sắt và các địa danh du lịch nổi tiếng.
+                                {hotelInfo.hotel_name} sở hữu vị trí đắc địa, kết nối thông suốt với cảng hàng không quốc tế, ga đường sắt và các địa danh du lịch nổi tiếng.
                             </p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-                            <MapPin className="w-4 h-4 text-amber-600" />
-                            <span>{hotelInfo.address || '08 Võ Nguyên Giáp, Đà Nẵng'}</span>
+                            <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                            <span>{hotelInfo.address}</span>
                         </div>
                     </div>
 
                     {/* BẢN ĐỒ THỰC TẾ GOOGLE MAPS */}
-                    <div className="w-full h-[460px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 relative bg-slate-100">
+                    <div className="w-full h-[300px] sm:h-[400px] lg:h-[460px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 relative bg-slate-100">
                         <iframe
-                            src={`https://maps.google.com/maps?q=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                            src={`https://maps.google.com/maps?q=${encodeURIComponent(hotelInfo.address)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
                             allowFullScreen=""
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            title={`Bản đồ vị trí thực tế ${hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}`}
+                            title={`Bản đồ vị trí thực tế ${hotelInfo.hotel_name}`}
                             className="w-full h-full"
                         />
 
                         {/* Overlaid Hotel Pin Card (ẩn trên mobile để không chắn bản đồ) */}
                         <div className="hidden sm:block absolute top-4 left-4 max-w-xs bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-white/60 pointer-events-auto">
                             <div className="flex items-center gap-0.5 text-amber-500 text-xs mb-1">
-                                {Array.from({ length: hotelInfo.stars || 3 }).map((_, i) => (
+                                {Array.from({ length: hotelInfo.stars }).map((_, i) => (
                                     <span key={i}>★</span>
                                 ))}
                                 <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800 ml-1">
-                                    {hotelInfo.stars || 3}-Star Luxury Hotel
+                                    {hotelInfo.stars}-Star Luxury Hotel
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm">
-                                {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
+                                {hotelInfo.hotel_name}
                             </h4>
                             <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                                {hotelInfo.address || '08 Võ Nguyên Giáp, Bãi biển Mỹ Khê, Q. Ngũ Hành Sơn'}
+                                {hotelInfo.address}
                             </p>
                             <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars || 3} Sao`}
+                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars} Sao`}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Bottom Right CTA Link to Google Maps */}
+                        {/* Bottom Left CTA Link to Google Maps (tránh đè lên nút zoom góc dưới phải của iframe) */}
                         <a
-                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelInfo.address || 'Khách Sạn TA Đà Nẵng')}`}
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelInfo.address)}`}
                             target="_blank"
-                            rel="noreferrer"
-                            className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto group"
+                            rel="noopener noreferrer"
+                            className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto group"
                         >
                             <Navigation className="w-4 h-4 text-amber-600 group-hover:rotate-12 transition-transform" />
                             <span>Mở chỉ đường Google Maps</span>
