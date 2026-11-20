@@ -1205,15 +1205,15 @@ export default function DetailRoom() {
                         </div>
 
                         {/* MÔ TẢ HẠNG PHÒNG */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+                        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
                          
-                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
+                            <h2 className="font-serif text-xl sm:text-3xl font-bold text-slate-900 leading-tight">
                                 {roomHeadline}
                             </h2>
 
                             {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
                             {room.short_description && (
-                                <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
+                                <div className="p-3.5 sm:p-4 rounded-2xl bg-sky-50/50 border border-sky-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
                                     <Compass className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-sky-800 block mb-0.5">
@@ -1247,13 +1247,13 @@ export default function DetailRoom() {
                         </div>
 
                         {/* TIỆN ÍCH (AMENITIES): MAP MẢNG DỮ LIỆU TỪ API */}
-                        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
-                            <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
+                        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
+                            <div className="flex items-center justify-between mb-6 sm:mb-8 pb-4 border-b border-slate-100">
                                 <div>
                                     <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
                                         Tiện ích tích hợp
                                     </span>
-                                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
+                                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                                         Tiện nghi phòng nghỉ cao cấp
                                     </h3>
                                 </div>
@@ -1264,20 +1264,20 @@ export default function DetailRoom() {
 
                             {/* 1. Tiện ích riêng biệt của Hạng phòng lấy từ API */}
                             {room.amenities && room.amenities.length > 0 && (
-                                <div className="mb-8">
+                                <div className="mb-6 sm:mb-8">
                                     <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-3">
                                         Tiện ích đặc trưng của hạng phòng này:
                                     </h4>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
                                         {room.amenities.map((amenity, idx) => (
                                             <div
                                                 key={amenity.id || idx}
-                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-sky-50/45 border border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 transition group"
+                                                className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-sky-50/45 border border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 transition group min-w-0"
                                             >
-                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition border border-sky-100/80 select-none">
+                                                <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-base sm:text-lg flex-shrink-0 group-hover:scale-110 transition border border-sky-100/80 select-none">
                                                     {amenity.icon || getAmenityIcon(amenity)}
                                                 </span>
-                                                <span className="text-xs font-bold text-slate-800 group-hover:text-sky-800 transition">
+                                                <span className="text-xs font-bold text-slate-800 group-hover:text-sky-800 transition leading-snug">
                                                     {amenity.name}
                                                 </span>
                                             </div>

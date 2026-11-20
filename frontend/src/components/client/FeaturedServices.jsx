@@ -215,9 +215,9 @@ export default function FeaturedServices() {
                     </p>
                 </div>
 
-                {/* Filter Tabs: Tách khỏi max-w-3xl để 4 nút nằm gọn 1 hàng cân đối trên Desktop */}
+                {/* Filter Tabs: Cuộn ngang mượt trên điện thoại, căn giữa trên Desktop */}
                 <div className="max-w-5xl mx-auto mb-10 sm:mb-12">
-                    <div className="flex flex-wrap lg:flex-nowrap items-center justify-center gap-2 sm:gap-2.5">
+                    <div className="flex sm:flex-wrap lg:flex-nowrap items-center sm:justify-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {[
                             { id: 'all', label: 'Tất Cả Dịch Vụ', icon: LayoutGrid },
                             { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: UtensilsCrossed },

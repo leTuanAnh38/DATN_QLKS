@@ -646,7 +646,8 @@ export default function AIChatbotWidget() {
     const hasMobileStickyBar =
         location.pathname.startsWith('/rooms/') ||
         location.pathname.startsWith('/room/') ||
-        location.pathname.startsWith('/checkout');
+        location.pathname.startsWith('/checkout') ||
+        location.pathname.startsWith('/corporate-booking');
 
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 5;

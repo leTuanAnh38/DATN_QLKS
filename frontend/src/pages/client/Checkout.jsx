@@ -1000,7 +1000,7 @@ export default function Checkout() {
                             )}
 
                             {/* THẺ 1: CHỌN NGÀY CHECK-IN & CHECK-OUT (DATE PICKER) */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
                                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
@@ -1134,28 +1134,28 @@ export default function Checkout() {
                             </div>
 
                             {/* THẺ 2: THÔNG TIN KHÁCH ĐẶT PHÒNG */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
-                                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-5 pb-3 border-b border-slate-100">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs shrink-0">
                                             <User className="w-5 h-5 text-sky-600" />
                                         </div>
                                         <div>
-                                            <h2 className="font-sans font-bold text-lg text-slate-900">
+                                            <h2 className="font-sans font-bold text-base sm:text-lg text-slate-900">
                                                 Thông tin người liên hệ & nhận phòng
                                             </h2>
                                         </div>
                                     </div>
 
                                     {isAuthenticated ? (
-                                        <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200/80 flex items-center gap-1.5 shadow-2xs">
+                                        <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200/80 flex items-center gap-1.5 shadow-2xs">
                                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                             <span>Đã điền từ tài khoản</span>
                                         </span>
                                     ) : (
                                         <Link
                                             to="/login"
-                                            className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline flex items-center gap-1 transition"
+                                            className="self-start sm:self-auto text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline flex items-center gap-1 transition"
                                         >
                                             <span>Đăng nhập để tích điểm</span>
                                             <ArrowRight className="w-3.5 h-3.5" />
@@ -1164,30 +1164,30 @@ export default function Checkout() {
                                 </div>
 
                                 {/* TAB CHỌN LOẠI ĐẶT PHÒNG: CÁ NHÂN / GIA ĐÌNH vs CÔNG TY / ĐI CÔNG TÁC (XUẤT HÓA ĐƠN VAT) */}
-                                <div className="flex items-center gap-2 p-1.5 bg-slate-100/80 rounded-2xl mb-6">
+                                <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-100/80 rounded-2xl mb-6">
                                     <button
                                         type="button"
                                         onClick={() => handleSwitchCustomerType('MEMBER')}
-                                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                                        className={`flex-1 py-2.5 px-2.5 sm:px-4 rounded-xl text-[11px] sm:text-sm font-bold transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
                                             customerType === 'MEMBER'
                                                 ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60'
                                                 : 'text-slate-600 hover:text-slate-900'
                                         }`}
                                     >
-                                        <User className="w-4 h-4" />
-                                        <span>Đặt Cá nhân / Gia đình</span>
+                                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                        <span className="truncate">Cá nhân / Gia đình</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => handleSwitchCustomerType('CORPORATE')}
-                                        className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                                        className={`flex-1 py-2.5 px-2.5 sm:px-4 rounded-xl text-[11px] sm:text-sm font-bold transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
                                             customerType === 'CORPORATE'
                                                 ? 'bg-slate-900 text-white shadow-xs'
                                                 : 'text-slate-600 hover:text-slate-900'
                                         }`}
                                     >
-                                        <Building2 className="w-4 h-4" />
-                                        <span>Công ty / Đi công tác (Cần VAT)</span>
+                                        <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                        <span className="truncate">Công ty (Xuất VAT)</span>
                                     </button>
                                 </div>
 
@@ -1591,7 +1591,7 @@ export default function Checkout() {
                             </div>
 
                             {/* THẺ: NÂNG TẦM KỲ NGHỈ - DỊCH VỤ GỢI Ý ĐI KÈM (UPSELLING ADD-ON SERVICES) */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-900/15 shrink-0">
@@ -1820,7 +1820,7 @@ export default function Checkout() {
                             </div>
 
                             {/* THẺ 3: MÃ GIẢM GIÁ (PROMO CODE) */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
                                     <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
                                         <Tag className="w-5 h-5 text-sky-600" />
@@ -1910,7 +1910,7 @@ export default function Checkout() {
                             </div>
 
                             {/* THẺ 4: YÊU CẦU ĐẶC BIỆT & GHI CHÚ */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
                                     <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
                                         <FileText className="w-5 h-5 text-sky-600" />
@@ -1956,7 +1956,7 @@ export default function Checkout() {
                             </div>
 
                             {/* THẺ 5: PHƯƠNG THỨC THANH TOÁN */}
-                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
                                     <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
                                         <CreditCard className="w-5 h-5 text-sky-600" />

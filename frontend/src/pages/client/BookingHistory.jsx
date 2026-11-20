@@ -1072,7 +1072,7 @@ export default function BookingHistory() {
                                                 }`}
                                         >
                                             {/* 1. HEADER CỦA THẺ: MÃ ĐƠN, NGÀY ĐẶT, HUY HIỆU ĐOÀN B2B & BADGE TRẠNG THÁI */}
-                                            <div className={`px-5 sm:px-7 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 ${groupInfo.isGroup
+                                            <div className={`px-4 sm:px-7 py-3.5 border-b flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 ${groupInfo.isGroup
                                                     ? 'bg-gradient-to-r from-indigo-50/80 via-purple-50/30 to-slate-50/70 border-indigo-100'
                                                     : 'bg-slate-50/80 border-slate-100'
                                                 }`}>
@@ -1179,7 +1179,7 @@ export default function BookingHistory() {
                                             </div>
 
                                             {/* 2. BODY CỦA THẺ: ẢNH THUMBNAIL, TÊN PHÒNG, NGÀY THÁNG, TỔNG TIỀN */}
-                                            <div className="p-5 sm:p-7">
+                                            <div className="p-4 sm:p-7">
                                                 <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
                                                     {/* Phần bên trái: Ảnh thumbnail + Chi tiết phòng */}
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1">
@@ -1576,7 +1576,7 @@ export default function BookingHistory() {
 
                                             {/* BANNER THÔNG TIN HỢP ĐỒNG ĐOÀN CHO PHÒNG THUỘC ĐOÀN B2B */}
                                             {groupInfo.isGroup && (
-                                                <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 px-5 sm:px-7 py-3 border-t border-indigo-100/90 flex flex-wrap items-center justify-between gap-3 text-xs">
+                                                <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 px-4 sm:px-7 py-3 border-t border-indigo-100/90 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs">
                                                     <div className="text-[11px] text-indigo-800 font-medium flex items-center gap-1.5">
                                                         <Info className="w-3.5 h-3.5 text-indigo-600" />
                                                         <span>

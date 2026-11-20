@@ -66,8 +66,8 @@ export default function FeaturedRoomCategories() {
                         Mỗi hạng phòng tại {hotelName} là một tác phẩm kiến trúc hòa quyện cùng thiên nhiên biển Mỹ Khê, đem lại sự thư thái và tiện nghi thượng lưu cho kỳ nghỉ hoàn mỹ.
                     </p>
 
-                    {/* Filter Tabs */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mt-7">
+                    {/* Filter Tabs (Cuộn ngang mượt trên điện thoại, căn giữa trên màn hình lớn) */}
+                    <div className="flex sm:flex-wrap items-center sm:justify-center gap-2 sm:gap-2.5 mt-7 overflow-x-auto pb-1 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {[
                             { id: 'all', label: 'Tất Cả Hạng Phòng' },
                             { id: 'deluxe', label: 'Deluxe Hướng Biển' },
@@ -78,9 +78,9 @@ export default function FeaturedRoomCategories() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setFilterType(tab.id)}
-                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
+                                className={`px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
                                     filterType === tab.id
-                                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 scale-[1.03]'
+                                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 sm:scale-[1.03]'
                                         : 'bg-white text-slate-700 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
                                 }`}
                             >

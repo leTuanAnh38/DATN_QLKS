@@ -541,7 +541,7 @@ export default function Profile() {
 
                         {/* 2. CỘT PHẢI - THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
                         {/* Trên mobile hiển thị vị trí 2 (ngay dưới Avatar), trên desktop hiển thị cột phải */}
-                        <div className="lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
+                        <div className="lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
                             {/* Card Header with Quick Edit Trigger Button */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
                                 <div>

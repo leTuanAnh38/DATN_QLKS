@@ -163,7 +163,7 @@ export default function NewsDetail() {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
                         {/* CỘT CHÍNH: NỘI DUNG BÀI VIẾT */}
-                        <article className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-6 min-w-0 overflow-hidden break-words">
+                        <article className="lg:col-span-8 bg-white rounded-3xl p-4 sm:p-10 border border-slate-200/80 shadow-xs space-y-5 sm:space-y-6 min-w-0 overflow-hidden break-words">
 
                             {/* Meta Head */}
                             <div className="space-y-4 pb-6 border-b border-slate-100">

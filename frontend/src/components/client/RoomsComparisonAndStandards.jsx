@@ -107,6 +107,10 @@ export default function RoomsComparisonAndStandards({
 
                 {/* Table Card */}
                 <div className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_12px_35px_-15px_rgba(15,23,42,0.08)] overflow-hidden">
+                    <div className="sm:hidden px-4 py-2 bg-sky-50/70 border-b border-slate-100 text-[11px] font-semibold text-sky-800 flex items-center justify-between">
+                        <span>Vuốt ngang để xem đầy đủ 3 hạng phòng</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[680px] border-collapse text-left">
                             <thead>

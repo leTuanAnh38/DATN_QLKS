@@ -77,7 +77,7 @@ export default function MembershipCard({ user }) {
     const spendNeededVND = pointsNeeded * 100000;
 
     return (
-        <div className="bg-gradient-to-b from-white via-amber-50/15 to-white rounded-3xl p-6 sm:p-7 shadow-xl border border-amber-100/60 relative overflow-hidden mb-8 sm:mb-10">
+        <div className="bg-gradient-to-b from-white via-amber-50/15 to-white rounded-3xl p-4 sm:p-7 shadow-xl border border-amber-100/60 relative overflow-hidden mb-8 sm:mb-10">
             {/* Tiêu đề Box */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-amber-100/60 mb-6">
                 <div>

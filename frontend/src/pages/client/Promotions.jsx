@@ -1057,25 +1057,25 @@ export default function PromotionsPage() {
                     </div>
 
                     {/* Concierge Banner */}
-                    <div className="mt-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 border border-amber-500/30">
+                    <div className="mt-10 p-5 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-amber-500/30">
                         <div className="text-left">
                             <strong className="text-white text-sm sm:text-base font-bold flex items-center gap-2">
-                                <PhoneCall className="w-4 h-4 text-amber-400" />
+                                <PhoneCall className="w-4 h-4 text-amber-400 shrink-0" />
                                 <span>Cần hỗ trợ đặt phòng hoặc tư vấn ưu đãi đặc biệt?</span>
                             </strong>
-                            <span className="text-xs text-amber-100/70">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>
+                            <span className="text-xs text-amber-100/70 block mt-1">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
                             <a
                                 href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
-                                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-sky-900/20 transition cursor-pointer"
+                                className="flex-1 sm:flex-initial justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-sky-900/20 transition cursor-pointer whitespace-nowrap"
                             >
-                                <PhoneCall className="w-4 h-4" />
+                                <PhoneCall className="w-4 h-4 shrink-0" />
                                 <span>{settings?.hotline || '1900 8899'}</span>
                             </a>
                             <Link
                                 to="/contact"
-                                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition"
+                                className="flex-1 sm:flex-initial text-center px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition whitespace-nowrap"
                             >
                                 Liên Hệ Concierge
                             </Link>
