@@ -339,6 +339,14 @@ class HotelSetting(models.Model):
     banner_corporate = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Đặt Đoàn (MICE)")
     banner_login = models.CharField(max_length=500, blank=True, null=True, verbose_name="Banner Trang Đăng Nhập & Hội Viên VIP")
 
+    # 8. Ảnh Bộ Sưu Tập Không Gian, Tiện Ích & Concierge trên Trang Chủ
+    gallery_pool = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Tiện Ích 1: Hồ Bơi Vô Cực")
+    gallery_spa = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Tiện Ích 2: The Lotus Spa")
+    gallery_dining = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Tiện Ích 3: Nhà Hàng Fine Dining")
+    gallery_beach = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Tiện Ích 4: Biển Mỹ Khê & Xe VIP")
+    concierge_dining_img = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Banner Concierge: Ẩm Thực Tại Phòng")
+    concierge_spa_img = models.CharField(max_length=500, blank=True, null=True, verbose_name="Ảnh Banner Concierge: The Lotus Spa")
+
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Thời gian cập nhật")
 
     def save(self, *args, **kwargs):
@@ -382,6 +390,12 @@ class HotelSetting(models.Model):
                 'banner_contact': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90',
                 'banner_corporate': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
                 'banner_login': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85',
+                'gallery_pool': 'https://images.unsplash.com/photo-1561501900-3701fa6a0864?auto=format&fit=crop&w=1400&q=85',
+                'gallery_spa': 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&w=1000&q=85',
+                'gallery_dining': 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=85',
+                'gallery_beach': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=85',
+                'concierge_dining_img': 'https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=600&q=80',
+                'concierge_spa_img': 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=600&q=80',
                 'check_in_time': '14:00',
                 'check_out_time': '12:00',
                 'early_checkin_before_6am': 100.0,

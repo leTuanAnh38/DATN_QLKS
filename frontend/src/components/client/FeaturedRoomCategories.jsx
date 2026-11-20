@@ -45,30 +45,29 @@ export default function FeaturedRoomCategories() {
     });
 
     return (
-        <section className="py-16 sm:py-20 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+        <section className="pt-14 pb-16 sm:pt-16 sm:pb-20 bg-gradient-to-b from-[#f4f8fb] via-white to-white relative overflow-hidden">
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-100/25 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-100/30 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* Section Header */}
-                <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200/90 text-amber-900 text-xs font-bold uppercase tracking-widest mb-4 shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span>
-                        BỘ SƯU TẬP HẠNG PHÒNG {starCount} SAO
-                    </div>
+                <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
+                    <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
+                        PHÒNG NGHỈ &amp; SUITES
+                    </span>
                     <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
                         <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                             Đẳng Cấp & Sang Trọng
                         </span>
                     </h2>
-                    <p className="text-slate-600 text-sm sm:text-base mt-4 leading-relaxed font-normal">
+                    <p className="text-slate-600 text-sm sm:text-base mt-3.5 leading-relaxed font-normal">
                         Mỗi hạng phòng tại {hotelName} là một tác phẩm kiến trúc hòa quyện cùng thiên nhiên biển Mỹ Khê, đem lại sự thư thái và tiện nghi thượng lưu cho kỳ nghỉ hoàn mỹ.
                     </p>
 
                     {/* Filter Tabs */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-8">
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 mt-7">
                         {[
                             { id: 'all', label: 'Tất Cả Hạng Phòng' },
                             { id: 'deluxe', label: 'Deluxe Hướng Biển' },
@@ -79,10 +78,10 @@ export default function FeaturedRoomCategories() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setFilterType(tab.id)}
-                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 shadow-xs cursor-pointer ${
+                                className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap ${
                                     filterType === tab.id
-                                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-sky-900/20 shadow-md scale-105'
-                                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 hover:border-slate-300'
+                                        ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 scale-[1.03]'
+                                        : 'bg-white text-slate-700 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
                                 }`}
                             >
                                 {tab.label}

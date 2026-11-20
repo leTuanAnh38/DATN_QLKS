@@ -98,26 +98,34 @@ export default function NewsList() {
         return <BookOpen className="w-3.5 h-3.5" />;
     };
 
-    // Phân trang bài viết
+    // Phân trang & Sắp xếp bài viết
+    const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'popular'
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 6; // 6 bài viết mỗi trang (2 hàng x 3 cột chuẩn giao diện hiện đại)
 
-    // Tự động quay về trang 1 khi đổi chuyên mục hoặc tìm kiếm
+    // Tự động quay về trang 1 khi đổi chuyên mục, sắp xếp hoặc tìm kiếm
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedCategory, searchTerm]);
+    }, [selectedCategory, searchTerm, sortBy]);
 
-    // Bài viết nổi bật là bài đầu tiên nếu ở trang 1, chuyên mục 'Tất cả' và không tìm kiếm
-    const featuredPost = posts.length > 0 && selectedCategory === 'all' && !searchTerm && currentPage === 1 ? posts[0] : null;
-
-    // Nguồn bài viết cho danh sách grid:
-    // Khi ở chuyên mục 'Tất cả' và không tìm kiếm, bài đầu tiên được dùng làm Hero Featured nên grid lấy từ bài thứ 2 trở đi
-    const regularSourcePosts = useMemo(() => {
-        if (selectedCategory === 'all' && !searchTerm) {
-            return posts.slice(1);
+    // Sắp xếp danh sách bài viết
+    const sortedPosts = useMemo(() => {
+        if (sortBy === 'popular') {
+            return [...posts].sort((a, b) => (Number(b.view_count) || 0) - (Number(a.view_count) || 0));
         }
         return posts;
-    }, [posts, selectedCategory, searchTerm]);
+    }, [posts, sortBy]);
+
+    // Bài viết nổi bật là bài đầu tiên nếu ở trang 1, chuyên mục 'Tất cả', mặc định Mới nhất và không tìm kiếm
+    const featuredPost = sortedPosts.length > 0 && selectedCategory === 'all' && !searchTerm && sortBy === 'newest' && currentPage === 1 ? sortedPosts[0] : null;
+
+    // Nguồn bài viết cho danh sách grid
+    const regularSourcePosts = useMemo(() => {
+        if (selectedCategory === 'all' && !searchTerm && sortBy === 'newest') {
+            return sortedPosts.slice(1);
+        }
+        return sortedPosts;
+    }, [sortedPosts, selectedCategory, searchTerm, sortBy]);
 
     const totalPages = Math.max(1, Math.ceil(regularSourcePosts.length / pageSize));
     const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
@@ -146,7 +154,7 @@ export default function NewsList() {
             <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 font-medium whitespace-nowrap overflow-x-auto no-scrollbar">
-                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition shrink-0">Trang chủ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
                         <span className="text-slate-900 font-semibold truncate min-w-0">Tin tức & Cẩm nang</span>
                     </nav>
@@ -166,14 +174,14 @@ export default function NewsList() {
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 backdrop-blur-md mb-4 text-amber-300 text-xs font-bold tracking-wider uppercase">
-                            <Compass className="w-3.5 h-3.5 text-amber-400" />
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4 text-sky-200 text-xs font-bold tracking-wider uppercase">
+                            <Compass className="w-3.5 h-3.5 text-sky-300" />
                             <span>Góc Nhìn Nghỉ Dưỡng & Trải Nghiệm</span>
                         </div>
 
                         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
                             Khám Phá Trải Nghiệm & <br className="hidden sm:inline" />
-                            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 Cẩm Nang Tinh Hoa
                             </span>
                         </h1>
@@ -190,10 +198,10 @@ export default function NewsList() {
                 className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 space-y-12"
                 style={{ overflowAnchor: 'none' }}
             >
-                {/* BỘ LỌC DANH MỤC & TÌM KIẾM SANG TRỌNG */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+                {/* BỘ LỌC DANH MỤC, TÌM KIẾM & SẮP XẾP */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200">
                     {/* Tabs danh mục */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
                         {categories.map((cat) => {
                             const isActive = selectedCategory === cat.value;
                             return (
@@ -204,7 +212,7 @@ export default function NewsList() {
                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 ${
                                         isActive
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
-                                            : 'bg-white text-slate-600 hover:text-amber-600 hover:bg-amber-50/50 border border-slate-200 hover:border-amber-200'
+                                            : 'bg-white text-slate-600 hover:text-sky-700 hover:bg-sky-50/50 border border-slate-200 hover:border-sky-200'
                                     }`}
                                 >
                                     <span>{getCategoryIcon(cat.value)}</span>
@@ -214,32 +222,44 @@ export default function NewsList() {
                         })}
                     </div>
 
-                    {/* Ô tìm kiếm sang trọng với icon Search */}
-                    <div className="relative w-full md:w-80 shrink-0">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Tìm bài viết, cẩm nang, ẩm thực..."
-                            className="w-full pl-9 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-3 focus:ring-amber-500/15 shadow-xs transition"
-                        />
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
-                        {searchTerm && (
-                            <button
-                                type="button"
-                                onClick={() => setSearchTerm('')}
-                                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
-                                title="Xóa tìm kiếm"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
+                    {/* Thanh tìm kiếm & Sắp xếp luôn chung 1 hàng trên cả mobile */}
+                    <div className="flex flex-row items-center gap-2 w-full lg:w-auto shrink-0">
+                        <div className="relative flex-1 lg:w-64 min-w-0">
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Tìm bài viết, cẩm nang..."
+                                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition"
+                            />
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
+                                    title="Xóa tìm kiếm"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            aria-label="Sắp xếp bài viết"
+                            className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0"
+                        >
+                            <option value="newest">Mới nhất</option>
+                            <option value="popular">Xem nhiều nhất</option>
+                        </select>
                     </div>
                 </div>
 
                 {/* FEATURED POST (BÀI VIẾT NỔI BẬT) */}
                 {featuredPost && (
-                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-amber-200/70 transition-all duration-300 group">
+                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-sky-200/80 transition-all duration-300 group">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                             {/* Cột ảnh bìa */}
                             <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[320px] overflow-hidden bg-slate-100">
@@ -250,12 +270,12 @@ export default function NewsList() {
                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-amber-50 to-orange-50 text-amber-400">
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-sky-50 to-slate-100 text-sky-400">
                                         <ImageIcon className="w-16 h-16 stroke-1" />
                                     </div>
                                 )}
-                                <span className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[11px] uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center gap-1.5 backdrop-blur-xs">
-                                    <Flame className="w-3.5 h-3.5 text-amber-200" />
+                                <span className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-sky-900/25 flex items-center gap-1.5 backdrop-blur-xs">
+                                    <Flame className="w-3.5 h-3.5 text-sky-200" />
                                     <span>Bài viết nổi bật</span>
                                 </span>
                             </div>
@@ -264,7 +284,7 @@ export default function NewsList() {
                             <div className="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
                                 <div className="space-y-3.5">
                                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold">
-                                        <span className="px-2.5 py-0.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+                                        <span className="px-2.5 py-0.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/80">
                                             {featuredPost.category_display || featuredPost.category}
                                         </span>
                                         <span className="text-slate-300">•</span>
@@ -280,7 +300,7 @@ export default function NewsList() {
                                     </div>
 
                                     <Link to={`/news/${featuredPost.slug}`}>
-                                        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-amber-600 transition leading-snug">
+                                        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-sky-700 transition leading-snug">
                                             {featuredPost.title}
                                         </h2>
                                     </Link>
@@ -292,7 +312,7 @@ export default function NewsList() {
 
                                 <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                                             <User className="w-4 h-4" />
                                         </div>
                                         <div>
@@ -307,7 +327,7 @@ export default function NewsList() {
 
                                     <Link
                                         to={`/news/${featuredPost.slug}`}
-                                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 transition group/btn"
+                                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-sky-700 hover:text-sky-800 transition group/btn"
                                     >
                                         <span>Đọc toàn bài</span>
                                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
@@ -319,9 +339,10 @@ export default function NewsList() {
                 )}
 
                 {/* GRID CÁC THẺ BÀI VIẾT (CARDS) */}
-                <div id="news-grid-section" className="scroll-mt-24 min-h-[60vh]">
+                {(isLoading || !featuredPost || regularSourcePosts.length > 0) && (
+                <div id="news-grid-section" className="scroll-mt-24 min-h-[45vh]">
                     <div className="flex items-center gap-2.5 mb-6">
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 shadow-2xs">
+                        <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200/70 flex items-center justify-center text-sky-600 shadow-2xs">
                             <BookOpen className="w-4 h-4" />
                         </div>
                         <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
@@ -332,6 +353,8 @@ export default function NewsList() {
                                     ? `Chuyên Mục "${categories.find(c => c.value === selectedCategory)?.label || ''}"`
                                     : searchTerm
                                     ? `Kết Quả Tìm Kiếm: "${searchTerm}"`
+                                    : sortBy === 'popular'
+                                    ? 'Bài Viết Xem Nhiều Nhất'
                                     : `Tất Cả Bài Viết (Trang ${safeCurrentPage} / ${totalPages})`
                             )}
                         </h3>
@@ -350,7 +373,7 @@ export default function NewsList() {
                         </div>
                     ) : regularSourcePosts.length === 0 ? (
                         <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-4">
-                            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
+                            <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-200/70 text-sky-600 flex items-center justify-center mx-auto shadow-2xs">
                                 <Newspaper className="w-7 h-7" />
                             </div>
                             <div>
@@ -381,7 +404,7 @@ export default function NewsList() {
                             {paginatedPosts.map((post) => (
                                 <article
                                     key={post.id}
-                                    className="bg-white rounded-3xl border border-slate-200/90 hover:border-amber-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                                    className="bg-white rounded-3xl border border-slate-200/90 hover:border-sky-200/90 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                                 >
                                     <div>
                                         {/* Ảnh bìa */}
@@ -393,12 +416,12 @@ export default function NewsList() {
                                                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-amber-50/50 to-orange-50/50 text-amber-300">
+                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-sky-50/70 to-slate-100 text-sky-300">
                                                     <ImageIcon className="w-10 h-10 stroke-1" />
                                                 </div>
                                             )}
                                             {/* Chuyên mục Badge */}
-                                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-xs border border-amber-100 text-[10px] font-bold text-amber-900 shadow-xs">
+                                            <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 backdrop-blur-xs border border-slate-200/80 text-[10px] font-bold text-sky-800 shadow-xs">
                                                 {post.category_display || post.category}
                                             </span>
                                         </Link>
@@ -419,7 +442,7 @@ export default function NewsList() {
 
                                             {/* Tiêu đề */}
                                             <Link to={`/news/${post.slug}`}>
-                                                <h3 className="font-serif font-bold text-base text-slate-900 group-hover:text-amber-600 transition line-clamp-2 leading-snug">
+                                                <h3 className="font-serif font-bold text-base text-slate-900 group-hover:text-sky-700 transition line-clamp-2 leading-snug">
                                                     {post.title}
                                                 </h3>
                                             </Link>
@@ -439,7 +462,7 @@ export default function NewsList() {
                                         </span>
                                         <Link
                                             to={`/news/${post.slug}`}
-                                            className="font-bold text-amber-600 hover:text-amber-700 transition flex items-center gap-1 group/link"
+                                            className="font-bold text-sky-700 hover:text-sky-800 transition flex items-center gap-1 group/link"
                                         >
                                             <span>Xem tiếp</span>
                                             <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
@@ -455,7 +478,7 @@ export default function NewsList() {
                         <div className="mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80">
                             {/* Thông tin số trang & bài viết */}
                             <div className="text-xs text-slate-500 font-medium">
-                                Đang xem trang <span className="font-bold text-amber-600">{safeCurrentPage}</span> / <span className="font-bold text-slate-800">{totalPages}</span> (Tổng cộng <span className="font-semibold text-slate-700">{regularSourcePosts.length}</span> bài viết)
+                                Đang xem trang <span className="font-bold text-sky-700">{safeCurrentPage}</span> / <span className="font-bold text-slate-800">{totalPages}</span> (Tổng cộng <span className="font-semibold text-slate-700">{regularSourcePosts.length}</span> bài viết)
                             </div>
 
                             {/* Các nút bấm phân trang */}
@@ -468,7 +491,7 @@ export default function NewsList() {
                                     className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                                         safeCurrentPage === 1
                                             ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
-                                            : 'bg-white text-slate-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
+                                            : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
                                     }`}
                                     title="Về trang trước"
                                 >
@@ -487,7 +510,7 @@ export default function NewsList() {
                                             className={`w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
                                                 isActive
                                                     ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
-                                                    : 'bg-white text-slate-700 hover:text-amber-600 hover:bg-amber-50/50 border border-slate-200 shadow-2xs hover:border-amber-200 active:scale-95'
+                                                    : 'bg-white text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 border border-slate-200 shadow-2xs hover:border-sky-200 active:scale-95'
                                             }`}
                                             aria-current={isActive ? 'page' : undefined}
                                             title={`Trang ${pageNum}`}
@@ -505,7 +528,7 @@ export default function NewsList() {
                                     className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
                                         safeCurrentPage === totalPages
                                             ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
-                                            : 'bg-white text-slate-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
+                                            : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
                                     }`}
                                     title="Sang trang kế tiếp"
                                 >
@@ -516,6 +539,7 @@ export default function NewsList() {
                         </div>
                     )}
                 </div>
+                )}
             </main>
 
             <Footer />

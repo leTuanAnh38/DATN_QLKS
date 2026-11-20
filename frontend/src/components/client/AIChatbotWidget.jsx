@@ -1403,22 +1403,22 @@ export default function AIChatbotWidget() {
                     </div>
                 )}
 
-                {/* Nút Floating Button chính - Phong cách Soft Sky & Pearl White dịu mắt, thanh lịch */}
+                {/* Nút Floating Button chính - Gọn gàng, sắc nét, giữ nguyên tông Xanh dương biển */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="relative group flex items-center gap-2.5 pl-2.5 pr-4 py-2 sm:pl-3 sm:pr-4 sm:py-2.5 rounded-full bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/95 hover:from-sky-100/90 hover:via-white hover:to-cyan-100/90 backdrop-blur-md text-slate-800 font-medium border border-sky-200/90 hover:border-sky-300 transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_26px_-6px_rgba(14,165,233,0.22)]"
+                    className="relative group flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 sm:pl-2 sm:pr-4 sm:py-2 rounded-full bg-white/95 hover:bg-white backdrop-blur-lg text-slate-800 font-medium border border-sky-200/80 hover:border-sky-300 transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_28px_-6px_rgba(2,132,199,0.28)] hover:shadow-[0_14px_32px_-6px_rgba(2,132,199,0.38)]"
                     title={`Trợ Lý Ảo AI - ${hotelName} ${starCount}★ (Multilingual Concierge)`}
                     aria-expanded={isOpen}
                     aria-label={`Mở khung trò chuyện với Trợ lý AI ${starCount} sao`}
                 >
                     {/* Hiệu ứng vệt sáng dịu nhẹ lướt qua (Shimmer) */}
                     <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
-                        <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-sky-200/30 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                        <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-sky-200/35 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                     </span>
 
-                    {/* Avatar AI Xanh Biển dịu mắt + Chấm Online */}
+                    {/* Avatar AI Xanh Biển đồng bộ hệ nút + Chấm Online */}
                     <div className="relative flex-shrink-0">
-                        <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 text-white shadow-sm shadow-sky-500/25">
+                        <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-600 via-blue-600 to-cyan-700 text-white shadow-sm shadow-sky-600/30 ring-1 ring-inset ring-white/20">
                             {isOpen ? (
                                 <ChevronDown className="w-4 h-4 text-white transition-transform duration-200" />
                             ) : (
@@ -1428,13 +1428,13 @@ export default function AIChatbotWidget() {
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
                     </div>
 
-                    {/* Chữ hiển thị tinh gọn, dịu mắt */}
+                    {/* Chữ hiển thị tinh gọn, sắc nét */}
                     <div className="hidden sm:flex flex-col text-left pr-0.5">
-                        <span className="text-xs font-bold text-slate-800 tracking-wide flex items-center gap-1 leading-tight">
+                        <span className="text-xs font-bold text-slate-900 tracking-wide flex items-center gap-1 leading-tight">
                             <span>Trợ Lý AI</span>
                             <span className="text-amber-500 text-[10px] font-extrabold">{starCount}★</span>
                         </span>
-                        <span className="text-[10px] text-sky-600 font-medium leading-tight mt-0.5">
+                        <span className="text-[10px] text-sky-600 font-semibold leading-tight mt-0.5">
                             Online 24/7
                         </span>
                     </div>

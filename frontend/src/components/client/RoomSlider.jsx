@@ -275,14 +275,14 @@ export default function RoomSlider({ rooms = [] }) {
                                 key={room.id}
                                 className="w-full sm:w-1/2 lg:w-1/3 shrink-0 px-3"
                             >
-                                <div className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full group">
-                                    {/* Ảnh đại diện chính to ở trên */}
+                                <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full group">
+                                    {/* Ảnh đại diện chính thoáng mắt, không che ảnh bằng nhiều nhãn */}
                                     <div className="relative h-60 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
                                         <Link to={`/rooms/${room.id}`} className="block w-full h-full">
                                             <img
                                                 src={primaryImage}
                                                 alt={room.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out cursor-pointer"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out cursor-pointer"
                                                 onError={(e) => {
                                                     e.target.onerror = null;
                                                     e.target.src =
@@ -291,53 +291,60 @@ export default function RoomSlider({ rooms = [] }) {
                                             />
                                         </Link>
 
-                                        {/* Overlay gradient */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/20 pointer-events-none"></div>
+                                        {/* Overlay gradient tinh tế */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-black/15 pointer-events-none"></div>
 
-                                        {/* Badges góc trên */}
-                                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 pointer-events-none">
-                                            {hasPromo && (
-                                                <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black tracking-wider uppercase shadow-sm">
+                                        {/* Badge khuyến mãi góc trên trái (chỉ hiện khi có giảm giá) */}
+                                        {hasPromo && (
+                                            <div className="absolute top-3.5 left-3.5 pointer-events-none">
+                                                <span className="px-2.5 py-1 rounded-full bg-rose-600/95 backdrop-blur-xs text-white text-[10px] font-black tracking-wider uppercase shadow-sm">
                                                     GIẢM {discountPercent}%
                                                 </span>
-                                            )}
-                                            <span className="px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-                                                {starCount}-STAR RESORT
-                                            </span>
-                                        </div>
+                                            </div>
+                                        )}
 
-                                        <div className="absolute top-3 right-3 pointer-events-none">
-                                            <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1.5 border border-white/20">
+                                        {/* Bộ đếm ảnh góc trên phải */}
+                                        <div className="absolute top-3.5 right-3.5 pointer-events-none">
+                                            <span className="px-2.5 py-1 rounded-full bg-slate-950/55 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1.5 border border-white/15">
                                                 <Camera className="w-3.5 h-3.5 text-amber-300" />
                                                 <span>{room.images?.length || 1} ảnh</span>
-                                            </span>
-                                        </div>
-
-                                        {/* Thông số nhanh chân ảnh */}
-                                        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white text-xs pointer-events-none">
-                                            <span className="flex items-center gap-1 drop-shadow-xs">
-                                                <Maximize2 className="w-3 h-3 text-amber-300" />
-                                                <span>{room.size} m²</span>
-                                            </span>
-                                            <span className="flex items-center gap-1 drop-shadow-xs">
-                                                <Users className="w-3 h-3 text-amber-300" />
-                                                <span>{room.capacity} người lớn</span>
-                                            </span>
-                                            <span className="flex items-center gap-1 truncate max-w-[120px] drop-shadow-xs">
-                                                <BedDouble className="w-3 h-3 text-amber-300 shrink-0" />
-                                                <span className="truncate">{room.bed_type}</span>
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Thân thẻ thông tin */}
-                                    <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                                    <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
                                         <div>
-                                            <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-1 min-h-[1.75rem]">
+                                            <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-1 min-h-[1.75rem]">
                                                 <Link to={`/rooms/${room.id}`}>{room.name}</Link>
                                             </h3>
 
-                                            <p className="mt-2 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal min-h-[2.5rem]">
+                                            {/* Dải thông số phòng trên 1 hàng gọn gàng, thẳng hàng tuyệt đối giữa các thẻ */}
+                                            <div className="mt-2.5 flex items-center gap-2.5 text-[11px] text-slate-600 font-medium whitespace-nowrap">
+                                                <span className="inline-flex items-center gap-1 shrink-0">
+                                                    <Maximize2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                    <span>{room.size} m²</span>
+                                                </span>
+                                                <span className="w-px h-3 bg-slate-200 shrink-0" />
+                                                <span className="inline-flex items-center gap-1 shrink-0">
+                                                    <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                    <span>{room.capacity} người lớn</span>
+                                                </span>
+                                                {room.bed_type && (
+                                                    <>
+                                                        <span className="w-px h-3 bg-slate-200 shrink-0" />
+                                                        <span
+                                                            className="inline-flex items-center gap-1 min-w-0"
+                                                            title={room.bed_type}
+                                                        >
+                                                            <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                                            <span className="truncate">{room.bed_type}</span>
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <p className="mt-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal min-h-[2.5rem]">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     `Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp ${starCount} sao.`}
@@ -345,15 +352,15 @@ export default function RoomSlider({ rooms = [] }) {
                                         </div>
 
                                         {/* Giá tiền và Nút "Đặt ngay" được ghim thẳng hàng ở đáy thẻ */}
-                                        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
+                                        <div className="pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
                                             <div className="min-w-0 flex-1">
                                                 {hasPromo ? (
                                                     <>
-                                                        <span className="block text-[11px] line-through text-slate-400">
+                                                        <span className="block text-[11px] line-through text-slate-400 tabular-nums">
                                                             {formattedBasePrice} VND
                                                         </span>
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className="text-xl font-black text-rose-600 tracking-tight whitespace-nowrap">
+                                                            <span className="text-xl font-black text-rose-600 tracking-tight whitespace-nowrap tabular-nums">
                                                                 {formattedPromoPrice}
                                                             </span>
                                                             <span className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">
@@ -363,11 +370,11 @@ export default function RoomSlider({ rooms = [] }) {
                                                     </>
                                                 ) : (
                                                     <div>
-                                                        <span className="block text-[10px] text-slate-400 uppercase">
+                                                        <span className="block text-[10px] text-slate-400 uppercase tracking-wide">
                                                             Giá phòng niêm yết
                                                         </span>
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className="text-xl font-black text-slate-900 tracking-tight whitespace-nowrap">
+                                                            <span className="text-xl font-black text-slate-900 tracking-tight whitespace-nowrap tabular-nums">
                                                                 {formattedBasePrice}
                                                             </span>
                                                             <span className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">
@@ -383,7 +390,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     to={`/rooms/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     onTouchStart={(e) => e.stopPropagation()}
-                                                    className="px-3 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
+                                                    className="px-3 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
@@ -391,7 +398,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     onTouchStart={(e) => e.stopPropagation()}
-                                                    className="px-3.5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:scale-[1.02]"
+                                                    className="px-3.5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:-translate-y-0.5"
                                                 >
                                                     Đặt ngay
                                                 </Link>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+import { useAuth } from '../../store/authStore';
 import { contactService } from '../../services/contactService';
 import {
     Mail,
@@ -34,14 +35,15 @@ import {
 const DEPARTMENT_LABELS = {
     reservations: 'Đặt phòng lưu trú & Suite',
     dining: 'Dịch vụ Ẩm thực & Bar (F&B)',
-    spa: 'The Lotus Spa & Wellness',
-    mice: 'Ban Sự Kiện Đoàn & M.I.C.E',
-    transport: 'Đưa đón xe Mercedes Sân Bay',
+    spa: 'Spa & Chăm sóc sức khỏe',
+    mice: 'Đặt phòng Đoàn & Sự kiện (M.I.C.E)',
+    transport: 'Dịch vụ Đưa đón Sân bay & Đặt xe',
     feedback: 'Góp ý & Chăm sóc Khách hàng',
 };
 
 export default function ContactPage() {
     const { settings } = useHotelSettings();
+    const { user } = useAuth();
 
     // Thông tin thương hiệu & vận hành lấy đồng bộ từ hotelSettingStore (đã resolveMediaUrl)
     const hotelInfo = {
@@ -67,6 +69,33 @@ export default function ContactPage() {
         message: '',
         receiveViaZalo: false
     });
+
+    // Tự động điền sẵn thông tin liên hệ khi khách hàng đã đăng nhập
+    useEffect(() => {
+        if (!user) return;
+        const fullName = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || '';
+        const phone = user.phone_number || user.guest_profile?.phone_number || '';
+        const email = user.email || '';
+
+        setFormData((prev) => ({
+            ...prev,
+            fullName: prev.fullName || fullName,
+            phone: prev.phone || phone,
+            email: prev.email || email,
+        }));
+    }, [user]);
+
+    const handleSelectDepartment = (deptKey, presetSubject = '') => {
+        setFormData((prev) => ({
+            ...prev,
+            department: deptKey,
+            subject: presetSubject && !prev.subject ? presetSubject : prev.subject,
+        }));
+        const formEl = document.getElementById('contact-form-card');
+        if (formEl) {
+            formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
 
     const [copiedAddress, setCopiedAddress] = useState(false);
     const [activeFaq, setActiveFaq] = useState(null);
@@ -94,8 +123,8 @@ export default function ContactPage() {
             a: 'Hoàn toàn có và hoàn toàn miễn phí. Đội ngũ Concierge và Bellman tại sảnh chính luôn sẵn sàng lưu trữ hành lý an toàn của quý khách với thẻ hành lý có mã số riêng trong thời gian quý khách dạo chơi hoặc chờ chuyến bay.'
         },
         {
-            q: 'Làm thế nào để đặt dịch vụ đưa đón sân bay riêng?',
-            a: 'Quý khách có thể tích chọn yêu cầu đón tiễn khi đặt phòng trực tuyến, hoặc điền trực tiếp vào form liên hệ ở trên kèm theo mã số chuyến bay và giờ hạ cánh. Đội xe Mercedes-Benz & DCar VIP của khách sạn sẽ xác nhận lịch đón trước ít nhất 12 giờ.'
+            q: 'Làm thế nào để đặt dịch vụ đưa đón sân bay hoặc xe tham quan?',
+            a: 'Quý khách có thể đặt kèm dịch vụ đưa đón khi đặt phòng trực tuyến, hoặc gửi yêu cầu qua form liên hệ ở trên kèm theo mã chuyến bay và giờ hạ cánh. Bộ phận Lễ tân sẽ sắp xếp xe 4–16 chỗ đời mới và xác nhận lịch đón trước ít nhất 12 giờ.'
         }
     ];
 
@@ -159,10 +188,13 @@ export default function ContactPage() {
 
         if (res.success) {
             showToast('success', 'Gửi liên hệ thành công! Chúng tôi sẽ phản hồi Quý khách trong thời gian sớm nhất.');
+            const defaultName = user ? (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username || '') : '';
+            const defaultPhone = user ? (user.phone_number || user.guest_profile?.phone_number || '') : '';
+            const defaultEmail = user ? (user.email || '') : '';
             setFormData({
-                fullName: '',
-                phone: '',
-                email: '',
+                fullName: defaultName,
+                phone: defaultPhone,
+                email: defaultEmail,
                 department: 'reservations',
                 subject: '',
                 message: '',
@@ -174,7 +206,7 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white flex flex-col">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white flex flex-col">
             {/* Reusable Navbar */}
             <Navbar />
 
@@ -211,7 +243,7 @@ export default function ContactPage() {
             <div className="bg-slate-100/80 border-b border-slate-200/60 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 font-medium whitespace-nowrap overflow-x-auto no-scrollbar">
-                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition shrink-0">Trang chủ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
                         <span className="text-slate-900 font-semibold truncate min-w-0">Liên hệ & Chỉ dẫn đường đi</span>
                     </nav>
@@ -231,20 +263,20 @@ export default function ContactPage() {
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 backdrop-blur-md mb-4 text-amber-300 text-xs font-bold tracking-wider uppercase">
-                            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Đón Tiếp & Chăm Sóc Thượng Lưu 24/7</span>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4 text-sky-200 text-xs font-bold tracking-wider uppercase">
+                            <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
+                            <span>Đón Tiếp & Hỗ Trợ Khách Hàng 24/7</span>
                         </div>
 
                         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
-                            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                             </span>
                         </h1>
 
                         <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md">
-                            Đội ngũ Quản gia & Chuyên viên Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn kỳ nghỉ thượng lưu và tiếp nhận mọi yêu cầu riêng biệt của Quý khách với sự chu đáo tuyệt đối 24/7.
+                            Đội ngũ Lễ tân & Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn đặt phòng, hỗ trợ khách đoàn và giải đáp mọi yêu cầu của Quý khách 24/7.
                         </p>
                     </div>
                 </div>
@@ -255,17 +287,17 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                     {/* LEFT: INTERACTIVE CONTACT FORM */}
-                    <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6">
+                    <div id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
                         <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100">
                             <div>
-                                <span className="text-[10px] sm:text-[11px] font-bold text-amber-600 uppercase tracking-wider block">
+                                <span className="text-[10px] sm:text-[11px] font-bold text-sky-700 uppercase tracking-wider block">
                                     Tiếp Nhận 24/7
                                 </span>
                                 <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 mt-0.5 sm:mt-1">
                                     Gửi Yêu Cầu Liên Hệ
                                 </h2>
                             </div>
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200/60 text-amber-600 flex items-center justify-center shadow-2xs">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-sky-50 border border-sky-200/70 text-sky-600 flex items-center justify-center shadow-2xs">
                                 <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
                             </div>
                         </div>
@@ -326,13 +358,21 @@ export default function ContactPage() {
                                         >
                                             <option value="reservations">Đặt phòng lưu trú & Suite</option>
                                             <option value="dining">Dịch vụ Ẩm thực & Bar (F&B)</option>
-                                            <option value="spa">The Lotus Spa & Wellness</option>
-                                            <option value="mice">Ban Sự Kiện Đoàn & M.I.C.E</option>
-                                            <option value="transport">Đưa đón xe Mercedes Sân Bay</option>
+                                            <option value="spa">Spa & Chăm sóc sức khỏe</option>
+                                            <option value="mice">Đặt phòng Đoàn & Sự kiện (M.I.C.E)</option>
+                                            <option value="transport">Dịch vụ Đưa đón Sân bay & Đặt xe</option>
                                             <option value="feedback">Góp ý & Chăm sóc Khách hàng</option>
                                         </select>
                                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     </div>
+                                    {formData.department === 'mice' && (
+                                        <p className="text-[11px] text-sky-700 mt-1.5">
+                                            Cần đặt nhiều phòng ngay?{' '}
+                                            <Link to="/corporate-booking" className="font-bold underline hover:text-sky-800">
+                                                Mở trang Đặt phòng theo đoàn →
+                                            </Link>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
@@ -377,10 +417,10 @@ export default function ContactPage() {
                                         type="checkbox"
                                         checked={formData.receiveViaZalo}
                                         onChange={(e) => setFormData({ ...formData, receiveViaZalo: e.target.checked })}
-                                        className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer mt-0.5 shrink-0"
+                                        className="w-4 h-4 rounded border-slate-300 text-sky-600 accent-sky-600 focus:ring-sky-500 cursor-pointer mt-0.5 shrink-0"
                                     />
                                     <span className="leading-relaxed">
-                                        Tôi muốn nhận tư vấn ưu tiên & xác nhận nhanh qua <strong className="text-amber-700">Zalo / WhatsApp</strong> trên số điện thoại này
+                                        Tôi muốn nhận tư vấn ưu tiên & xác nhận nhanh qua <strong className="text-sky-700">Zalo / WhatsApp</strong> trên số điện thoại này
                                     </span>
                                 </label>
                             </div>
@@ -417,14 +457,14 @@ export default function ContactPage() {
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">
                             <div className="flex items-start justify-between gap-4 mb-2.5">
                                 <div>
-                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block">
-                                        Trụ sở nghỉ dưỡng Flagship
+                                    <span className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block">
+                                        Địa chỉ khách sạn
                                     </span>
                                     <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
                                         {hotelInfo.hotel_name}
                                     </h3>
                                 </div>
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
                                     <MapPin className="w-5 h-5" />
                                 </div>
                             </div>
@@ -439,13 +479,13 @@ export default function ContactPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4 p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
                                 <a
                                     href={`mailto:${hotelInfo.email}`}
-                                    className="flex items-center gap-2 text-slate-700 hover:text-amber-700 transition min-w-0"
+                                    className="flex items-center gap-2 text-slate-700 hover:text-sky-700 transition min-w-0"
                                 >
-                                    <Mail className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <Mail className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                     <span className="truncate font-medium">{hotelInfo.email}</span>
                                 </a>
                                 <div className="flex items-center gap-2 text-slate-600">
-                                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <Clock className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                     <span className="truncate">
                                         Nhận {hotelInfo.check_in_time} · Trả {hotelInfo.check_out_time}
                                     </span>
@@ -457,7 +497,7 @@ export default function ContactPage() {
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelInfo.address)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/70 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
+                                    className="px-4 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
                                 >
                                     <Compass className="w-3.5 h-3.5" />
                                     <span>Mở Google Maps</span>
@@ -483,12 +523,12 @@ export default function ContactPage() {
                             </div>
                         </div>
 
-                        {/* Specialized Departments Contacts */}
+                        {/* Specialized Departments Contacts (Interactive - click to select department on Form) */}
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
                             <div className="flex items-center justify-between gap-2">
                                 <div>
-                                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest block mb-0.5">
-                                        Kênh tiếp nhận chuyên môn
+                                    <span className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-0.5">
+                                        Chọn nhanh bộ phận cần liên hệ
                                     </span>
                                     <h3 className="font-serif text-lg font-bold text-slate-900">
                                         Các Phòng Ban Trực Thuộc
@@ -501,68 +541,100 @@ export default function ContactPage() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                                 {/* 1. Reservations */}
-                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/50">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectDepartment('reservations')}
+                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                        formData.department === 'reservations'
+                                            ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
+                                            : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
+                                    }`}
+                                >
+                                    <div className="w-8 h-8 rounded-xl bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/60">
                                         <Building2 className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
                                         <strong className="text-slate-900 font-bold block leading-snug">Đặt Phòng (Reservations)</strong>
-                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 1 · Phục vụ 24/7</span>
+                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 1 · Phục vụ 24/7</span>
                                     </div>
-                                </div>
+                                </button>
 
                                 {/* 2. Dining & F&B */}
-                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-orange-100/70 text-orange-700 flex items-center justify-center shrink-0 border border-orange-200/50">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectDepartment('dining')}
+                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                        formData.department === 'dining'
+                                            ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
+                                            : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
+                                    }`}
+                                >
+                                    <div className="w-8 h-8 rounded-xl bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/60">
                                         <UtensilsCrossed className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
                                         <strong className="text-slate-900 font-bold block leading-snug">Ẩm Thực & Bar (F&B)</strong>
-                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 2 · 06:00 - 23:00</span>
+                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 2 · 06:00 - 23:00</span>
                                     </div>
-                                </div>
+                                </button>
 
                                 {/* 3. Spa */}
-                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectDepartment('spa')}
+                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                        formData.department === 'spa'
+                                            ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
+                                            : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
+                                    }`}
+                                >
                                     <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
                                         <Flower2 className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block leading-snug">The Lotus Spa</strong>
-                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 3 · 09:00 - 21:00</span>
+                                        <strong className="text-slate-900 font-bold block leading-snug">Spa & Wellness</strong>
+                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 3 · 09:00 - 21:00</span>
                                     </div>
-                                </div>
+                                </button>
 
                                 {/* 4. Events & MICE */}
-                                <div className="p-3 bg-slate-50/80 rounded-2xl border border-slate-100 hover:border-amber-200 hover:bg-amber-50/20 transition flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-purple-100/70 text-purple-700 flex items-center justify-center shrink-0 border border-purple-200/50">
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectDepartment('mice')}
+                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                        formData.department === 'mice'
+                                            ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
+                                            : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
+                                    }`}
+                                >
+                                    <div className="w-8 h-8 rounded-xl bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-200/50">
                                         <Users className="w-4 h-4" />
                                     </div>
                                     <div className="min-w-0">
-                                        <strong className="text-slate-900 font-bold block leading-snug">Sự Kiện & M.I.C.E</strong>
-                                        <span className="text-amber-600 font-bold text-[11px] block mt-0.5">Ext 4 · 08:00 - 18:00</span>
+                                        <strong className="text-slate-900 font-bold block leading-snug">Đoàn & Sự Kiện M.I.C.E</strong>
+                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 4 · 08:00 - 18:00</span>
                                     </div>
-                                </div>
+                                </button>
                             </div>
 
-                            {/* VIP Emergency Card */}
+                            {/* Hotline 24/7 Card */}
                             <a
                                 href={`tel:${hotelInfo.hotline.replace(/\s+/g, '')}`}
-                                className="block p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 text-white border border-amber-500/30 hover:border-amber-400 shadow-xl transition-all duration-300 hover:scale-[1.01] group"
+                                className="block p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 text-white border border-sky-500/30 hover:border-sky-400 shadow-xl transition-all duration-300 hover:scale-[1.01] group"
                             >
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="min-w-0">
-                                        <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
-                                            Hotline Khẩn Cấp VIP 24/7 (Bấm để gọi)
+                                        <span className="text-[10px] text-sky-300 font-bold uppercase tracking-wider block">
+                                            Hotline Hỗ Trợ 24/7 (Bấm để gọi)
                                         </span>
-                                        <strong className="text-xl font-bold font-mono tracking-wider block text-white group-hover:text-amber-300 transition mt-0.5">
+                                        <strong className="text-xl font-bold font-mono tracking-wider block text-white group-hover:text-sky-300 transition mt-0.5">
                                             {hotelInfo.hotline}
                                         </strong>
                                         <span className="block text-[11px] text-slate-300 mt-0.5 truncate">
                                             Điện thoại bàn: {hotelInfo.phone_number}
                                         </span>
                                     </div>
-                                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+                                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/30 shrink-0 group-hover:scale-110 transition-transform">
                                         <PhoneCall className="w-5 h-5 animate-pulse" />
                                     </div>
                                 </div>
@@ -577,18 +649,18 @@ export default function ContactPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
-                            <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
-                                Tọa độ đắc địa & Khả năng tiếp cận
+                            <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
+                                Tọa độ thuận tiện & Kết nối
                             </span>
                             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
                                 Bản Đồ Vị Trí & Hướng Dẫn Di Chuyển
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
-                                {hotelInfo.hotel_name} sở hữu vị trí đắc địa, kết nối thông suốt với cảng hàng không quốc tế, ga đường sắt và các địa danh du lịch nổi tiếng.
+                                {hotelInfo.hotel_name} sở hữu vị trí thuận tiện, kết nối dễ dàng với sân bay quốc tế Đà Nẵng, ga đường sắt và các địa danh du lịch nổi tiếng.
                             </p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3.5 py-2 rounded-xl border border-slate-200">
-                            <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                            <MapPin className="w-4 h-4 text-sky-600 shrink-0" />
                             <span>{hotelInfo.address}</span>
                         </div>
                     </div>
@@ -614,7 +686,7 @@ export default function ContactPage() {
                                     <span key={i}>★</span>
                                 ))}
                                 <span className="font-bold text-[11px] uppercase tracking-wider text-slate-800 ml-1">
-                                    {hotelInfo.stars}-Star Luxury Hotel
+                                    {hotelInfo.stars}-Star Hotel
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm">
@@ -626,7 +698,7 @@ export default function ContactPage() {
                             <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span className="text-emerald-600 font-semibold flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    {hotelInfo.hotel_slogan || `Resort Đẳng Cấp ${hotelInfo.stars} Sao`}
+                                    {hotelInfo.hotel_slogan || `Khách sạn tiêu chuẩn ${hotelInfo.stars} Sao`}
                                 </span>
                             </div>
                         </div>
@@ -638,35 +710,35 @@ export default function ContactPage() {
                             rel="noopener noreferrer"
                             className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto group"
                         >
-                            <Navigation className="w-4 h-4 text-amber-600 group-hover:rotate-12 transition-transform" />
+                            <Navigation className="w-4 h-4 text-sky-600 group-hover:rotate-12 transition-transform" />
                             <span>Mở chỉ đường Google Maps</span>
                         </a>
                     </div>
 
                     {/* 4 TRAVEL TIME CARDS */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition">
+                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
                             <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
                                     <Plane className="w-5 h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
                                     15 phút
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Sân Bay Quốc Tế (DAD)</h4>
                             <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 7.5 km</span>
                             <p className="text-xs text-slate-600 leading-relaxed">
-                                Di chuyển dễ dàng bằng xe đưa đón Limousine riêng của khách sạn hoặc taxi cao cấp dọc cầu Rồng & Nguyễn Văn Linh.
+                                Di chuyển thuận tiện bằng dịch vụ xe đưa đón sân bay của khách sạn hoặc taxi dọc tuyến cầu Rồng & Nguyễn Văn Linh.
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition">
+                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
                             <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
                                     <Train className="w-5 h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
                                     12 phút
                                 </span>
                             </div>
@@ -677,71 +749,79 @@ export default function ContactPage() {
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition">
+                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
                             <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
                                     <Landmark className="w-5 h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
                                     25 phút
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Phố Cổ Hội An</h4>
                             <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 22 km</span>
                             <p className="text-xs text-slate-600 leading-relaxed">
-                                Cung đường biển thơ mộng Trường Sa - Lạc Long Quân đưa Quý khách đến Di sản Thế giới UNESCO Hội An trong chớp mắt.
+                                Cung đường biển thơ mộng Trường Sa - Lạc Long Quân đưa Quý khách đến Di sản Thế giới UNESCO Hội An dễ dàng.
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-amber-200 hover:shadow-md transition">
+                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
                             <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-amber-100/70 text-amber-700 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
                                     <Mountain className="w-5 h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
                                     15 phút
                                 </span>
                             </div>
                             <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Sơn Trà & Chùa Linh Ứng</h4>
                             <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 10 km</span>
                             <p className="text-xs text-slate-600 leading-relaxed">
-                                Trải nghiệm rừng nguyên sinh Sơn Trà, viếng tượng Phật Bà Quán Âm cao nhất Việt Nam nhìn ra toàn cảnh vịnh biển Đà Nẵng.
+                                Trải nghiệm bán đảo Sơn Trà, viếng tượng Phật Bà Quán Âm và ngắm toàn cảnh vịnh biển Đà Nẵng.
                             </p>
                         </div>
                     </div>
 
-                    {/* CHAUFFEUR FLEET BANNER */}
-                    <div className="mt-10 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 border border-amber-500/30 text-white rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-xl">
+                    {/* AIRPORT TRANSFER & TOUR CAR BANNER (SÁT THỰC TẾ KHÁCH SẠN 3 SAO) */}
+                    <div className="mt-10 bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 border border-sky-500/25 text-white rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-xl">
                         <div className="max-w-xl">
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-300 bg-amber-500/20 border border-amber-400/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-3">
-                                <Car className="w-3.5 h-3.5 text-amber-400" />
-                                <span>Đặc quyền đưa đón hạng thương gia</span>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-sky-200 bg-sky-500/20 border border-sky-400/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-3">
+                                <Car className="w-3.5 h-3.5 text-sky-300" />
+                                <span>Hỗ trợ di chuyển tiện lợi</span>
                             </span>
                             <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
-                                Đội Xe Đưa Đón Riêng Mercedes-Benz & Maybach
+                                Dịch Vụ Đưa Đón Sân Bay & Đặt Xe Tham Quan
                             </h3>
                             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5 font-light">
-                                Nâng tầm kỳ nghỉ ngay từ giây phút hạ cánh tại sân bay quốc tế Đà Nẵng. Đội xe sang trọng với tài xế chuyên nghiệp túc trực đón tại cửa ra VIP, phục vụ khăn lạnh thảo mộc, nước suối tinh khiết và wifi tốc độ cao xuyên suốt hành trình.
+                                Bộ phận Lễ tân hỗ trợ đặt xe đưa đón hai chiều sân bay quốc tế Đà Nẵng (DAD) và xe tham quan các điểm du lịch nổi tiếng với mức giá minh bạch, tài xế đúng giờ và chu đáo.
                             </p>
-                            <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-200">
+                            <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-200 mb-6">
                                 <span className="flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                                    <span>Mercedes-Benz S-Class 2024</span>
+                                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                                    <span>Xe 4 – 16 chỗ đời mới, máy lạnh</span>
                                 </span>
                                 <span className="flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                                    <span>DCar Limousine 9 chỗ VIP</span>
+                                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                                    <span>Đón tận cửa ga đến Sân bay Đà Nẵng</span>
                                 </span>
                                 <span className="flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                                    <span>Tài xế giao tiếp Anh - Việt chuẩn mực</span>
+                                    <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                                    <span>Hỗ trợ đặt tour Hội An, Bà Nà, Sơn Trà</span>
                                 </span>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => handleSelectDepartment('transport', 'Yêu cầu đặt xe đưa đón sân bay Đà Nẵng')}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-600 hover:from-sky-600 hover:via-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/30 transition cursor-pointer active:scale-95"
+                            >
+                                <span>Gửi yêu cầu đặt xe đưa đón</span>
+                                <Send className="w-3.5 h-3.5" />
+                            </button>
                         </div>
                         <div className="w-full lg:w-96 h-56 rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-white/10">
                             <img
                                 src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80"
-                                alt="Luxury Limousine Chauffeur Service"
+                                alt="Dịch vụ xe đưa đón sân bay khách sạn TA Đà Nẵng"
                                 className="w-full h-full object-cover"
                             />
                         </div>
@@ -752,7 +832,7 @@ export default function ContactPage() {
             {/* FAQ SECTION */}
             <section className="py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
                 <div className="text-center mb-10">
-                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
+                    <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
                         Giải đáp nhanh
                     </span>
                     <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
@@ -770,26 +850,26 @@ export default function ContactPage() {
                                 key={idx}
                                 className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-2xs ${
                                     isOpen
-                                        ? 'border-amber-300 shadow-md ring-1 ring-amber-300/30'
+                                        ? 'border-sky-300 shadow-md ring-1 ring-sky-300/30'
                                         : 'border-slate-200 hover:border-slate-300'
                                 }`}
                             >
                                 <button
                                     type="button"
                                     onClick={() => setActiveFaq(isOpen ? null : idx)}
-                                    className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-amber-600 transition cursor-pointer"
+                                    className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-sky-700 transition cursor-pointer"
                                 >
-                                    <span className={isOpen ? 'text-amber-700 font-bold' : ''}>
+                                    <span className={isOpen ? 'text-sky-700 font-bold' : ''}>
                                         {faq.q}
                                     </span>
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 ${
-                                        isOpen ? 'bg-amber-100 text-amber-700 rotate-180' : 'bg-slate-100 text-slate-400'
+                                        isOpen ? 'bg-sky-100 text-sky-700 rotate-180' : 'bg-slate-100 text-slate-400'
                                     }`}>
                                         <ChevronDown className="w-4 h-4" />
                                     </div>
                                 </button>
                                 {isOpen && (
-                                    <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3.5 bg-gradient-to-b from-amber-50/20 to-transparent">
+                                    <div className="px-5 pb-5 text-xs sm:text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3.5 bg-gradient-to-b from-sky-50/30 to-transparent">
                                         {faq.a}
                                     </div>
                                 )}

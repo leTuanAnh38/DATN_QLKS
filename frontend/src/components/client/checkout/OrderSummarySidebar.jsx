@@ -52,7 +52,7 @@ export default function OrderSummarySidebar({
                             />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <span className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-bold uppercase block w-fit mb-1 border border-amber-200/80">
+                            <span className="px-2 py-0.5 rounded bg-sky-50 text-sky-800 text-[10px] font-bold uppercase block w-fit mb-1 border border-sky-200/80">
                                 {starCount}-STAR SUITE
                             </span>
                             <h3 className="font-serif font-bold text-base text-slate-900 leading-snug line-clamp-2">
@@ -87,7 +87,7 @@ export default function OrderSummarySidebar({
                             {formatDateDisplay(checkOutDate)} ({hotelSettings.check_out_time || '12:00'})
                         </strong>
                     </div>
-                    <div className="flex justify-between items-center text-amber-800 font-semibold pt-1 border-t border-slate-200">
+                    <div className="flex justify-between items-center text-sky-800 font-semibold pt-1 border-t border-slate-200">
                         <span>Tổng thời gian:</span>
                         <span>{nights} đêm lưu trú</span>
                     </div>
@@ -107,13 +107,13 @@ export default function OrderSummarySidebar({
 
                     {/* 2. Dịch vụ tiện ích gợi ý đi kèm (Liệt kê chi tiết từng món x số lượng) */}
                     {selectedServicesArray.length > 0 && (
-                        <div className="pt-2 pb-1 border-t border-dashed border-amber-200/80 space-y-1.5 bg-amber-50/50 p-2.5 rounded-xl border border-amber-200/60">
-                            <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
+                        <div className="pt-2 pb-1 space-y-1.5 bg-sky-50/50 p-2.5 rounded-xl border border-sky-200/70">
+                            <div className="flex items-center justify-between text-[11px] font-bold text-sky-900">
                                 <span className="flex items-center gap-1.5">
-                                    <BellRing className="w-3.5 h-3.5 text-amber-600" />
+                                    <BellRing className="w-3.5 h-3.5 text-sky-600" />
                                     <span>Dịch vụ đi kèm ({selectedServicesArray.length}):</span>
                                 </span>
-                                <span className="text-orange-600 font-extrabold">
+                                <span className="text-sky-700 font-extrabold">
                                     +{totalServicesAmount.toLocaleString('vi-VN')} VND
                                 </span>
                             </div>
@@ -143,7 +143,7 @@ export default function OrderSummarySidebar({
 
                     {/* 4. Mã khuyến mãi (Promo Code) */}
                     {discountAmount > 0 && (
-                        <div className="flex justify-between text-amber-600 font-semibold">
+                        <div className="flex justify-between text-emerald-600 font-semibold">
                             <span>Mã khuyến mãi ({appliedPromo?.code})</span>
                             <span>-{discountAmount.toLocaleString('vi-VN')} VND</span>
                         </div>
@@ -154,7 +154,7 @@ export default function OrderSummarySidebar({
                         <span className="text-emerald-600 font-medium">Đã bao gồm</span>
                     </div>
 
-                    <div className="flex items-center justify-between text-amber-700 font-semibold pt-1 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-sky-700 font-semibold pt-1 border-t border-slate-100">
                         <span className="flex items-center gap-1.5">
                             <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                             <span>Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
@@ -233,14 +233,14 @@ export default function OrderSummarySidebar({
                 <div className="space-y-1.5 pt-2 text-[11px] text-slate-500">
                     <div className="flex items-center gap-2 text-emerald-700 font-medium">
                         <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Chính sách hủy: {room?.cancellation_policy ? 'Áp dụng theo quy định riêng của hạng phòng' : 'Miễn phí hủy trước 24 giờ'}</span>
+                        <span>Chính sách hủy: {room?.cancellation_policy ? 'Áp dụng theo quy định riêng của hạng phòng' : `Miễn phí hủy trước ${hotelSettings.cancellation_free_hours || 24} giờ`}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                         <span>Nhận phòng nhanh chóng tại quầy Lễ tân</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
+                        <PhoneCall className="w-4 h-4 text-sky-600 shrink-0" />
                         <span>Hotline hỗ trợ 24/7: <strong className="text-slate-700">{hotelSettings.hotline || '1900 8899'}</strong></span>
                     </div>
                 </div>

@@ -830,7 +830,7 @@ export default function DetailRoom() {
     const roomHasBalcony = checkRoomHasBalcony(room);
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white pb-20 lg:pb-0">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white pb-20 lg:pb-0">
             <Navbar
                 actionText="Đặt phòng ngay"
                 actionLink="#dat-phong"
@@ -845,9 +845,9 @@ export default function DetailRoom() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
                     {/* Breadcrumb bên trái: luôn 1 dòng mượt mà, co dãn thông minh */}
                     <nav className="flex items-center space-x-1.5 sm:space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar min-w-0 flex-1">
-                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition shrink-0">Trang chủ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
-                        <Link to="/rooms" className="hover:text-amber-600 transition shrink-0">Phòng nghỉ & Suites</Link>
+                        <Link to="/rooms" className="hover:text-sky-600 transition shrink-0">Phòng nghỉ & Suites</Link>
                         <span className="text-slate-300 shrink-0">/</span>
                         <span className="text-slate-900 font-semibold truncate min-w-0">
                             {room.name}
@@ -877,7 +877,7 @@ export default function DetailRoom() {
                                     showToastNotice('info', 'Đã sao chép liên kết phòng!');
                                 }
                             }}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 hover:text-amber-600 transition cursor-pointer"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 hover:text-sky-600 transition cursor-pointer"
                             title="Chia sẻ liên kết hạng phòng"
                         >
                             {copiedShareLink ? (
@@ -910,19 +910,16 @@ export default function DetailRoom() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-2">
-                            {/* Dải huy hiệu sang trọng, gọn gàng */}
+                            {/* Dải huy hiệu gọn gàng, không trùng lặp */}
                             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                                <span className="px-2.5 py-0.5 rounded-full text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-orange-500 to-amber-500 shadow-2xs">
-                                    {room.size ? `${room.size} M²` : 'LUXURY SUITE'}
+                                <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Tiêu chuẩn {starCount} sao
                                 </span>
                                 {hasPromo && (
                                     <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1">
                                         <Tag className="w-3 h-3 text-rose-500" /> Giảm {discountPercent}%
                                     </span>
                                 )}
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> {starCount}-STAR RESORT
-                                </span>
                                 {room.total_rooms_count > 0 && (
                                     <span className="text-[10px] sm:text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -937,14 +934,14 @@ export default function DetailRoom() {
 
                         {/* Hộp đánh giá: trên mobile gọn gàng tự nhiên (self-start), không bị bè 100% chiều ngang */}
                         <div className="inline-flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl shrink-0 self-start md:self-auto shadow-2xs">
-                            <span className="flex items-center gap-1 text-amber-500 text-base sm:text-lg font-bold">
+                            <span className="flex items-center gap-1 text-slate-900 text-base sm:text-lg font-bold">
                                 <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400 text-amber-400" /> {reviewStats.average}
                             </span>
                             <div className="border-l border-slate-200 pl-2.5 sm:pl-3">
                                 <div className="text-xs font-bold text-slate-900">
                                     {parseFloat(reviewStats.average) >= 4.8 ? 'Tuyệt hảo xuất sắc' : (parseFloat(reviewStats.average) >= 4.0 ? 'Rất tốt' : 'Tốt')}
                                 </div>
-                                <a href="#danh-gia" className="text-[10px] sm:text-[11px] text-amber-600 hover:underline font-medium block">
+                                <a href="#danh-gia" className="text-[10px] sm:text-[11px] text-sky-700 hover:underline font-medium block">
                                     {reviewStats.total > 0 ? `${reviewStats.total} lượt đánh giá thực tế` : 'Đang cập nhật đánh giá'}
                                 </a>
                             </div>
@@ -980,7 +977,7 @@ export default function DetailRoom() {
 
                             {/* Lớp gradient bóng mờ và tiêu đề ảnh */}
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-5 sm:p-6 text-white pointer-events-none pb-12 sm:pb-6">
-                                <span className="text-[11px] uppercase tracking-widest text-amber-300 font-bold mb-1">
+                                <span className="text-[11px] uppercase tracking-widest text-sky-300 font-bold mb-1">
                                     {gallery.length === 1 ? 'Hình ảnh phòng' : `Góc nhìn ${safeImageIndex + 1} / ${gallery.length}`}
                                 </span>
                                 <p className="font-serif text-base sm:text-xl font-bold pr-24 sm:pr-28 line-clamp-1">
@@ -990,7 +987,7 @@ export default function DetailRoom() {
 
                             {/* Badge đếm số thứ tự ảnh góc trên bên trái */}
                             <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 shadow">
-                                <Camera className="w-3.5 h-3.5 text-amber-300" />
+                                <Camera className="w-3.5 h-3.5 text-sky-300" />
                                 <span>{safeImageIndex + 1} / {gallery.length}</span>
                             </div>
 
@@ -1050,7 +1047,7 @@ export default function DetailRoom() {
                                             onTouchStart={(e) => e.stopPropagation()}
                                             className={`transition-all duration-300 rounded-full cursor-pointer ${
                                                 safeImageIndex === dotIdx
-                                                    ? 'w-5 h-2 bg-amber-400'
+                                                    ? 'w-5 h-2 bg-sky-400'
                                                     : 'w-2 h-2 bg-white/60 hover:bg-white'
                                             }`}
                                             aria-label={`Xem ảnh ${dotIdx + 1}`}
@@ -1077,7 +1074,7 @@ export default function DetailRoom() {
                                             key={img.id || idx}
                                             onClick={() => setSelectedImageIndex(actualIndex)}
                                             className={`relative group overflow-hidden rounded-xl h-full cursor-pointer border-2 transition ${
-                                                isSelected ? 'border-amber-400' : 'border-transparent'
+                                                isSelected ? 'border-sky-500' : 'border-transparent'
                                             }`}
                                         >
                                             <img
@@ -1123,7 +1120,7 @@ export default function DetailRoom() {
                                             onClick={() => setSelectedImageIndex(idx)}
                                             className={`relative shrink-0 w-20 h-16 sm:w-24 sm:h-18 rounded-xl overflow-hidden border-2 transition-all snap-start cursor-pointer ${
                                                 isSelected
-                                                    ? 'border-amber-500 ring-2 ring-amber-400/50 scale-102 shadow-md'
+                                                    ? 'border-sky-500 ring-2 ring-sky-400/50 scale-102 shadow-md'
                                                     : 'border-slate-200 opacity-60 hover:opacity-100'
                                             }`}
                                             aria-label={`Ảnh ${idx + 1}`}
@@ -1135,7 +1132,7 @@ export default function DetailRoom() {
                                             />
                                             <div className={`absolute inset-0 transition-opacity ${isSelected ? 'bg-transparent' : 'bg-black/20'}`} />
                                             <span className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded font-bold font-mono ${
-                                                isSelected ? 'bg-amber-500 text-white' : 'bg-black/70 text-white'
+                                                isSelected ? 'bg-sky-600 text-white' : 'bg-black/70 text-white'
                                             }`}>
                                                 {idx + 1}
                                             </span>
@@ -1156,7 +1153,7 @@ export default function DetailRoom() {
                         {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
                                     <Maximize2 className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1168,7 +1165,7 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
                                     <Compass className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1180,7 +1177,7 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
                                     <Users className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1192,7 +1189,7 @@ export default function DetailRoom() {
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
                                     <BedDouble className="w-5 h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1216,10 +1213,10 @@ export default function DetailRoom() {
 
                             {/* Mô tả ngắn (Short Description) được đóng khung nổi bật */}
                             {room.short_description && (
-                                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50/70 via-orange-50/40 to-slate-50 border border-amber-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
-                                    <Compass className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/70 flex items-start gap-3 text-slate-800 text-xs sm:text-sm leading-relaxed font-medium shadow-2xs break-words">
+                                    <Compass className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" />
                                     <div className="min-w-0">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-sky-800 block mb-0.5">
                                             Tổng quan nổi bật
                                         </span>
                                         <p className="text-slate-800 leading-relaxed font-normal break-words">
@@ -1253,7 +1250,7 @@ export default function DetailRoom() {
                         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-100">
                                 <div>
-                                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
+                                    <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
                                         Tiện ích tích hợp
                                     </span>
                                     <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
@@ -1275,12 +1272,12 @@ export default function DetailRoom() {
                                         {room.amenities.map((amenity, idx) => (
                                             <div
                                                 key={amenity.id || idx}
-                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50/40 border border-amber-100/80 hover:border-amber-300 hover:bg-amber-50/80 transition group"
+                                                className="flex items-center gap-3 p-3.5 rounded-2xl bg-sky-50/45 border border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 transition group"
                                             >
-                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition border border-amber-100/60 select-none">
+                                                <span className="w-9 h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition border border-sky-100/80 select-none">
                                                     {amenity.icon || getAmenityIcon(amenity)}
                                                 </span>
-                                                <span className="text-xs font-bold text-slate-800 group-hover:text-amber-800 transition">
+                                                <span className="text-xs font-bold text-slate-800 group-hover:text-sky-800 transition">
                                                     {amenity.name}
                                                 </span>
                                             </div>
@@ -1289,7 +1286,7 @@ export default function DetailRoom() {
                                 </div>
                             )}
 
-                            {/* 2. Tiện ích tiêu chuẩn 5 sao resort phân theo nhóm */}
+                            {/* 2. Tiện ích tiêu chuẩn phân theo nhóm */}
                             <div className="space-y-4 pt-6 border-t border-slate-100">
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400">
@@ -1310,7 +1307,7 @@ export default function DetailRoom() {
                                             >
                                                 <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
                                                     <div className="flex items-center gap-2.5">
-                                                        <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200/70 text-amber-700 flex items-center justify-center shrink-0">
+                                                        <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200/70 text-sky-700 flex items-center justify-center shrink-0">
                                                             <GroupIcon className="w-4 h-4" />
                                                         </div>
                                                         <h4 className="font-serif font-bold text-base text-slate-900 tracking-tight">

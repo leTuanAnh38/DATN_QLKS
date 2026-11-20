@@ -180,7 +180,8 @@ export default function Checkout() {
         check_in_time: '14:00',
         check_out_time: '12:00',
         vat_percent: 8,
-        service_charge_percent: 5
+        service_charge_percent: 5,
+        cancellation_free_hours: 24
     });
 
     useEffect(() => {
@@ -194,6 +195,7 @@ export default function Checkout() {
                         check_out_time: data.check_out_time || '12:00',
                         vat_percent: Number(data.vat_percent) || 8,
                         service_charge_percent: Number(data.service_charge_percent) || 5,
+                        cancellation_free_hours: Number(data.cancellation_free_hours) || 24,
                         hotline: data.hotline || '1900 8899',
                         hotel_name: data.hotel_name || 'Khách Sạn TA Đà Nẵng'
                     });
@@ -672,6 +674,7 @@ export default function Checkout() {
                 setBookingError('Vui lòng nhập địa chỉ trụ sở / xuất hóa đơn của công ty.');
                 return;
             }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (invoiceEmail.trim() && !emailRegex.test(invoiceEmail.trim())) {
                 setBookingError('Email nhận hóa đơn VAT không đúng định dạng (ví dụ: ketoan@congty.vn).');
                 return;
@@ -859,20 +862,20 @@ export default function Checkout() {
         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white">
             <Navbar />
 
             {/* BREADCRUMB LIÊN KẾT */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
-                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition shrink-0">Trang chủ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
-                        <Link to="/rooms" className="hover:text-amber-600 transition shrink-0">Phòng nghỉ</Link>
+                        <Link to="/rooms" className="hover:text-sky-600 transition shrink-0">Phòng nghỉ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
                         {room && (
                             <>
-                                <Link to={`/rooms/${room.id}`} className="hover:text-amber-600 transition truncate max-w-[150px] sm:max-w-none shrink-0">
+                                <Link to={`/rooms/${room.id}`} className="hover:text-sky-600 transition truncate max-w-[150px] sm:max-w-none shrink-0">
                                     {room.name}
                                 </Link>
                                 <span className="text-slate-300 shrink-0">/</span>
@@ -892,9 +895,9 @@ export default function Checkout() {
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200/80 text-xs text-amber-800 font-medium">
-                        <Clock className="w-3.5 h-3.5 text-amber-600" />
-                        <span>Giá ưu đãi được giữ trong <strong>15:00 phút</strong></span>
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/80 text-xs text-sky-800 font-medium w-fit">
+                        <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>Xác nhận tức thì • <strong>Giá tốt nhất</strong></span>
                     </div>
                 </div>
             </header>
@@ -980,12 +983,28 @@ export default function Checkout() {
                         {/* CỘT TRÁI: FORM NHẬP LIỆU (8 COLS) */}
                         {/* ========================================================================= */}
                         <div className="lg:col-span-8 space-y-6">
+                            {/* Banner báo lỗi validate nổi bật ngay đầu form (dễ thấy trên cả mobile & desktop) */}
+                            {bookingError && (
+                                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-xs">
+                                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                    <span className="flex-1">{bookingError}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBookingError('')}
+                                        className="text-rose-400 hover:text-rose-700 p-0.5 cursor-pointer"
+                                        aria-label="Đóng thông báo lỗi"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            )}
+
                             {/* THẺ 1: CHỌN NGÀY CHECK-IN & CHECK-OUT (DATE PICKER) */}
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold shadow-2xs">
-                                            <CalendarDays className="w-5 h-5 text-amber-600" />
+                                        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                            <CalendarDays className="w-5 h-5 text-sky-600" />
                                         </div>
                                         <div>
                                             <h2 className="font-sans font-bold text-lg text-slate-900">
@@ -994,7 +1013,7 @@ export default function Checkout() {
                                         </div>
                                     </div>
 
-                                    <span className="px-3 py-1 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200/80">
+                                    <span className="px-3 py-1 rounded-xl bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200/80">
                                         {nights} đêm lưu trú
                                     </span>
                                 </div>
@@ -1012,7 +1031,7 @@ export default function Checkout() {
                                                 value={checkInDate}
                                                 onChange={handleCheckInChange}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
@@ -1039,7 +1058,7 @@ export default function Checkout() {
                                                     }
                                                 }}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                             />
                                         </div>
                                         <span className="text-[11px] text-slate-400 block">
@@ -1068,7 +1087,7 @@ export default function Checkout() {
                                         {availability.suggested_categories?.length > 0 && (
                                             <div className="pt-2 border-t border-rose-200/80 space-y-2">
                                                 <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider block flex items-center gap-1.5">
-                                                    <BedDouble className="w-3.5 h-3.5 text-amber-600" />
+                                                    <BedDouble className="w-3.5 h-3.5 text-sky-600" />
                                                     <span>Các hạng phòng khác còn trống cho kỳ nghỉ của bạn:</span>
                                                 </span>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1118,8 +1137,8 @@ export default function Checkout() {
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold shadow-2xs">
-                                            <User className="w-5 h-5 text-amber-600" />
+                                        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                            <User className="w-5 h-5 text-sky-600" />
                                         </div>
                                         <div>
                                             <h2 className="font-sans font-bold text-lg text-slate-900">
@@ -1205,7 +1224,7 @@ export default function Checkout() {
                                                     value={companyName}
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
 
@@ -1232,8 +1251,8 @@ export default function Checkout() {
                                                             }
                                                         }}
                                                         required
-                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition ${
-                                                            taxCodeError ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:border-amber-500'
+                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition ${
+                                                            taxCodeError ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:border-sky-500'
                                                         }`}
                                                     />
                                                     {taxCodeError && (
@@ -1253,7 +1272,7 @@ export default function Checkout() {
                                                         value={companyAddress}
                                                         onChange={(e) => setCompanyAddress(e.target.value)}
                                                         required
-                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                     />
                                                 </div>
                                             </div>
@@ -1267,7 +1286,7 @@ export default function Checkout() {
                                                     placeholder="Ví dụ: ketoan@congty.vn (Mặc định gửi về email người đặt nếu bỏ trống)"
                                                     value={invoiceEmail}
                                                     onChange={(e) => setInvoiceEmail(e.target.value)}
-                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
 
@@ -1300,7 +1319,7 @@ export default function Checkout() {
                                             value={guestName}
                                             onChange={(e) => setGuestName(e.target.value)}
                                             required
-                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                            className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                         />
                                     </div>
 
@@ -1321,7 +1340,7 @@ export default function Checkout() {
                                                     if (bookingError) setBookingError('');
                                                 }}
                                                 required
-                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-mono font-medium text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-mono font-medium text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                             />
                                             <span className="absolute left-3.5 top-3.5 text-slate-400">
                                                 <IdCard className="w-4 h-4" />
@@ -1355,7 +1374,7 @@ export default function Checkout() {
                                                 value={guestPhone}
                                                 onChange={(e) => setGuestPhone(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                             />
                                         </div>
 
@@ -1370,7 +1389,7 @@ export default function Checkout() {
                                                 value={guestEmail}
                                                 onChange={(e) => setGuestEmail(e.target.value)}
                                                 required
-                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                             />
                                         </div>
                                     </div>
@@ -1385,7 +1404,7 @@ export default function Checkout() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition cursor-pointer"
+                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer"
                                                 >
                                                     -
                                                 </button>
@@ -1395,7 +1414,7 @@ export default function Checkout() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
-                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition cursor-pointer"
+                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer"
                                                 >
                                                     +
                                                 </button>
@@ -1438,7 +1457,7 @@ export default function Checkout() {
                                             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                                                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
                                                     <div className="flex items-center gap-2">
-                                                        <Users className="w-4 h-4 text-amber-600" />
+                                                        <Users className="w-4 h-4 text-sky-600" />
                                                         <div>
                                                             <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                                                                 Danh sách người lưu trú ({isBookerTheGuest ? 1 + actualGuests.filter(g => g.full_name?.trim()).length : actualGuests.filter(g => g.full_name?.trim()).length} / {roomCap} khách tối đa)
@@ -1515,7 +1534,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, full_name: val } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
 
@@ -1527,7 +1546,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, id_type: val } : g));
                                                                         }}
-                                                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                                                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
                                                                     >
                                                                         <option value="CCCD">CCCD</option>
                                                                         <option value="PASSPORT">Hộ chiếu</option>
@@ -1544,7 +1563,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, identity_card: val.toUpperCase() } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
 
@@ -1558,7 +1577,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, phone_number: val } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -1575,7 +1594,7 @@ export default function Checkout() {
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100">
                                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center text-lg shadow-md shadow-orange-500/20 shrink-0">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-900/15 shrink-0">
                                             <BellRing className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="min-w-0">
@@ -1583,23 +1602,23 @@ export default function Checkout() {
                                                 <h2 className="font-serif font-bold text-lg sm:text-xl text-slate-900 tracking-tight leading-snug">
                                                     Nâng tầm kỳ nghỉ - Dịch vụ gợi ý đi kèm
                                                 </h2>
-                                                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider shrink-0">
-                                                    Gợi ý HOT
+                                                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                                                    Gợi ý
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {selectedServicesArray.length > 0 && (
-                                        <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/80 border border-amber-200 text-xs font-bold shadow-xs whitespace-nowrap self-start sm:self-center">
-                                            <span className="text-amber-900 flex items-center gap-1.5">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                                        <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-sky-50/70 border border-sky-200/80 text-xs font-bold shadow-2xs whitespace-nowrap self-start sm:self-center">
+                                            <span className="text-sky-900 flex items-center gap-1.5">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
                                                 <span>Đã chọn:</span>
                                             </span>
-                                            <span className="px-2 py-0.5 rounded-lg bg-orange-100/90 text-orange-700 font-extrabold text-xs">
+                                            <span className="px-2 py-0.5 rounded-lg bg-sky-100 text-sky-800 font-extrabold text-xs">
                                                 {selectedServicesArray.length} dịch vụ
                                             </span>
-                                            <span className="text-amber-300">•</span>
+                                            <span className="text-sky-300">•</span>
                                             <span className="text-emerald-700 font-black tracking-tight">
                                                 +{totalServicesAmount.toLocaleString('vi-VN')} ₫
                                             </span>
@@ -1656,8 +1675,8 @@ export default function Checkout() {
                                                     <div
                                                         key={svc.id}
                                                         className={`group relative rounded-2xl border p-4 transition-all duration-200 flex flex-col justify-between ${isSelected
-                                                            ? 'border-amber-400 bg-gradient-to-br from-amber-50/40 via-white to-orange-50/30 shadow-md shadow-amber-500/10 ring-1 ring-amber-400'
-                                                            : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-xs'
+                                                            ? 'border-sky-400 bg-sky-50/45 shadow-md shadow-sky-900/5 ring-1 ring-sky-400/30'
+                                                            : 'border-slate-200 bg-white hover:border-sky-300 hover:shadow-xs'
                                                             }`}
                                                     >
                                                         <div className="flex gap-3.5 items-start">
@@ -1668,7 +1687,7 @@ export default function Checkout() {
                                                                     id={`svc-check-${svc.id}`}
                                                                     checked={isSelected}
                                                                     onChange={() => handleToggleService(svc.id)}
-                                                                    className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 cursor-pointer accent-amber-600"
+                                                                    className="w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300 cursor-pointer accent-sky-600"
                                                                 />
                                                             </div>
 
@@ -1696,7 +1715,7 @@ export default function Checkout() {
 
                                                                 <h4
                                                                     onClick={() => handleToggleService(svc.id)}
-                                                                    className="font-bold text-xs sm:text-sm text-slate-900 mt-1 cursor-pointer hover:text-amber-600 transition truncate"
+                                                                    className="font-bold text-xs sm:text-sm text-slate-900 mt-1 cursor-pointer hover:text-sky-700 transition truncate"
                                                                     title={svc.name}
                                                                 >
                                                                     {svc.name}
@@ -1708,7 +1727,7 @@ export default function Checkout() {
                                                                     </p>
                                                                 )}
 
-                                                                <div className="mt-1.5 font-bold text-xs text-orange-600">
+                                                                <div className="mt-1.5 font-bold text-xs text-slate-900">
                                                                     {priceNum.toLocaleString('vi-VN')} <span className="text-[10px] font-semibold text-slate-500">VNĐ</span>
                                                                 </div>
                                                             </div>
@@ -1716,17 +1735,17 @@ export default function Checkout() {
 
                                                         {/* Khu vực Tùy chỉnh số lượng khi đã chọn */}
                                                         {isSelected && (
-                                                            <div className="mt-3 pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs animate-in fade-in duration-200">
+                                                            <div className="mt-3 pt-3 border-t border-sky-200/70 flex items-center justify-between text-xs animate-in fade-in duration-200">
                                                                 <span className="text-[11px] font-semibold text-slate-600">
                                                                     Số lượng sử dụng:
                                                                 </span>
 
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="inline-flex items-center bg-white border border-amber-300 rounded-xl shadow-xs overflow-hidden">
+                                                                    <div className="inline-flex items-center bg-white border border-sky-300 rounded-xl shadow-xs overflow-hidden">
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, -1)}
-                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition cursor-pointer"
+                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Giảm số lượng"
                                                                         >
                                                                             -
@@ -1737,7 +1756,7 @@ export default function Checkout() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, 1)}
-                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-amber-100 active:bg-amber-200 transition cursor-pointer"
+                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Tăng số lượng"
                                                                         >
                                                                             +
@@ -1761,7 +1780,7 @@ export default function Checkout() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsExpandedServices(!isExpandedServices)}
-                                                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-slate-100 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-2xs cursor-pointer active:scale-95"
+                                                    className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-slate-100 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 text-slate-700 text-xs font-bold transition-all border border-slate-200 shadow-2xs cursor-pointer active:scale-95"
                                                 >
                                                     {isExpandedServices ? (
                                                         <>
@@ -1782,11 +1801,11 @@ export default function Checkout() {
 
                                 {/* Footer tóm tắt dịch vụ tiện ích */}
                                 {selectedServicesArray.length > 0 && (
-                                    <div className="mt-4 p-3.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                                        <div className="flex items-center gap-2 text-amber-900 font-medium">
+                                    <div className="mt-4 p-3.5 bg-sky-50/60 rounded-2xl border border-sky-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                        <div className="flex items-center gap-2 text-sky-900 font-medium">
                                             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                             <span>
-                                                Đã thêm <strong>{selectedServicesArray.length} tiện ích</strong> vào đơn đặt phòng. Tiền dịch vụ sẽ được cộng gộp vào mã QR thanh toán.
+                                                Đã thêm <strong>{selectedServicesArray.length} tiện ích</strong> vào đơn đặt phòng. Tiền dịch vụ sẽ được cộng gộp vào tổng hóa đơn.
                                             </span>
                                         </div>
                                         <button
@@ -1803,8 +1822,8 @@ export default function Checkout() {
                             {/* THẺ 3: MÃ GIẢM GIÁ (PROMO CODE) */}
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-                                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold shadow-2xs">
-                                        <Tag className="w-5 h-5 text-amber-600" />
+                                    <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                        <Tag className="w-5 h-5 text-sky-600" />
                                     </div>
                                     <div>
                                         <h2 className="font-sans font-bold text-lg text-slate-900">
@@ -1825,14 +1844,14 @@ export default function Checkout() {
                                                         setPromoInput(e.target.value.toUpperCase());
                                                         setPromoError('');
                                                     }}
-                                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal placeholder:capitalize focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal placeholder:capitalize focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={handleApplyPromo}
                                                 disabled={isApplyingPromo || !promoInput.trim()}
-                                                className="px-6 py-3 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 text-white rounded-2xl text-xs font-bold shadow-md shadow-slate-900/10 transition transform active:scale-95 flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                                                className="px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:from-slate-200 disabled:via-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-2xl text-xs font-bold shadow-md shadow-sky-900/15 transition transform active:scale-95 flex items-center gap-2 whitespace-nowrap cursor-pointer"
                                             >
                                                 {isApplyingPromo ? (
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1850,7 +1869,7 @@ export default function Checkout() {
                                                     key={code}
                                                     type="button"
                                                     onClick={() => setPromoInput(code)}
-                                                    className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200/80 transition cursor-pointer"
+                                                    className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold border border-sky-200/80 transition cursor-pointer"
                                                 >
                                                     {code} (-10%)
                                                 </button>
@@ -1893,8 +1912,8 @@ export default function Checkout() {
                             {/* THẺ 4: YÊU CẦU ĐẶC BIỆT & GHI CHÚ */}
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-                                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold shadow-2xs">
-                                        <FileText className="w-5 h-5 text-amber-600" />
+                                    <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                        <FileText className="w-5 h-5 text-sky-600" />
                                     </div>
                                     <div>
                                         <h2 className="font-sans font-bold text-lg text-slate-900">
@@ -1908,7 +1927,7 @@ export default function Checkout() {
                                     placeholder="Ví dụ: Cần phòng tầng cao, view thoáng, hỗ trợ nhận phòng sớm lúc 13:00, chuẩn bị bánh kỉ niệm..."
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
-                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
 
                                 {/* Chips chọn nhanh */}
@@ -1928,7 +1947,7 @@ export default function Checkout() {
                                                     setNote(note ? `${note}, ${tag}` : tag);
                                                 }
                                             }}
-                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-200 text-slate-600 text-[11px] font-medium transition border border-transparent cursor-pointer"
+                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-200 text-slate-600 text-[11px] font-medium transition border border-transparent cursor-pointer"
                                         >
                                             + {tag}
                                         </button>
@@ -1939,8 +1958,8 @@ export default function Checkout() {
                             {/* THẺ 5: PHƯƠNG THỨC THANH TOÁN */}
                             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                                 <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
-                                    <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center text-lg font-bold shadow-2xs">
-                                        <CreditCard className="w-5 h-5 text-amber-600" />
+                                    <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center text-lg font-bold shadow-2xs">
+                                        <CreditCard className="w-5 h-5 text-sky-600" />
                                     </div>
                                     <div>
                                         <h2 className="font-sans font-bold text-lg text-slate-900">
@@ -1954,8 +1973,8 @@ export default function Checkout() {
                                     <label
                                         onClick={() => setPaymentMethod('reception')}
                                         className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'reception'
-                                                ? 'border-amber-500 bg-amber-50/30 ring-1 ring-amber-500/30'
-                                                : 'border-slate-200 hover:border-amber-300'
+                                                ? 'border-sky-500 bg-sky-50/40 ring-1 ring-sky-500/25'
+                                                : 'border-slate-200 hover:border-sky-300'
                                             }`}
                                     >
                                         <input
@@ -1963,14 +1982,14 @@ export default function Checkout() {
                                             name="payment"
                                             checked={paymentMethod === 'reception'}
                                             onChange={() => setPaymentMethod('reception')}
-                                            className="mt-1 text-amber-600 accent-amber-600 cursor-pointer"
+                                            className="mt-1 text-sky-600 accent-sky-600 cursor-pointer"
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start sm:items-center justify-between gap-2">
                                                 <strong className="text-xs sm:text-sm font-bold text-slate-900 block">
                                                     Thanh toán trực tiếp tại quầy Lễ tân (Khi nhận phòng)
                                                 </strong>
-                                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold uppercase whitespace-nowrap shrink-0">
+                                                <span className="px-2 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold uppercase whitespace-nowrap shrink-0">
                                                     Khuyên dùng
                                                 </span>
                                             </div>
@@ -1984,8 +2003,8 @@ export default function Checkout() {
                                     <label
                                         onClick={() => setPaymentMethod('vietqr')}
                                         className={`flex items-start gap-3 p-4 rounded-2xl border cursor-pointer transition ${paymentMethod === 'vietqr'
-                                                ? 'border-amber-500 bg-amber-50/30 ring-1 ring-amber-500/30'
-                                                : 'border-slate-200 hover:border-amber-300'
+                                                ? 'border-sky-500 bg-sky-50/40 ring-1 ring-sky-500/25'
+                                                : 'border-slate-200 hover:border-sky-300'
                                             }`}
                                     >
                                         <input
@@ -1993,7 +2012,7 @@ export default function Checkout() {
                                             name="payment"
                                             checked={paymentMethod === 'vietqr'}
                                             onChange={() => setPaymentMethod('vietqr')}
-                                            className="mt-1 text-amber-600 accent-amber-600 cursor-pointer"
+                                            className="mt-1 text-sky-600 accent-sky-600 cursor-pointer"
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start sm:items-center justify-between gap-2">

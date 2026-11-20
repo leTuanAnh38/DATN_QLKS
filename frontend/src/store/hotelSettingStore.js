@@ -13,6 +13,12 @@ export const DEFAULT_BANNERS = {
     banner_contact: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90',
     banner_corporate: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
     banner_login: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85',
+    gallery_pool: 'https://images.unsplash.com/photo-1561501900-3701fa6a0864?auto=format&fit=crop&w=1400&q=85',
+    gallery_spa: 'https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?auto=format&fit=crop&w=1000&q=85',
+    gallery_dining: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&w=800&q=85',
+    gallery_beach: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=85',
+    concierge_dining_img: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&w=600&q=80',
+    concierge_spa_img: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=600&q=80',
 };
 
 export function applyFavicon(faviconUrl) {
@@ -69,6 +75,12 @@ let currentSettings = {
     banner_contact: DEFAULT_BANNERS.banner_contact,
     banner_corporate: DEFAULT_BANNERS.banner_corporate,
     banner_login: DEFAULT_BANNERS.banner_login,
+    gallery_pool: DEFAULT_BANNERS.gallery_pool,
+    gallery_spa: DEFAULT_BANNERS.gallery_spa,
+    gallery_dining: DEFAULT_BANNERS.gallery_dining,
+    gallery_beach: DEFAULT_BANNERS.gallery_beach,
+    concierge_dining_img: DEFAULT_BANNERS.concierge_dining_img,
+    concierge_spa_img: DEFAULT_BANNERS.concierge_spa_img,
     check_in_time: '14:00',
     check_out_time: '12:00',
     isLoaded: false
@@ -109,6 +121,12 @@ export const hotelSettingStore = {
             banner_contact: resolveMediaUrl(newData.banner_contact, DEFAULT_BANNERS.banner_contact),
             banner_corporate: resolveMediaUrl(newData.banner_corporate, DEFAULT_BANNERS.banner_corporate),
             banner_login: resolveMediaUrl(newData.banner_login, DEFAULT_BANNERS.banner_login),
+            gallery_pool: resolveMediaUrl(newData.gallery_pool, DEFAULT_BANNERS.gallery_pool),
+            gallery_spa: resolveMediaUrl(newData.gallery_spa, DEFAULT_BANNERS.gallery_spa),
+            gallery_dining: resolveMediaUrl(newData.gallery_dining, DEFAULT_BANNERS.gallery_dining),
+            gallery_beach: resolveMediaUrl(newData.gallery_beach, DEFAULT_BANNERS.gallery_beach),
+            concierge_dining_img: resolveMediaUrl(newData.concierge_dining_img, DEFAULT_BANNERS.concierge_dining_img),
+            concierge_spa_img: resolveMediaUrl(newData.concierge_spa_img, DEFAULT_BANNERS.concierge_spa_img),
             isLoaded: true
         };
         if (currentSettings.favicon_url) {

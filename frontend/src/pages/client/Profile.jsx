@@ -66,6 +66,13 @@ export default function Profile() {
         return 'info';
     });
 
+    // Đồng bộ activeTab khi URL query (?tab=...) thay đổi (VD: bấm từ Navbar hoặc link ngoài)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const t = params.get('tab');
+        setActiveTab(t === 'membership' ? 'membership' : 'info');
+    }, [location.search]);
+
     // Modal state
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
@@ -732,17 +739,30 @@ export default function Profile() {
                                     </div>
 
                                     {/* Khối Sở Thích Lưu Trú */}
-                                    <div className="p-5 rounded-3xl bg-gradient-to-br from-amber-50/70 via-orange-50/40 to-amber-50/30 border border-amber-200/70">
-                                        <div className="flex items-center gap-2 mb-2 text-amber-900 font-bold text-sm">
-                                            <Heart className="w-4 h-4 text-amber-600 fill-amber-500" />
-                                            <span>Sở thích & Yêu cầu phòng đặc biệt</span>
+                                    <div className="p-5 rounded-3xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2.5 text-slate-900 font-bold text-sm">
+                                                <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                                    <Heart className="w-4 h-4" />
+                                                </div>
+                                                <span>Sở thích & Yêu cầu phòng đặc biệt</span>
+                                            </div>
+                                            {!formData.preferences && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsEditing(true)}
+                                                    className="text-[11px] font-bold text-sky-600 hover:text-sky-700 hover:underline cursor-pointer shrink-0"
+                                                >
+                                                    + Thêm ghi chú
+                                                </button>
+                                            )}
                                         </div>
-                                        <p className="text-xs text-slate-700 leading-relaxed italic bg-white/80 p-3 rounded-xl border border-amber-200/50">
+                                        <p className="text-xs text-slate-700 leading-relaxed italic bg-white p-3.5 rounded-2xl border border-slate-200/70">
                                             &ldquo;{formData.preferences || 'Chưa có ghi chú sở thích. Quý khách có thể ghi chú loại gối mềm, phòng tầng cao, view biển hoặc lưu ý ăn uống để đội ngũ khách sạn phục vụ chu đáo nhất.'}&rdquo;
                                         </p>
-                                        <span className="text-[11px] text-amber-800/80 mt-2 flex items-center gap-1.5">
-                                            <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                            <span>Đội ngũ quản gia khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.</span>
+                                        <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                                            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                            <span>Đội ngũ khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.</span>
                                         </span>
                                     </div>
                                 </div>
@@ -931,7 +951,10 @@ export default function Profile() {
                                 </h4>
                                 <button
                                     type="button"
-                                    onClick={() => setActiveTab('membership')}
+                                    onClick={() => {
+                                        setActiveTab('membership');
+                                        navigate('/profile?tab=membership', { replace: true });
+                                    }}
                                     className="w-full p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">

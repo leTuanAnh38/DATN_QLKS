@@ -170,6 +170,17 @@ export default function CorporateBooking() {
     const [checkInDate, setCheckInDate] = useState(initialCheckIn);
     const [checkOutDate, setCheckOutDate] = useState(initialCheckOut);
 
+    const handleCheckInDateChange = (newCheckIn) => {
+        setCheckInDate(newCheckIn);
+        if (newCheckIn && (!checkOutDate || checkOutDate <= newCheckIn)) {
+            const nextDay = new Date(`${newCheckIn}T00:00:00`);
+            if (!Number.isNaN(nextDay.getTime())) {
+                nextDay.setDate(nextDay.getDate() + 1);
+                setCheckOutDate(formatDateToInput(nextDay));
+            }
+        }
+    };
+
     // Multi-room selection: { [catId]: quantity }
     const [selectedRooms, setSelectedRooms] = useState({});
 
@@ -621,7 +632,8 @@ export default function CorporateBooking() {
                                 name: serviceItem.name,
                                 price: Number(serviceItem.price || 0),
                                 quantity: 1,
-                                category_name: serviceItem.category?.name || serviceItem.category_name || ''
+                                category_name: serviceItem.category?.name || serviceItem.category_name || '',
+                                image: serviceItem.display_image || serviceItem.image_url || serviceItem.image || ''
                             }
                         ]
                     };
@@ -942,23 +954,23 @@ export default function CorporateBooking() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-amber-500 selection:text-slate-900">
+        <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-sky-600 selection:text-white">
             <Navbar />
 
             {/* BREADCRUMB ĐỒNG BỘ 100% VỚI CÁC TRANG KHÁC */}
             <div className="bg-white border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
-                        <Link to="/" className="hover:text-amber-600 transition shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition shrink-0">Trang chủ</Link>
                         <span className="text-slate-300 shrink-0">/</span>
-                        <Link to="/rooms" className="hover:text-amber-600 transition shrink-0">Phòng nghỉ & Suites</Link>
+                        <Link to="/rooms" className="hover:text-sky-600 transition shrink-0">Phòng nghỉ & Suites</Link>
                         <span className="text-slate-300 shrink-0">/</span>
                         <span className="text-slate-900 font-semibold truncate min-w-0">Đặt phòng theo đoàn công ty</span>
                     </nav>
                 </div>
             </div>
 
-            <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+            <main className={`flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 ${totalRoomsCount > 0 ? 'pb-28' : ''}`}>
 
                 {/* 2. HERO BANNER LUXURY SÁNG SỦA, TINH TẾ */}
                 <CorporateHeroBanner settings={settings} />
@@ -976,8 +988,8 @@ export default function CorporateBooking() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
-                                        <KeyRound className="w-4 h-4 text-amber-600" />
+                                    <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                        <KeyRound className="w-4 h-4 text-sky-600" />
                                     </div>
                                     <span>1. Nhập Mã Đối Tác Doanh Nghiệp (Corporate Code)</span>
                                 </h3>
@@ -1043,8 +1055,8 @@ export default function CorporateBooking() {
                     {/* BƯỚC 2: CHỌN THỜI GIAN LƯU TRÚ */}
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-4">
                         <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
-                                <Calendar className="w-4 h-4 text-amber-600" />
+                            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                <Calendar className="w-4 h-4 text-sky-600" />
                             </div>
                             <span>2. Chọn Lịch Trình Lưu Trú Của Đoàn</span>
                         </h3>
@@ -1058,7 +1070,7 @@ export default function CorporateBooking() {
                                     type="date"
                                     min={todayStr}
                                     value={checkInDate}
-                                    onChange={(e) => setCheckInDate(e.target.value)}
+                                    onChange={(e) => handleCheckInDateChange(e.target.value)}
                                     className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
                                 />
                             </div>
@@ -1078,7 +1090,7 @@ export default function CorporateBooking() {
 
                             <div className="col-span-2 sm:col-span-1 text-center sm:text-right pt-2 sm:pt-0">
                                 <span className="text-xs text-slate-500 block font-medium">Thời gian đoàn lưu trú:</span>
-                                <span className="text-2xl font-black text-amber-600 font-sans tabular-nums">{nights} đêm</span>
+                                <span className="text-2xl font-black text-sky-700 font-sans tabular-nums">{nights} đêm</span>
                             </div>
                         </div>
                     </div>
@@ -1088,8 +1100,8 @@ export default function CorporateBooking() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
-                                        <BedDouble className="w-4 h-4 text-amber-600" />
+                                    <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                        <BedDouble className="w-4 h-4 text-sky-600" />
                                     </div>
                                     <span>3. Chọn Số Lượng & Hạng Phòng Cần Đặt</span>
                                 </h3>
@@ -1099,12 +1111,12 @@ export default function CorporateBooking() {
                             </div>
                             <div className="flex items-center gap-3">
                                 {isLoadingAvail && (
-                                    <span className="text-xs text-amber-600 font-semibold animate-pulse flex items-center gap-1.5">
-                                        <div className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+                                    <span className="text-xs text-sky-600 font-semibold animate-pulse flex items-center gap-1.5">
+                                        <div className="w-3 h-3 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
                                         <span>Đang cập nhật chỗ trống...</span>
                                     </span>
                                 )}
-                                <span className="px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80 text-xs font-bold font-sans tabular-nums">
+                                <span className="px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 text-xs font-bold font-sans tabular-nums">
                                     Tổng: {totalRoomsCount} phòng
                                 </span>
                             </div>
@@ -1122,44 +1134,58 @@ export default function CorporateBooking() {
                                     const availInfo = availabilities[cat.id];
                                     const availRooms = availInfo ? availInfo.available_rooms : null;
                                     const isSoldOut = availInfo ? availInfo.is_sold_out : false;
+                                    const thumbUrl =
+                                        cat.feature_image ||
+                                        cat.images?.find((img) => img.is_feature)?.image_url ||
+                                        cat.images?.[0]?.image_url ||
+                                        cat.images?.[0]?.image ||
+                                        'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=400&q=80';
 
                                     return (
                                         <div
                                             key={cat.id}
-                                            className={`p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+                                            className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center justify-between gap-3 sm:gap-4 ${
                                                 isSoldOut
                                                     ? 'bg-slate-50/50 border-slate-200 opacity-60'
                                                     : qty > 0
-                                                    ? 'bg-amber-50/40 border-amber-400/90 shadow-2xs ring-1 ring-amber-400/20'
-                                                    : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'
+                                                    ? 'bg-sky-50/45 border-sky-400/90 shadow-2xs ring-1 ring-sky-400/20'
+                                                    : 'bg-slate-50/70 border-slate-200 hover:border-sky-300/80 hover:bg-white'
                                             }`}
                                         >
-                                            <div className="min-w-0">
-                                                <h4 className="font-bold text-slate-900 text-sm truncate">{cat.name}</h4>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="font-black text-amber-600 text-sm font-sans tabular-nums">{formatCurrency(discountedPrice)}</span>
-                                                    <span className="text-[11px] text-slate-500">/đêm</span>
-                                                    {discountPercent > 0 && (
-                                                        <span className="line-through text-xs text-slate-400 font-sans tabular-nums">{formatCurrency(basePrice)}</span>
-                                                    )}
-                                                </div>
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <img
+                                                    src={thumbUrl}
+                                                    alt={cat.name}
+                                                    loading="lazy"
+                                                    className="w-16 h-16 sm:w-18 sm:h-18 rounded-xl object-cover shrink-0 border border-slate-200/80 bg-slate-100"
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="font-bold text-slate-900 text-sm truncate" title={cat.name}>{cat.name}</h4>
+                                                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                        <span className="font-black text-slate-900 text-sm font-sans tabular-nums">{formatCurrency(discountedPrice)}</span>
+                                                        <span className="text-[11px] text-slate-500">/đêm</span>
+                                                        {discountPercent > 0 && (
+                                                            <span className="line-through text-xs text-slate-400 font-sans tabular-nums">{formatCurrency(basePrice)}</span>
+                                                        )}
+                                                    </div>
 
-                                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                    <span className="text-[11px] text-slate-500">Sức chứa: {cat.capacity || 2} khách/phòng</span>
-                                                    <span className="text-slate-300">•</span>
-                                                    {isLoadingAvail ? (
-                                                        <span className="text-[11px] text-amber-600 animate-pulse font-medium">Đang kiểm tra chỗ...</span>
-                                                    ) : isSoldOut ? (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                            <span>Hết phòng trống</span>
-                                                        </span>
-                                                    ) : availRooms !== null ? (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                            <span>Còn trống: <strong className="font-extrabold text-emerald-800 font-sans tabular-nums">{availRooms}</strong> phòng</span>
-                                                        </span>
-                                                    ) : null}
+                                                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                                        <span className="text-[11px] text-slate-500">{cat.capacity || 2} khách/phòng</span>
+                                                        <span className="text-slate-300">•</span>
+                                                        {isLoadingAvail ? (
+                                                            <span className="text-[11px] text-sky-600 animate-pulse font-medium">Đang kiểm tra...</span>
+                                                        ) : isSoldOut ? (
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                                <span>Hết phòng</span>
+                                                            </span>
+                                                        ) : availRooms !== null ? (
+                                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                                <span>Còn <strong className="font-extrabold text-emerald-800 font-sans tabular-nums">{availRooms}</strong> phòng</span>
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1173,7 +1199,7 @@ export default function CorporateBooking() {
                                                 >
                                                     <Minus className="w-3.5 h-3.5" />
                                                 </button>
-                                                <span className="w-8 text-center font-black text-slate-900 text-sm font-sans tabular-nums">{qty}</span>
+                                                <span className="w-7 text-center font-black text-slate-900 text-sm font-sans tabular-nums">{qty}</span>
                                                 <button
                                                     type="button"
                                                     disabled={isSoldOut || (availRooms !== null && qty >= availRooms)}
@@ -1194,8 +1220,8 @@ export default function CorporateBooking() {
                     {/* BƯỚC 4: THÔNG TIN TRƯỞNG ĐOÀN & XUẤT HÓA ĐƠN VAT */}
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
                         <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
-                                <UserCheck className="w-4 h-4 text-amber-600" />
+                            <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                <UserCheck className="w-4 h-4 text-sky-600" />
                             </div>
                             <span>4. Thông Tin Người Đại Diện & Hóa Đơn GTGT (VAT)</span>
                         </h3>
@@ -1300,8 +1326,8 @@ export default function CorporateBooking() {
                         <div className="pt-4 border-t border-slate-200 space-y-4">
                             <label className="flex items-center justify-between cursor-pointer p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 transition">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60">
-                                        <FileText className="w-4 h-4 text-amber-600" />
+                                    <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70">
+                                        <FileText className="w-4 h-4 text-sky-600" />
                                     </div>
                                     <div>
                                         <span className="text-xs font-bold text-slate-900 block">Yêu cầu xuất Hóa đơn GTGT (VAT) cho Công ty</span>
@@ -1312,14 +1338,14 @@ export default function CorporateBooking() {
                                     type="checkbox"
                                     checked={isCompanyInvoice}
                                     onChange={(e) => setIsCompanyInvoice(e.target.checked)}
-                                    className="w-4 h-4 text-amber-600 rounded-md focus:ring-amber-500 cursor-pointer accent-amber-600"
+                                    className="w-4 h-4 text-sky-600 rounded-md focus:ring-sky-500 cursor-pointer accent-sky-600"
                                 />
                             </label>
 
                             {isCompanyInvoice && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-amber-50/30 border border-amber-200/80 animate-in fade-in duration-200">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-50/80 border border-slate-200/90 animate-in fade-in duration-200">
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Tên Doanh Nghiệp / Công ty *</label>
+                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Tên Doanh Nghiệp / Công ty <span className="text-rose-500">*</span></label>
                                         <input
                                             type="text"
                                             placeholder="Tên đầy đủ theo giấy phép ĐKKD"
@@ -1330,7 +1356,7 @@ export default function CorporateBooking() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Mã số thuế (MST) *</label>
+                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Mã số thuế (MST) <span className="text-rose-500">*</span></label>
                                         <input
                                             type="text"
                                             placeholder="VD: 0101248141"
@@ -1351,13 +1377,14 @@ export default function CorporateBooking() {
                                         />
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Địa chỉ đăng ký kinh doanh</label>
+                                        <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">Địa chỉ đăng ký kinh doanh <span className="text-rose-500">*</span></label>
                                         <input
                                             type="text"
                                             placeholder="Địa chỉ trụ sở công ty..."
                                             value={companyAddress}
                                             onChange={(e) => setCompanyAddress(e.target.value)}
                                             className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                                            required={isCompanyInvoice}
                                         />
                                     </div>
                                 </div>
@@ -1371,11 +1398,11 @@ export default function CorporateBooking() {
                             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                                 <div>
                                     <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 shadow-2xs">
-                                            <Users className="w-4 h-4 text-amber-600" />
+                                        <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                            <Users className="w-4 h-4 text-sky-600" />
                                         </div>
                                         <span>5. Danh Sách Khách Lưu Trú Cho Từng Phòng</span>
-                                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">
+                                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/70">
                                             Tùy chọn - Không bắt buộc
                                         </span>
                                     </h3>
@@ -1426,7 +1453,7 @@ export default function CorporateBooking() {
                                                 {/* Header của từng phòng */}
                                                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200/80">
                                                     <div className="flex items-center gap-2.5">
-                                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white font-black text-xs flex items-center justify-center shadow-xs font-sans tabular-nums">
+                                                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white font-black text-xs flex items-center justify-center shadow-xs font-sans tabular-nums">
                                                             #{room.global_index}
                                                         </div>
                                                         <div>
@@ -1443,12 +1470,12 @@ export default function CorporateBooking() {
                                                         {/* Badge sức chứa */}
                                                         <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 border font-sans tabular-nums ${
                                                             isFull
-                                                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                                                ? 'bg-sky-50 text-sky-800 border-sky-200'
                                                                 : 'bg-white text-slate-700 border-slate-200'
                                                         }`}>
                                                             <Users className="w-3.5 h-3.5 text-slate-500" />
                                                             <span>{guestCount}/{roomCap} người</span>
-                                                            {isFull && <span className="text-[10px] text-amber-600 font-semibold">(Đã tối đa)</span>}
+                                                            {isFull && <span className="text-[10px] text-sky-600 font-semibold">(Đã tối đa)</span>}
                                                         </span>
 
                                                         <button
@@ -1498,14 +1525,14 @@ export default function CorporateBooking() {
                                                                 key={guest.id || gIdx}
                                                                 className={`p-3 rounded-xl border transition ${
                                                                     isPrimary
-                                                                        ? 'bg-amber-50/40 border-amber-200/90'
+                                                                        ? 'bg-sky-50/40 border-sky-200/80'
                                                                         : 'bg-white border-slate-200'
                                                                 }`}
                                                             >
                                                                 <div className="flex items-center justify-between mb-2">
                                                                     <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
                                                                         {isPrimary ? (
-                                                                            <UserCheck className="w-3.5 h-3.5 text-amber-600" />
+                                                                            <UserCheck className="w-3.5 h-3.5 text-sky-600" />
                                                                         ) : (
                                                                             <User className="w-3.5 h-3.5 text-slate-500" />
                                                                         )}
@@ -1535,7 +1562,7 @@ export default function CorporateBooking() {
                                                                             value={guest.full_name || ''}
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'full_name', e.target.value)}
                                                                             placeholder={isPrimary && room.global_index === 1 ? leaderName || 'Nguyễn Văn A' : 'Nguyễn Văn A'}
-                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500"
+                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500"
                                                                         />
                                                                     </div>
 
@@ -1545,7 +1572,7 @@ export default function CorporateBooking() {
                                                                         <select
                                                                             value={guest.id_type || 'CCCD'}
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_type', e.target.value)}
-                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500 cursor-pointer"
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500 cursor-pointer"
                                                                         >
                                                                             <option value="CCCD">CCCD / CMND</option>
                                                                             <option value="PASSPORT">Hộ chiếu</option>
@@ -1561,7 +1588,7 @@ export default function CorporateBooking() {
                                                                             value={guest.id_number || ''}
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_number', e.target.value)}
                                                                             placeholder={isPrimary && room.global_index === 1 ? identityCard || 'Số định danh...' : 'Số định danh...'}
-                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500"
+                                                                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500"
                                                                         />
                                                                     </div>
 
@@ -1571,7 +1598,7 @@ export default function CorporateBooking() {
                                                                         <select
                                                                             value={guest.gender || 'Nam'}
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'gender', e.target.value)}
-                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500 cursor-pointer"
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500 cursor-pointer"
                                                                         >
                                                                             <option value="Nam">Nam</option>
                                                                             <option value="Nữ">Nữ</option>
@@ -1586,7 +1613,7 @@ export default function CorporateBooking() {
                                                                             type="date"
                                                                             value={guest.date_of_birth || ''}
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'date_of_birth', e.target.value)}
-                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-500 cursor-pointer font-sans tabular-nums"
+                                                                            className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500 cursor-pointer font-sans tabular-nums"
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -1599,10 +1626,10 @@ export default function CorporateBooking() {
                                                 <div className="pt-3 border-t border-slate-200/80 space-y-2.5">
                                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                                         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                                                            <Bell className="w-3.5 h-3.5 text-amber-600" />
+                                                            <Bell className="w-3.5 h-3.5 text-sky-600" />
                                                             <span>Dịch vụ tiện ích chọn kèm phòng này</span>
                                                             {room.services && room.services.length > 0 && (
-                                                                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] font-sans tabular-nums">
+                                                                <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-[10px] font-sans tabular-nums">
                                                                     {room.services.length} dịch vụ
                                                                 </span>
                                                             )}
@@ -1610,7 +1637,7 @@ export default function CorporateBooking() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setActiveServicePickerRoomKey(activeServicePickerRoomKey === room.room_key ? null : room.room_key)}
-                                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
+                                                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
                                                         >
                                                             <Plus className="w-3 h-3" />
                                                             <span>{activeServicePickerRoomKey === room.room_key ? 'Đóng menu' : 'Thêm dịch vụ'}</span>
@@ -1621,11 +1648,19 @@ export default function CorporateBooking() {
                                                     {room.services && room.services.length > 0 ? (
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                             {room.services.map((svc) => (
-                                                                <div key={svc.service_id} className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2 shadow-2xs">
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <div className="text-xs font-bold text-slate-900 truncate">{svc.name}</div>
-                                                                        <div className="text-[11px] text-amber-600 font-semibold font-sans tabular-nums">
-                                                                            {formatCurrency(svc.price)} / lần
+                                                                <div key={svc.service_id} className="p-2.5 rounded-xl bg-white border border-slate-200 flex items-center justify-between gap-2.5 shadow-2xs">
+                                                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                        <img
+                                                                            src={svc.image || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=200&q=80'}
+                                                                            alt={svc.name}
+                                                                            loading="lazy"
+                                                                            className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200/80 bg-slate-100"
+                                                                        />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <div className="text-xs font-bold text-slate-900 truncate">{svc.name}</div>
+                                                                            <div className="text-[11px] text-sky-700 font-semibold font-sans tabular-nums">
+                                                                                {formatCurrency(svc.price)} / lần
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center gap-1.5 shrink-0">
@@ -1664,10 +1699,10 @@ export default function CorporateBooking() {
 
                                                     {/* Panel chọn dịch vụ cho phòng này */}
                                                     {activeServicePickerRoomKey === room.room_key && (
-                                                        <div className="p-3.5 bg-amber-50/40 rounded-2xl border border-amber-200/80 space-y-3 animate-in fade-in duration-150 shadow-2xs">
+                                                        <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3 animate-in fade-in duration-150 shadow-2xs">
                                                             <div className="flex items-center justify-between">
                                                                 <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                                                                    <Bell className="w-3.5 h-3.5 text-amber-600" />
+                                                                    <Bell className="w-3.5 h-3.5 text-sky-600" />
                                                                     <span>Chọn dịch vụ khách sạn muốn thêm vào phòng #{room.global_index} ({room.category_name}):</span>
                                                                 </div>
                                                                 <button
@@ -1692,7 +1727,7 @@ export default function CorporateBooking() {
                                                                         value={serviceSearchQuery}
                                                                         onChange={(e) => setServiceSearchQuery(e.target.value)}
                                                                         placeholder="Tìm nhanh dịch vụ theo tên, tiện ích (Buffet, Spa, Xe, Giặt ủi...)"
-                                                                        className="w-full pl-8 pr-8 py-1.5 bg-white border border-amber-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                                                                        className="w-full pl-8 pr-8 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                                                     />
                                                                     <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                                                     {serviceSearchQuery && (
@@ -1751,37 +1786,48 @@ export default function CorporateBooking() {
                                                                         {filteredServices.map((svcItem) => {
                                                                             const existingInRoom = (room.services || []).find((s) => s.service_id === svcItem.id);
                                                                             const qtyInRoom = existingInRoom ? existingInRoom.quantity : 0;
+                                                                            const svcImg = svcItem.display_image || svcItem.image_url || svcItem.image || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=200&q=80';
                                                                             return (
                                                                                 <div
                                                                                     key={svcItem.id}
                                                                                     className={`p-2 sm:p-2.5 rounded-xl border text-left flex flex-col justify-between transition ${
                                                                                         qtyInRoom > 0
-                                                                                            ? 'bg-amber-100/70 border-amber-300 ring-1 ring-amber-400/30'
-                                                                                            : 'bg-white border-slate-200 hover:border-amber-300 shadow-2xs'
+                                                                                            ? 'bg-sky-50/70 border-sky-300 ring-1 ring-sky-400/20'
+                                                                                            : 'bg-white border-slate-200 hover:border-sky-300 shadow-2xs'
                                                                                     }`}
                                                                                 >
                                                                                     <div className="min-w-0">
-                                                                                        <div className="flex items-center justify-between gap-1 mb-1">
+                                                                                        <div className="flex items-center justify-between gap-1 mb-1.5">
                                                                                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[90px] sm:max-w-[130px] inline-flex items-center gap-1">
                                                                                                 <Tag className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                                                                                                 <span className="truncate">{svcItem.category?.name || svcItem.category_name || 'Tiện ích'}</span>
                                                                                             </span>
                                                                                             {qtyInRoom > 0 && (
-                                                                                                <span className="text-[10px] font-black text-amber-800 bg-amber-200/80 px-1.5 py-0.2 rounded-full font-sans tabular-nums">
+                                                                                                <span className="text-[10px] font-black text-sky-800 bg-sky-100 px-1.5 py-0.2 rounded-full font-sans tabular-nums">
                                                                                                     x{qtyInRoom}
                                                                                                 </span>
                                                                                             )}
                                                                                         </div>
-                                                                                        <div className="font-bold text-slate-900 text-xs truncate" title={svcItem.name}>
-                                                                                            {svcItem.name}
-                                                                                        </div>
-                                                                                        {svcItem.description && (
-                                                                                            <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5" title={svcItem.description}>
-                                                                                                {svcItem.description}
+                                                                                        <div className="flex items-start gap-2">
+                                                                                            <img
+                                                                                                src={svcImg}
+                                                                                                alt={svcItem.name}
+                                                                                                loading="lazy"
+                                                                                                className="w-11 h-11 sm:w-12 sm:h-12 rounded-lg object-cover shrink-0 border border-slate-200/80 bg-slate-100"
+                                                                                            />
+                                                                                            <div className="min-w-0 flex-1">
+                                                                                                <div className="font-bold text-slate-900 text-xs truncate" title={svcItem.name}>
+                                                                                                    {svcItem.name}
+                                                                                                </div>
+                                                                                                {svcItem.description && (
+                                                                                                    <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5" title={svcItem.description}>
+                                                                                                        {svcItem.description}
+                                                                                                    </div>
+                                                                                                )}
+                                                                                                <div className="text-xs font-black text-slate-900 mt-1 font-sans tabular-nums">
+                                                                                                    {formatCurrency(svcItem.price)}
+                                                                                                </div>
                                                                                             </div>
-                                                                                        )}
-                                                                                        <div className="text-xs font-black text-amber-700 mt-1 font-sans tabular-nums">
-                                                                                            {formatCurrency(svcItem.price)}
                                                                                         </div>
                                                                                     </div>
                                                                                     <button
@@ -1790,7 +1836,7 @@ export default function CorporateBooking() {
                                                                                         className={`mt-2 w-full py-1.5 px-2 rounded-lg font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1 active:scale-95 ${
                                                                                             qtyInRoom > 0
                                                                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white hover:from-sky-700 hover:to-blue-800 shadow-2xs'
-                                                                                                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+                                                                                                : 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200'
                                                                                         }`}
                                                                                     >
                                                                                         <span>{qtyInRoom > 0 ? 'Thêm tiếp (+1)' : '+ Thêm vào phòng'}</span>
@@ -1834,12 +1880,12 @@ export default function CorporateBooking() {
                     )}
 
                     {/* TỔNG KẾT & CHỌN HÌNH THỨC THANH TOÁN */}
-                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6">
+                    <div id="corporate-payment-summary" className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md space-y-6 scroll-mt-24">
                         {/* 1. CHÍNH SÁCH THANH TOÁN PHÁT SINH TẠI PHÒNG (BILLING ROUTING) */}
                         <div className="space-y-3 pb-5 border-b border-slate-200">
                             <div className="flex items-center justify-between">
                                 <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                    <Scale className="w-4 h-4 text-amber-600" />
+                                    <Scale className="w-4 h-4 text-sky-600" />
                                     <span>Chính sách chi trả dịch vụ phát sinh tại phòng (Minibar, Giặt là, Ăn uống...):</span>
                                 </label>
                                 <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">Quy định hạch toán</span>
@@ -1850,7 +1896,7 @@ export default function CorporateBooking() {
                                     onClick={() => setBillingType('ROOM_ONLY')}
                                     className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
                                         billingType === 'ROOM_ONLY'
-                                            ? 'border-amber-500 bg-amber-50/50 shadow-sm ring-2 ring-amber-500/20'
+                                            ? 'border-sky-500 bg-sky-50/45 shadow-sm ring-2 ring-sky-500/15'
                                             : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
                                     }`}
                                 >
@@ -1859,7 +1905,7 @@ export default function CorporateBooking() {
                                         name="billingType"
                                         checked={billingType === 'ROOM_ONLY'}
                                         onChange={() => setBillingType('ROOM_ONLY')}
-                                        className="mt-1 w-4 h-4 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer"
+                                        className="mt-1 w-4 h-4 text-sky-600 focus:ring-sky-500 accent-sky-600 cursor-pointer"
                                     />
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
@@ -1879,7 +1925,7 @@ export default function CorporateBooking() {
                                     onClick={() => setBillingType('ALL_INCLUSIVE')}
                                     className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
                                         billingType === 'ALL_INCLUSIVE'
-                                            ? 'border-orange-500 bg-orange-50/50 shadow-sm ring-2 ring-orange-500/20'
+                                            ? 'border-blue-600 bg-blue-50/45 shadow-sm ring-2 ring-blue-600/15'
                                             : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
                                     }`}
                                 >
@@ -1888,12 +1934,12 @@ export default function CorporateBooking() {
                                         name="billingType"
                                         checked={billingType === 'ALL_INCLUSIVE'}
                                         onChange={() => setBillingType('ALL_INCLUSIVE')}
-                                        className="mt-1 w-4 h-4 text-orange-600 focus:ring-orange-500 accent-orange-600 cursor-pointer"
+                                        className="mt-1 w-4 h-4 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
                                     />
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-black text-slate-900">Công ty chi trả toàn bộ</span>
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800">
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
                                                 Bao trọn gói
                                             </span>
                                         </div>
@@ -1908,7 +1954,7 @@ export default function CorporateBooking() {
                         {/* 2. CHỌN HÌNH THỨC THANH TOÁN */}
                         <div className="space-y-3">
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                                <CreditCard className="w-4 h-4 text-amber-600" />
+                                <CreditCard className="w-4 h-4 text-sky-600" />
                                 <span>Lựa chọn hình thức thanh toán cho toàn đoàn:</span>
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1917,7 +1963,7 @@ export default function CorporateBooking() {
                                     onClick={() => setPaymentOption('DEPOSIT_50')}
                                     className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
                                         paymentOption === 'DEPOSIT_50'
-                                            ? 'border-amber-500 bg-amber-50/50 shadow-sm ring-2 ring-amber-500/20'
+                                            ? 'border-sky-500 bg-sky-50/45 shadow-sm ring-2 ring-sky-500/15'
                                             : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
                                     }`}
                                 >
@@ -1926,19 +1972,19 @@ export default function CorporateBooking() {
                                         name="paymentOption"
                                         checked={paymentOption === 'DEPOSIT_50'}
                                         onChange={() => setPaymentOption('DEPOSIT_50')}
-                                        className="mt-1 w-4 h-4 text-amber-600 focus:ring-amber-500 accent-amber-600 cursor-pointer"
+                                        className="mt-1 w-4 h-4 text-sky-600 focus:ring-sky-500 accent-sky-600 cursor-pointer"
                                     />
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs font-black text-slate-900">Đặt cọc {hotelSettings.group_deposit_percent || 50}% giữ phòng</span>
-                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">
                                                 Phổ biến
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-slate-500 leading-relaxed">
                                             Thanh toán trước {hotelSettings.group_deposit_percent || 50}% (gồm phòng & dịch vụ). {100 - (hotelSettings.group_deposit_percent || 50)}% còn lại thanh toán khi làm thủ tục nhận phòng hoặc trả phòng.
                                         </p>
-                                        <div className="text-xs font-bold text-amber-700 pt-0.5 font-sans tabular-nums">
+                                        <div className="text-xs font-bold text-sky-700 pt-0.5 font-sans tabular-nums">
                                             Số tiền thanh toán: {formatCurrency(Math.round(grandTotal * ((hotelSettings.group_deposit_percent || 50) / 100)))}
                                         </div>
                                     </div>
@@ -1991,22 +2037,22 @@ export default function CorporateBooking() {
                                 </div>
                             )}
                             {totalServicesAmount > 0 && (
-                                <div className="flex justify-between text-amber-700 font-semibold">
+                                <div className="flex justify-between text-sky-700 font-semibold">
                                     <span>Tổng chi phí dịch vụ chọn kèm các phòng:</span>
                                     <span>+{formatCurrency(totalServicesAmount)}</span>
                                 </div>
                             )}
                             <div className="pt-3 border-t border-slate-200 flex justify-between items-baseline">
                                 <span className="text-base font-bold text-slate-900">Tổng Giá Trị Hợp Đồng Toàn Đoàn:</span>
-                                <span className="text-2xl sm:text-3xl font-black text-amber-600">{formatCurrency(grandTotal)}</span>
+                                <span className="text-2xl sm:text-3xl font-black text-slate-900">{formatCurrency(grandTotal)}</span>
                             </div>
-                            <div className="pt-2 flex justify-between items-baseline text-sm bg-amber-50/50 p-3.5 rounded-2xl border border-amber-200/80">
+                            <div className="pt-2 flex justify-between items-baseline text-sm bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200/80">
                                 <span className="text-slate-800 font-bold">
                                     {paymentOption === 'FULL'
                                         ? 'Số tiền thanh toán ngay (100% Trọn gói):'
                                         : `Tiền đặt cọc giữ chỗ (${hotelSettings.group_deposit_percent || 50}% Tổng đơn):`}
                                 </span>
-                                <span className="text-xl font-black text-amber-600">{formatCurrency(depositAmount)}</span>
+                                <span className="text-xl font-black text-sky-700">{formatCurrency(depositAmount)}</span>
                             </div>
                         </div>
 
@@ -2192,6 +2238,46 @@ export default function CorporateBooking() {
                     </div>
                 )}
             </main>
+
+            {/* Thanh tóm tắt nổi (Sticky Summary Bar) khi đã chọn ít nhất 1 phòng */}
+            {totalRoomsCount > 0 && !createdGroup && !showConfirmModal && !showFastPasteModal && (
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-1.5rem)] max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+                    <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-xl shadow-slate-900/10 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                                <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/80 font-sans tabular-nums">
+                                    {totalRoomsCount} phòng
+                                </span>
+                                <span className="text-slate-400">•</span>
+                                <span className="font-sans tabular-nums">{nights} đêm</span>
+                                {totalServicesAmount > 0 && (
+                                    <span className="hidden md:inline-block text-[11px] text-slate-500 font-medium">
+                                        (+ dịch vụ)
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-[11px] text-slate-500 hidden sm:inline">Tạm tính:</span>
+                                <span className="text-sm sm:text-base font-black text-slate-900 font-sans tabular-nums">
+                                    {formatCurrency(grandTotal)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const el = document.getElementById('corporate-payment-summary');
+                                el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className="px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                        >
+                            <span>Đến thanh toán</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Toast Thông báo sang trọng */}
             {toastNotice && (

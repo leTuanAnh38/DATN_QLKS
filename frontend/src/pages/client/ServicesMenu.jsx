@@ -205,6 +205,7 @@ export default function ServicesMenu() {
     // 2. Filter & Search States
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState('default'); // 'default' | 'price_asc' | 'price_desc'
 
     // 2b. Pagination States (phân trang danh sách dịch vụ)
     const [currentPage, setCurrentPage] = useState(1);
@@ -422,9 +423,9 @@ export default function ServicesMenu() {
         }
     }, [location.search, location.state, isAuthenticated, serviceItems]);
 
-    // Lọc danh sách món / dịch vụ
+    // Lọc & sắp xếp danh sách món / dịch vụ
     const filteredItems = useMemo(() => {
-        return serviceItems.filter((item) => {
+        const list = serviceItems.filter((item) => {
             const matchCategory =
                 selectedCategory === 'all' || String(item.category_id) === String(selectedCategory);
             const matchSearch =
@@ -434,7 +435,15 @@ export default function ServicesMenu() {
                 item.category_name?.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchSearch;
         });
-    }, [serviceItems, selectedCategory, searchQuery]);
+
+        if (sortBy === 'price_asc') {
+            return [...list].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        }
+        if (sortBy === 'price_desc') {
+            return [...list].sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        }
+        return list;
+    }, [serviceItems, selectedCategory, searchQuery, sortBy]);
 
     // Phân trang danh sách dịch vụ
     const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
@@ -445,10 +454,10 @@ export default function ServicesMenu() {
         [filteredItems, pageStartIndex]
     );
 
-    // Về trang 1 mỗi khi đổi nhóm dịch vụ hoặc từ khóa tìm kiếm
+    // Về trang 1 mỗi khi đổi nhóm dịch vụ, từ khóa hoặc cách sắp xếp
     useEffect(() => {
         setCurrentPage(1);
-    }, [selectedCategory, searchQuery]);
+    }, [selectedCategory, searchQuery, sortBy]);
 
     const requestPageScroll = useScrollAfterPageChange(safePage, 'services-menu-grid', {
         offset: 88,
@@ -959,22 +968,22 @@ export default function ServicesMenu() {
                             ))}
                         </div>
 
-                        {/* Ô tìm kiếm món & Nút Giỏ hàng */}
-                        <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0">
-                            <div className="relative flex-1 md:w-72">
+                        {/* Ô tìm kiếm món & Bộ sắp xếp giá (luôn nằm chung 1 hàng gọn đẹp kể cả trên điện thoại) */}
+                        <div className="flex flex-row items-center gap-2 w-full md:w-auto shrink-0">
+                            <div className="relative flex-1 min-w-0 md:w-64">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Tìm món ăn, đồ uống, spa, tiện ích..."
+                                    placeholder="Tìm món, spa..."
                                     className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
                                 />
-                                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
                                         title="Xóa tìm kiếm"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -982,6 +991,16 @@ export default function ServicesMenu() {
                                 )}
                             </div>
 
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                aria-label="Sắp xếp theo giá"
+                                className="w-[132px] sm:w-auto px-2.5 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer shrink-0 truncate"
+                            >
+                                <option value="default">Mặc định</option>
+                                <option value="price_asc">Giá: Thấp → Cao</option>
+                                <option value="price_desc">Giá: Cao → Thấp</option>
+                            </select>
                         </div>
                     </div>
 
@@ -1028,7 +1047,7 @@ export default function ServicesMenu() {
                                 return (
                                     <div
                                         key={item.id}
-                                        className="group bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-2xs hover:shadow-xl hover:border-amber-200 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                                        className="group bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
                                     >
                                         <div>
                                             {/* Ảnh dịch vụ */}
@@ -1036,21 +1055,21 @@ export default function ServicesMenu() {
                                                 <img
                                                     src={itemImg}
                                                     alt={item.name}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                                     loading="lazy"
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-60"></div>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-black/10 pointer-events-none" />
                                                 
                                                 {/* Badge danh mục */}
-                                                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md text-slate-800 text-[10px] font-bold shadow-xs flex items-center gap-1 border border-white/40">
-                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-3 h-3 text-amber-600')}
+                                                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/60 backdrop-blur-md text-amber-200 text-[10.5px] font-semibold shadow-xs flex items-center gap-1 border border-white/15">
+                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-3 h-3 text-amber-300')}
                                                     <span>{item.category_name}</span>
                                                 </span>
 
-                                                {/* Badge trạng thái đã thêm vào giỏ */}
+                                                {/* Badge trạng thái đã thêm vào giỏ (chỉ hiển thị 1 lần duy nhất tại đây) */}
                                                 {inCart && (
-                                                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black shadow-md border border-amber-300 flex items-center gap-1 animate-scale-up">
-                                                        <Check className="w-3 h-3 text-slate-950 stroke-[3]" />
+                                                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 text-white text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 animate-scale-up">
+                                                        <Check className="w-3 h-3 text-white stroke-[3]" />
                                                         <span>Đã chọn ({inCart.quantity})</span>
                                                     </span>
                                                 )}
@@ -1058,10 +1077,10 @@ export default function ServicesMenu() {
 
                                             {/* Nội dung thông tin */}
                                             <div className="p-5">
-                                                <h3 className="font-bold text-slate-900 text-sm group-hover:text-amber-700 transition leading-snug">
+                                                <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-sky-700 transition-colors leading-snug line-clamp-2 min-h-[2.75rem]">
                                                     {item.name}
                                                 </h3>
-                                                <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-light">
+                                                <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-normal min-h-[2.4rem]">
                                                     {item.description || `Dịch vụ chuẩn ${starCount} sao phục vụ trực tiếp tại phòng nghỉ.`}
                                                 </p>
                                             </div>
@@ -1069,11 +1088,11 @@ export default function ServicesMenu() {
 
                                         {/* Phần chân Card: Giá & Nút đặt */}
                                         <div className="px-5 pb-5 pt-3.5 border-t border-slate-100 space-y-2.5">
-                                            {/* Hàng 1: Đơn giá & Trạng thái giỏ */}
+                                            {/* Hàng 1: Đơn giá */}
                                             <div className="flex items-baseline justify-between gap-2">
                                                 <div>
-                                                    <span className="text-[10px] text-slate-400 block font-medium">Đơn giá</span>
-                                                    <div className="text-base font-black text-rose-600 tracking-tight">
+                                                    <span className="text-[10px] text-slate-400 block font-medium uppercase tracking-wide">Đơn giá</span>
+                                                    <div className="text-base font-black text-slate-900 tracking-tight tabular-nums">
                                                         {priceNum === 0 ? (
                                                             <span className="text-emerald-600 font-bold text-sm">Miễn phí</span>
                                                         ) : (
@@ -1084,16 +1103,9 @@ export default function ServicesMenu() {
                                                         )}
                                                     </div>
                                                 </div>
-
-                                                {inCart && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-50 border border-sky-300 text-sky-900 text-[11px] font-bold shadow-2xs shrink-0">
-                                                        <Check className="w-3 h-3 text-sky-600 stroke-[3]" />
-                                                        Trong giỏ: {inCart.quantity}
-                                                    </span>
-                                                )}
                                             </div>
 
-                                            {/* Hàng 2: Nút thao tác (Không bao giờ bị tràn lề) */}
+                                            {/* Hàng 2: Nút thao tác (Giữ nguyên tông màu Xanh dương biển) */}
                                             {inCart ? (
                                                 <div className="grid grid-cols-2 gap-2 pt-0.5">
                                                     <div className="inline-flex items-center justify-between border border-sky-300 rounded-xl bg-sky-50/80 shadow-2xs overflow-hidden h-9">
@@ -1105,7 +1117,7 @@ export default function ServicesMenu() {
                                                         >
                                                             <Minus className="w-3.5 h-3.5" />
                                                         </button>
-                                                        <span className="text-xs font-black text-sky-950 px-1 text-center">
+                                                        <span className="text-xs font-black text-sky-950 px-1 text-center tabular-nums">
                                                             {inCart.quantity}
                                                         </span>
                                                         <button
@@ -1120,7 +1132,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-sky-900/20 cursor-pointer"
+                                                        className="h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 cursor-pointer"
                                                         title="Gọi riêng món này ngay"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1141,7 +1153,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                                        className="h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-1"
                                                         title="Gọi riêng món này ngay lập tức"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />

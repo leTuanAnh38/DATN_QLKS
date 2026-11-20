@@ -55,7 +55,7 @@ export default function RoomBookingWidget({
                     {/* Khối giá hiển thị động */}
                     <div className="pb-5 border-b border-slate-100">
                         <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                            <span className="uppercase font-bold tracking-wider text-amber-600">
+                            <span className="uppercase font-bold tracking-wider text-sky-700">
                                 Giá ưu đãi đặt trực tiếp
                             </span>
                             <span className="text-emerald-600 font-bold flex items-center gap-1">
@@ -126,7 +126,7 @@ export default function RoomBookingWidget({
                                 />
                             </div>
                         </div>
-                        <span className="block text-right text-[11px] text-amber-600 font-semibold mt-1">
+                        <span className="block text-right text-[11px] text-sky-700 font-semibold mt-1">
                             Thời gian: {nights} đêm lưu trú
                         </span>
                     </div>
@@ -175,16 +175,16 @@ export default function RoomBookingWidget({
                             <span>Thuế VAT & Phí phục vụ</span>
                             <span className="text-emerald-600 font-semibold">Đã bao gồm</span>
                         </div>
-                        <div className="flex justify-between text-amber-700 font-semibold pt-1 border-t border-slate-200">
+                        <div className="flex justify-between text-sky-700 font-semibold pt-1 border-t border-slate-200">
                             <span className="flex items-center gap-1.5">
-                                <Award className="w-3.5 h-3.5 text-amber-600" /> Tích lũy điểm thưởng
+                                <Award className="w-3.5 h-3.5 text-sky-600" /> Tích lũy điểm thưởng
                             </span>
                             <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                         </div>
                         <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
                             <span className="font-bold text-slate-900 text-sm">Tổng thanh toán dự kiến</span>
                             <div className="text-right">
-                                <span className="font-black text-xl text-orange-600">
+                                <span className="font-black text-xl text-slate-900">
                                     {finalTotal.toLocaleString('vi-VN')}
                                 </span>
                                 <span className="text-[11px] text-slate-500 font-bold block">VND</span>
@@ -199,10 +199,10 @@ export default function RoomBookingWidget({
                                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 space-y-1">
                                     <div className="font-bold flex items-center gap-1.5">
                                         <AlertCircle className="w-4 h-4 text-rose-500" />
-                                        <span>Hạng phòng này hiện đã kín chỗ cho hôm nay!</span>
+                                        <span>Hạng phòng này đã kín chỗ trong khoảng ngày bạn chọn!</span>
                                     </div>
                                     <p className="text-[11px] text-rose-700">
-                                        Quý khách có thể bấm Tiến hành đặt phòng để chọn ngày lưu trú khác còn trống.
+                                        Quý khách vui lòng đổi ngày lưu trú khác hoặc xem các hạng phòng tương tự bên dưới.
                                     </p>
                                 </div>
                             ) : (
@@ -249,7 +249,7 @@ export default function RoomBookingWidget({
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                             <span className="flex items-center gap-1">
                                 Hỗ trợ tư vấn phòng VIP:{' '}
-                                <PhoneCall className="w-3 h-3 text-amber-500 inline" />{' '}
+                                <PhoneCall className="w-3 h-3 text-sky-600 inline" />{' '}
                                 <strong className="text-slate-700">{settings?.hotline || '1900 8899'}</strong>
                             </span>
                         </div>
@@ -267,7 +267,7 @@ export default function RoomBookingWidget({
                         Giá phòng trực tiếp
                     </span>
                     <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-black text-orange-600 truncate">
+                        <span className="text-xl font-black text-slate-900 truncate">
                             {totalPricePerNight.toLocaleString('vi-VN')}
                         </span>
                         <span className="text-[11px] font-bold text-slate-500">VND/đêm</span>

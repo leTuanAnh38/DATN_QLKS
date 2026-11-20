@@ -70,6 +70,12 @@ export default function SystemSettings() {
         banner_contact: DEFAULT_BANNERS.banner_contact,
         banner_corporate: DEFAULT_BANNERS.banner_corporate,
         banner_login: DEFAULT_BANNERS.banner_login,
+        gallery_pool: DEFAULT_BANNERS.gallery_pool,
+        gallery_spa: DEFAULT_BANNERS.gallery_spa,
+        gallery_dining: DEFAULT_BANNERS.gallery_dining,
+        gallery_beach: DEFAULT_BANNERS.gallery_beach,
+        concierge_dining_img: DEFAULT_BANNERS.concierge_dining_img,
+        concierge_spa_img: DEFAULT_BANNERS.concierge_spa_img,
         check_in_time: '14:00',
         check_out_time: '12:00',
         early_checkin_before_6am: 100,
@@ -320,6 +326,12 @@ export default function SystemSettings() {
                 banner_promotions: hotelData.banner_promotions || DEFAULT_BANNERS.banner_promotions,
                 banner_contact: hotelData.banner_contact || DEFAULT_BANNERS.banner_contact,
                 banner_login: hotelData.banner_login || DEFAULT_BANNERS.banner_login,
+                gallery_pool: hotelData.gallery_pool || DEFAULT_BANNERS.gallery_pool,
+                gallery_spa: hotelData.gallery_spa || DEFAULT_BANNERS.gallery_spa,
+                gallery_dining: hotelData.gallery_dining || DEFAULT_BANNERS.gallery_dining,
+                gallery_beach: hotelData.gallery_beach || DEFAULT_BANNERS.gallery_beach,
+                concierge_dining_img: hotelData.concierge_dining_img || DEFAULT_BANNERS.concierge_dining_img,
+                concierge_spa_img: hotelData.concierge_spa_img || DEFAULT_BANNERS.concierge_spa_img,
             };
             const response = await api.patch('/hotel-settings/', payload);
             const resData = response.data?.data || response.data;

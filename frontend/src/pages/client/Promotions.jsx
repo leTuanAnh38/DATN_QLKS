@@ -34,6 +34,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { promotionService } from '../../services/promotionService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
+import { useAuth } from '../../store/authStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 
 // ============================================================================
@@ -170,9 +171,11 @@ const EXPERIENCES = [
 
 export default function PromotionsPage() {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
+    const freeCancelHours = Number(settings?.cancellation_free_hours) || 48;
 
     // 1. STATE DỮ LIỆU TỪ HỆ THỐNG
     const [dbPromotions, setDbPromotions] = useState([]);
@@ -314,19 +317,23 @@ export default function PromotionsPage() {
         }
     };
 
-    // 8. HẠNG THẺ HỘI VIÊN VIP (ĐỒNG BỘ 100% VỚI HỆ THỐNG LOYALTY DATABASE)
+    // 8. HẠNG THẺ HỘI VIÊN VIP (ĐỒNG BỘ 100% GIAO DIỆN THẺ KIM LOẠI CỦA MembershipCard TRONG Profile.jsx)
     const membershipTiers = [
         {
             name: 'Đồng (Bronze)',
             code: 'BRONZE',
+            tierLabel: 'BRONZE MEMBER',
             level: 'Hạng Khởi Đầu',
-            color: 'from-amber-800 to-amber-950',
-            border: 'border-amber-900/15 hover:border-amber-700/40',
+            cardBg: 'bg-gradient-to-tr from-stone-900 via-amber-950 to-stone-950 border-amber-700/50 text-amber-100 shadow-lg shadow-amber-950/40',
+            cardChip: 'from-amber-200 via-amber-300 to-amber-500 border-amber-400',
+            cardGlow: 'bg-amber-500/20',
+            cardBadge: 'bg-amber-500/20 text-amber-200 border-amber-500/40',
+            border: 'border-slate-200 hover:border-amber-600/40',
             bg: 'bg-white',
             discount: 'Giảm 0%',
             points: '0 điểm',
             pointsDesc: 'Đăng ký tài khoản nhận ngay',
-            btnClass: 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 hover:bg-amber-50/50 bg-white',
+            btnClass: 'border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 bg-white',
             benefits: [
                 'Tích 1 điểm cho mỗi 100.000 VNĐ thanh toán',
                 'Quản lý lịch sử đặt phòng & hóa đơn trực tuyến',
@@ -337,14 +344,18 @@ export default function PromotionsPage() {
         {
             name: 'Bạc (Silver)',
             code: 'SILVER',
+            tierLabel: 'SILVER MEMBER',
             level: 'Thành Viên Thân Thiết',
-            color: 'from-slate-500 to-slate-700',
+            cardBg: 'bg-gradient-to-tr from-slate-800 via-zinc-700 to-slate-900 border-slate-300/50 text-slate-100 shadow-lg shadow-slate-950/40',
+            cardChip: 'from-slate-100 via-zinc-200 to-slate-300 border-slate-300',
+            cardGlow: 'bg-white/20',
+            cardBadge: 'bg-white/15 text-slate-100 border-white/30',
             border: 'border-slate-200 hover:border-slate-400',
             bg: 'bg-white',
             discount: 'Giảm 5%',
             points: 'Từ 100 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 10.000.000đ',
-            btnClass: 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 hover:bg-amber-50/50 bg-white',
+            btnClass: 'border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 bg-white',
             benefits: [
                 'Tự động chiết khấu 5% tiền phòng mọi đơn đặt',
                 'Tích lũy điểm thăng hạng nhanh chóng',
@@ -355,15 +366,19 @@ export default function PromotionsPage() {
         {
             name: 'Vàng (Gold)',
             code: 'GOLD',
+            tierLabel: 'GOLD VIP MEMBER',
             level: 'Thành Viên VIP Vàng',
-            color: 'from-amber-500 to-amber-700',
-            border: 'border-amber-300 hover:border-amber-500 ring-2 ring-amber-400/20',
-            bg: 'bg-gradient-to-b from-amber-50/40 to-white',
+            cardBg: 'bg-gradient-to-tr from-amber-800 via-amber-600 to-yellow-600 border-amber-300/60 text-amber-50 shadow-lg shadow-amber-900/40',
+            cardChip: 'from-yellow-100 via-amber-200 to-yellow-400 border-yellow-200',
+            cardGlow: 'bg-yellow-300/25',
+            cardBadge: 'bg-amber-950/40 text-yellow-200 border-yellow-300/50',
+            border: 'border-amber-300/90 hover:border-amber-500 ring-1 ring-amber-400/20',
+            bg: 'bg-gradient-to-b from-amber-50/30 to-white',
             discount: 'Giảm 10%',
             points: 'Từ 300 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 30.000.000đ',
             badge: 'Phổ biến nhất',
-            btnClass: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold hover:shadow-md hover:shadow-amber-500/20',
+            btnClass: 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20',
             benefits: [
                 'Tự động chiết khấu 10% tiền phòng mọi đơn đặt',
                 'Hỗ trợ nhận phòng sớm / trả muộn miễn phí',
@@ -374,19 +389,23 @@ export default function PromotionsPage() {
         {
             name: 'Kim Cương (Diamond)',
             code: 'DIAMOND',
+            tierLabel: 'DIAMOND VIP MEMBER',
             level: 'Đặc Quyền Tối Thượng',
-            color: 'from-sky-500 via-indigo-600 to-slate-900',
-            border: 'border-indigo-300 hover:border-indigo-500 ring-2 ring-indigo-500/25',
-            bg: 'bg-gradient-to-b from-indigo-50/40 to-white',
+            cardBg: 'bg-gradient-to-tr from-stone-950 via-slate-900 to-neutral-950 border-amber-400/50 text-amber-50 shadow-xl shadow-black/50',
+            cardChip: 'from-amber-200 via-yellow-300 to-amber-400 border-amber-300',
+            cardGlow: 'bg-amber-400/15',
+            cardBadge: 'bg-amber-400/20 text-amber-300 border-amber-400/40',
+            border: 'border-slate-300 hover:border-amber-400/80 ring-1 ring-slate-900/10',
+            bg: 'bg-gradient-to-b from-slate-50/70 to-white',
             discount: 'Giảm 15%',
             points: 'Từ 600 điểm',
             pointsDesc: 'Chi tiêu tích lũy từ 60.000.000đ',
             badge: 'Thượng Lưu',
-            btnClass: 'bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-600 text-white font-bold hover:shadow-md hover:shadow-indigo-500/25',
+            btnClass: 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20',
             benefits: [
                 'Tự động chiết khấu 15% tiền phòng trọn đời',
-                'Đưa đón sân bay bằng xe Maybach / Limousine miễn phí',
-                'Miễn phí bữa sáng Buffet cao cấp cho cả phòng',
+                'Hỗ trợ đưa đón sân bay VIP miễn phí',
+                'Miễn phí bữa sáng cao cấp cho cả phòng',
                 'Dịch vụ Concierge VIP 24/7 phục vụ riêng biệt'
             ]
         }
@@ -526,27 +545,6 @@ export default function PromotionsPage() {
                                     )}
                                 </div>
                             ) : null}
-
-                            {/* Search Bar */}
-                            <div className="mt-8 max-w-lg mx-auto relative">
-                                <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Tìm kiếm voucher: WELCOME10, Hè 2026, VIP..."
-                                    className="w-full pl-12 pr-10 py-3.5 rounded-2xl bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 shadow-md transition"
-                                />
-                                {searchTerm && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </header>
@@ -570,38 +568,61 @@ export default function PromotionsPage() {
                             </p>
                         </div>
 
-                        {/* Filter Tabs (% vs Fixed) */}
-                        <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs self-start md:self-auto text-xs font-semibold">
-                            <button
-                                type="button"
-                                onClick={() => setActivePromoTab('all')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'all'
-                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                    }`}
-                            >
-                                Tất cả ({livePromotions.length})
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActivePromoTab('percentage')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'percentage'
-                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                    }`}
-                            >
-                                Giảm %
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActivePromoTab('fixed')}
-                                className={`px-4 py-2 rounded-xl transition cursor-pointer ${activePromoTab === 'fixed'
-                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
-                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                    }`}
-                            >
-                                Giảm tiền mặt
-                            </button>
+                        {/* Cụm Bộ lọc (% vs Tiền mặt) + Ô tìm kiếm mã voucher cùng 1 thanh công cụ */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+                            <div className="relative flex-1 sm:w-64">
+                                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Tìm mã voucher, ưu đãi..."
+                                    className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 shadow-xs transition"
+                                />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 cursor-pointer"
+                                        title="Xóa tìm kiếm"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs self-start sm:self-auto text-xs font-semibold shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={() => setActivePromoTab('all')}
+                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'all'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    Tất cả ({livePromotions.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActivePromoTab('percentage')}
+                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'percentage'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    Giảm %
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActivePromoTab('fixed')}
+                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'fixed'
+                                            ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    Giảm tiền mặt
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -747,91 +768,7 @@ export default function PromotionsPage() {
                 </section>
 
                 {/* ============================================================== */}
-                {/* 3. KHOẢNH KHẮC NGHỈ DƯỠNG THƯỢNG LƯU (VISUAL EXPERIENCE SHOWCASE) */}
-                {/* ============================================================== */}
-                <section className="py-16 bg-white border-t border-slate-200/80">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center max-w-2xl mx-auto mb-12">
-                            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">
-                                TRẢI NGHIỆM ĐỘC BẢN • NGHỈ DƯỠNG ĐẲNG CẤP
-                            </span>
-                            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
-                                Khoảnh Khắc Nghỉ Dưỡng Thượng Lưu
-                            </h2>
-                            <p className="text-xs sm:text-sm text-slate-500 mt-2">
-                                Đắm chìm trong vẻ đẹp tuyệt mỹ của biển Đà Nẵng, ẩm thực đỉnh cao và không gian phòng nghỉ chuẩn quốc tế — sẵn sàng đón bạn với mức giá ưu đãi nhất
-                            </p>
-                        </div>
-
-                        {/* 3 Thẻ Trải Nghiệm Khổ Lớn Có Ảnh Đẹp Sắc Nét */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {EXPERIENCES.map((exp) => (
-                                <div
-                                    key={exp.id}
-                                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-lg hover:shadow-2xl hover:border-amber-300 flex flex-col justify-between group hover:-translate-y-1.5 transition-all duration-300"
-                                >
-                                    <div>
-                                        {/* Ảnh lớn nghệ thuật có gradient & badge */}
-                                        <div className="relative h-64 w-full overflow-hidden bg-slate-100">
-                                            <img
-                                                src={exp.image}
-                                                alt={exp.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
-                                            <div className="absolute top-4 left-4 flex flex-col gap-1.5 items-start">
-                                                <span className="px-3 py-1 rounded-full bg-slate-900/85 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
-                                                    {exp.tag}
-                                                </span>
-                                            </div>
-                                            <div className="absolute bottom-4 left-4 right-4">
-                                                <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-extrabold uppercase tracking-wider inline-block mb-1.5 shadow-xs">
-                                                    {exp.badge}
-                                                </span>
-                                                <h3 className="font-serif font-bold text-white text-lg leading-snug drop-shadow-sm">
-                                                    {exp.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-
-                                        {/* Nội dung mô tả & điểm nhấn */}
-                                        <div className="p-6">
-                                            <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                                                {exp.description}
-                                            </p>
-
-                                            <ul className="space-y-2.5 border-t border-slate-100 pt-4">
-                                                {exp.highlights.map((item, idx) => (
-                                                    <li key={idx} className="flex items-start gap-2 text-xs text-slate-700">
-                                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                                                        <span className="text-[11px] leading-tight">{item}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    {/* Nút hành động dẫn trực tiếp sang xem phòng / dịch vụ */}
-                                    <div className="p-6 pt-0">
-                                        <Link
-                                            to={exp.actionLink}
-                                            className="w-full py-3 rounded-xl bg-slate-50 hover:bg-gradient-to-r hover:from-amber-500 hover:to-amber-600 hover:text-white text-slate-800 font-bold text-xs border border-slate-200 hover:border-amber-500 transition-all flex items-center justify-center gap-2 group-hover:shadow-md cursor-pointer"
-                                        >
-                                            <span>{exp.actionLabel}</span>
-                                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                                        </Link>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Banner kết nối voucher & đặt phòng */}
-                        
-                    </div>
-                </section>
-
-                {/* ============================================================== */}
-                {/* 4. CHƯƠNG TRÌNH HỘI VIÊN VIP TA CLUB (LOYALTY TIERS) */}
+                {/* 3. CHƯƠNG TRÌNH HỘI VIÊN VIP TA CLUB (LOYALTY TIERS) */}
                 {/* ============================================================== */}
                 <section className="py-16 bg-slate-50 border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -849,54 +786,97 @@ export default function PromotionsPage() {
                         </div>
 
                         {/* Thanh giải thích quy tắc tích điểm 100k = 1 pt */}
-                        <div className="max-w-3xl mx-auto mb-10 p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50 border border-amber-200/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-2xs">
-                            <div className="flex items-center gap-3 text-amber-950">
-                                <span className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-base shrink-0 shadow-sm">
-                                    ★
+                        <div className="max-w-4xl mx-auto mb-10 px-5 py-4 rounded-2xl bg-white border border-slate-200/80 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.1)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+                            <div className="flex items-center gap-3.5">
+                                <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center shrink-0 shadow-sm shadow-sky-900/15">
+                                    <Sparkles className="w-4 h-4" />
                                 </span>
                                 <div>
-                                    <strong className="block font-bold text-slate-900">Cơ chế tích điểm tự động của hệ thống</strong>
-                                    <span className="text-slate-600 text-[11px]">
-                                        Cứ mỗi <strong>100.000 VNĐ</strong> thanh toán hóa đơn thành công khi check-out = <strong>1 điểm</strong> tích lũy vào tài khoản.
+                                    <strong className="block text-[13px] font-bold text-slate-900">
+                                        Cơ chế tích điểm tự động của hệ thống
+                                    </strong>
+                                    <span className="text-slate-500 text-xs leading-relaxed">
+                                        Cứ mỗi <strong className="text-slate-800 font-semibold">100.000 VNĐ</strong> thanh toán hóa đơn thành công khi check-out = <strong className="text-sky-700 font-semibold">1 điểm</strong> tích lũy vào tài khoản.
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold border border-amber-200">
+                            <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pl-4 sm:border-l sm:border-slate-100">
+                                <span className="px-3 py-1 rounded-full bg-sky-50 text-sky-700 text-[11px] font-semibold border border-sky-100">
                                     Tự động thăng hạng
                                 </span>
-                                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                                <span className="px-3 py-1 rounded-full bg-slate-50 text-slate-700 text-[11px] font-semibold border border-slate-200/80">
                                     Giảm tới 15% trọn đời
                                 </span>
                             </div>
                         </div>
 
-                        {/* 4 Hạng thẻ hội viên chuẩn hóa theo Database */}
+                        {/* 4 Hạng thẻ hội viên chuẩn hóa theo mẫu thẻ kim loại ATM của Profile (MembershipCard) */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {membershipTiers.map((tier, idx) => (
                                 <div
                                     key={idx}
-                                    className={`rounded-3xl border ${tier.border} ${tier.bg} p-6 flex flex-col justify-between shadow-md relative overflow-hidden group hover:-translate-y-1.5 transition-all duration-300`}
+                                    className={`rounded-3xl border ${tier.border} ${tier.bg} p-5 flex flex-col justify-between shadow-md hover:shadow-xl relative overflow-hidden group hover:-translate-y-1.5 transition-all duration-300`}
                                 >
-                                    {tier.badge && (
-                                        <span className="absolute top-4 right-4 bg-amber-400 text-slate-950 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
-                                            {tier.badge}
-                                        </span>
-                                    )}
-
                                     <div>
-                                        <div className={`w-11 h-11 rounded-2xl bg-gradient-to-r ${tier.color} flex items-center justify-center text-white mb-4 shadow-md`}>
-                                            <Crown className="w-5 h-5" />
-                                        </div>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{tier.level}</span>
-                                        <h3 className="text-lg font-serif font-bold text-slate-900 mt-0.5 mb-2">{tier.name}</h3>
+                                        {/* THẺ KIM LOẠI MINI ĐỒNG BỘ 100% VỚI MembershipCard.jsx TRONG PROFILE */}
+                                        <div
+                                            className={`relative rounded-2xl p-4 border mb-5 overflow-hidden select-none min-h-[146px] flex flex-col justify-between transition-transform duration-500 group-hover:scale-[1.02] ${tier.cardBg}`}
+                                        >
+                                            <div className={`absolute -right-10 -top-10 w-32 h-32 rounded-full blur-2xl pointer-events-none ${tier.cardGlow}`} />
+                                            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
 
-                                        <div className="mb-4 pb-3 border-b border-slate-100">
-                                            <div className="flex items-baseline gap-1.5">
-                                                <span className="text-2xl font-black text-amber-600">{tier.discount}</span>
-                                                <span className="text-xs font-bold text-slate-700">• {tier.points}</span>
+                                            {/* Top of card: Brand + Chip ATM */}
+                                            <div className="flex items-start justify-between gap-2 relative z-10">
+                                                <div className="min-w-0">
+                                                    <span className="text-[8px] tracking-[0.14em] font-extrabold uppercase opacity-80 block text-white/90 truncate">
+                                                        TA CLUB LOYALTY
+                                                    </span>
+                                                    <h3 className="text-sm font-black tracking-wide flex items-center gap-1 mt-0.5 uppercase truncate">
+                                                        <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                                                        <span className="truncate">{tier.name}</span>
+                                                    </h3>
+                                                </div>
+
+                                                {/* Chip ATM kim loại */}
+                                                <div className={`w-8 h-6 rounded bg-gradient-to-tr ${tier.cardChip} border flex items-center justify-center shadow-sm shrink-0`}>
+                                                    <div className="w-5 h-3.5 border border-black/20 rounded-xs grid grid-cols-2 gap-0.5 p-0.5">
+                                                        <div className="bg-black/10 rounded-xs" />
+                                                        <div className="bg-black/10 rounded-xs" />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <span className="text-[11px] text-slate-400 block mt-0.5">{tier.pointsDesc}</span>
+
+                                            {/* Middle: Discount + Points */}
+                                            <div className="my-2.5 flex items-center justify-between gap-2 relative z-10">
+                                                <span className="text-xl font-black tracking-tight text-white">
+                                                    {tier.discount}
+                                                </span>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border backdrop-blur-md whitespace-nowrap ${tier.cardBadge}`}>
+                                                    {tier.points}
+                                                </span>
+                                            </div>
+
+                                            {/* Bottom: Tier label & Badge */}
+                                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/15 relative z-10">
+                                                <span className="text-[8.5px] font-extrabold tracking-[0.15em] uppercase opacity-80 truncate">
+                                                    {tier.tierLabel}
+                                                </span>
+                                                {tier.badge && (
+                                                    <span className="bg-amber-400 text-slate-950 text-[8.5px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                                        {tier.badge}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Điều kiện & Danh sách quyền lợi */}
+                                        <div className="mb-4 pb-3 border-b border-slate-100">
+                                            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                                                {tier.level}
+                                            </span>
+                                            <span className="text-xs font-semibold text-slate-600 block mt-0.5">
+                                                {tier.pointsDesc}
+                                            </span>
                                         </div>
 
                                         <ul className="space-y-2 text-xs text-slate-600 mb-6">
@@ -910,10 +890,10 @@ export default function PromotionsPage() {
                                     </div>
 
                                     <Link
-                                        to="/login"
-                                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-center transition block shadow-xs ${tier.btnClass || 'border border-slate-200 hover:border-amber-500 text-slate-700 hover:text-amber-800 bg-white'}`}
+                                        to={isAuthenticated ? '/profile' : '/login'}
+                                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-center transition block shadow-xs ${tier.btnClass || 'border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 bg-white'}`}
                                     >
-                                        Đăng Ký / Xem Thẻ
+                                        {isAuthenticated ? 'Xem Thẻ Hội Viên' : 'Đăng Ký / Xem Thẻ'}
                                     </Link>
                                 </div>
                             ))}
@@ -977,10 +957,10 @@ export default function PromotionsPage() {
                                     <CalendarCheck className="w-6 h-6 text-amber-600" />
                                 </div>
                                 <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
-                                    Đổi Ngày Miễn Phí 24H
+                                    Hủy Phòng Linh Hoạt {freeCancelHours}H
                                 </h3>
                                 <p className="text-xs text-slate-600 leading-relaxed">
-                                    Dễ dàng thay đổi lịch trình và hủy đơn không mất phí trước 24 giờ nhận phòng cho tất cả các đơn đặt trên website chính thức.
+                                    Dễ dàng thay đổi lịch trình và hủy đơn miễn phí trước {freeCancelHours} giờ nhận phòng cho các đơn đặt trực tiếp trên website chính thức.
                                 </p>
                             </div>
                         </div>
@@ -1001,8 +981,8 @@ export default function PromotionsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-amber-500/25">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 1
                             </div>
                             <h3 className="font-bold text-slate-900 text-base mb-1.5">Sao Chép Mã Ưu Đãi</h3>
@@ -1011,8 +991,8 @@ export default function PromotionsPage() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-amber-500/25">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 2
                             </div>
                             <h3 className="font-bold text-slate-900 text-base mb-1.5">Chọn Phòng Yêu Thích</h3>
@@ -1021,8 +1001,8 @@ export default function PromotionsPage() {
                             </p>
                         </div>
 
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md transition">
-                            <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-md shadow-rose-500/25">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 3
                             </div>
                             <h3 className="font-bold text-slate-900 text-base mb-1.5">Dán Mã & Nhận Chiết Khấu</h3>

@@ -1,11 +1,4 @@
 import React from 'react';
-import {
-    DoorClosed,
-    Bath,
-    BedDouble,
-    Compass,
-    ShieldCheck
-} from 'lucide-react';
 
 export default function RoomFloorPlan({
     room,
@@ -15,221 +8,135 @@ export default function RoomFloorPlan({
 }) {
     if (!room) return null;
 
+    const totalArea = Number(room.size) || 45;
+    const isSuiteOrLarge =
+        totalArea >= 55 ||
+        (room.name || '').toLowerCase().includes('suite') ||
+        (room.name || '').toLowerCase().includes('penthouse');
+
+    // Tính diện tích ước lượng hợp lý theo tổng diện tích thực của từng hạng phòng
+    const livingArea = Math.max(14, Math.round(totalArea * 0.34));
+    const balconyArea = Math.max(6, Math.round(totalArea * 0.18));
+    const bathArea = Math.max(8, Math.round(totalArea * 0.2));
+
+    const viewShort = (roomViewText || '').toLowerCase().includes('biển')
+        ? 'VIEW BIỂN'
+        : 'TOÀN CẢNH';
+
     return (
-        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5 sm:space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        <section className="space-y-4">
+            {/* Header phía trên thẻ trắng giống bản vẽ kiến trúc mẫu */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
                 <div>
-                    <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
-                        Kiến trúc & Phân vùng không gian
+                    <span className="block text-[11px] uppercase font-bold tracking-[0.16em] text-blue-700 mb-1">
+                        MẶT BẰNG BỐ TRÍ
                     </span>
-                    <h3 className="font-serif text-2xl font-bold text-slate-900 mt-1">
-                        Sơ đồ mặt bằng & Bố cục phòng nghỉ
+                    <h3 className="font-serif text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
+                        {isSuiteOrLarge
+                            ? 'Sơ đồ không gian Suite (Floor Plan)'
+                            : 'Sơ đồ không gian phòng (Floor Plan)'}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Khám phá cách bố trí công thái học, ánh sáng tự nhiên và luồng di chuyển thư thái trong phòng.
-                    </p>
                 </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span>Resort Suite Architectural Blueprint</span>
-                </div>
+                <span className="text-xs font-medium text-slate-400">
+                    Tỷ lệ kiến trúc 1:50
+                </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-                {/* CỘT TRÁI: BẢN VẼ SƠ ĐỒ MẶT BẰNG PHONG CÁCH RESORT BLUEPRINT */}
-                <div className="lg:col-span-7 bg-slate-950 rounded-2xl p-5 sm:p-6 text-white relative overflow-hidden border border-slate-800 shadow-xl flex flex-col justify-between min-h-[300px]">
-                    {/* Lưới tọa độ kiến trúc mờ tinh tế */}
-                    <div
-                        className="absolute inset-0 opacity-[0.07] pointer-events-none"
-                        style={{
-                            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
-                            backgroundSize: '20px 20px'
-                        }}
-                    />
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-
-                    {/* Header Blueprint */}
-                    <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3 text-xs">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="font-mono text-slate-300 uppercase tracking-wider font-semibold text-[11px] truncate max-w-[200px]">
-                                {room.name}
-                            </span>
-                        </div>
-                        <span className="font-mono text-amber-300 text-[11px] bg-amber-500/15 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
-                            {room.size ? `${room.size} M² DIỆN TÍCH SÀN` : 'TIÊU CHUẨN'}
-                        </span>
-                    </div>
-
-                    {/* Chỉ dẫn hướng không gian 2D trực quan */}
-                    <div className="relative z-10 flex items-center justify-between text-[10px] text-slate-400 font-mono mt-3 mb-1 px-1">
-                        <span className="flex items-center gap-1 text-slate-400">
-                            <span>🚪 Lối vào phòng</span>
-                        </span>
-                        <span className="flex items-center gap-1 text-amber-300">
-                            <span>{roomHasBalcony ? 'Ban công hướng biển 🌅' : 'Khung kính toàn cảnh 🌅'}</span>
-                        </span>
-                    </div>
-
-                    {/* Khu vực minh họa phân vùng không gian (Architectural Spatial Zones 2D Layout) */}
-                    <div className="relative z-10 my-2 sm:my-4 grid grid-cols-2 sm:grid-cols-12 gap-2 sm:gap-3 flex-1">
-                        {/* Khu 1: Cửa vào & Tiền sảnh (Foyer) */}
-                        <div className="col-span-1 sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-slate-400 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
-                                <span>LỐI VÀO</span>
-                                <DoorClosed className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-300" />
+            {/* Thẻ nội dung trắng tinh gọn */}
+            <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/70 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.07)]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+                    {/* CỘT TRÁI: BẢN VẼ FLOOR PLAN WIREFRAME TÔNG XANH SÁNG */}
+                    <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-4 sm:p-6">
+                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2.5 bg-white/50">
+                            {/* Pill kích thước nổi ở góc trên phải */}
+                            <div className="absolute -top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-white shadow-sm border border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                                {totalArea} M² LUXURY LAYOUT
                             </div>
-                            <div className="my-1.5 sm:my-2">
-                                <div className="text-xs font-bold text-white leading-tight">Sảnh Đón & Tủ Đồ</div>
-                                <div className="text-[10px] text-slate-400 mt-0.5 truncate">Két sắt & Mini bar</div>
-                            </div>
-                            <div className="text-[9px] sm:text-[10px] text-amber-300/80 font-mono truncate">Cửa cách âm cao cấp</div>
-                        </div>
 
-                        {/* Khu 2: Phòng tắm & Thư giãn */}
-                        <div className="col-span-1 sm:col-span-8 bg-white/5 hover:bg-white/10 transition border border-amber-400/20 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-amber-300 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
-                                <span>PHÒNG TẮM</span>
-                                <Bath className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300" />
-                            </div>
-                            <div className="my-1.5 sm:my-2">
-                                <div className="text-xs font-bold text-white leading-tight truncate">
-                                    {roomHasJacuzzi ? 'Bồn Tắm Nằm Thư Giãn' : 'Buồng Tắm Đứng Kính'}
+                            {/* Lưới sơ đồ kiến trúc 3 cột */}
+                            <div className="grid grid-cols-12 gap-2 h-[220px] sm:h-[240px]">
+                                {/* Cột 1 (3.5/12 -> col-span-4): Ban công / Kính toàn cảnh chạy dọc */}
+                                <div className="col-span-4 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-2">
+                                    <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-[0.15em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
+                                        {roomHasBalcony
+                                            ? `BAN CÔNG ${viewShort}`
+                                            : `KÍNH ${viewShort}`}
+                                    </span>
                                 </div>
-                                <div className="text-[10px] text-slate-300 mt-0.5 truncate">
-                                    Vòi sen mưa & Nước nóng 24/7
+
+                                {/* Cột 2 (4/12 -> col-span-4): Phòng khách / Tiếp khách & Phòng ngủ */}
+                                <div className="col-span-4 grid grid-rows-2 gap-2">
+                                    <div className="rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center p-2 text-center">
+                                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                            {isSuiteOrLarge ? 'PHÒNG KHÁCH' : 'TIẾP KHÁCH'}
+                                        </span>
+                                    </div>
+                                    <div className="rounded-lg border border-slate-200/90 bg-white/80 flex flex-col items-center justify-center p-2 text-center">
+                                        <span className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                                            PHÒNG NGỦ
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Cột 3 (4/12 -> col-span-4): Jacuzzi / Phòng tắm & Walk-in Closet */}
+                                <div className="col-span-4 grid grid-rows-2 gap-2">
+                                    <div className="rounded-lg border border-slate-200/90 bg-blue-50/40 flex items-center justify-center p-2">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-blue-500/80 bg-blue-100/75 flex items-center justify-center text-center px-1 shadow-2xs">
+                                            <span className="text-[8.5px] sm:text-[9px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                                                {roomHasJacuzzi ? 'JACUZZI' : 'PHÒNG TẮM'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center p-2 text-center">
+                                        <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                                            {isSuiteOrLarge ? 'WALK-IN CLOSET' : 'TỦ ĐỒ & SẢNH'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 font-mono">
-                                <span className="truncate">Bộ khăn bông</span>
-                                <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-400/30 shrink-0">
-                                    Riêng tư
+                        </div>
+                    </div>
+
+                    {/* CỘT PHẢI: MÔ TẢ PHÂN VÙNG & 2 THẺ THÔNG SỐ GỌN ĐẸP */}
+                    <div className="lg:col-span-6 space-y-5">
+                        <div className="space-y-2.5">
+                            <h4 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+                                Thiết kế phân vùng mở thông minh
+                            </h4>
+                            <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
+                                {isSuiteOrLarge
+                                    ? `Không gian ${totalArea}m² được phân bổ khoa học nhằm tối đa hóa tầm nhìn từ mọi vị trí: khu vực tiếp khách rộng ${livingArea}m² kết nối liền mạch với ${roomHasBalcony ? 'ban công mở' : 'khung kính toàn cảnh'}, phòng ngủ cách âm chuẩn quốc tế đảm bảo sự tĩnh lặng tuyệt đối và phòng tắm đá tự nhiên chuẩn spa.`
+                                    : `Phòng nghỉ ${totalArea}m² được quy hoạch tối ưu công năng với ${room.bed_type || 'giường King cao cấp'}, khu vực thư giãn kết nối ánh sáng tự nhiên (${roomViewText.toLowerCase()}), hệ thống cửa cách âm chuyên dụng và phòng tắm riêng tiện nghi.`}
+                            </p>
+                        </div>
+
+                        {/* 2 Thẻ thông số tối giản đồng bộ mẫu */}
+                        <div className="grid grid-cols-2 gap-3.5">
+                            <div className="p-4 rounded-2xl bg-[#f4f6fb] border border-slate-200/50">
+                                <span className="block text-xs sm:text-sm font-bold text-slate-900">
+                                    {roomHasBalcony ? 'Ban công' : 'Tầm nhìn'}
+                                </span>
+                                <span className="block text-xs text-slate-500 mt-1 leading-relaxed">
+                                    {roomHasBalcony
+                                        ? `${balconyArea} m² lát sàn gỗ teak`
+                                        : roomViewText}
+                                </span>
+                            </div>
+
+                            <div className="p-4 rounded-2xl bg-[#f4f6fb] border border-slate-200/50">
+                                <span className="block text-xs sm:text-sm font-bold text-slate-900">
+                                    Phòng tắm
+                                </span>
+                                <span className="block text-xs text-slate-500 mt-1 leading-relaxed">
+                                    {roomHasJacuzzi
+                                        ? `${bathArea} m² có bồn sục thư giãn`
+                                        : `${bathArea} m² buồng tắm kính cao cấp`}
                                 </span>
                             </div>
                         </div>
-
-                        {/* Khu 3: Không gian ngủ chính (Master Suite) */}
-                        <div className="col-span-1 sm:col-span-8 bg-gradient-to-br from-amber-500/15 via-white/5 to-white/5 border border-amber-300/30 rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-amber-200 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
-                                <span>NGHỈ NGƠI CHÍNH</span>
-                                <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
-                            </div>
-                            <div className="my-1.5 sm:my-2">
-                                <div className="text-xs sm:text-sm font-bold text-white leading-tight truncate">
-                                    {room.bed_type || '1 Giường Đôi King Size'}
-                                </div>
-                                <div className="text-[10px] sm:text-[11px] text-slate-300 mt-0.5 sm:mt-1 line-clamp-1">
-                                    Đệm lò xo túi êm ái • TV màn hình rộng
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-300 font-mono pt-1 border-t border-white/10">
-                                <span className="truncate">Ánh sáng dịu ấm</span>
-                                <span className="text-amber-300 shrink-0">Rèm 100%</span>
-                            </div>
-                        </div>
-
-                        {/* Khu 4: Ban công / Cửa sổ toàn cảnh */}
-                        <div className="col-span-1 sm:col-span-4 bg-white/5 hover:bg-white/10 transition border border-white/10 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between">
-                            <div className="flex items-center justify-between text-sky-300 text-[9px] sm:text-[10px] uppercase font-mono tracking-wider">
-                                <span>{roomHasBalcony ? 'BAN CÔNG' : 'TẦM NHÌN'}</span>
-                                <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-300" />
-                            </div>
-                            <div className="my-1.5 sm:my-2">
-                                <div className="text-xs font-bold text-white leading-tight truncate">
-                                    {roomHasBalcony ? 'Ban Công Riêng' : 'Kính Toàn Cảnh'}
-                                </div>
-                                <div className="text-[10px] text-slate-300 mt-0.5 truncate" title={roomViewText}>
-                                    {roomViewText}
-                                </div>
-                            </div>
-                            <div className="text-[9px] sm:text-[10px] text-emerald-400 font-mono truncate">Đón gió tự nhiên</div>
-                        </div>
-                    </div>
-
-                    {/* Footer Blueprint */}
-                    <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2.5 text-[10px] text-slate-400 font-mono">
-                        <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                            <span>Chuẩn thiết kế công thái học & đối lưu không khí</span>
-                        </span>
-                        <span className="text-slate-500 hidden sm:inline">
-                            Hệ thống PCCC & Thoát hiểm đạt chuẩn
-                        </span>
-                    </div>
-                </div>
-
-                {/* CỘT PHẢI: CHI TIẾT THÔNG SỐ & TIỆN ÍCH PHÂN VÙNG */}
-                <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                        <h4 className="font-serif font-bold text-lg text-slate-900 leading-tight">
-                            Thiết kế không gian tối ưu cho kỳ nghỉ thư thái
-                        </h4>
-                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-                            Từng mét vuông trong phòng đều được quy hoạch đồng bộ nhằm mang lại sự riêng tư tối đa, tầm nhìn thoáng đãng và trải nghiệm nghỉ dưỡng êm dịu nhất.
-                        </p>
-                    </div>
-
-                    {/* Lưới 4 thông số kỹ thuật then chốt */}
-                    <div className="grid grid-cols-2 gap-2.5">
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">
-                                Diện tích phòng
-                            </span>
-                            <strong className="text-sm font-bold text-slate-900 block mt-0.5">
-                                {room.size ? `${room.size} m²` : '40 m²'}
-                            </strong>
-                            <span className="text-[10px] text-emerald-600 font-medium">Bố trí rộng rãi</span>
-                        </div>
-
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">
-                                Tiêu chuẩn giường
-                            </span>
-                            <strong
-                                className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5 truncate"
-                                title={room.bed_type || 'King Bed'}
-                            >
-                                {room.bed_type || 'King Bed'}
-                            </strong>
-                            <span className="text-[10px] text-amber-700 font-medium">Đệm cao cấp</span>
-                        </div>
-
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">
-                                Khu vệ sinh
-                            </span>
-                            <strong className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5">
-                                {roomHasJacuzzi ? 'Bồn tắm nằm' : 'Phòng tắm đứng'}
-                            </strong>
-                            <span className="text-[10px] text-slate-500 font-medium">Vòi sen massage</span>
-                        </div>
-
-                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase block">
-                                Ban công & View
-                            </span>
-                            <strong
-                                className="text-xs sm:text-sm font-bold text-slate-900 block mt-0.5 truncate"
-                                title={roomViewText}
-                            >
-                                {roomHasBalcony ? 'Ban công riêng' : 'Khung kính lớn'}
-                            </strong>
-                            <span className="text-[10px] text-sky-600 font-medium truncate block">
-                                {roomViewText}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Điểm nhấn bảo đảm chất lượng giấc ngủ */}
-                    <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/70 flex items-start gap-2.5 text-xs text-amber-900">
-                        <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <span className="leading-relaxed font-normal">
-                            Hệ thống cửa cách âm chuyên dụng và kính chống bức xạ nhiệt giúp không gian bên trong luôn mát mẻ, yên tĩnh tuyệt đối suốt 24 giờ.
-                        </span>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }
-

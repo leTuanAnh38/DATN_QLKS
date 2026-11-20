@@ -82,17 +82,22 @@ export default function Navbar({
             isActive: (path) => path === '/'
         },
         {
-            name: 'Phòng nghỉ & Suites',
+            name: 'Phòng nghỉ',
             path: '/rooms',
             isActive: (path) => path === '/rooms' || path.startsWith('/rooms/') || path.startsWith('/room/')
         },
         {
-            name: 'Menu Dịch vụ',
+            name: 'Đặt đoàn',
+            path: '/corporate-booking',
+            isActive: (path) => path.startsWith('/corporate-booking')
+        },
+        {
+            name: 'Dịch vụ',
             path: '/services',
             isActive: (path) => path.startsWith('/services') || path.startsWith('/menu')
         },
         {
-            name: 'Ưu đãi đặc quyền',
+            name: 'Ưu đãi',
             path: '/promotions',
             isActive: (path) => path.startsWith('/promotions')
         },
@@ -203,7 +208,7 @@ export default function Navbar({
                         <Link
                             to={actionLink}
                             onClick={handleActionClick}
-                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
+                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                         >
                             <svg className="w-4 h-4 text-white/95 group-hover:scale-110 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />

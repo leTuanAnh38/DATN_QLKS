@@ -20,7 +20,10 @@ import {
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import FeaturedRoomCategories from '../../components/client/FeaturedRoomCategories';
+import ResortExperienceBento from '../../components/client/ResortExperienceBento';
 import FeaturedServices from '../../components/client/FeaturedServices';
+import FeaturedPromotions from '../../components/client/FeaturedPromotions';
+import GuestTestimonials from '../../components/client/GuestTestimonials';
 import postService from '../../services/postService';
 import roomService from '../../services/roomService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
@@ -191,6 +194,20 @@ export default function TADaNangHotelLanding() {
         const params = new URLSearchParams();
         if (checkInDate) params.set('checkIn', checkInDate);
         if (checkOutDate) params.set('checkOut', checkOutDate);
+
+        // Nếu khách chọn 5+ Khách (Đoàn du lịch) -> chuyển thẳng sang Cổng Đặt Phòng Đoàn kèm ngày đã chọn
+        if (Number(guests) >= 5) {
+            navigate(`/corporate-booking?${params.toString()}`, {
+                state: {
+                    checkInDate,
+                    checkOutDate,
+                    guestCount: Number(guests) || 6,
+                    roomType
+                }
+            });
+            return;
+        }
+
         if (guests) params.set('guests', guests);
         if (roomType && roomType !== 'all') params.set('category', roomType);
 
@@ -266,45 +283,46 @@ export default function TADaNangHotelLanding() {
                     </div>
                 ))}
 
-                {/* Lớp phủ mỏng nhẹ, giữ độ sáng tự nhiên cho ảnh biển */}
-                <div className="absolute inset-0 bg-black/25 bg-gradient-to-t from-slate-950/70 via-black/15 to-transparent z-1" />
+                {/* Lớp phủ 2 tầng cân bằng: giữ trọn vẻ lung linh hoàng hôn & hồ bơi nhưng tăng độ sắc nét cho chữ */}
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/45 via-slate-900/25 to-slate-950/75 z-1" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.38)_0%,transparent_70%)] z-1 pointer-events-none" />
 
                 {/* Hero Content nổi bật trên cùng (relative z-10) */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white py-12">
-                    <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight mb-4 drop-shadow-md transition-all duration-700">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white pt-8 pb-16 sm:pb-20">
+                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.18] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-all duration-700">
                         {bannerImages[currentBanner].title} <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
                             {bannerImages[currentBanner].subtitle}
                         </span>
                     </h1>
 
-                    <p className="text-sm sm:text-base text-slate-100 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-sm transition-all duration-700">
+                    <p className="text-sm sm:text-base text-white/95 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-all duration-700">
                         {bannerImages[currentBanner].desc}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-200 drop-shadow-sm">
-                        <span className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-[13px] text-white/95">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
-                            Giá trực tiếp tốt nhất
+                            <span>Giá trực tiếp tốt nhất</span>
                         </span>
-                        <span className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
-                            Linh hoạt đổi hủy 24h
+                            <span>Linh hoạt đổi hủy 24h</span>
                         </span>
-                        <span className="flex items-center gap-1.5">
-                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
-                            Đưa đón sân bay VIP
+                            <span>Đưa đón sân bay VIP</span>
                         </span>
                     </div>
 
                     {/* Dấu chấm chuyển slide (Dots Indicators) */}
-                    <div className="flex items-center justify-center gap-2 mt-6">
+                    <div className="flex items-center justify-center gap-2 mt-5">
                         {bannerImages.map((_, dotIdx) => (
                             <button
                                 key={dotIdx}
@@ -313,8 +331,8 @@ export default function TADaNangHotelLanding() {
                                 onTouchStart={(e) => e.stopPropagation()}
                                 className={`transition-all duration-300 rounded-full cursor-pointer ${
                                     currentBanner === dotIdx
-                                        ? 'w-7 h-2 bg-white shadow-sm'
-                                        : 'w-2 h-2 bg-white/50 hover:bg-white/80'
+                                        ? 'w-7 h-2 bg-amber-300 shadow-sm'
+                                        : 'w-2 h-2 bg-white/55 hover:bg-white/85'
                                 }`}
                                 aria-label={`Xem banner ${dotIdx + 1}`}
                             />
@@ -343,161 +361,168 @@ export default function TADaNangHotelLanding() {
                 </button>
             </section>
 
-            {/* 4. FLOATING BOOKING SEARCH BAR WIDGET (Tối ưu nhỏ gọn, tinh tế & hiện đại) */}
-            <div className="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-4 -mt-9 sm:-mt-13">
-                <div className="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-900/8 border border-slate-200/80 p-2.5 sm:p-4 transition-all duration-300">
-                    {/* Form Fields: 4 Input fields + Search Button */}
-                    <form onSubmit={handleSearchRooms} className="flex flex-col lg:flex-row items-stretch lg:items-center gap-1.5 sm:gap-2.5">
-                        {/* Field 1: Hạng phòng */}
-                        <div className="flex-1 px-3 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group">
-                            <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors">
-                                <BedDouble className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
-                                <span>Hạng phòng</span>
-                            </label>
-                            <select
-                                value={roomType}
-                                onChange={(e) => setRoomType(e.target.value)}
-                                className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate leading-snug"
-                            >
-                                <option value="all">Tất cả hạng phòng</option>
-                                {roomCategories.length > 0 ? (
-                                    roomCategories.map((cat) => (
-                                        <option key={cat.id} value={String(cat.id)}>
-                                            {cat.name}
-                                        </option>
-                                    ))
-                                ) : (
-                                    <>
-                                        <option value="deluxe">Hạng Deluxe Biển</option>
-                                        <option value="suite">Executive & Grand Suite</option>
-                                        <option value="penthouse">Presidential & Penthouse</option>
-                                    </>
-                                )}
-                            </select>
-                            <div className="hidden sm:block text-[10.5px] text-amber-700 font-medium truncate mt-0.5">
-                                {(() => {
-                                    if (roomType === 'all') return 'Tất cả các loại phòng';
-                                    const matchedCat = roomCategories.find((cat) => String(cat.id) === String(roomType));
-                                    if (matchedCat) {
-                                        return `${matchedCat.capacity || 2} khách • ${matchedCat.view_type || matchedCat.bed_type || 'Không gian cao cấp'}`;
-                                    }
-                                    if (roomType === 'deluxe') return 'Hướng biển panorama';
-                                    if (roomType === 'suite') return 'Phòng khách & Ban công';
-                                    if (roomType === 'penthouse') return 'Hồ bơi vô cực trên cao';
-                                    return 'Hạng phòng đã chọn';
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Field 2 & 3: Check-in & Check-out (1 cột trên màn hình siêu nhỏ, 2 cột từ 420px+/sm) */}
-                        <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-1.5 sm:gap-2.5 flex-1 lg:flex-[2]">
-                            {/* Field 2: Check-in (Hỗ trợ click mở lịch ngay lập tức) */}
-                            <div
-                                onClick={() => {
-                                    try {
-                                        checkInRef.current?.showPicker();
-                                    } catch {
-                                        checkInRef.current?.focus();
-                                    }
-                                }}
-                                className="px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer min-w-0"
-                            >
-                                <label className="block text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
-                                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
-                                    <span>Nhận phòng</span>
+            {/* 4. FLOATING BOOKING SEARCH BAR WIDGET (Thanh tìm kiếm nguyên khối cao cấp) */}
+            <div className="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-4 -mt-10 sm:-mt-14">
+                <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_-12px_rgba(15,23,42,0.16)] border border-slate-200/75 ring-1 ring-slate-900/5 overflow-hidden transition-all duration-300">
+                    {/* Form Fields: 4 Input fields ngăn cách bằng đường kẻ mảnh + Nút Tìm phòng */}
+                    <form onSubmit={handleSearchRooms} className="p-2.5 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center gap-2 lg:gap-0">
+                        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                            {/* Field 1: Hạng phòng */}
+                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group">
+                                <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
+                                    <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Hạng phòng</span>
                                 </label>
-                                <input
-                                    ref={checkInRef}
-                                    type="date"
-                                    min={getTodayStr()}
-                                    value={checkInDate}
-                                    onChange={handleCheckInChange}
-                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug"
-                                />
-                                <div className="text-[10px] sm:text-[10.5px] text-amber-800 font-semibold truncate sm:mt-0.5">
-                                    {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
+                                <select
+                                    value={roomType}
+                                    onChange={(e) => setRoomType(e.target.value)}
+                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate leading-snug"
+                                >
+                                    <option value="all">Tất cả hạng phòng</option>
+                                    {roomCategories.length > 0 ? (
+                                        roomCategories.map((cat) => (
+                                            <option key={cat.id} value={String(cat.id)}>
+                                                {cat.name}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <option value="deluxe">Hạng Deluxe Biển</option>
+                                            <option value="suite">Executive & Grand Suite</option>
+                                            <option value="penthouse">Presidential & Penthouse</option>
+                                        </>
+                                    )}
+                                </select>
+                                <div className="hidden sm:block text-[10.5px] text-amber-700/90 font-medium truncate mt-0.5">
+                                    {(() => {
+                                        if (roomType === 'all') return 'Tất cả các loại phòng';
+                                        const matchedCat = roomCategories.find((cat) => String(cat.id) === String(roomType));
+                                        if (matchedCat) {
+                                            return `${matchedCat.capacity || 2} khách • ${matchedCat.view_type || matchedCat.bed_type || 'Không gian cao cấp'}`;
+                                        }
+                                        if (roomType === 'deluxe') return 'Hướng biển panorama';
+                                        if (roomType === 'suite') return 'Phòng khách & Ban công';
+                                        if (roomType === 'penthouse') return 'Hồ bơi vô cực trên cao';
+                                        return 'Hạng phòng đã chọn';
+                                    })()}
                                 </div>
                             </div>
 
-                            {/* Field 3: Check-out (Hỗ trợ click mở lịch ngay lập tức) */}
-                            <div
-                                onClick={() => {
-                                    try {
-                                        checkOutRef.current?.showPicker();
-                                    } catch {
-                                        checkOutRef.current?.focus();
-                                    }
-                                }}
-                                className="px-2.5 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group cursor-pointer min-w-0"
-                            >
-                                <label className="block text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
-                                    <CalendarDays className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
-                                    <span>Trả phòng</span>
+                            {/* Field 2 & 3: Check-in & Check-out */}
+                            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                                {/* Field 2: Check-in */}
+                                <div
+                                    onClick={() => {
+                                        try {
+                                            checkInRef.current?.showPicker();
+                                        } catch {
+                                            checkInRef.current?.focus();
+                                        }
+                                    }}
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                >
+                                    <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
+                                        <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>Nhận phòng</span>
+                                    </label>
+                                    <input
+                                        ref={checkInRef}
+                                        type="date"
+                                        min={getTodayStr()}
+                                        value={checkInDate}
+                                        onChange={handleCheckInChange}
+                                        className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug"
+                                    />
+                                    <div className="text-[10px] sm:text-[10.5px] text-amber-800/90 font-semibold truncate mt-0.5">
+                                        {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
+                                    </div>
+                                </div>
+
+                                {/* Field 3: Check-out */}
+                                <div
+                                    onClick={() => {
+                                        try {
+                                            checkOutRef.current?.showPicker();
+                                        } catch {
+                                            checkOutRef.current?.focus();
+                                        }
+                                    }}
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                >
+                                    <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
+                                        <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>Trả phòng</span>
+                                    </label>
+                                    <input
+                                        ref={checkOutRef}
+                                        type="date"
+                                        min={getTomorrowStr(checkInDate)}
+                                        value={checkOutDate}
+                                        onChange={handleCheckOutChange}
+                                        className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug"
+                                    />
+                                    <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
+                                        {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Field 4: Guests & Rooms */}
+                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group">
+                                <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
+                                    <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Khách & Phòng</span>
                                 </label>
-                                <input
-                                    ref={checkOutRef}
-                                    type="date"
-                                    min={getTomorrowStr(checkInDate)}
-                                    value={checkOutDate}
-                                    onChange={handleCheckOutChange}
-                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug"
-                                />
-                                <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate sm:mt-0.5">
-                                    {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
+                                <select
+                                    value={guests}
+                                    onChange={(e) => setGuests(e.target.value)}
+                                    className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate leading-snug"
+                                >
+                                    <option value="1">1 Khách (1 Người lớn)</option>
+                                    <option value="2">2 Khách (2 Người lớn)</option>
+                                    <option value="3">3 Khách (2 Lớn + 1 Trẻ)</option>
+                                    <option value="4">4 Khách (Gia đình)</option>
+                                    <option value="6">5+ Khách (Đoàn du lịch)</option>
+                                </select>
+                                <div className="hidden sm:block text-[10.5px] text-amber-800/90 font-medium truncate mt-0.5">
+                                    {Number(guests) === 1 && '1 Giường King / Queen'}
+                                    {Number(guests) === 2 && '1 Phòng Suite / Deluxe'}
+                                    {(Number(guests) === 3 || Number(guests) === 4) && 'Hỗ trợ thêm nôi / giường phụ'}
+                                    {Number(guests) >= 5 && 'Chuyển tới Cổng Đặt Phòng Đoàn'}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Field 4: Guests & Rooms */}
-                        <div className="flex-1 px-3 sm:px-3.5 py-1.5 sm:py-2.5 bg-slate-50/80 hover:bg-amber-50/30 border border-slate-200/70 hover:border-amber-400 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-xl sm:rounded-2xl transition-all group">
-                            <label className="block text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-amber-700 uppercase tracking-wider sm:mb-0.5 flex items-center gap-1.5 transition-colors">
-                                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
-                                <span>Khách & Phòng</span>
-                            </label>
-                            <select
-                                value={guests}
-                                onChange={(e) => setGuests(e.target.value)}
-                                className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer truncate leading-snug"
-                            >
-                                <option value="1">1 Khách (1 Người lớn)</option>
-                                <option value="2">2 Khách (2 Người lớn)</option>
-                                <option value="3">3 Khách (2 Lớn + 1 Trẻ)</option>
-                                <option value="4">4 Khách (Gia đình)</option>
-                                <option value="6">5+ Khách (Đoàn du lịch)</option>
-                            </select>
-                            <div className="hidden sm:block text-[10.5px] text-amber-800 font-medium truncate mt-0.5">
-                                {Number(guests) === 1 && '1 Giường King / Queen'}
-                                {Number(guests) === 2 && '1 Phòng Suite / Deluxe'}
-                                {Number(guests) >= 3 && 'Hỗ trợ thêm nôi / giường phụ'}
-                            </div>
-                        </div>
-
-                        {/* Field 5: Action Button (Nút Tìm phòng tinh gọn, cân đối) */}
-                        <div className="flex items-center justify-center shrink-0">
+                        {/* Field 5: Action Button (Giữ nguyên tông Xanh dương biển) */}
+                        <div className="flex items-center justify-center shrink-0 lg:pl-3">
                             <button
                                 type="submit"
-                                title="Tìm kiếm phòng trống phù hợp"
-                                className="w-full lg:w-auto px-6 lg:px-7 h-9.5 sm:h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-md shadow-sky-900/20 hover:shadow-sky-500/30 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
+                                title={Number(guests) >= 5 ? 'Chuyển sang Cổng Đặt Phòng Đoàn & Doanh Nghiệp' : 'Tìm kiếm phòng trống phù hợp'}
+                                className="w-full lg:w-auto px-6 lg:px-7 h-10 sm:h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer"
                             >
-                                <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                {Number(guests) >= 5 ? (
+                                    <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                ) : (
+                                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                )}
                                 <span className="whitespace-nowrap">
-                                    Tìm phòng
+                                    {Number(guests) >= 5 ? 'Đặt phòng đoàn' : 'Tìm phòng'}
                                 </span>
                             </button>
                         </div>
                     </form>
 
-                    {/* Quick banner: Khách đoàn & Doanh nghiệp (Tinh gọn & thanh thoát) */}
-                    <div className="mt-2 sm:mt-3 pt-2 sm:pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2.5 text-xs">
-                        <div className="flex items-center gap-1.5 sm:gap-2 text-slate-600 text-[11px] sm:text-xs leading-snug">
-                            <span className="p-1 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                                <Building2 className="w-3 h-3" />
+                    {/* Quick banner: Khách đoàn & Doanh nghiệp (Tích hợp liền khối thanh thoát) */}
+                    <div className="px-3.5 sm:px-5 py-2.5 bg-gradient-to-r from-slate-50/90 via-amber-50/35 to-slate-50/90 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs leading-snug">
+                            <span className="p-1 rounded-lg bg-amber-100/90 text-amber-800 flex items-center justify-center shrink-0">
+                                <Building2 className="w-3.5 h-3.5" />
                             </span>
-                            <span>Quý khách đặt phòng cho <strong>Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
+                            <span>Quý khách đặt phòng cho <strong className="text-slate-800">Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="self-start sm:self-auto font-bold text-amber-800 hover:text-amber-950 bg-amber-50/80 hover:bg-amber-100/90 border border-amber-200/90 px-2.5 sm:px-3 py-1 rounded-full transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
+                            className="self-start sm:self-auto font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 px-3 py-1 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
                         >
                             <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
                             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -511,29 +536,38 @@ export default function TADaNangHotelLanding() {
                 <FeaturedRoomCategories />
             </div>
 
+            {/* 5B. RESORT EXPERIENCE BENTO GALLERY & KEY HIGHLIGHTS */}
+            <ResortExperienceBento />
+
             {/* 6. HOTEL SERVICES & CUISINE MENU (Connected to PMS & Services API) */}
             <FeaturedServices />
 
+            {/* 6B. FEATURED PROMOTIONS & VOUCHERS (Connected to Promotions API) */}
+            <FeaturedPromotions />
+
+            {/* 6C. VERIFIED GUEST REVIEWS & TESTIMONIALS (Connected to Reviews API) */}
+            <GuestTestimonials />
+
             {/* 7. TIN TỨC & CẨM NANG NGHỈ DƯỠNG MỚI NHẤT */}
-            <section id="tin-tuc" className="py-12 sm:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <section id="tin-tuc" className="bg-white py-14 sm:py-18">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Tiêu đề */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 gap-5 sm:gap-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-11 gap-5 sm:gap-6">
                     <div>
-                        <div className="text-xs uppercase font-bold tracking-widest text-amber-700 mb-2 flex items-center gap-1.5">
-                            <Newspaper className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            <span>TIN TỨC & CẨM NANG NGHỈ DƯỠNG</span>
-                        </div>
-                        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+                        <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
+                            TIN TỨC &amp; CẨM NANG
+                        </span>
+                        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-2.5 tracking-tight">
                             Khám Phá Trải Nghiệm Mới Nhất
                         </h2>
-                        <p className="text-slate-600 text-sm sm:text-base max-w-2xl">
+                        <p className="text-slate-600 text-sm sm:text-base max-w-2xl leading-relaxed">
                             Cập nhật tin tức sự kiện, cẩm nang du lịch Đà Nẵng và những trải nghiệm ẩm thực thượng lưu độc quyền tại Khách sạn TA.
                         </p>
                     </div>
 
                     <Link
                         to="/news"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 hover:border-amber-600 hover:bg-amber-50/50 text-slate-700 hover:text-amber-800 text-xs sm:text-sm font-bold transition shadow-xs whitespace-nowrap self-start md:self-auto group"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/60 text-slate-700 hover:text-sky-700 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap self-start md:self-auto group"
                     >
                         <span>Xem tất cả tin tức</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -542,7 +576,7 @@ export default function TADaNangHotelLanding() {
 
                 {/* Danh sách bài viết */}
                 {isLoadingNews ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
                         {[1, 2, 3].map((i) => (
                             <div key={i} className="bg-white rounded-3xl p-5 border border-slate-200 animate-pulse space-y-4 shadow-xs">
                                 <div className="h-52 bg-slate-200 rounded-2xl"></div>
@@ -554,22 +588,22 @@ export default function TADaNangHotelLanding() {
                         ))}
                     </div>
                 ) : latestPosts.length === 0 ? (
-                    <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto">
+                    <div className="text-center py-16 bg-slate-50/70 rounded-3xl border border-slate-200/80 shadow-xs max-w-md mx-auto">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center mx-auto mb-3">
                             <Newspaper className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-slate-800 text-base mb-1">Đang cập nhật bài viết mới</h3>
                         <p className="text-xs text-slate-500 mb-5">Hệ thống đang chuẩn bị những cẩm nang nghỉ dưỡng tuyệt vời nhất cho bạn.</p>
-                        <Link to="/news" className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition">
+                        <Link to="/news" className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white text-xs font-bold rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] transition">
                             Khám phá chuyên trang Tin tức
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
                         {latestPosts.slice(0, 3).map((post) => (
                             <article
                                 key={post.id}
-                                className="bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                                className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.14)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                             >
                                 <div>
                                     {/* Ảnh bìa */}
@@ -578,21 +612,22 @@ export default function TADaNangHotelLanding() {
                                             <img
                                                 src={post.thumbnail_url}
                                                 alt={post.title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-slate-100 to-slate-200 text-slate-400">
                                                 <Building2 className="w-10 h-10 text-slate-300" />
                                             </div>
                                         )}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/30 via-transparent to-transparent pointer-events-none" />
                                         {/* Category Badge */}
-                                        <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-lg bg-white/95 backdrop-blur-xs border border-slate-200/80 text-[11px] font-bold text-slate-800 shadow-xs">
+                                        <span className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full bg-white/95 backdrop-blur-md border border-white/60 text-[11px] font-bold text-slate-800 shadow-sm">
                                             {post.category_display || post.category || 'Khám phá'}
                                         </span>
                                     </Link>
 
                                     {/* Nội dung tóm tắt */}
-                                    <div className="p-6 space-y-3">
+                                    <div className="p-6 space-y-2.5">
                                         <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="w-3 h-3 text-slate-400" />
@@ -605,8 +640,8 @@ export default function TADaNangHotelLanding() {
                                             </span>
                                         </div>
 
-                                        <Link to={`/news/${post.slug || post.id}`}>
-                                            <h3 className="font-serif font-bold text-lg text-slate-900 group-hover:text-amber-700 transition line-clamp-2 leading-snug">
+                                        <Link to={`/news/${post.slug || post.id}`} className="block">
+                                            <h3 className="font-serif font-bold text-lg text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-2 leading-snug">
                                                 {post.title}
                                             </h3>
                                         </Link>
@@ -618,14 +653,14 @@ export default function TADaNangHotelLanding() {
                                 </div>
 
                                 {/* Footer thẻ */}
-                                <div className="px-6 pb-6 pt-3 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
-                                    <span className="text-xs text-slate-500 font-semibold flex items-center gap-1 min-w-0 max-w-[160px]">
-                                        <PenLine className="w-3 h-3 text-slate-400 shrink-0" />
+                                <div className="px-6 pb-5 pt-3.5 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
+                                    <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 min-w-0 max-w-[160px]">
+                                        <PenLine className="w-3 h-3 text-amber-600/80 shrink-0" />
                                         <span className="truncate">{post.author || 'Ban Biên Tập'}</span>
                                     </span>
                                     <Link
                                         to={`/news/${post.slug || post.id}`}
-                                        className="font-bold text-amber-700 group-hover:text-amber-800 transition flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                                        className="font-bold text-sky-700 group-hover:text-sky-800 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0"
                                     >
                                         <span>Chi tiết</span>
                                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -635,6 +670,7 @@ export default function TADaNangHotelLanding() {
                         ))}
                     </div>
                 )}
+                </div>
             </section>
 
             <Footer />

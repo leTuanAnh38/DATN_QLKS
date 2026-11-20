@@ -620,8 +620,8 @@ export default function BookingHistory() {
                 );
             case 'confirmed':
                 return (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-900 border border-amber-300/80 shadow-2xs">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 border border-sky-200/80 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
                         <span>Đã xác nhận</span>
                     </span>
                 );
@@ -664,16 +664,16 @@ export default function BookingHistory() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white flex flex-col">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white flex flex-col">
             <Navbar />
 
             {/* BREADCRUMB */}
             <div className="bg-white/80 backdrop-blur-md border-b border-slate-100 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <nav className="flex items-center space-x-2 text-xs text-slate-500 whitespace-nowrap overflow-x-auto no-scrollbar">
-                        <Link to="/" className="hover:text-amber-600 transition font-medium shrink-0">Trang chủ</Link>
+                        <Link to="/" className="hover:text-sky-600 transition font-medium shrink-0">Trang chủ</Link>
                         <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-                        <Link to="/profile" className="hover:text-amber-600 transition font-medium shrink-0">Hồ sơ cá nhân</Link>
+                        <Link to="/profile" className="hover:text-sky-600 transition font-medium shrink-0">Hồ sơ cá nhân</Link>
                         <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
                         <span className="text-slate-900 font-semibold truncate min-w-0">Lịch sử đặt phòng</span>
                     </nav>
@@ -702,13 +702,12 @@ export default function BookingHistory() {
                 {/* TOAST THÔNG BÁO NỔI (Căn chỉnh an toàn trên màn hình điện thoại) */}
                 {toastMessage && (
                     <div
-                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-[150] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${
-                            toastMessage.type === 'success'
+                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-[150] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toastMessage.type === 'success'
                                 ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20'
                                 : toastMessage.type === 'error'
-                                ? 'bg-rose-600 text-white border-rose-500 shadow-rose-500/20'
-                                : 'bg-slate-900 text-white border-amber-500/30 shadow-amber-500/20'
-                        }`}
+                                    ? 'bg-rose-600 text-white border-rose-500 shadow-rose-500/20'
+                                    : 'bg-slate-900 text-white border-amber-500/30 shadow-amber-500/20'
+                            }`}
                     >
                         {toastMessage.type === 'success' ? (
                             <Check className="w-4 h-4 text-white" />
@@ -724,8 +723,8 @@ export default function BookingHistory() {
                 {/* TRƯỜNG HỢP CHƯA ĐĂNG NHẬP */}
                 {!isAuthenticated && (
                     <div className="bg-white rounded-3xl border border-slate-200 p-10 sm:p-14 text-center max-w-xl mx-auto shadow-sm my-6">
-                        <div className="w-20 h-20 mx-auto rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-5 shadow-xs">
-                            <Lock className="w-9 h-9 text-amber-600" />
+                        <div className="w-20 h-20 mx-auto rounded-3xl bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center mb-5 shadow-xs">
+                            <Lock className="w-9 h-9 text-sky-600" />
                         </div>
                         <h2 className="font-serif text-2xl font-bold text-slate-900 mb-2">
                             Vui lòng đăng nhập tài khoản
@@ -758,22 +757,20 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('all')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
-                                                bookingTypeFilter === 'all'
+                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'all'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
-                                            }`}
+                                                }`}
                                         >
                                             Tất cả ({stats.total})
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('individual')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
-                                                bookingTypeFilter === 'individual'
+                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'individual'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
-                                            }`}
+                                                }`}
                                         >
                                             <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500 shrink-0" />
                                             <span>Khách lẻ</span>
@@ -784,19 +781,17 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('group')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
-                                                bookingTypeFilter === 'group'
+                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'group'
                                                     ? 'bg-indigo-600 text-white shadow-xs'
                                                     : 'text-indigo-700 hover:bg-indigo-50/60'
-                                            }`}
+                                                }`}
                                         >
                                             <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                                             <span>Theo đoàn B2B</span>
-                                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                                                bookingTypeFilter === 'group'
+                                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${bookingTypeFilter === 'group'
                                                     ? 'bg-indigo-800 text-white'
                                                     : 'bg-indigo-100 text-indigo-700'
-                                            }`}>
+                                                }`}>
                                                 {stats.groupCount}
                                             </span>
                                         </button>
@@ -839,19 +834,17 @@ export default function BookingHistory() {
                                         key={tab.key}
                                         type="button"
                                         onClick={() => setStatusFilter(tab.key)}
-                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                                            statusFilter === tab.key
+                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${statusFilter === tab.key
                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                                        }`}
+                                            }`}
                                     >
                                         <span>{tab.label}</span>
                                         <span
-                                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                                                statusFilter === tab.key
+                                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${statusFilter === tab.key
                                                     ? 'bg-black/20 text-white'
                                                     : 'bg-slate-200/80 text-slate-600'
-                                            }`}
+                                                }`}
                                         >
                                             {tab.count}
                                         </span>
@@ -899,36 +892,45 @@ export default function BookingHistory() {
                         {/* TRẠNG THÁI RỖNG (EMPTY STATE) */}
                         {!isLoading && filteredBookings.length === 0 && (
                             <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-xs my-8">
-                                <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-50 text-amber-500 flex items-center justify-center mb-4">
-                                    <Hotel className="w-8 h-8 text-amber-500" />
+                                <div className="w-16 h-16 mx-auto rounded-3xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center mb-4">
+                                    <Hotel className="w-8 h-8 text-sky-600" />
                                 </div>
                                 <h3 className="font-serif text-lg font-bold text-slate-900 mb-1">
-                                    {statusFilter === 'all'
+                                    {statusFilter === 'all' && bookingTypeFilter === 'all' && !searchKeyword
                                         ? 'Quý khách chưa có đơn đặt phòng nào'
-                                        : `Không có đơn đặt phòng nào ở mục "${
-                                              statusFilter === 'pending'
-                                                  ? 'Chờ duyệt'
-                                                  : statusFilter === 'confirmed'
-                                                  ? 'Đã xác nhận'
-                                                  : statusFilter === 'checked_in'
-                                                  ? 'Đang lưu trú'
-                                                  : statusFilter === 'completed'
-                                                  ? 'Hoàn thành'
-                                                  : 'Đã hủy'
-                                          }"`}
+                                        : 'Không tìm thấy đơn đặt phòng phù hợp'}
                                 </h3>
                                 <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                                    {searchKeyword
-                                        ? 'Không tìm thấy kết quả phù hợp với từ khóa bạn tìm kiếm.'
+                                    {searchKeyword || statusFilter !== 'all' || bookingTypeFilter !== 'all'
+                                        ? 'Không có đơn đặt phòng nào khớp với bộ lọc hoặc từ khóa bạn đang chọn.'
                                         : `Hãy lên kế hoạch cho kỳ nghỉ tuyệt vời cùng gia đình và người thân tại ${hotelName} ngay hôm nay.`}
                                 </p>
-                                <Link
-                                    to="/rooms"
-                                    className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition inline-flex items-center gap-2 cursor-pointer"
-                                >
-                                    <BedDouble className="w-4 h-4" />
-                                    <span>Khám phá phòng nghỉ ngay</span>
-                                </Link>
+                                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                                    {(searchKeyword || statusFilter !== 'all' || bookingTypeFilter !== 'all') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setStatusFilter('all');
+                                                setBookingTypeFilter('all');
+                                                setSearchKeyword('');
+                                            }}
+                                            className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition inline-flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <RefreshCw className="w-3.5 h-3.5" />
+                                            <span>Xem tất cả đơn của tôi</span>
+                                        </button>
+                                    )}
+                                    <Link
+                                        to="/rooms"
+                                        className={`px-5 py-2.5 font-bold text-xs rounded-xl transition inline-flex items-center gap-2 cursor-pointer ${searchKeyword || statusFilter !== 'all' || bookingTypeFilter !== 'all'
+                                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                                                : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white shadow-md shadow-sky-900/20'
+                                            }`}
+                                    >
+                                        <BedDouble className="w-4 h-4" />
+                                        <span>Khám phá phòng nghỉ ngay</span>
+                                    </Link>
+                                </div>
                             </div>
                         )}
 
@@ -1036,10 +1038,10 @@ export default function BookingHistory() {
                                     const roomAmountNum = Number(booking.room_amount ?? booking.total_amount) || 0;
                                     const paidAmountNum = Number(booking.paid_amount || 0);
                                     const remainingBalanceNum = Number(
-                                        booking.remaining_balance != null 
-                                            ? booking.remaining_balance 
-                                            : (booking.remaining_amount != null 
-                                                ? booking.remaining_amount 
+                                        booking.remaining_balance != null
+                                            ? booking.remaining_balance
+                                            : (booking.remaining_amount != null
+                                                ? booking.remaining_amount
                                                 : Math.max(0, grandTotalNum - paidAmountNum))
                                     );
                                     const isNotCheckedOut = !['completed', 'checked_out', 'cancelled', 'no_show'].includes(booking.status);
@@ -1049,7 +1051,7 @@ export default function BookingHistory() {
                                         : (Array.isArray(booking.selected_services) && booking.selected_services.length > 0)
                                             ? booking.selected_services
                                             : (Array.isArray(booking.service_requests) ? booking.service_requests : []);
-                                    const extraServicesTotal = Number(booking.extra_services_total) || 
+                                    const extraServicesTotal = Number(booking.extra_services_total) ||
                                         extraServices.reduce((sum, s) => sum + Number(s.total_price || (s.price * (s.quantity || 1)) || 0), 0);
                                     const hasExtraServices = extraServices.length > 0;
                                     const groupInfo = getGroupBookingInfo(booking);
@@ -1064,22 +1066,20 @@ export default function BookingHistory() {
                                     return (
                                         <div
                                             key={booking.id}
-                                            className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-md ${
-                                                groupInfo.isGroup
+                                            className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden shadow-xs hover:shadow-md ${groupInfo.isGroup
                                                     ? 'border-indigo-200/90 hover:border-indigo-300'
-                                                    : 'border-slate-200 hover:border-amber-400/50'
-                                            }`}
+                                                    : 'border-slate-200 hover:border-sky-300/80'
+                                                }`}
                                         >
                                             {/* 1. HEADER CỦA THẺ: MÃ ĐƠN, NGÀY ĐẶT, HUY HIỆU ĐOÀN B2B & BADGE TRẠNG THÁI */}
-                                            <div className={`px-5 sm:px-7 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 ${
-                                                groupInfo.isGroup
+                                            <div className={`px-5 sm:px-7 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 ${groupInfo.isGroup
                                                     ? 'bg-gradient-to-r from-indigo-50/80 via-purple-50/30 to-slate-50/70 border-indigo-100'
                                                     : 'bg-slate-50/80 border-slate-100'
-                                            }`}>
+                                                }`}>
                                                 <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                                             Mã đơn:
+                                                            Mã đơn:
                                                         </span>
                                                         <span className="font-mono text-sm font-black text-slate-900 tracking-wider">
                                                             {booking.booking_code}
@@ -1087,7 +1087,7 @@ export default function BookingHistory() {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCopyCode(booking.booking_code)}
-                                                            className="p-1 text-slate-400 hover:text-amber-600 transition rounded-md hover:bg-slate-200/60 text-xs cursor-pointer"
+                                                            className="p-1 text-slate-400 hover:text-sky-600 transition rounded-md hover:bg-slate-200/60 text-xs cursor-pointer"
                                                             title="Sao chép mã đơn"
                                                         >
                                                             {copiedCode === booking.booking_code ? (
@@ -1204,11 +1204,11 @@ export default function BookingHistory() {
 
                                                         {/* Thông tin phòng & thời gian lưu trú */}
                                                         <div className="space-y-2 flex-1">
-                                                             <div>
+                                                            <div>
                                                                 {booking.category_id ? (
                                                                     <Link
                                                                         to={`/rooms/${booking.category_id}`}
-                                                                        className="font-serif text-lg sm:text-xl font-bold text-slate-900 hover:text-amber-600 transition tracking-tight flex items-center gap-1.5"
+                                                                        className="font-serif text-lg sm:text-xl font-bold text-slate-900 hover:text-sky-700 transition tracking-tight flex items-center gap-1.5"
                                                                     >
                                                                         <span>{booking.room_name}</span>
                                                                         <ExternalLink className="w-3.5 h-3.5 text-slate-400 opacity-60" />
@@ -1218,19 +1218,19 @@ export default function BookingHistory() {
                                                                         {booking.room_name}
                                                                     </h3>
                                                                 )}
-                                                             </div>
+                                                            </div>
 
                                                             {/* Lịch Check-in -> Check-out */}
                                                             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
                                                                 <div className="inline-flex items-center gap-1.5 font-semibold text-slate-800 bg-slate-100/80 px-2.5 py-1 rounded-xl">
-                                                                    <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                                                                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
                                                                     <span>{formatDateDisplay(booking.check_in_date)}</span>
                                                                     <span className="text-slate-400">→</span>
                                                                     <span>{formatDateDisplay(booking.check_out_date)}</span>
                                                                 </div>
 
-                                                                <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-200/70 flex items-center gap-1">
-                                                                    <Moon className="w-3 h-3 text-amber-600" />
+                                                                <span className="px-2.5 py-1 rounded-xl bg-sky-50 text-sky-800 font-bold text-[11px] border border-sky-200/70 flex items-center gap-1">
+                                                                    <Moon className="w-3 h-3 text-sky-600" />
                                                                     <span>{booking.nights || 1} đêm lưu trú</span>
                                                                 </span>
                                                             </div>
@@ -1263,18 +1263,18 @@ export default function BookingHistory() {
                                                             /* HIỂN THỊ TÀI CHÍNH CHO PHÒNG THUỘC ĐOÀN B2B (MASTER-BILLING) */
                                                             (() => {
                                                                 const isGroupAllInclusive = Boolean(
-                                                                    booking.is_all_inclusive || 
-                                                                    booking.is_company_all_inclusive || 
+                                                                    booking.is_all_inclusive ||
+                                                                    booking.is_company_all_inclusive ||
                                                                     booking.billing_type === 'ALL_INCLUSIVE' ||
                                                                     booking.group_billing_type === 'ALL_INCLUSIVE' ||
                                                                     booking.group_booking_billing_type === 'ALL_INCLUSIVE'
                                                                 );
                                                                 const guestRemainingBalance = Number(
-                                                                    booking.remaining_balance != null 
-                                                                        ? booking.remaining_balance 
+                                                                    booking.remaining_balance != null
+                                                                        ? booking.remaining_balance
                                                                         : (booking.remaining_amount != null ? booking.remaining_amount : 0)
                                                                 );
-                                                                
+
                                                                 const isFullyCoveredByCompany = isGroupAllInclusive || guestRemainingBalance === 0;
 
                                                                 return (
@@ -1282,7 +1282,7 @@ export default function BookingHistory() {
                                                                         <span className="text-[11px] font-bold uppercase tracking-wider block text-slate-400">
                                                                             Chi phí khách thanh toán
                                                                         </span>
-                                                                        
+
                                                                         {isFullyCoveredByCompany ? (
                                                                             <>
                                                                                 <div className="text-xl sm:text-2xl font-black mt-0.5 text-indigo-700">
@@ -1393,10 +1393,10 @@ export default function BookingHistory() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setInvoiceModalBooking(booking)}
-                                                                className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-amber-300 text-slate-700 hover:text-amber-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 text-slate-700 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 title="Xem bảng kê chi tiết hóa đơn"
                                                             >
-                                                                <Receipt className="w-3.5 h-3.5 text-amber-600" />
+                                                                <Receipt className="w-3.5 h-3.5 text-sky-600" />
                                                                 <span>Hóa đơn</span>
                                                             </button>
 
@@ -1405,21 +1405,20 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenCancelModal(booking)}
-                                                                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${
-                                                                        isGroupDeposited
+                                                                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${isGroupDeposited
                                                                             ? 'border-amber-300 bg-amber-50/70 text-amber-800 hover:bg-amber-100'
                                                                             : 'border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300'
-                                                                    }`}
+                                                                        }`}
                                                                 >
                                                                     <XCircle className={`w-3.5 h-3.5 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-500'}`} />
                                                                     <span>
                                                                         {hasPendingGroupCancelRequest
                                                                             ? 'Xem / Cập nhật YC hủy đoàn'
                                                                             : isGroupDeposited
-                                                                            ? 'Yêu cầu hủy đoàn & Hoàn cọc'
-                                                                            : groupInfo.isGroup
-                                                                            ? 'Hủy phòng / Hủy đoàn'
-                                                                            : 'Hủy đặt phòng'}
+                                                                                ? 'Yêu cầu hủy đoàn & Hoàn cọc'
+                                                                                : groupInfo.isGroup
+                                                                                    ? 'Hủy phòng / Hủy đoàn'
+                                                                                    : 'Hủy đặt phòng'}
                                                                     </span>
                                                                 </button>
                                                             )}
@@ -1429,9 +1428,9 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenExtendModal(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
-                                                                    <CalendarPlus className="w-3.5 h-3.5 text-amber-700" />
+                                                                    <CalendarPlus className="w-3.5 h-3.5 text-sky-600" />
                                                                     <span>Gia hạn phòng</span>
                                                                 </button>
                                                             )}
@@ -1441,10 +1440,10 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenViewReviewModal(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 >
-                                                                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                                                                    <span>Xem đánh giá của tôi</span>
+                                                                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                                                    <span>Xem đánh giá</span>
                                                                 </button>
                                                             )}
 
@@ -1452,7 +1451,7 @@ export default function BookingHistory() {
                                                             {booking.status === 'completed' && (booking.category_id || booking.room_category?.id || booking.category) && (
                                                                 <Link
                                                                     to={`/checkout/${booking.category_id || booking.room_category?.id || booking.category}`}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 text-slate-800 hover:text-amber-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:border-sky-300 bg-slate-50 hover:bg-sky-50/60 text-slate-800 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
                                                                     <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
                                                                     <span>Đặt lại</span>
@@ -1500,15 +1499,15 @@ export default function BookingHistory() {
                                             {/* CHI TIẾT CÁC DỊCH VỤ PHÁT SINH TẠI PHÒNG (NẾU CÓ) */}
                                             {hasExtraServices && (() => {
                                                 const isGroupAllInclusive = Boolean(
-                                                    booking.is_all_inclusive || 
-                                                    booking.is_company_all_inclusive || 
+                                                    booking.is_all_inclusive ||
+                                                    booking.is_company_all_inclusive ||
                                                     booking.billing_type === 'ALL_INCLUSIVE' ||
                                                     booking.group_billing_type === 'ALL_INCLUSIVE' ||
                                                     booking.group_booking_billing_type === 'ALL_INCLUSIVE'
                                                 );
                                                 const guestRemainingBalance = Number(
-                                                    booking.remaining_balance != null 
-                                                        ? booking.remaining_balance 
+                                                    booking.remaining_balance != null
+                                                        ? booking.remaining_balance
                                                         : (booking.remaining_amount != null ? booking.remaining_amount : 0)
                                                 );
                                                 const isFullyCoveredByCompany = groupInfo.isGroup && groupInfo.isMasterBilled && (isGroupAllInclusive || guestRemainingBalance === 0);
@@ -1517,11 +1516,10 @@ export default function BookingHistory() {
                                                     <div className="bg-white px-4 sm:px-7 py-4 border-t border-slate-100">
                                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 mb-2.5">
                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                                <span className={`px-2 sm:px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap shrink-0 ${
-                                                                    isFullyCoveredByCompany 
-                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/70' 
+                                                                <span className={`px-2 sm:px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 whitespace-nowrap shrink-0 ${isFullyCoveredByCompany
+                                                                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/70'
                                                                         : (extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'bg-rose-50 text-rose-700 border border-rose-200/70' : 'bg-slate-100 text-slate-700 border border-slate-200/80')
-                                                                }`}>
+                                                                    }`}>
                                                                     <Receipt className="w-3 h-3 shrink-0" />
                                                                     <span>{isFullyCoveredByCompany ? 'Dịch vụ đặt kèm theo đoàn' : (extraServices.some(s => (s.service_name || '').toLowerCase().includes('bồi thường')) ? 'Dịch vụ & Phụ phí' : 'Dịch vụ & Tiện ích')}</span>
                                                                 </span>
@@ -1621,7 +1619,7 @@ export default function BookingHistory() {
                                                 setPageSize(Number(e.target.value));
                                                 setCurrentPage(1);
                                             }}
-                                            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                                            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
                                         >
                                             <option value={5}>5 đơn / trang</option>
                                             <option value={10}>10 đơn / trang</option>
