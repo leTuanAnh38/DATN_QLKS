@@ -17,7 +17,7 @@ export default function CorporateHeroBanner({ settings }) {
                 <div className="absolute inset-0 bg-gradient-to-r from-white via-white/55 to-transparent" />
             </div>
 
-            <div className="relative z-10 p-6 sm:p-10 space-y-6 max-w-2xl">
+            <div className="relative z-10 p-5 sm:p-10 space-y-5 sm:space-y-6 max-w-2xl">
                 <div className="space-y-3">
                     <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-sky-700">
                         DỊCH VỤ DOANH NGHIỆP & HỘI THẢO
