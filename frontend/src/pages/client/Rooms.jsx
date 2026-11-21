@@ -3,6 +3,7 @@ import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import RoomsComparisonAndStandards from '../../components/client/RoomsComparisonAndStandards';
+import RoomCardImageCarousel from '../../components/client/RoomCardImageCarousel';
 import roomService from '../../services/roomService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { formatDate as formatDateDisplay, formatDateToInput, getNextDayString } from '../../utils/formatters';
@@ -60,7 +61,6 @@ export default function RoomsAndSuitesPage() {
     const [capacityFilter, setCapacityFilter] = useState(guestsParam ? String(guestsParam) : 'all');
     const [viewFilter, setViewFilter] = useState('all'); // 'all' | 'sea' | 'city'
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-    const [activeCardImgIdx, setActiveCardImgIdx] = useState({}); // { [roomId]: imageIndex }
 
     const activeAdvancedCount =
         (priceRange !== 'all' ? 1 : 0) +
@@ -513,9 +513,6 @@ export default function RoomsAndSuitesPage() {
                             }
                             if (galleryList.length === 0) galleryList.push(fallbackImg);
 
-                            const curImgIdx = activeCardImgIdx[room.id] || 0;
-                            const activeImage = galleryList[curImgIdx] || galleryList[0];
-
                             const hasPromo =
                                 room.promo_price &&
                                 Number(room.promo_price) > 0 &&
@@ -568,74 +565,21 @@ export default function RoomsAndSuitesPage() {
                                     key={room.id}
                                     className="bg-white rounded-3xl overflow-hidden border border-slate-200/85 shadow-[0_6px_25px_-10px_rgba(15,23,42,0.08)] hover:shadow-[0_20px_45px_-15px_rgba(15,23,42,0.16)] hover:border-sky-200/90 transition-all duration-300 flex flex-col lg:flex-row group"
                                 >
-                                    {/* CỘT TRÁI: ẢNH PHÒNG RỘNG + CHẤM CHUYỂN ẢNH */}
-                                    <div className="relative w-full lg:w-[40%] xl:w-[39%] h-60 sm:h-72 lg:h-auto lg:min-h-[290px] overflow-hidden bg-slate-900 shrink-0">
-                                        <Link
-                                            to={`/rooms/${room.id}`}
-                                            state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
-                                            className="block w-full h-full"
-                                        >
-                                            <img
-                                                src={activeImage}
-                                                alt={room.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out cursor-pointer"
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    e.target.src = fallbackImg;
-                                                }}
-                                            />
-                                        </Link>
-
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-black/15 pointer-events-none" />
-
-                                        {/* Badges góc trên trái giống mẫu */}
-                                        <div className="absolute top-4 left-4 flex flex-col items-start gap-1.5 pointer-events-none">
-                                            {hasPromo ? (
-                                                <>
-                                                    <span className="px-3 py-1 rounded-full bg-rose-600/95 text-white text-[10px] font-black uppercase tracking-wider shadow-sm">
-                                                        ƯU ĐÃI ĐẶC BIỆT
-                                                    </span>
-                                                    <span className="px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-xs text-slate-800 text-[10.5px] font-bold shadow-xs">
-                                                        Tiết kiệm {discountPercent}%
-                                                    </span>
-                                                </>
-                                            ) : (
-                                                <span className="px-3 py-1 rounded-full bg-slate-950/65 backdrop-blur-md text-amber-300 text-[10px] font-bold uppercase tracking-wider border border-white/15">
-                                                    {settings?.stars || 3}-STAR LUXURY
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Bộ đếm ảnh góc trên phải */}
-                                        <div className="absolute top-4 right-4 pointer-events-none">
-                                            <span className="px-2.5 py-1 rounded-full bg-slate-950/55 backdrop-blur-md text-white text-[11px] font-medium flex items-center gap-1.5 border border-white/15">
-                                                <Camera className="w-3.5 h-3.5 text-amber-300" />
-                                                <span>{galleryList.length} ảnh</span>
-                                            </span>
-                                        </div>
-
-                                        {/* Chấm chuyển ảnh nhanh ngay dưới đáy ảnh */}
-                                        {galleryList.length > 1 && (
-                                            <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 px-2.5 py-1 rounded-full bg-slate-950/40 backdrop-blur-xs">
-                                                {galleryList.slice(0, 5).map((_, imgIdx) => (
-                                                    <button
-                                                        key={imgIdx}
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            setActiveCardImgIdx((prev) => ({ ...prev, [room.id]: imgIdx }));
-                                                        }}
-                                                        aria-label={`Xem ảnh ${imgIdx + 1}`}
-                                                        className={`rounded-full transition-all cursor-pointer ${
-                                                            curImgIdx === imgIdx
-                                                                ? 'w-5 h-1.5 bg-white'
-                                                                : 'w-1.5 h-1.5 bg-white/55 hover:bg-white/85'
-                                                        }`}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* CỘT TRÁI: ẢNH PHÒNG RỘNG + VUỐT TAY / KÉO CHUỘT / MŨI TÊN CHUYỂN ẢNH */}
+                                    <RoomCardImageCarousel
+                                        images={galleryList}
+                                        fallbackImg={fallbackImg}
+                                        alt={room.name}
+                                        to={`/rooms/${room.id}`}
+                                        linkState={{
+                                            checkInDate: effectiveCheckIn,
+                                            checkOutDate: effectiveCheckOut,
+                                            guestCount: effectiveGuests
+                                        }}
+                                        hasPromo={hasPromo}
+                                        discountPercent={discountPercent}
+                                        starCount={settings?.stars || 3}
+                                    />
 
                                     {/* CỘT PHẢI: THÔNG TIN CHI TIẾT, THÔNG SỐ, TIỆN ÍCH & GIÁ */}
                                     <div className="flex-1 p-5 sm:p-7 flex flex-col justify-between gap-5">

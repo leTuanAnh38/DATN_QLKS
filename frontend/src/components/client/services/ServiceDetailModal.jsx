@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
     X,
     Clock,
@@ -202,9 +203,9 @@ export default function ServiceDetailModal({
     const subtotal = priceNum * qty;
     const showCartControls = typeof onAddToCart === 'function';
 
-    return (
+    const modalContent = (
         <div
-            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/65 backdrop-blur-xs animate-fade-in"
+            className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/65 backdrop-blur-xs animate-fade-in"
             role="dialog"
             aria-modal="true"
             aria-labelledby="service-detail-title"
@@ -213,11 +214,11 @@ export default function ServiceDetailModal({
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
             <div
-                className="relative z-10 w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col animate-scale-up"
+                className="relative z-10 w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[88vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden flex flex-col animate-scale-up"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* HERO IMAGE HEADER */}
-                <div className="relative h-56 sm:h-72 bg-slate-100 shrink-0 overflow-hidden">
+                <div className="relative h-48 sm:h-60 bg-slate-100 shrink-0 overflow-hidden">
                     <img
                         src={imgSrc}
                         alt={item.name}
@@ -441,5 +442,8 @@ export default function ServiceDetailModal({
             </div>
         </div>
     );
+
+    if (typeof document === 'undefined') return modalContent;
+    return createPortal(modalContent, document.body);
 }
 
