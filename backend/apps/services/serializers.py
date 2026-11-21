@@ -36,6 +36,8 @@ class ServiceItemSerializer(serializers.ModelSerializer):
             'category_type',
             'name',
             'description',
+            'ingredients',
+            'duration',
             'price',
             'image',
             'image_url',

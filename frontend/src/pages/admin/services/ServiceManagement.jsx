@@ -59,6 +59,8 @@ export default function ServiceManagement() {
         category: '',
         price: '',
         description: '',
+        ingredients: '',
+        duration: '',
         is_active: true,
         image_url: '',
     });
@@ -145,6 +147,7 @@ export default function ServiceManagement() {
                 !searchQuery.trim() ||
                 s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 s.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                s.ingredients?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 s.category_name?.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchStatus && matchSearch;
         });
@@ -198,6 +201,8 @@ export default function ServiceManagement() {
             category: categories[0]?.id || '',
             price: '',
             description: '',
+            ingredients: '',
+            duration: '',
             is_active: true,
             image_url: '',
         });
@@ -217,6 +222,8 @@ export default function ServiceManagement() {
             category: service.category_id || service.category || categories[0]?.id || '',
             price: String(Math.round(service.price || 0)),
             description: service.description || '',
+            ingredients: service.ingredients || '',
+            duration: service.duration || '',
             is_active: service.is_active ?? true,
             image_url: service.image_url || '',
         });
@@ -273,6 +280,8 @@ export default function ServiceManagement() {
                 data.append('category_id', formData.category);
                 data.append('price', Math.round(priceNum));
                 data.append('description', formData.description.trim());
+                data.append('ingredients', formData.ingredients.trim());
+                data.append('duration', formData.duration.trim());
                 data.append('is_active', formData.is_active ? 'true' : 'false');
                 data.append('image', selectedFile);
                 if (formData.image_url.trim()) {
@@ -292,6 +301,8 @@ export default function ServiceManagement() {
                     category_id: Number(formData.category),
                     price: Math.round(priceNum),
                     description: formData.description.trim(),
+                    ingredients: formData.ingredients.trim(),
+                    duration: formData.duration.trim(),
                     is_active: Boolean(formData.is_active),
                     image_url: formData.image_url.trim(),
                 };
@@ -1070,12 +1081,44 @@ export default function ServiceManagement() {
                                     Mô Tả Chi Tiết
                                 </label>
                                 <textarea
-                                    rows="2"
+                                    rows="3"
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    placeholder="Mô tả nguyên liệu, hương vị hoặc dịch vụ đi kèm để khách hàng lựa chọn..."
+                                    placeholder="Mô tả hương vị, trải nghiệm hoặc thông tin chi tiết để khách hàng lựa chọn..."
                                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition resize-none"
                                 />
+                            </div>
+
+                            {/* Thành phần / Bao gồm & Thời lượng / Khẩu phần */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                                        Thành Phần / Hạng Mục Bao Gồm
+                                    </label>
+                                    <textarea
+                                        rows="3"
+                                        value={formData.ingredients}
+                                        onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
+                                        placeholder={"Mỗi thành phần xuống 1 dòng (VD:\nThăn bò Wagyu Úc 250g\nKhoai tây nghiền nấm truffle\nSốt tiêu rừng Tây Nguyên)"}
+                                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition resize-y"
+                                    />
+                                    <span className="text-[10px] text-slate-400 mt-1 block">
+                                        Hiển thị dạng danh sách gạch đầu dòng trong Modal Chi tiết dịch vụ của khách.
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                                        Thời Lượng / Khẩu Phần
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.duration}
+                                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                        placeholder="VD: Chế biến 20 - 30 phút • 1-2 khách, hoặc 90 phút liệu trình"
+                                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
+                                    />
+                                </div>
                             </div>
 
                             {/* HÌNH ẢNH DỊCH VỤ (Upload File / URL) */}

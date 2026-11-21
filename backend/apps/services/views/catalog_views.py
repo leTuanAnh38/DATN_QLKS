@@ -109,6 +109,7 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 Q(name__icontains=search_query) |
                 Q(description__icontains=search_query) |
+                Q(ingredients__icontains=search_query) |
                 Q(category__name__icontains=search_query)
             )
 

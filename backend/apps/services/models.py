@@ -21,6 +21,8 @@ class ServiceItem(models.Model):
     category = models.ForeignKey(ServiceCategory, on_delete=models.CASCADE, related_name='services', verbose_name="Thuộc nhóm")
     name = models.CharField(max_length=100, verbose_name="Tên dịch vụ / Món ăn")
     description = models.TextField(blank=True, default='', verbose_name="Mô tả chi tiết")
+    ingredients = models.TextField(blank=True, default='', verbose_name="Thành phần / Hạng mục bao gồm")
+    duration = models.CharField(max_length=100, blank=True, default='', verbose_name="Thời lượng / Khẩu phần")
     price = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Đơn giá (VND)")
     image = models.ImageField(upload_to='services/', null=True, blank=True, verbose_name="Hình ảnh tải lên")
     image_url = models.CharField(max_length=500, blank=True, default='', verbose_name="Đường dẫn ảnh trực tuyến (URL)")

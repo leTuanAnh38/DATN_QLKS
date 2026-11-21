@@ -8,6 +8,7 @@ import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useScrollAfterPageChange } from '../../utils/scrollUtils';
 import {
     ServiceSuccessModal,
+    ServiceDetailModal,
     ServiceOrderModal,
     ServiceCartModal,
     ServiceHistoryModal,
@@ -45,7 +46,8 @@ import {
     Flower2,
     Car,
     Shirt,
-    Tag
+    Tag,
+    Eye
 } from 'lucide-react';
 
 // Helper hiển thị icon đại diện chuẩn 5 sao cho danh mục dịch vụ khách sạn
@@ -211,7 +213,8 @@ export default function ServicesMenu() {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 8;
 
-    // 3. Order Modal States
+    // 3. Detail & Order Modal States
+    const [detailItem, setDetailItem] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [selectedBookingId, setSelectedBookingId] = useState('');
@@ -417,8 +420,12 @@ export default function ServicesMenu() {
         if (srvId && serviceItems.length > 0) {
             const matched = serviceItems.find((it) => String(it.id) === String(srvId));
             if (matched) {
-                setSelectedItem(matched);
-                setQuantity(1);
+                if (location.state?.openDetail || params.get('detail') === 'true') {
+                    setDetailItem(matched);
+                } else {
+                    setSelectedItem(matched);
+                    setQuantity(1);
+                }
             }
         }
     }, [location.search, location.state, isAuthenticated, serviceItems]);
@@ -432,6 +439,7 @@ export default function ServicesMenu() {
                 !searchQuery.trim() ||
                 item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                item.ingredients?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.category_name?.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchSearch;
         });
@@ -485,9 +493,9 @@ export default function ServicesMenu() {
     }, [totalPages, safePage]);
 
     // Mở modal đặt dịch vụ
-    const handleOpenOrderModal = (item) => {
+    const handleOpenOrderModal = (item, initialQty = 1) => {
         setSelectedItem(item);
-        setQuantity(1);
+        setQuantity(Math.max(1, Number(initialQty) || 1));
         setNote('');
         if (activeBookings.length > 0 && !selectedBookingId) {
             setSelectedBookingId(String(activeBookings[0].id));
@@ -1049,7 +1057,19 @@ export default function ServicesMenu() {
                                         key={item.id}
                                         className="group bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
                                     >
-                                        <div>
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setDetailItem(item)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    setDetailItem(item);
+                                                }
+                                            }}
+                                            className="cursor-pointer focus:outline-none"
+                                            title="Bấm để xem chi tiết & thành phần dịch vụ"
+                                        >
                                             {/* Ảnh dịch vụ */}
                                             <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
                                                 <img
@@ -1073,6 +1093,12 @@ export default function ServicesMenu() {
                                                         <span>Đã chọn ({inCart.quantity})</span>
                                                     </span>
                                                 )}
+
+                                                {/* Nhãn xem chi tiết */}
+                                                <span className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                                                    <Eye className="w-3 h-3 text-sky-600" />
+                                                    <span>Xem chi tiết</span>
+                                                </span>
                                             </div>
 
                                             {/* Nội dung thông tin */}
@@ -1083,6 +1109,10 @@ export default function ServicesMenu() {
                                                 <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-normal min-h-[2.4rem]">
                                                     {item.description || `Dịch vụ chuẩn ${starCount} sao phục vụ trực tiếp tại phòng nghỉ.`}
                                                 </p>
+                                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 group-hover:text-sky-700 mt-2">
+                                                    <span>Xem mô tả & thành phần</span>
+                                                    <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                                                </span>
                                             </div>
                                         </div>
 
@@ -1229,6 +1259,17 @@ export default function ServicesMenu() {
                         </nav>
                     )}
                 </main>
+
+                {/* MODAL XEM CHI TIẾT DỊCH VỤ */}
+                <ServiceDetailModal
+                    item={detailItem}
+                    onClose={() => setDetailItem(null)}
+                    onAddToCart={(svc, qty) => addToCart(svc, qty)}
+                    onOrderNow={(svc, qty) => handleOpenOrderModal(svc, qty)}
+                    cartQuantity={detailItem ? (cart.find((c) => c.id === detailItem.id)?.quantity || 0) : 0}
+                    starCount={starCount}
+                    hotelName={settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}
+                />
 
                 {/* MODAL FORM ĐẶT DỊCH VỤ TẠI PHÒNG */}
                 <ServiceOrderModal

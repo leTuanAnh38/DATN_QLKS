@@ -1,4 +1,5 @@
 export { default as ServiceSuccessModal } from './ServiceSuccessModal';
+export { default as ServiceDetailModal } from './ServiceDetailModal';
 export { default as ServiceOrderModal } from './ServiceOrderModal';
 export { default as ServiceCartModal } from './ServiceCartModal';
 export { default as ServiceHistoryModal } from './ServiceHistoryModal';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     LayoutGrid,
     Award,
@@ -9,11 +9,13 @@ import {
     BellRing,
     Clock,
     Phone,
-    ArrowRight
+    ArrowRight,
+    Eye
 } from 'lucide-react';
 import hotelService from '../../services/hotelService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import { ServiceDetailModal } from './services';
 
 // Danh sách dịch vụ mẫu cao cấp dự phòng (fallback) để giao diện luôn tráng lệ
 const FALLBACK_SERVICES = [
@@ -23,6 +25,8 @@ const FALLBACK_SERVICES = [
         category_name: "Ẩm thực & Bar",
         price: "750000",
         description: "Thịt thăn bò Wagyu nhập khẩu đạt chứng nhận marble 7+, nướng trên than gáo dừa thơm lừng kèm khoai tây nghiền nấm truffle.",
+        ingredients: "Thăn ngoại bò Wagyu Úc MB7+ (250g)\nKhoai tây nghiền bơ Pháp & nấm Truffle đen\nSốt tiêu rừng Tây Nguyên nấu chậm\nMăng tây xanh nướng bơ tỏi",
+        duration: "Chế biến 25 - 30 phút • 1-2 khách",
         display_image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
         badge: "Chef's Signature"
     },
@@ -32,6 +36,8 @@ const FALLBACK_SERVICES = [
         category_name: "Ẩm thực & Bar",
         price: "380000",
         description: "Tôm hùm bông tươi sống kết hợp nhụy hoa nghệ tây Iran cao cấp, tạo nên vị ngọt đậm đà quý phái.",
+        ingredients: "Thịt tôm hùm bông Nha Trang tươi\nNhụy hoa nghệ tây Iran (Saffron)\nKem tươi Pháp & nước dùng vỏ tôm ninh 8 giờ\nBánh mì bơ tỏi nướng giòn ăn kèm",
+        duration: "Chế biến 20 phút • 1 phần",
         display_image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=80",
         badge: "Michelin Selected"
     },
@@ -41,6 +47,8 @@ const FALLBACK_SERVICES = [
         category_name: "Spa & Wellness",
         price: "1250000",
         description: "Massage toàn thân kết hợp tinh dầu sen trắng quý hiếm, đá núi lửa ấm và bồn ngâm thảo dược giải tỏa mệt mỏi.",
+        ingredients: "Ngâm chân thảo dược muối biển & sả gừng (15 phút)\nMassage toàn thân tinh dầu sen trắng hữu cơ (55 phút)\nChườm đá nóng núi lửa thư giãn cổ vai gáy (20 phút)\nTrà thảo mộc ấm & trái cây tươi sau liệu trình",
+        duration: "90 phút liệu trình",
         display_image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
         badge: "Thảo Dược Cổ Truyền"
     },
@@ -50,6 +58,8 @@ const FALLBACK_SERVICES = [
         category_name: "Ẩm thực & Bar",
         price: "450000",
         description: "Khay 3 tầng gồm 8 loại bánh pastry thủ công Pháp, macaron hạnh nhân, finger sandwich và ấm trà Dilmah thượng hạng.",
+        ingredients: "8 loại bánh ngọt Pastry Pháp & Macaron hạnh nhân\nBánh Scone bơ sữa ăn kèm mứt dâu & kem Clotted Cream\nFinger Sandwich cá hồi xông khói & trứng cá tầm\n1 ấm trà Dilmah thượng hạng (tùy chọn hương vị)",
+        duration: "Phục vụ trong 20 phút • Dành cho 2 khách",
         display_image: "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80",
         badge: "Best Seller"
     },
@@ -59,6 +69,8 @@ const FALLBACK_SERVICES = [
         category_name: "Spa & Wellness",
         price: "850000",
         description: "Sử dụng tinh chất tế bào gốc hữu cơ và máy sóng siêu âm lạnh giúp làn da căng bóng, rạng rỡ tức thì.",
+        ingredients: "Làm sạch sâu & tẩy tế bào chết dịu nhẹ\nĐiện di tinh chất tế bào gốc & Hyaluronic Acid\nĐắp mặt nạ collagen lạnh phục hồi da\nMassage nâng cơ mặt & thư giãn đầu cổ",
+        duration: "60 phút liệu trình",
         display_image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
         badge: "Chăm Sóc VIP"
     },
@@ -68,6 +80,8 @@ const FALLBACK_SERVICES = [
         category_name: "Đồ uống & Bar",
         price: "2450000",
         description: "Niên vụ đặc biệt 2018 mang hương thơm phức hợp của quả mọng đen, gỗ sồi Pháp và tannin mượt mà như nhung.",
+        ingredients: "Chai 750ml • Niên vụ 2018 (Bordeaux, Pháp)\nGiống nho Cabernet Sauvignon & Merlot tuyển chọn\nPhục vụ kèm bình Decanter & ly pha lê Riedel\nHỗ trợ ướp lạnh chuẩn nhiệt độ 16 - 18°C",
+        duration: "Giao tận phòng trong 15 phút",
         display_image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80",
         badge: "Hầm Vang TA Exclusive"
     }
@@ -119,6 +133,7 @@ const getCategoryIconComponent = (catName) => {
 };
 
 export default function FeaturedServices() {
+    const navigate = useNavigate();
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
@@ -126,6 +141,7 @@ export default function FeaturedServices() {
     const [categories, setCategories] = useState([]);
     const [activeFilter, setActiveFilter] = useState('all');
     const [loading, setLoading] = useState(true);
+    const [detailItem, setDetailItem] = useState(null);
 
     useEffect(() => {
         const fetchServiceData = async () => {
@@ -288,8 +304,20 @@ export default function FeaturedServices() {
                                     key={item.id}
                                     className="group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full"
                                 >
-                                    {/* Image Wrapper: Chỉ giữ 1 nhãn danh mục góc trái, bỏ nhãn giả góc phải để ảnh thoáng đẹp */}
-                                    <div className="relative h-56 sm:h-60 overflow-hidden bg-slate-100 shrink-0">
+                                    {/* Image Wrapper: Bấm để xem chi tiết dịch vụ */}
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setDetailItem(item)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setDetailItem(item);
+                                            }
+                                        }}
+                                        className="relative h-56 sm:h-60 overflow-hidden bg-slate-100 shrink-0 cursor-pointer focus:outline-none"
+                                        title="Bấm để xem chi tiết & thành phần dịch vụ"
+                                    >
                                         <img
                                             src={imgSrc}
                                             alt={item.name}
@@ -303,14 +331,31 @@ export default function FeaturedServices() {
                                             {getCategoryIconComponent(categoryName)}
                                             <span>{categoryName}</span>
                                         </span>
+
+                                        {/* Quick view cue */}
+                                        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                                            <Eye className="w-3 h-3 text-sky-600" />
+                                            <span>Xem chi tiết</span>
+                                        </span>
                                     </div>
 
                                     {/* Body Content */}
                                     <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between">
-                                        <div>
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setDetailItem(item)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    setDetailItem(item);
+                                                }
+                                            }}
+                                            className="cursor-pointer focus:outline-none"
+                                        >
                                             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium mb-1.5">
                                                 <Clock className="w-3 h-3 text-amber-600/80" />
-                                                <span>Phục vụ tận phòng 24/7</span>
+                                                <span>{item.duration || 'Phục vụ tận phòng 24/7'}</span>
                                             </div>
                                             <h3 className="font-serif text-lg font-bold text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-2 min-h-[3rem] leading-snug mb-2">
                                                 {item.name}
@@ -411,6 +456,16 @@ export default function FeaturedServices() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal Chi tiết dịch vụ khi bấm vào thẻ trên Trang chủ */}
+            <ServiceDetailModal
+                item={detailItem}
+                onClose={() => setDetailItem(null)}
+                onOrderNow={(svc) => navigate('/services', { state: { serviceId: svc.id } })}
+                starCount={starCount}
+                hotelName={hotelName}
+                primaryActionLabel="Đến Menu & Đặt Ngay"
+            />
         </section>
     );
 }

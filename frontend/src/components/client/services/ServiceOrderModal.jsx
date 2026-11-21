@@ -86,7 +86,12 @@ export default function ServiceOrderModal({
                                 <h4 className="font-bold text-slate-900 text-xs truncate">
                                     {selectedItem.name}
                                 </h4>
-                                <div className="text-xs font-black text-rose-600 mt-0.5">
+                                {selectedItem.description && (
+                                    <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-snug">
+                                        {selectedItem.description}
+                                    </p>
+                                )}
+                                <div className="text-xs font-black text-rose-600 mt-1">
                                     {Number(selectedItem.price).toLocaleString('vi-VN')} VND
                                     <span className="text-[10px] font-normal text-slate-400 ml-1">/ lần</span>
                                 </div>
