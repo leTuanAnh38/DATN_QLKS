@@ -151,18 +151,18 @@ export default function MembershipCard({ user }) {
 
                         {/* Middle: Điểm tích lũy & Mã thẻ dập nổi */}
                         <div className="my-auto z-10">
-                            <div className="flex justify-between items-end">
-                                <div>
+                            <div className="flex flex-wrap justify-between items-end gap-2">
+                                <div className="min-w-0">
                                     <span className="text-[10px] uppercase tracking-widest opacity-75 block">
                                         Tổng điểm tích lũy
                                     </span>
-                                    <div className="text-3xl font-black tracking-tight flex items-baseline gap-1.5">
+                                    <div className="text-2xl xs:text-3xl font-black tracking-tight flex items-baseline gap-1.5">
                                         {totalPoints.toLocaleString('vi-VN')}
                                         <span className="text-xs font-semibold tracking-wider opacity-80">PTS</span>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-md ${theme.badgeBg}`}>
+                                <div className="text-right shrink-0">
+                                    <span className={`text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-full border backdrop-blur-md inline-block ${theme.badgeBg}`}>
                                         {discountVal > 0 ? `Giảm ${discountVal}% giá phòng` : 'Hội viên tích điểm'}
                                     </span>
                                 </div>
@@ -173,17 +173,17 @@ export default function MembershipCard({ user }) {
                         </div>
 
                         {/* Bottom: Tên chủ thẻ & Loại thẻ */}
-                        <div className="flex justify-between items-end z-10 border-t border-white/20 pt-2.5">
-                            <div>
+                        <div className="flex justify-between items-end gap-2 z-10 border-t border-white/20 pt-2.5">
+                            <div className="min-w-0 flex-1">
                                 <span className="text-[9px] uppercase tracking-widest opacity-70 block">
                                     Chủ thẻ thành viên
                                 </span>
-                                <span className="font-bold text-xs sm:text-sm tracking-wider uppercase drop-shadow-sm">
+                                <span className="font-bold text-xs sm:text-sm tracking-wider uppercase drop-shadow-sm block truncate">
                                     {user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username}
                                 </span>
                             </div>
-                            <div className="text-right">
-                                <span className="text-[10px] font-extrabold tracking-widest opacity-80">
+                            <div className="text-right shrink-0">
+                                <span className="text-[10px] font-extrabold tracking-widest opacity-80 whitespace-nowrap">
                                     {theme.tierLabel}
                                 </span>
                             </div>
@@ -194,9 +194,9 @@ export default function MembershipCard({ user }) {
                 {/* 2. THANH TIẾN TRÌNH & THÔNG TIN LÊN HẠNG KẾ TIẾP */}
                 <div className="lg:col-span-7 space-y-5">
                     {/* Hộp tiến trình */}
-                    <div className="bg-slate-50/90 rounded-2xl p-5 border border-slate-200/70">
+                    <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/70">
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-semibold text-slate-700 text-sm">
                                     Cấp bậc hội viên:
                                 </span>
@@ -206,12 +206,12 @@ export default function MembershipCard({ user }) {
                             </div>
 
                             {nextTier ? (
-                                <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200/80 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 tabular-nums">
+                                <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 rounded-full border border-amber-200/80 inline-flex items-center gap-1.5 leading-snug max-w-full tabular-nums">
                                     <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <span>Còn {pointsNeeded} điểm → {nextTier.name}</span>
                                 </span>
                             ) : (
-                                <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 inline-flex items-center gap-1 whitespace-nowrap shrink-0">
+                                <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 inline-flex items-center gap-1 leading-snug max-w-full">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                     <span>Hạng cao nhất ({currentTier.name})</span>
                                 </span>

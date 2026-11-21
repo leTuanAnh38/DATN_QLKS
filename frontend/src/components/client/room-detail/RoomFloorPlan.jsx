@@ -46,8 +46,8 @@ export default function RoomFloorPlan({
             <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/70 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.07)]">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
                     {/* CỘT TRÁI: BẢN VẼ FLOOR PLAN WIREFRAME TÔNG XANH SÁNG */}
-                    <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-4 sm:p-6">
-                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2.5 bg-white/50">
+                    <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-3 sm:p-6 overflow-x-auto no-scrollbar">
+                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2 sm:p-2.5 bg-white/50 min-w-[295px]">
                             {/* Pill kích thước nổi ở góc trên phải */}
                             <div className="absolute -top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-white shadow-sm border border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 {totalArea} M² LUXURY LAYOUT

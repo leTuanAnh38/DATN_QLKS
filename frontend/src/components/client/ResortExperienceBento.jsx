@@ -81,7 +81,7 @@ export default function ResortExperienceBento() {
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             KHÔNG GIAN &amp; TIỆN ÍCH
                         </span>
-                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
+                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                             Tuyệt Tác Kiến Trúc & <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                                 Tiện Ích Chuẩn {starCount} Sao Quốc Tế

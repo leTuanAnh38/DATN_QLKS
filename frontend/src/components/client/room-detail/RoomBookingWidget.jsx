@@ -87,8 +87,8 @@ export default function RoomBookingWidget({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Thời gian lưu trú
                         </label>
-                        <div className="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-                            <div className="border-r border-slate-200 pr-2">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 xs:gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                            <div className="border-b xs:border-b-0 xs:border-r border-slate-200 pb-2 xs:pb-0 xs:pr-2 min-w-0">
                                 <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                                     Nhận phòng
                                 </span>
@@ -103,10 +103,10 @@ export default function RoomBookingWidget({
                                             setCheckOutDate(getNextDayString(newIn));
                                         }
                                     }}
-                                    className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
+                                    className="w-full bg-transparent text-base sm:text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
                                 />
                             </div>
-                            <div className="pl-2">
+                            <div className="xs:pl-2 min-w-0">
                                 <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                                     Trả phòng
                                 </span>
@@ -122,7 +122,7 @@ export default function RoomBookingWidget({
                                             setCheckOutDate(getNextDayString(checkInDate));
                                         }
                                     }}
-                                    className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
+                                    className="w-full bg-transparent text-base sm:text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
                                 />
                             </div>
                         </div>
@@ -136,26 +136,28 @@ export default function RoomBookingWidget({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Số lượng khách
                         </label>
-                        <div className="flex items-center justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-900">
-                                <Users className="w-4 h-4 text-slate-500" />
-                                <span>
+                        <div className="flex items-center justify-between gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 min-w-0">
+                                <Users className="w-4 h-4 text-slate-500 shrink-0" />
+                                <span className="truncate">
                                     {guestCount} Người lớn (Tối đa {room.capacity || 2} người)
                                 </span>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    aria-label="Giảm số khách"
                                 >
                                     -
                                 </button>
-                                <span className="text-xs font-bold">{guestCount}</span>
+                                <span className="text-xs font-bold min-w-[16px] text-center">{guestCount}</span>
                                 <button
                                     type="button"
                                     onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
-                                    className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    aria-label="Tăng số khách"
                                 >
                                     +
                                 </button>
@@ -260,17 +262,18 @@ export default function RoomBookingWidget({
             {/* STICKY BOTTOM BAR DÀNH RIÊNG CHO ĐIỆN THOẠI DI ĐỘNG */}
             <aside
                 aria-label="Thanh đặt phòng di động"
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom duration-300"
+                className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3.5 sm:px-4 py-3 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-bottom duration-300"
+                style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
             >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
                         Giá phòng trực tiếp
                     </span>
-                    <div className="flex items-baseline gap-1.5">
-                        <span className="text-xl font-black text-slate-900 truncate">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-lg xs:text-xl font-black text-slate-900 truncate tabular-nums">
                             {totalPricePerNight.toLocaleString('vi-VN')}
                         </span>
-                        <span className="text-[11px] font-bold text-slate-500">VND/đêm</span>
+                        <span className="text-[10.5px] font-bold text-slate-500 whitespace-nowrap shrink-0">VND/đêm</span>
                     </div>
                 </div>
 
@@ -285,11 +288,11 @@ export default function RoomBookingWidget({
                                 handleGoToCheckout();
                             }
                         }}
-                        className="group relative px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 active:scale-95 transition-all flex items-center gap-2 overflow-hidden cursor-pointer"
+                        className="group relative min-h-[42px] px-3.5 sm:px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 active:scale-95 transition-all flex items-center gap-1.5 sm:gap-2 overflow-hidden cursor-pointer whitespace-nowrap"
                     >
-                        <ShieldCheck className="w-4 h-4 text-white/90" />
+                        <ShieldCheck className="w-4 h-4 text-white/90 shrink-0" />
                         <span>Đặt phòng ngay</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
                     </button>
                 </div>
             </aside>

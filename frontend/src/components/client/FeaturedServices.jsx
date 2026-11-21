@@ -204,7 +204,7 @@ export default function FeaturedServices() {
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ẨM THỰC &amp; DỊCH VỤ
                     </span>
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
+                    <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Tinh Hoa Dịch Vụ Nghỉ Dưỡng <br />
                         <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent inline-block transform-gpu">
                             Phục Vụ Tận Phòng 24/7
@@ -217,7 +217,7 @@ export default function FeaturedServices() {
 
                 {/* Filter Tabs: Cuộn ngang mượt trên điện thoại, căn giữa trên Desktop */}
                 <div className="max-w-5xl mx-auto mb-10 sm:mb-12">
-                    <div className="flex sm:flex-wrap lg:flex-nowrap items-center sm:justify-center gap-2 sm:gap-2.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex sm:flex-wrap lg:flex-nowrap items-center sm:justify-center gap-2 sm:gap-2.5 overflow-x-auto py-1.5 sm:py-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {[
                             { id: 'all', label: 'Tất Cả Dịch Vụ', icon: LayoutGrid },
                             { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: UtensilsCrossed },
@@ -232,7 +232,7 @@ export default function FeaturedServices() {
                                     onClick={() => setActiveFilter(tab.id)}
                                     className={`px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                                         activeFilter === tab.id
-                                            ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 scale-[1.03]'
+                                            ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 sm:scale-[1.03]'
                                             : 'bg-white text-slate-600 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
                                     }`}
                                 >

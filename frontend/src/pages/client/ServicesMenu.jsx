@@ -995,7 +995,7 @@ export default function ServicesMenu() {
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 aria-label="Sắp xếp theo giá"
-                                className="w-[132px] sm:w-auto px-2.5 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer shrink-0 truncate"
+                                className="flex-1 sm:flex-none sm:w-44 min-w-0 px-3 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
                             >
                                 <option value="default">Mặc định</option>
                                 <option value="price_asc">Giá: Thấp → Cao</option>
@@ -1108,11 +1108,11 @@ export default function ServicesMenu() {
                                             {/* Hàng 2: Nút thao tác (Giữ nguyên tông màu Xanh dương biển) */}
                                             {inCart ? (
                                                 <div className="grid grid-cols-2 gap-2 pt-0.5">
-                                                    <div className="inline-flex items-center justify-between border border-sky-300 rounded-xl bg-sky-50/80 shadow-2xs overflow-hidden h-9">
+                                                    <div className="inline-flex items-center justify-between border border-sky-300 rounded-xl bg-sky-50/80 shadow-2xs overflow-hidden h-10 sm:h-9">
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(item.id, -1, true)}
-                                                            className="w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
+                                                            className="w-9 sm:w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
                                                             title="Giảm 1"
                                                         >
                                                             <Minus className="w-3.5 h-3.5" />
@@ -1123,7 +1123,7 @@ export default function ServicesMenu() {
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(item.id, 1, true)}
-                                                            className="w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
+                                                            className="w-9 sm:w-8 h-full flex items-center justify-center text-sky-900 hover:bg-sky-200/60 transition cursor-pointer"
                                                             title="Tăng 1"
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
@@ -1132,7 +1132,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 cursor-pointer"
+                                                        className="h-10 sm:h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 cursor-pointer"
                                                         title="Gọi riêng món này ngay"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1144,7 +1144,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => addToCart(item, 1)}
-                                                        className="h-9 px-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+                                                        className="h-10 sm:h-9 px-2 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-900 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
                                                         title="Thêm món này vào giỏ để gọi nhiều món một lúc"
                                                     >
                                                         <Plus className="w-3.5 h-3.5 text-sky-600 stroke-[2.5]" />
@@ -1153,7 +1153,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                                        className="h-10 sm:h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-1"
                                                         title="Gọi riêng món này ngay lập tức"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1189,14 +1189,14 @@ export default function ServicesMenu() {
                                     onClick={() => handlePageChange(safePage - 1)}
                                     disabled={safePage === 1}
                                     aria-label="Trang trước"
-                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
 
                                 {pageNumbers.map((p) =>
                                     typeof p === 'string' ? (
-                                        <span key={p} className="w-9 h-9 flex items-center justify-center text-slate-400 text-xs select-none">
+                                        <span key={p} className="w-8 sm:w-9 h-10 sm:h-9 flex items-center justify-center text-slate-400 text-xs select-none">
                                             …
                                         </span>
                                     ) : (
@@ -1205,7 +1205,7 @@ export default function ServicesMenu() {
                                             type="button"
                                             onClick={() => handlePageChange(p)}
                                             aria-current={p === safePage ? 'page' : undefined}
-                                            className={`w-9 h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                                            className={`w-10 h-10 sm:w-9 sm:h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
                                                 p === safePage
                                                     ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white border-sky-600 shadow-md shadow-sky-900/20'
                                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -1221,7 +1221,7 @@ export default function ServicesMenu() {
                                     onClick={() => handlePageChange(safePage + 1)}
                                     disabled={safePage === totalPages}
                                     aria-label="Trang sau"
-                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
                                     <ChevronRight className="w-4 h-4" />
                                 </button>
@@ -1255,11 +1255,12 @@ export default function ServicesMenu() {
                     <button
                         type="button"
                         onClick={() => setIsCartModalOpen(true)}
-                        className="fixed bottom-[4.5rem] left-4 sm:bottom-[5.25rem] sm:left-6 z-40 px-4 py-3 rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-xl shadow-sky-900/30 border border-sky-300/40 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
+                        className="fixed bottom-[4.5rem] left-3 sm:bottom-[5.25rem] sm:left-6 z-40 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-xl shadow-sky-900/30 border border-sky-300/40 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
                         title="Xem giỏ dịch vụ và gửi yêu cầu nhiều món cùng lúc"
                     >
-                        <ShoppingBag className="w-4 h-4 text-sky-100 group-hover:rotate-12 transition-transform" />
-                        <span>Giỏ Dịch Vụ</span>
+                        <ShoppingBag className="w-4 h-4 text-sky-100 group-hover:rotate-12 transition-transform shrink-0" />
+                        <span className="sm:hidden">Giỏ hàng</span>
+                        <span className="hidden sm:inline">Giỏ Dịch Vụ</span>
                         <span className="px-2 py-0.5 rounded-full bg-white text-sky-800 text-[10px] font-black shadow-xs">
                             {totalCartCount}
                         </span>
@@ -1303,14 +1304,15 @@ export default function ServicesMenu() {
                         fetchOrderHistory(false, targetBooking);
                         setIsHistoryModalOpen(true);
                     }}
-                    className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 px-4 py-3 rounded-full bg-white text-slate-800 hover:bg-slate-50 shadow-xl border border-slate-200/90 font-bold text-xs flex items-center gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
+                    className="fixed bottom-4 left-3 sm:bottom-6 sm:left-6 z-40 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-white text-slate-800 hover:bg-slate-50 shadow-xl border border-slate-200/90 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
                     title="Xem lịch sử dịch vụ & tiến độ xử lý"
                 >
-                    <History className="w-4 h-4 text-amber-600 group-hover:rotate-45 transition-transform" />
-                    <span>Lịch Sử Dịch Vụ</span>
+                    <History className="w-4 h-4 text-amber-600 group-hover:rotate-45 transition-transform shrink-0" />
+                    <span className="sm:hidden">Lịch sử</span>
+                    <span className="hidden sm:inline">Lịch Sử Dịch Vụ</span>
                     {activeOrdersCount > 0 ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-bounce shadow-xs">
-                            {activeOrdersCount} đang xử lý
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-bounce shadow-xs whitespace-nowrap">
+                            {activeOrdersCount} <span className="hidden sm:inline">đang xử lý</span>
                         </span>
                     ) : orderHistory.length > 0 ? (
                         <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">

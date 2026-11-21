@@ -193,43 +193,43 @@ export default function CorporateSuccessModal({
                             </div>
 
                             {/* Khung chi tiết thông tin chuyển khoản */}
-                            <div className="mt-3 p-3 bg-white rounded-xl border border-amber-100 text-left text-xs space-y-1.5 shadow-2xs font-sans tabular-nums">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-500 text-[11px]">Ngân hàng:</span>
-                                    <strong className="text-slate-900 font-bold">{bankDisplayName} ({bankConfig.bank_bin})</strong>
+                            <div className="mt-3 p-3 bg-white rounded-xl border border-amber-100 text-left text-xs space-y-2 shadow-2xs font-sans tabular-nums">
+                                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                    <span className="text-slate-500 text-[11px] shrink-0">Ngân hàng:</span>
+                                    <strong className="text-slate-900 font-bold text-right">{bankDisplayName} ({bankConfig.bank_bin})</strong>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-500 text-[11px]">Số tài khoản:</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <strong className="font-mono text-amber-700 font-extrabold text-xs">{bankConfig.account_no}</strong>
+                                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                    <span className="text-slate-500 text-[11px] shrink-0">Số tài khoản:</span>
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <strong className="font-mono text-amber-700 font-extrabold text-xs break-all">{bankConfig.account_no}</strong>
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(bankConfig.account_no, 'acc')}
-                                            className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1"
+                                            className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
                                             title="Sao chép số tài khoản"
                                         >
-                                            {copiedField === 'acc' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                            {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}
                                             <span>{copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-slate-500 text-[11px]">Chủ tài khoản:</span>
-                                    <strong className="text-slate-900 uppercase text-[11px] font-bold">{bankConfig.account_name}</strong>
+                                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                    <span className="text-slate-500 text-[11px] shrink-0">Chủ tài khoản:</span>
+                                    <strong className="text-slate-900 uppercase text-[11px] font-bold text-right break-words min-w-0">{bankConfig.account_name}</strong>
                                 </div>
-                                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                                    <span className="text-slate-500 text-[11px]">Nội dung CK:</span>
-                                    <div className="flex items-center gap-1.5">
-                                        <strong className="font-mono text-amber-800 font-bold text-xs bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100">
+                                    <span className="text-slate-500 text-[11px] shrink-0">Nội dung CK:</span>
+                                    <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-0">
+                                        <strong className="font-mono text-amber-800 font-bold text-xs bg-amber-50 px-2 py-1 rounded border border-amber-200 break-all">
                                             {qrNote}
                                         </strong>
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(qrNote, 'note')}
-                                            className="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1"
+                                            className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
                                             title="Sao chép nội dung chuyển khoản"
                                         >
-                                            {copiedField === 'note' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                            {copiedField === 'note' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}
                                             <span>{copiedField === 'note' ? 'Đã chép' : 'Sao chép'}</span>
                                         </button>
                                     </div>

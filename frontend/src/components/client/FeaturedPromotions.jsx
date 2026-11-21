@@ -139,7 +139,7 @@ export default function FeaturedPromotions() {
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             ƯU ĐÃI ĐẶC QUYỀN
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
+                        <h2 className="text-2xl sm:text-4xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                             Ưu Đãi Đặt Phòng{' '}
                             <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                                 Độc Quyền Hôm Nay
@@ -262,7 +262,7 @@ export default function FeaturedPromotions() {
 
                                     {/* Coupon Code Block & Action Buttons */}
                                     <div className="pt-2">
-                                        <div className="flex items-center justify-between bg-amber-50/80 border border-dashed border-amber-300 rounded-2xl px-3.5 py-2.5 mb-3">
+                                        <div className="flex items-center justify-between gap-2 bg-amber-50/80 border border-dashed border-amber-300 rounded-2xl px-3.5 py-2.5 mb-3">
                                             <div className="min-w-0">
                                                 <span className="text-[9px] uppercase tracking-wider text-amber-800 block font-bold">
                                                     Mã Voucher:
@@ -274,7 +274,7 @@ export default function FeaturedPromotions() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleCopyCode(promo.code)}
-                                                className={`p-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
+                                                className={`shrink-0 min-h-[40px] px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${
                                                     isCopied
                                                         ? 'bg-emerald-600 text-white shadow-xs'
                                                         : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-200'

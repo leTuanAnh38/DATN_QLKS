@@ -413,7 +413,7 @@ export default function NotificationBell({ theme = 'light' }) {
             <button
                 type="button"
                 onClick={handleToggleOpen}
-                className={`group relative p-2 rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                className={`group relative min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-xl transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                     theme === 'dark'
                         ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 border border-slate-200 shadow-xs'
@@ -441,12 +441,12 @@ export default function NotificationBell({ theme = 'light' }) {
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2 top-[64px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-76px)] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2 top-[76px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-88px)] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}
                     <div className="p-3 sm:p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                             <span className="font-bold text-sm tracking-wide whitespace-nowrap">Thông Báo</span>
                             {unreadCount > 0 && (
                                 <span className="bg-red-500/90 text-white text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
@@ -459,7 +459,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                 <button
                                     type="button"
                                     onClick={handleMarkAllAsRead}
-                                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 p-1.5 sm:px-2 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 min-h-[36px] px-2 sm:min-h-0 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
                                     title="Đánh dấu tất cả đã đọc"
                                     aria-label="Đánh dấu tất cả đã đọc"
                                 >
@@ -473,7 +473,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                     type="button"
                                     onClick={handleClearRead}
                                     disabled={isClearingRead}
-                                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-red-600 p-1.5 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-red-600 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
                                     title="Dọn dẹp các thông báo đã đọc"
                                     aria-label="Dọn dẹp các thông báo đã đọc"
                                 >
@@ -484,7 +484,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={toggleSound}
-                                className={`p-1.5 rounded-lg transition cursor-pointer shrink-0 ${
+                                className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg transition cursor-pointer shrink-0 ${
                                     soundEnabled ? 'text-blue-600 hover:bg-blue-100/60' : 'text-slate-400 hover:bg-slate-200/60'
                                 }`}
                                 title={soundEnabled ? 'Đang bật âm thanh thông báo (Click để tắt)' : 'Đang tắt âm thanh thông báo (Click để bật)'}
@@ -495,7 +495,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={() => fetchNotifications(false, 1, false, filter)}
-                                className="p-1.5 hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
+                                className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
                                 title="Tải lại thông báo"
                                 aria-label="Tải lại thông báo"
                             >

@@ -16,7 +16,7 @@ export default function ViewReviewModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -38,7 +38,7 @@ export default function ViewReviewModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
+                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4" />
@@ -46,7 +46,7 @@ export default function ViewReviewModal({
                 </div>
 
                 {/* Điểm tổng quan */}
-                <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50/40 to-slate-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                <div className="p-4 bg-gradient-to-r from-amber-50 via-orange-50/40 to-slate-50 rounded-2xl border border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
                             Điểm đánh giá trung bình

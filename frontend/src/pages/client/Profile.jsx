@@ -347,22 +347,23 @@ export default function Profile() {
                         )}
                     </div>
 
-                    {/* TAB NAVIGATION BAR (2 TABS GỌN GÀNG) */}
-                    <div className="flex items-center gap-2 border-t border-slate-100 mt-5 pt-3 overflow-x-auto no-scrollbar">
+                    {/* TAB NAVIGATION BAR (2 TABS GỌN GÀNG - HIỂN THỊ ĐỦ CẢ 2 TAB TRÊN 375px) */}
+                    <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 border-t border-slate-100 mt-5 pt-3">
                         <button
                             type="button"
                             onClick={() => {
                                 setActiveTab('info');
                                 navigate('/profile?tab=info', { replace: true });
                             }}
-                            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+                            className={`px-3 sm:px-4 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
                                 activeTab === 'info'
                                     ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            <User className="w-4 h-4" />
-                            <span>Thông Tin Cá Nhân & Tài Khoản</span>
+                            <User className="w-4 h-4 shrink-0" />
+                            <span className="sm:hidden truncate">Hồ Sơ Cá Nhân</span>
+                            <span className="hidden sm:inline">Thông Tin Cá Nhân & Tài Khoản</span>
                         </button>
 
                         <button
@@ -371,15 +372,16 @@ export default function Profile() {
                                 setActiveTab('membership');
                                 navigate('/profile?tab=membership', { replace: true });
                             }}
-                            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer ${
+                            className={`px-3 sm:px-4 py-2.5 min-h-[42px] rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
                                 activeTab === 'membership'
                                     ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                             }`}
                         >
-                            <Award className="w-4 h-4 text-amber-500" />
-                            <span>Thẻ Hội Viên & Điểm Thưởng</span>
-                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                            <Award className="w-4 h-4 text-amber-500 shrink-0" />
+                            <span className="sm:hidden truncate">Thẻ Hội Viên</span>
+                            <span className="hidden sm:inline">Thẻ Hội Viên & Điểm Thưởng</span>
+                            <span className={`hidden sm:inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                                 activeTab === 'membership'
                                     ? 'bg-amber-400/20 text-amber-200 border-amber-300/40'
                                     : 'bg-amber-50 text-amber-800 border-amber-200/80'
@@ -739,8 +741,8 @@ export default function Profile() {
                                     </div>
 
                                     {/* Khối Sở Thích Lưu Trú */}
-                                    <div className="p-5 rounded-3xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                                        <div className="flex items-center justify-between gap-2">
+                                    <div className="p-4 sm:p-5 rounded-3xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
                                             <div className="flex items-center gap-2.5 text-slate-900 font-bold text-sm">
                                                 <div className="p-2 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                     <Heart className="w-4 h-4" />
@@ -781,7 +783,7 @@ export default function Profile() {
                                                 value={formData.fullName}
                                                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                                 placeholder="Ví dụ: Nguyễn Văn An"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -796,7 +798,7 @@ export default function Profile() {
                                                 value={formData.phoneNumber}
                                                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                                 placeholder="Ví dụ: 0912345678"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
                                             />
                                         </div>
 
@@ -811,7 +813,7 @@ export default function Profile() {
                                                 value={formData.email}
                                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                                 placeholder="email@example.com"
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -820,11 +822,11 @@ export default function Profile() {
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Giấy tờ định danh
                                             </label>
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-col xs:flex-row gap-2">
                                                 <select
                                                     value={formData.idType}
                                                     onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                                                    className="w-32 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
+                                                    className="w-full xs:w-36 px-2.5 py-2.5 rounded-xl text-base sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer shrink-0"
                                                 >
                                                     <option value="CCCD">CCCD / CMND</option>
                                                     <option value="PASSPORT">Hộ chiếu</option>
@@ -835,7 +837,7 @@ export default function Profile() {
                                                     value={formData.idCardNumber}
                                                     onChange={(e) => setFormData({ ...formData, idCardNumber: e.target.value })}
                                                     placeholder="Nhập số giấy tờ"
-                                                    className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
+                                                    className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition font-mono"
                                                 />
                                             </div>
                                         </div>
@@ -849,7 +851,7 @@ export default function Profile() {
                                                 type="date"
                                                 value={formData.dateOfBirth}
                                                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                                                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
+                                                className="w-full min-w-0 max-w-full px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             />
                                         </div>
 
@@ -861,7 +863,7 @@ export default function Profile() {
                                             <select
                                                 value={formData.gender}
                                                 onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer"
                                             >
                                                 <option value="Nam">Nam</option>
                                                 <option value="Nữ">Nữ</option>
@@ -879,7 +881,7 @@ export default function Profile() {
                                                 value={formData.nationality}
                                                 onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
                                                 placeholder="Ví dụ: Việt Nam"
-                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -893,7 +895,7 @@ export default function Profile() {
                                                 value={formData.address}
                                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                                 placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
-                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
+                                                className="w-full min-w-0 px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition"
                                             />
                                         </div>
 
@@ -907,29 +909,29 @@ export default function Profile() {
                                                 value={formData.preferences}
                                                 onChange={(e) => setFormData({ ...formData, preferences: e.target.value })}
                                                 placeholder="Ví dụ: Thích phòng tầng cao, gối lông vũ mềm, không hút thuốc, đồ ăn ít đường..."
-                                                className="w-full px-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition resize-none"
+                                                className="w-full px-3.5 py-2.5 rounded-xl text-base sm:text-sm bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition resize-none"
                                             />
                                         </div>
                                     </div>
 
                                     {/* Bottom Form Actions */}
-                                    <div className="pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                                    <div className="pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <span className="text-xs text-slate-400">
                                             Các trường có dấu <span className="text-rose-500 font-bold">*</span> là bắt buộc.
                                         </span>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
                                             <button
                                                 type="button"
                                                 onClick={handleCancelEdit}
                                                 disabled={isLoading}
-                                                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition cursor-pointer disabled:opacity-60"
+                                                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition cursor-pointer disabled:opacity-60 text-center"
                                             >
                                                 Hủy bỏ
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer"
+                                                className="w-full sm:w-auto justify-center min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-70 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer"
                                             >
                                                 {isLoading && (
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

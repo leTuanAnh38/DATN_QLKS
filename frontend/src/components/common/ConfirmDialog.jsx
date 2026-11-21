@@ -63,14 +63,15 @@ export default function ConfirmDialog({
                             type="button"
                             disabled={isLoading}
                             onClick={onClose}
-                            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center shrink-0 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                            title="Đóng"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                <div className="bg-slate-50 px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <div className="bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-end gap-3 border-t border-slate-100">
                     <button
                         type="button"
                         disabled={isLoading}

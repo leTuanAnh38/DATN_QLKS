@@ -737,9 +737,9 @@ export default function RoomReviewsSection({
 
                                 {/* Phản hồi từ Ban quản lý khách sạn nếu có */}
                                 {rev.admin_reply && (
-                                    <div className="mt-3 p-4 bg-amber-50/60 border border-amber-200/70 rounded-2xl space-y-1.5 ml-4 sm:ml-6">
+                                    <div className="mt-3 p-3.5 sm:p-4 bg-amber-50/60 border border-amber-200/70 rounded-2xl space-y-1.5 ml-0 sm:ml-6">
                                         <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                                            <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                                            <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
                                                 <Crown className="w-3 h-3 text-white" />
                                             </div>
                                             <span>
@@ -747,7 +747,7 @@ export default function RoomReviewsSection({
                                                 {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-slate-800 leading-relaxed italic pl-7">
+                                        <p className="text-xs text-slate-800 leading-relaxed italic pl-0 sm:pl-7">
                                             "{rev.admin_reply}"
                                         </p>
                                     </div>
@@ -769,7 +769,7 @@ export default function RoomReviewsSection({
                                 type="button"
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
                                 aria-label="Trang trước"
                                 title="Trang trước"
                             >
@@ -786,7 +786,7 @@ export default function RoomReviewsSection({
                                         key={pageNum}
                                         type="button"
                                         onClick={() => handlePageChange(pageNum)}
-                                        className={`min-w-[32px] h-8 px-2 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
+                                        className={`min-w-[40px] h-10 sm:min-w-[32px] sm:h-8 px-2 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
                                             currentPage === pageNum
                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -801,7 +801,7 @@ export default function RoomReviewsSection({
                                 type="button"
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
                                 aria-label="Trang sau"
                                 title="Trang sau"
                             >

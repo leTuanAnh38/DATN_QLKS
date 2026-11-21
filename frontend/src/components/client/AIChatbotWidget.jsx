@@ -643,11 +643,16 @@ function renderFormattedContent(text) {
 export default function AIChatbotWidget() {
     const navigate = useNavigate();
     const location = useLocation();
+    const isCorporatePage =
+        location.pathname.startsWith('/corporate-booking') ||
+        location.pathname.startsWith('/group-booking');
     const hasMobileStickyBar =
         location.pathname.startsWith('/rooms/') ||
         location.pathname.startsWith('/room/') ||
         location.pathname.startsWith('/checkout') ||
-        location.pathname.startsWith('/corporate-booking');
+        location.pathname.startsWith('/services') ||
+        location.pathname.startsWith('/menu') ||
+        isCorporatePage;
 
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 5;
@@ -1330,7 +1335,11 @@ export default function AIChatbotWidget() {
             {/* 1. NÚT MỞ CHAT NỔI (FLOATING BUTTON) TÔNG SÁNG TRANG NHÃ DỊU MẮT & BONG BÓNG CHÀO ĐÓN */}
             <div
                 className={`fixed z-[90] select-none flex flex-col items-end ${
-                    hasMobileStickyBar ? 'bottom-20 right-4 sm:bottom-6 sm:right-6' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
+                    isCorporatePage
+                        ? 'bottom-24 right-4 sm:bottom-6 sm:right-6'
+                        : hasMobileStickyBar
+                            ? 'bottom-20 right-4 sm:bottom-6 sm:right-6'
+                            : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
                 }`}
             >
                 {/* Bong bóng chào đón thông minh (Proactive Callout Bubble) */}
@@ -1359,7 +1368,7 @@ export default function AIChatbotWidget() {
                             <button
                                 type="button"
                                 onClick={handleDismissBubble}
-                                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                                className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0 -mr-1.5 -my-1"
                                 title="Đóng thông báo"
                                 aria-label="Đóng thông điệp chào mừng"
                             >
@@ -1404,10 +1413,10 @@ export default function AIChatbotWidget() {
                     </div>
                 )}
 
-                {/* Nút Floating Button chính - Gọn gàng, sắc nét, giữ nguyên tông Xanh dương biển */}
+                {/* Nút Floating Button chính - Tròn cân đối trên Mobile, pill trên Desktop */}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="relative group flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 sm:pl-2 sm:pr-4 sm:py-2 rounded-full bg-white/95 hover:bg-white backdrop-blur-lg text-slate-800 font-medium border border-sky-200/80 hover:border-sky-300 transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_28px_-6px_rgba(2,132,199,0.28)] hover:shadow-[0_14px_32px_-6px_rgba(2,132,199,0.38)]"
+                    className="relative group flex items-center justify-center gap-2.5 p-1.5 sm:pl-2 sm:pr-4 sm:py-2 rounded-full bg-white/95 hover:bg-white backdrop-blur-lg text-slate-800 font-medium border border-sky-200/80 hover:border-sky-300 transition-all duration-300 ease-out cursor-pointer hover:-translate-y-0.5 active:scale-95 shadow-[0_10px_28px_-6px_rgba(2,132,199,0.28)] hover:shadow-[0_14px_32px_-6px_rgba(2,132,199,0.38)]"
                     title={`Trợ Lý Ảo AI - ${hotelName} ${starCount}★ (Multilingual Concierge)`}
                     aria-expanded={isOpen}
                     aria-label={`Mở khung trò chuyện với Trợ lý AI ${starCount} sao`}
@@ -1535,7 +1544,7 @@ export default function AIChatbotWidget() {
 
                             <button
                                 onClick={handleResetChat}
-                                className="p-1.5 text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
+                                className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors cursor-pointer"
                                 title="Làm mới cuộc trò chuyện"
                                 aria-label="Làm mới cuộc trò chuyện"
                             >
@@ -1543,7 +1552,7 @@ export default function AIChatbotWidget() {
                             </button>
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                                 title="Thu nhỏ khung chat"
                                 aria-label="Thu nhỏ khung chat"
                             >
@@ -1554,7 +1563,7 @@ export default function AIChatbotWidget() {
 
                     {/* B. THANH ĐẶC QUYỀN KHÁCH ĐANG LƯU TRÚ (IN-HOUSE GUEST CONCIERGE BAR - TÔNG SÁNG) */}
                     {activeStayInfo && activeStayInfo.is_checked_in && (
-                        <div className="bg-amber-50/90 border-b border-amber-200/80 px-3.5 py-1.5 flex items-center justify-between gap-2 text-[11px] text-slate-800">
+                        <div className="bg-amber-50/90 border-b border-amber-200/80 px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-800">
                             <div className="flex items-center gap-1.5 truncate">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
                                 <span className="font-semibold text-amber-900 truncate">
@@ -1650,7 +1659,7 @@ export default function AIChatbotWidget() {
                                         {/* 1. CÁC GỢI Ý HỎI NHANH 1 CHẠM NẰM TRONG BONG BÓNG CHÀO MỪNG */}
                                         {isWelcome && (
                                             <div className="mt-3 pt-2.5 border-t border-amber-100/90 space-y-2">
-                                                <div className="text-[11px] font-bold text-amber-900 flex items-center justify-between">
+                                                <div className="text-[11px] font-bold text-amber-900 flex flex-wrap items-center justify-between gap-1.5">
                                                     <span className="flex items-center gap-1.5">
                                                         <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                                                         {dict.quick_title}
@@ -1773,8 +1782,8 @@ export default function AIChatbotWidget() {
 
                                                             {!isCancelled ? (
                                                                 <div className="mt-3 pt-2.5 border-t border-slate-100">
-                                                                    <div className="relative flex items-start justify-between px-3">
-                                                                        <div className="absolute left-6 right-6 top-3 h-0.5 bg-slate-200 z-0 overflow-hidden rounded-full">
+                                                                    <div className="relative grid grid-cols-4 gap-1 items-start">
+                                                                        <div className="absolute left-[12.5%] right-[12.5%] top-3 h-0.5 bg-slate-200 z-0 overflow-hidden rounded-full">
                                                                             <div
                                                                                 className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
                                                                                 style={{
@@ -1789,9 +1798,9 @@ export default function AIChatbotWidget() {
                                                                             const isCurrent = currentStep === st.num;
 
                                                                             return (
-                                                                                <div key={st.num} className="relative z-10 flex flex-col items-center">
+                                                                                <div key={st.num} className="relative z-10 flex flex-col items-center min-w-0 px-0.5">
                                                                                     <div
-                                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                                                                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 shrink-0 ${
                                                                                             isCurrent
                                                                                                 ? 'bg-amber-600 text-white ring-4 ring-amber-100 scale-110 shadow-xs'
                                                                                                 : isDone
@@ -1802,7 +1811,7 @@ export default function AIChatbotWidget() {
                                                                                         <IconComp className="w-3 h-3" />
                                                                                     </div>
                                                                                     <span
-                                                                                        className={`text-[9px] mt-1 font-medium ${
+                                                                                        className={`text-[9px] mt-1 font-medium text-center leading-tight break-words w-full ${
                                                                                             isCurrent
                                                                                                 ? 'text-amber-800 font-bold'
                                                                                                 : isDone
@@ -2030,21 +2039,21 @@ export default function AIChatbotWidget() {
                                                                         placeholder={dict.handoff_name_ph}
                                                                         value={form.name ?? act.default_name ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], name: e.target.value } }))}
-                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
+                                                                        className="w-full px-2.5 py-2 sm:py-1.5 text-base sm:text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
                                                                     />
                                                                     <input
                                                                         type="email"
                                                                         placeholder={dict.handoff_email_ph}
                                                                         value={form.email ?? act.default_email ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], email: e.target.value } }))}
-                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
+                                                                        className="w-full px-2.5 py-2 sm:py-1.5 text-base sm:text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400"
                                                                     />
                                                                     <textarea
                                                                         rows={2}
                                                                         placeholder={dict.handoff_msg_ph}
                                                                         value={form.message ?? act.suggested_message ?? ''}
                                                                         onChange={(e) => setHandoffForms((p) => ({ ...p, [msg.id]: { ...p[msg.id], message: e.target.value } }))}
-                                                                        className="w-full px-2.5 py-1.5 text-[11px] rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400 resize-none"
+                                                                        className="w-full px-2.5 py-2 sm:py-1.5 text-base sm:text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-amber-400 resize-none"
                                                                     />
                                                                 </div>
                                                             )}
@@ -2477,7 +2486,7 @@ export default function AIChatbotWidget() {
                                 type="button"
                                 onClick={toggleVoiceInput}
                                 disabled={isLoading}
-                                className={`p-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center relative ${
+                                className={`w-10 h-10 sm:w-9 sm:h-9 shrink-0 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center relative ${
                                     isListening
                                         ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/30 ring-2 ring-rose-400 ring-offset-1 animate-pulse'
                                         : 'bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 shadow-2xs hover:shadow-xs active:scale-95'
@@ -2495,7 +2504,7 @@ export default function AIChatbotWidget() {
                             <button
                                 type="submit"
                                 disabled={!inputValue.trim() || isLoading}
-                                className={`p-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                                className={`w-10 h-10 sm:w-9 sm:h-9 shrink-0 rounded-xl font-medium transition-all duration-200 cursor-pointer flex items-center justify-center ${
                                     inputValue.trim() && !isLoading
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white shadow-xs active:scale-95 border border-sky-500'
                                         : 'bg-slate-200 text-slate-400 cursor-not-allowed'

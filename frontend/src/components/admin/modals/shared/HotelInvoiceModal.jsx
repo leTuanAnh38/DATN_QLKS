@@ -640,7 +640,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 }
             `}</style>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-y-auto max-h-[90vh] my-2 sm:my-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-y-auto max-h-[90dvh] my-2 sm:my-6">
                 {/* THANH ĐIỀU KHIỂN (Ẩn khi in) - Sticky top */}
                 <div className="no-print sticky top-0 z-20 bg-slate-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between border-b border-slate-800 shadow-xs">
                     <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">
@@ -655,7 +655,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         <button
                             type="button"
                             onClick={handlePrint}
-                            className="px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                            className="px-3 sm:px-4 py-2 min-h-[40px] sm:min-h-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                         >
                             <Printer className="w-4 h-4 shrink-0" />
                             <span className="hidden sm:inline">In hóa đơn (Ctrl + P)</span>
@@ -664,7 +664,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-3 sm:px-3.5 py-1.5 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer flex items-center gap-1"
+                            className="px-3 sm:px-3.5 py-2 min-h-[40px] sm:min-h-0 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition cursor-pointer flex items-center gap-1"
                         >
                             <X className="w-4 h-4" />
                             <span>Đóng</span>
@@ -748,9 +748,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         {/* 2.0 KHỐI PHÁP NHÂN DOANH NGHIỆP XUẤT HÓA ĐƠN VAT */}
                         {(booking.customer_type === 'CORPORATE' || booking.company_name || booking.invoice?.company_name) && (
                             <div className="sm:col-span-2 p-3.5 bg-slate-50 border border-slate-300 rounded-lg text-xs space-y-2 print:bg-transparent print:border-slate-400">
-                                <div className="font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex items-center justify-between">
+                                <div className="font-bold uppercase tracking-wider text-slate-900 border-b border-slate-200 pb-1 flex flex-wrap items-center justify-between gap-1.5">
                                     <span>ĐƠN VỊ CÔNG TY / TỔ CHỨC (HÓA ĐƠN DOANH NGHIỆP):</span>
-                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-200 text-slate-800 rounded font-bold print:border print:border-slate-300">
+                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-slate-200 text-slate-800 rounded font-bold shrink-0 print:border print:border-slate-300">
                                         VAT CORPORATE
                                     </span>
                                 </div>
@@ -774,11 +774,11 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                         {/* 2.0.1 KHỐI THÔNG TIN ĐOÀN KHÁCH & MASTER-BILLING */}
                         {isGroupRoom && (
                             <div className="sm:col-span-2 p-3.5 bg-indigo-50 border border-indigo-200 rounded-lg text-xs space-y-1.5 print:bg-transparent print:border-slate-400">
-                                <div className="font-bold uppercase tracking-wider text-indigo-900 border-b border-indigo-200/60 pb-1 flex items-center justify-between">
+                                <div className="font-bold uppercase tracking-wider text-indigo-900 border-b border-indigo-200/60 pb-1 flex flex-wrap items-center justify-between gap-1.5">
                                     <span className="flex items-center gap-1.5">
                                         <Building2 className="w-3.5 h-3.5 text-indigo-700 print:text-black shrink-0" /> PHÒNG THUỘC ĐOÀN KHÁCH: {booking.group_booking_name || booking.company_name || 'Khách đoàn Doanh nghiệp'}
                                     </span>
-                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold print:border print:border-slate-300">
+                                    <span className="text-[10px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded font-bold shrink-0 print:border print:border-slate-300">
                                         MÃ ĐOÀN: #{booking.group_booking_code || ''}
                                     </span>
                                 </div>
@@ -1281,9 +1281,9 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                             </div>
 
                             {(booking.customer_type === 'CORPORATE' || booking.company_name || booking.invoice?.company_name || isGroupMaster) && grandTotal > 0 && (
-                                <div className="flex justify-between sm:justify-end gap-6 text-[10px] text-slate-500 italic">
+                                <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-[10px] text-slate-500 italic">
                                     <span>* Đã bao gồm {Number(hotelInfo.service_charge_percent ?? 5)}% Phí phục vụ & {Number(hotelInfo.vat_percent ?? 8)}% Thuế GTGT (VAT):</span>
-                                    <span className="w-36 text-right font-medium">
+                                    <span className="shrink-0 sm:w-36 text-right font-medium whitespace-nowrap">
                                         ({formatCurrency(Math.round(grandTotal - (grandTotal / ((1 + Number(hotelInfo.service_charge_percent ?? 5) / 100) * (1 + Number(hotelInfo.vat_percent ?? 8) / 100)))))})
                                     </span>
                                 </div>
@@ -1291,29 +1291,29 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
 
                             {isGroupMaster ? (
                                 <>
-                                    <div className="flex justify-between sm:justify-end gap-6 text-slate-700">
+                                    <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-slate-700">
                                         <span className="text-slate-500">Tổng giá trị hợp đồng ({booking.total_rooms || booking.sub_bookings?.length || 1} phòng):</span>
-                                        <span className="font-bold text-slate-900 w-36 text-right">
+                                        <span className="font-bold text-slate-900 shrink-0 sm:w-36 text-right whitespace-nowrap">
                                             {formatCurrency(grandTotal)}
                                         </span>
                                     </div>
                                     {Number(booking.deposit_amount) > 0 && (
-                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                        <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                             <span>Tiền cọc đã thanh toán ({booking.is_deposit_paid || isCompleted ? 'Đã nhận' : 'Chờ xác nhận'}):</span>
-                                            <span className="w-36 text-right font-bold">
+                                            <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                 -{formatCurrency(booking.deposit_amount)}
                                             </span>
                                         </div>
                                     )}
                                     {isCompleted && (
-                                        <div className="flex justify-between sm:justify-end gap-6 text-purple-700 font-semibold text-[11px]">
+                                        <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-purple-700 font-semibold text-[11px]">
                                             <span>Quyết toán thanh toán đợt cuối khi check-out:</span>
-                                            <span className="w-36 text-right font-bold">
+                                            <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                 -{formatCurrency(Math.max(0, grandTotal - Number(booking.deposit_amount || 0)))}
                                             </span>
                                         </div>
                                     )}
-                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                    <div className="pt-2 border-t-2 border-slate-900 flex flex-wrap justify-between sm:justify-end items-baseline gap-2 sm:gap-6">
                                         <div>
                                             <span className="font-black text-xs sm:text-sm text-slate-900 uppercase block">
                                                 {isCompleted ? 'Trạng thái thanh toán:' : 'Còn lại cần quyết toán:'}
@@ -1322,21 +1322,21 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 {isCompleted ? '(Hợp đồng đã quyết toán toàn bộ 100%)' : '(Thu khi đoàn trả phòng / thanh lý HĐ)'}
                                             </span>
                                         </div>
-                                        <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                        <span className="font-black text-base sm:text-lg text-slate-900 shrink-0 sm:w-36 text-right whitespace-nowrap">
                                             {isCompleted ? '0đ (Đã thanh toán 100%)' : formatCurrency(balanceDue)}
                                         </span>
                                     </div>
                                 </>
                             ) : isGroupRoom ? (
                                 <>
-                                    <div className="flex justify-between sm:justify-end gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
+                                    <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-indigo-700 font-semibold text-[11px] bg-indigo-50/60 p-1.5 rounded border border-indigo-100">
                                         <span>
                                             {isCompanyAllInclusive 
                                                 ? `Chuyển thanh toán TOÀN BỘ (Phòng & Dịch vụ) vào Hóa đơn đoàn #${booking.group_booking_code || ''}${resolvePaymentMethodCode() === 'TRANSFER' ? ' (Thanh toán qua VietQR)' : resolvePaymentMethodCode() === 'MIXED' ? ' (Thanh toán Hỗn hợp)' : ''}:` 
                                                 : `Chuyển thanh toán Tiền phòng vào Hóa đơn đoàn #${booking.group_booking_code || ''}:`
                                             }
                                         </span>
-                                        <span className="w-36 text-right font-bold text-indigo-800">
+                                        <span className="shrink-0 sm:w-36 text-right font-bold text-indigo-800 whitespace-nowrap">
                                             -{formatCurrency(isCompanyAllInclusive ? (roomAmount + extraServicesTotal) : roomAmount)}
                                         </span>
                                     </div>
@@ -1344,23 +1344,23 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                     {!isCompanyAllInclusive && (
                                         completedPayments.length > 1 ? (
                                             completedPayments.map((p, idx) => (
-                                                <div key={p.id || idx} className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                                <div key={p.id || idx} className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                                     <span>{getPaymentTrancheLabel(p, idx)}</span>
-                                                    <span className="w-36 text-right font-bold">
+                                                    <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                         -{formatCurrency(p.amount)}
                                                     </span>
                                                 </div>
                                             ))
                                         ) : paidAmount > 0 ? (
-                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                                 <span>{getPaidAdvanceLabel()}</span>
-                                                <span className="w-36 text-right font-bold">
+                                                <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                     -{formatCurrency(paidAmount)}
                                                 </span>
                                             </div>
                                         ) : null
                                     )}
-                                    <div className="pt-2 border-t-2 border-slate-900 flex justify-between sm:justify-end items-baseline gap-6">
+                                    <div className="pt-2 border-t-2 border-slate-900 flex flex-wrap justify-between sm:justify-end items-baseline gap-2 sm:gap-6">
                                         <div>
                                             <span className="font-black text-xs sm:text-sm text-slate-900 uppercase block">
                                                 Thực thu khách tại quầy:
@@ -1369,7 +1369,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                                 {isCompanyAllInclusive ? '(Công ty chi trả toàn bộ phòng & dịch vụ)' : '(Tiền phòng quyết toán tập trung qua HĐ đoàn)'}
                                             </span>
                                         </div>
-                                        <span className="font-black text-base sm:text-lg text-slate-900 w-36 text-right">
+                                        <span className="font-black text-base sm:text-lg text-slate-900 shrink-0 sm:w-36 text-right whitespace-nowrap">
                                             {formatCurrency(isCompleted ? 0 : balanceDue)}
                                         </span>
                                     </div>
@@ -1378,32 +1378,32 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                                 <>
                                     {completedPayments.length > 1 ? (
                                         completedPayments.map((p, idx) => (
-                                            <div key={p.id || idx} className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <div key={p.id || idx} className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                                 <span>{getPaymentTrancheLabel(p, idx)}</span>
-                                                <span className="w-36 text-right font-bold">
+                                                <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                     -{formatCurrency(p.amount)}
                                                 </span>
                                             </div>
                                         ))
                                     ) : paidServicesTotal > 0 && isRoomPaid ? (
                                         <>
-                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                                 <span>{getPaidAdvanceLabel()}</span>
-                                                <span className="w-36 text-right font-bold">
+                                                <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                     -{formatCurrency(roomAmount)}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                            <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                                 <span>Đã thu tiền mặt tại phòng (Dịch vụ):</span>
-                                                <span className="w-36 text-right font-bold">
+                                                <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                     -{formatCurrency(paidServicesTotal)}
                                                 </span>
                                             </div>
                                         </>
                                     ) : paidAmount > 0 ? (
-                                        <div className="flex justify-between sm:justify-end gap-6 text-emerald-700 font-semibold text-[11px]">
+                                        <div className="flex justify-between sm:justify-end gap-3 sm:gap-6 text-emerald-700 font-semibold text-[11px]">
                                             <span>{getPaidAdvanceLabel()}</span>
-                                            <span className="w-36 text-right font-bold">
+                                            <span className="shrink-0 sm:w-36 text-right font-bold whitespace-nowrap">
                                                 -{formatCurrency(paidAmount)}
                                             </span>
                                         </div>

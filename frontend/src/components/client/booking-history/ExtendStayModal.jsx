@@ -22,7 +22,7 @@ export default function ExtendStayModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 text-left animate-in zoom-in-95 duration-200 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 gap-3">
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -41,7 +41,7 @@ export default function ExtendStayModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
+                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4" />
@@ -50,21 +50,21 @@ export default function ExtendStayModal({
 
                 {/* Thông tin phòng hiện tại */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2.5 text-xs text-slate-600">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span>Hạng phòng:</span>
-                        <strong className="text-slate-900 font-semibold">{booking.room_name}</strong>
+                        <strong className="text-slate-900 font-semibold text-right">{booking.room_name}</strong>
                     </div>
                     {booking.room_number && (
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
                             <span>Phòng đang ở:</span>
                             <strong className="text-amber-700 font-bold font-mono">Phòng {booking.room_number}</strong>
                         </div>
                     )}
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span>Ngày nhận phòng (Check-in):</span>
                         <strong className="text-slate-800">{formatDateDisplay(booking.check_in_date)}</strong>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <span>Ngày trả phòng hiện tại:</span>
                         <strong className="text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-bold">
                             {formatDateDisplay(booking.check_out_date)} (trước {settings?.check_out_time || '12:00'})
@@ -85,7 +85,7 @@ export default function ExtendStayModal({
                             setNewCheckOutDate(e.target.value);
                             if (setExtendConflictError) setExtendConflictError(null);
                         }}
-                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition cursor-pointer shadow-xs"
+                        className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-base sm:text-xs font-semibold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition cursor-pointer shadow-xs"
                     />
                     <p className="text-[11px] text-slate-400">
                         * Chỉ được chọn ngày sau ngày trả phòng hiện tại ({formatDateDisplay(booking.check_out_date)}).
@@ -124,12 +124,12 @@ export default function ExtendStayModal({
                 )}
 
                 {/* Nút thao tác */}
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-2">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isSubmittingExtend}
-                        className="px-4 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-bold text-xs transition cursor-pointer"
+                        className="w-full sm:w-auto px-4 py-3 sm:py-2.5 min-h-[44px] sm:min-h-0 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 font-bold text-xs transition cursor-pointer text-center"
                     >
                         Đóng
                     </button>
@@ -137,7 +137,7 @@ export default function ExtendStayModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isSubmittingExtend || !extendCalculation.isValid}
-                        className="px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        className="w-full sm:w-auto px-5 py-3 sm:py-2.5 min-h-[44px] sm:min-h-0 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                     >
                         {isSubmittingExtend ? (
                             <>

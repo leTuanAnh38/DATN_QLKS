@@ -306,11 +306,11 @@ export default function RoomsAndSuitesPage() {
                                 </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="flex-1 sm:flex-initial shrink-0 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="flex-1 min-w-0 w-full sm:w-auto sm:flex-initial bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="featured">Đề xuất hàng đầu</option>
                                     <option value="price-asc">Giá: Thấp đến Cao</option>
@@ -323,7 +323,7 @@ export default function RoomsAndSuitesPage() {
                                     type="button"
                                     onClick={() => setShowAdvancedFilters((prev) => !prev)}
                                     aria-expanded={showAdvancedFilters}
-                                    className={`shrink-0 px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                    className={`shrink-0 min-h-[40px] sm:min-h-0 px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                                         showAdvancedFilters || activeAdvancedCount > 0
                                             ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-2xs'
                                             : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -343,13 +343,13 @@ export default function RoomsAndSuitesPage() {
 
                     {/* Khay Bộ lọc nâng cao (chỉ xổ ra khi bấm nút "Bộ lọc") */}
                     {showAdvancedFilters && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 animate-in fade-in duration-150">
-                            <div className="flex flex-wrap items-center gap-2 flex-1">
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
+                            <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 flex-1">
                                 <select
                                     value={priceRange}
                                     onChange={(e) => setPriceRange(e.target.value)}
                                     aria-label="Lọc theo khoảng giá"
-                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi mức giá</option>
                                     <option value="under-2m">Dưới 2.000.000đ / đêm</option>
@@ -361,7 +361,7 @@ export default function RoomsAndSuitesPage() {
                                     value={capacityFilter}
                                     onChange={(e) => setCapacityFilter(e.target.value)}
                                     aria-label="Lọc theo sức chứa"
-                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi sức chứa</option>
                                     <option value="1">Từ 1 người lớn</option>
@@ -375,7 +375,7 @@ export default function RoomsAndSuitesPage() {
                                     value={viewFilter}
                                     onChange={(e) => setViewFilter(e.target.value)}
                                     aria-label="Lọc theo hướng nhìn"
-                                    className="bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Tất cả hướng nhìn</option>
                                     <option value="sea">Hướng biển / Mỹ Khê</option>
@@ -666,7 +666,7 @@ export default function RoomsAndSuitesPage() {
                                             </div>
 
                                             {/* Tầng 2A: Thanh thông số nền xanh phấn nhạt (Diện tích • Giường • Sức chứa) */}
-                                            <div className="bg-[#f4f7fc] border border-slate-200/60 rounded-2xl px-3.5 sm:px-4 py-2.5 grid grid-cols-3 gap-2 text-[11.5px] sm:text-xs font-semibold text-slate-700">
+                                            <div className="bg-[#f4f7fc] border border-slate-200/60 rounded-2xl px-3 sm:px-4 py-2.5 flex flex-wrap sm:grid sm:grid-cols-3 gap-x-3.5 gap-y-2 sm:gap-2 text-[11.5px] sm:text-xs font-semibold text-slate-700">
                                                 <span className="flex items-center gap-1.5 min-w-0">
                                                     <Maximize2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                     <span className="truncate">{room.size || 35} m²</span>
@@ -724,21 +724,21 @@ export default function RoomsAndSuitesPage() {
                                                 </span>
                                             </div>
 
-                                            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2.5 shrink-0">
+                                            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 shrink-0">
                                                 <Link
                                                     to={`/rooms/${room.id}`}
                                                     state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
-                                                    className="px-4 sm:px-5 py-3 text-xs font-bold text-slate-700 bg-slate-100/90 hover:bg-slate-200/80 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
+                                                    className="min-h-[42px] px-2.5 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold text-slate-700 bg-slate-100/90 hover:bg-slate-200/80 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
                                                 >
                                                     Xem Chi Tiết
                                                 </Link>
                                                 <Link
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
-                                                    className="px-5 sm:px-6 py-3 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center gap-1.5 hover:-translate-y-0.5"
+                                                    className="min-h-[42px] px-2.5 sm:px-6 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center gap-1 sm:gap-1.5 hover:-translate-y-0.5"
                                                 >
                                                     <span>Đặt Phòng Ngay</span>
-                                                    <ArrowRight className="w-3.5 h-3.5" />
+                                                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                                                 </Link>
                                             </div>
                                         </div>

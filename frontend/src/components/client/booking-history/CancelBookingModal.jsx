@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, Clock, Landmark } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Landmark, X } from 'lucide-react';
 
 /**
  * Modal xác nhận hủy đặt phòng hoặc gửi yêu cầu hủy đoàn & hoàn cọc
@@ -51,28 +51,39 @@ export default function CancelBookingModal({
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
-                <div className="flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
-                    <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 font-bold border ${
-                        isGroupDeposited
-                            ? 'bg-amber-50 text-amber-600 border-amber-200'
-                            : 'bg-rose-50 text-rose-600 border-rose-200'
-                    }`}>
-                        <AlertCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-600'}`} />
+                <div className="flex items-center justify-between gap-2.5 sm:gap-3 mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 font-bold border ${
+                            isGroupDeposited
+                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-rose-50 text-rose-600 border-rose-200'
+                        }`}>
+                            <AlertCircle className={`w-5 h-5 sm:w-6 sm:h-6 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-600'}`} />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 truncate">
+                                {isGroupDeposited ? 'Yêu Cầu Hủy Đoàn & Hoàn Cọc' : 'Xác nhận Hủy Đặt Phòng'}
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                                {isGroupDeposited ? (
+                                    <>Mã đoàn: <strong className="font-mono text-indigo-700">#{modalGroup.groupCode}</strong> • Phòng #{booking.booking_code}</>
+                                ) : (
+                                    <>Mã đơn: <strong className="font-mono text-slate-800">#{booking.booking_code}</strong></>
+                                )}
+                            </p>
+                        </div>
                     </div>
-                    <div className="min-w-0">
-                        <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 truncate">
-                            {isGroupDeposited ? 'Yêu Cầu Hủy Đoàn & Hoàn Cọc' : 'Xác nhận Hủy Đặt Phòng'}
-                        </h3>
-                        <p className="text-[11px] sm:text-xs text-slate-500">
-                            {isGroupDeposited ? (
-                                <>Mã đoàn: <strong className="font-mono text-indigo-700">#{modalGroup.groupCode}</strong> • Phòng #{booking.booking_code}</>
-                            ) : (
-                                <>Mã đơn: <strong className="font-mono text-slate-800">#{booking.booking_code}</strong></>
-                            )}
-                        </p>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isCancelling}
+                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
+                        title="Đóng"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
                 </div>
 
                 {/* Phạm vi hủy nếu là Đơn theo đoàn CHƯA CỌC */}
@@ -192,7 +203,7 @@ export default function CancelBookingModal({
                     <select
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
-                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer"
+                        className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 cursor-pointer"
                     >
                         <option value="Thay đổi lịch trình chuyến đi">Thay đổi lịch trình chuyến đi</option>
                         <option value="Đặt nhầm ngày hoặc thông tin phòng">Đặt nhầm ngày hoặc thông tin phòng</option>
@@ -206,7 +217,7 @@ export default function CancelBookingModal({
                             placeholder="Nhập lý do cụ thể của bạn..."
                             value={customReason}
                             onChange={(e) => setCustomReason(e.target.value)}
-                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mt-2"
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mt-2"
                         />
                     )}
                 </div>
@@ -223,7 +234,7 @@ export default function CancelBookingModal({
                             placeholder="Tên ngân hàng (VD: MB Bank, Vietcombank...)"
                             value={refundBankName}
                             onChange={(e) => setRefundBankName && setRefundBankName(e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                         />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <input
@@ -231,14 +242,14 @@ export default function CancelBookingModal({
                                 placeholder="Số tài khoản"
                                 value={refundAccountNumber}
                                 onChange={(e) => setRefundAccountNumber && setRefundAccountNumber(e.target.value)}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             />
                             <input
                                 type="text"
                                 placeholder="Tên chủ tài khoản"
                                 value={refundAccountHolder}
                                 onChange={(e) => setRefundAccountHolder && setRefundAccountHolder(e.target.value)}
-                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             />
                         </div>
                     </div>
@@ -251,12 +262,12 @@ export default function CancelBookingModal({
                 </span>
 
                 {/* Nút hành động */}
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col-reverse sm:flex-row items-center gap-2.5 sm:gap-3">
                     <button
                         type="button"
                         disabled={isCancelling}
                         onClick={onConfirm}
-                        className={`w-1/2 py-3 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
+                        className={`w-full sm:w-1/2 py-3 min-h-[44px] disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                             isGroupDeposited
                                 ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/30'
                                 : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30'
@@ -280,7 +291,7 @@ export default function CancelBookingModal({
                         type="button"
                         disabled={isCancelling}
                         onClick={onClose}
-                        className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
+                        className="w-full sm:w-1/2 py-3 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
                     >
                         Giữ lại đơn
                     </button>

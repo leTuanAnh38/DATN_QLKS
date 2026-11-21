@@ -142,50 +142,50 @@ export default function BookingSuccessModal({
 
                 {/* Tóm tắt thông tin */}
                 <div className="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600 space-y-2 text-left mb-6 border border-slate-100">
-                    <div className="flex justify-between">
-                        <span>Hạng phòng:</span>
-                        <strong className="text-slate-900">{booking.room_name}</strong>
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Hạng phòng:</span>
+                        <strong className="text-slate-900 text-right break-words min-w-0">{booking.room_name}</strong>
                     </div>
-                    <div className="flex justify-between">
-                        <span>Thời gian:</span>
-                        <strong className="text-slate-900">
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Thời gian:</span>
+                        <strong className="text-slate-900 text-right min-w-0">
                             {formatDateDisplay(booking.check_in_date)} → {formatDateDisplay(booking.check_out_date)} ({booking.nights} đêm)
                         </strong>
                     </div>
                     {booking.selected_services?.length > 0 && (
-                        <div className="flex justify-between items-start pt-1 border-t border-slate-200">
-                            <span className="text-amber-800 font-semibold flex items-center gap-1.5">
-                                <BellRing className="w-3 h-3 text-amber-600" />
+                        <div className="flex justify-between items-start gap-2 pt-1 border-t border-slate-200">
+                            <span className="text-amber-800 font-semibold flex items-center gap-1.5 shrink-0">
+                                <BellRing className="w-3 h-3 text-amber-600 shrink-0" />
                                 <span>Dịch vụ đặt kèm ({booking.selected_services.length}):</span>
                             </span>
-                            <div className="text-right space-y-0.5">
+                            <div className="text-right space-y-0.5 min-w-0">
                                 {booking.selected_services.map((s, idx) => (
-                                    <div key={idx} className="font-semibold text-slate-900 text-[11px]">
+                                    <div key={idx} className="font-semibold text-slate-900 text-[11px] break-words">
                                         {s.service_name || s.name} <strong className="text-orange-600">×{s.quantity}</strong>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
-                    <div className="flex justify-between">
-                        <span>Tổng tiền thanh toán:</span>
-                        <strong className="text-rose-600 font-bold">
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Tổng tiền thanh toán:</span>
+                        <strong className="text-rose-600 font-bold whitespace-nowrap shrink-0">
                             {Number(booking.total_amount).toLocaleString('vi-VN')} VND
                         </strong>
                     </div>
-                    <div className="flex justify-between">
-                        <span>Phương thức:</span>
-                        <strong className={isPaid ? "text-emerald-700 font-bold" : "text-slate-800"}>
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Phương thức:</span>
+                        <strong className={`text-right min-w-0 ${isPaid ? "text-emerald-700 font-bold" : "text-slate-800"}`}>
                             {isPaid ? 'Đã thanh toán VietQR' : 'Thanh toán khi nhận phòng (Reception)'}
                         </strong>
                     </div>
-                    <div className="flex justify-between">
-                        <span>Số CCCD / Hộ chiếu:</span>
-                        <strong className="text-slate-900 font-mono">{booking.identity_card}</strong>
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Số CCCD / Hộ chiếu:</span>
+                        <strong className="text-slate-900 font-mono text-right break-all min-w-0">{booking.identity_card}</strong>
                     </div>
-                    <div className="flex justify-between">
-                        <span>Email xác nhận:</span>
-                        <span className="text-slate-800">{booking.guest_email}</span>
+                    <div className="flex justify-between gap-2">
+                        <span className="shrink-0">Email xác nhận:</span>
+                        <span className="text-slate-800 text-right break-all min-w-0">{booking.guest_email}</span>
                     </div>
                 </div>
 

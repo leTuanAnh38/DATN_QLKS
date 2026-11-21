@@ -222,22 +222,22 @@ export default function NewsList() {
                         })}
                     </div>
 
-                    {/* Thanh tìm kiếm & Sắp xếp luôn chung 1 hàng trên cả mobile */}
-                    <div className="flex flex-row items-center gap-2 w-full lg:w-auto shrink-0">
+                    {/* Thanh tìm kiếm & Sắp xếp: Xếp dọc gọn ở 375px, 1 hàng từ sm trở lên */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
                         <div className="relative flex-1 lg:w-64 min-w-0">
                             <input
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder="Tìm bài viết, cẩm nang..."
-                                className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition"
+                                className="w-full pl-9 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition"
                             />
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             {searchTerm && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-2 top-2.5 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
+                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                                     title="Xóa tìm kiếm"
                                 >
                                     <X className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function NewsList() {
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                             aria-label="Sắp xếp bài viết"
-                            className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0"
+                            className="w-full sm:w-auto px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0"
                         >
                             <option value="newest">Mới nhất</option>
                             <option value="popular">Xem nhiều nhất</option>
@@ -482,50 +482,71 @@ export default function NewsList() {
                             </div>
 
                             {/* Các nút bấm phân trang */}
-                            <nav className="flex items-center gap-1.5" aria-label="Phân trang tin tức">
+                            <nav className="flex flex-wrap items-center justify-center gap-1.5" aria-label="Phân trang tin tức">
                                 {/* Nút Trang Trước */}
                                 <button
                                     type="button"
                                     onClick={() => handlePageChange(safeCurrentPage - 1)}
                                     disabled={safeCurrentPage === 1}
-                                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                                    className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
                                         safeCurrentPage === 1
                                             ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
                                             : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
                                     }`}
                                     title="Về trang trước"
                                 >
-                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                    <ChevronLeft className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                     <span className="hidden sm:inline">Trước</span>
                                 </button>
 
-                                {/* Các số trang */}
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                                    const isActive = pageNum === safeCurrentPage;
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            type="button"
-                                            onClick={() => handlePageChange(pageNum)}
-                                            className={`w-9 h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                                                isActive
-                                                    ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
-                                                    : 'bg-white text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 border border-slate-200 shadow-2xs hover:border-sky-200 active:scale-95'
-                                            }`}
-                                            aria-current={isActive ? 'page' : undefined}
-                                            title={`Trang ${pageNum}`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
+                                {/* Các số trang (rút gọn dấu ... nếu > 5 trang) */}
+                                {(() => {
+                                    const pages = [];
+                                    if (totalPages <= 5) {
+                                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                    } else {
+                                        pages.push(1);
+                                        if (safeCurrentPage > 3) pages.push('dots-left');
+                                        const start = Math.max(2, safeCurrentPage - 1);
+                                        const end = Math.min(totalPages - 1, safeCurrentPage + 1);
+                                        for (let i = start; i <= end; i++) pages.push(i);
+                                        if (safeCurrentPage < totalPages - 2) pages.push('dots-right');
+                                        pages.push(totalPages);
+                                    }
+                                    return pages.map((pageItem) => {
+                                        if (typeof pageItem === 'string') {
+                                            return (
+                                                <span key={pageItem} className="w-7 h-10 sm:h-9 flex items-center justify-center text-slate-400 text-xs select-none">
+                                                    …
+                                                </span>
+                                            );
+                                        }
+                                        const isActive = pageItem === safeCurrentPage;
+                                        return (
+                                            <button
+                                                key={pageItem}
+                                                type="button"
+                                                onClick={() => handlePageChange(pageItem)}
+                                                className={`w-10 h-10 sm:w-9 sm:h-9 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer ${
+                                                    isActive
+                                                        ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
+                                                        : 'bg-white text-slate-700 hover:text-sky-700 hover:bg-sky-50/50 border border-slate-200 shadow-2xs hover:border-sky-200 active:scale-95'
+                                                }`}
+                                                aria-current={isActive ? 'page' : undefined}
+                                                title={`Trang ${pageItem}`}
+                                            >
+                                                {pageItem}
+                                            </button>
+                                        );
+                                    });
+                                })()}
 
                                 {/* Nút Trang Kế Tiếp */}
                                 <button
                                     type="button"
                                     onClick={() => handlePageChange(safeCurrentPage + 1)}
                                     disabled={safeCurrentPage === totalPages}
-                                    className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition ${
+                                    className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
                                         safeCurrentPage === totalPages
                                             ? 'bg-slate-100 text-slate-300 border border-slate-200 cursor-not-allowed opacity-60'
                                             : 'bg-white text-slate-700 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-300 border border-slate-200 shadow-2xs cursor-pointer active:scale-95'
@@ -533,7 +554,7 @@ export default function NewsList() {
                                     title="Sang trang kế tiếp"
                                 >
                                     <span className="hidden sm:inline">Sau</span>
-                                    <ChevronRight className="w-3.5 h-3.5" />
+                                    <ChevronRight className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                 </button>
                             </nav>
                         </div>

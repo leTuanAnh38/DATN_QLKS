@@ -26,7 +26,7 @@ export default function ReviewModal({
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -48,7 +48,7 @@ export default function ReviewModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
+                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition flex items-center justify-center cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4" />
@@ -56,7 +56,7 @@ export default function ReviewModal({
                 </div>
 
                 {/* Điểm trung bình tự động tính */}
-                <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-200/80 flex items-center justify-between">
+                <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 rounded-2xl border border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
                         <Star className="w-6 h-6 text-amber-500 fill-amber-400" />
                         <div>
@@ -114,17 +114,17 @@ export default function ReviewModal({
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 self-end sm:self-auto">
-                                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-0.5 sm:gap-1">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <button
                                             key={star}
                                             type="button"
                                             onClick={() => criterion.set(star)}
-                                            className="p-1 hover:scale-125 transition-transform select-none cursor-pointer"
+                                            className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-amber-50 hover:scale-110 transition-transform select-none cursor-pointer"
                                             title={`${star}/5 sao`}
                                         >
                                             <Star
-                                                className={`w-4 h-4 ${
+                                                className={`w-5 h-5 sm:w-4 sm:h-4 ${
                                                     star <= criterion.val
                                                         ? 'fill-amber-400 text-amber-400'
                                                         : 'text-slate-200 fill-slate-200'
@@ -151,7 +151,7 @@ export default function ReviewModal({
                         value={reviewComment}
                         onChange={(e) => setReviewComment(e.target.value)}
                         placeholder="Hãy chia sẻ trải nghiệm thực tế về phòng nghỉ, nhân viên phục vụ, ẩm thực và tiện nghi tại khách sạn..."
-                        className="w-full p-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-amber-500 rounded-2xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition leading-relaxed"
+                        className="w-full p-3 bg-slate-50 focus:bg-white border border-slate-200 focus:border-amber-500 rounded-2xl text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition leading-relaxed"
                     />
                     <span className="text-[11px] text-slate-400 block">
                         Đánh giá của bạn giúp khách sạn không ngừng nâng cao chất lượng dịch vụ và hỗ trợ du khách khác tham khảo.

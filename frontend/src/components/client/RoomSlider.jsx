@@ -20,7 +20,12 @@ export default function RoomSlider({ rooms = [] }) {
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [itemsPerPage, setItemsPerPage] = useState(3);
+    const [itemsPerPage, setItemsPerPage] = useState(() => {
+        if (typeof window === 'undefined') return 3;
+        if (window.innerWidth < 640) return 1;
+        if (window.innerWidth < 1024) return 2;
+        return 3;
+    });
     const [isHovered, setIsHovered] = useState(false);
     const [slideDirection, setSlideDirection] = useState('forward'); // 'forward' | 'backward'
 
@@ -195,7 +200,7 @@ export default function RoomSlider({ rooms = [] }) {
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Header thanh điều hướng: Nút mũi tên < và > */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between gap-3 mb-6">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                         <span className="hidden sm:inline">Trượt</span>

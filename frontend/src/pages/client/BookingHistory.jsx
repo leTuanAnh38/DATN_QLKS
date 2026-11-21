@@ -753,7 +753,7 @@ export default function BookingHistory() {
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
                                         Phân loại:
                                     </span>
-                                    <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70 overflow-x-auto max-w-full scrollbar-none">
+                                    <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70 overflow-x-auto max-w-full no-scrollbar">
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('all')}
@@ -805,23 +805,24 @@ export default function BookingHistory() {
                                         placeholder="Tìm theo Mã đơn (BK-...), Mã đoàn (GRP-...), phòng..."
                                         value={searchKeyword}
                                         onChange={(e) => setSearchKeyword(e.target.value)}
-                                        className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                        className="w-full pl-9 pr-10 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                     />
-                                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+                                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                     {searchKeyword && (
                                         <button
                                             type="button"
                                             onClick={() => setSearchKeyword('')}
-                                            className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                                            className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer rounded-lg"
+                                            title="Xóa từ khóa"
                                         >
-                                            <X className="w-3.5 h-3.5" />
+                                            <X className="w-4 h-4" />
                                         </button>
                                     )}
                                 </div>
                             </div>
 
                             {/* Hàng 2: Tabs lọc theo trạng thái đơn */}
-                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
                                 {[
                                     { key: 'all', label: 'Tất cả trạng thái', count: stats.total },
                                     { key: 'pending', label: 'Chờ duyệt', count: stats.pending },
@@ -1087,7 +1088,7 @@ export default function BookingHistory() {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleCopyCode(booking.booking_code)}
-                                                            className="p-1 text-slate-400 hover:text-sky-600 transition rounded-md hover:bg-slate-200/60 text-xs cursor-pointer"
+                                                            className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1 flex items-center justify-center text-slate-400 hover:text-sky-600 transition rounded-lg hover:bg-slate-200/60 text-xs cursor-pointer"
                                                             title="Sao chép mã đơn"
                                                         >
                                                             {copiedCode === booking.booking_code ? (
@@ -1610,7 +1611,7 @@ export default function BookingHistory() {
                         {/* PHÂN TRANG DANH SÁCH ĐƠN ĐẶT PHÒNG */}
                         {!isLoading && filteredBookings.length > 0 && (
                             <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs mt-6">
-                                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-3 bg-slate-50/70 border-b border-slate-100 gap-3 text-xs text-slate-500">
+                                <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 bg-slate-50/70 border-b border-slate-100 gap-3 text-xs text-slate-500">
                                     <div className="flex items-center gap-2">
                                         <span>Số đơn mỗi trang:</span>
                                         <select
@@ -1619,7 +1620,7 @@ export default function BookingHistory() {
                                                 setPageSize(Number(e.target.value));
                                                 setCurrentPage(1);
                                             }}
-                                            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
+                                            className="px-2.5 py-1.5 sm:py-1 bg-white border border-slate-200 rounded-lg text-base sm:text-xs font-semibold text-slate-700 shadow-2xs focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
                                         >
                                             <option value={5}>5 đơn / trang</option>
                                             <option value={10}>10 đơn / trang</option>

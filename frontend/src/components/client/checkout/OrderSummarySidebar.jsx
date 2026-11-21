@@ -120,11 +120,11 @@ export default function OrderSummarySidebar({
 
                             <div className="space-y-1 pl-2 text-[11px] text-slate-600">
                                 {selectedServicesArray.map((item) => (
-                                    <div key={item.service_id} className="flex justify-between items-center">
-                                        <span className="truncate max-w-[170px]" title={item.name}>
+                                    <div key={item.service_id} className="flex justify-between items-center gap-2">
+                                        <span className="flex-1 min-w-0 truncate" title={item.name}>
                                             • {item.name} <strong className="text-slate-800">×{item.quantity}</strong>
                                         </span>
-                                        <span className="font-semibold text-slate-800 shrink-0">
+                                        <span className="font-semibold text-slate-800 whitespace-nowrap shrink-0">
                                             {item.total_price.toLocaleString('vi-VN')} ₫
                                         </span>
                                     </div>
@@ -143,23 +143,23 @@ export default function OrderSummarySidebar({
 
                     {/* 4. Mã khuyến mãi (Promo Code) */}
                     {discountAmount > 0 && (
-                        <div className="flex justify-between text-emerald-600 font-semibold">
+                        <div className="flex justify-between gap-2 text-emerald-600 font-semibold">
                             <span>Mã khuyến mãi ({appliedPromo?.code})</span>
-                            <span>-{discountAmount.toLocaleString('vi-VN')} VND</span>
+                            <span className="whitespace-nowrap shrink-0">-{discountAmount.toLocaleString('vi-VN')} VND</span>
                         </div>
                     )}
 
-                    <div className="flex justify-between text-slate-500">
+                    <div className="flex justify-between gap-2 text-slate-500">
                         <span>Thuế VAT ({hotelSettings.vat_percent || 8}%) & Phí phục vụ ({hotelSettings.service_charge_percent || 5}%)</span>
-                        <span className="text-emerald-600 font-medium">Đã bao gồm</span>
+                        <span className="text-emerald-600 font-medium whitespace-nowrap shrink-0">Đã bao gồm</span>
                     </div>
 
-                    <div className="flex items-center justify-between text-sky-700 font-semibold pt-1 border-t border-slate-100">
-                        <span className="flex items-center gap-1.5">
-                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <div className="flex items-center justify-between gap-2 text-sky-700 font-semibold pt-1 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 min-w-0">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
                             <span>Tích lũy điểm thưởng (+1 pt / 100.000đ)</span>
                         </span>
-                        <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
+                        <span className="whitespace-nowrap shrink-0">+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                     </div>
 
                     {/* Tổng cộng cần thanh toán */}

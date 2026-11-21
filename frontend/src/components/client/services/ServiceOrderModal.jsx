@@ -58,7 +58,7 @@ export default function ServiceOrderModal({
                         type="button"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
+                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer disabled:opacity-50 shrink-0"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -289,7 +289,7 @@ export default function ServiceOrderModal({
                                         ))}
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
                                         <label className="text-[11px] font-bold text-slate-700 shrink-0">
                                             Thời điểm hẹn giao:
                                         </label>
@@ -298,7 +298,7 @@ export default function ServiceOrderModal({
                                             value={scheduledDateTime}
                                             min={formatToLocalDateTimeString(new Date())}
                                             onChange={(e) => setScheduledDateTime(e.target.value)}
-                                            className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                                            className="w-full sm:flex-1 px-3 py-2 sm:py-1.5 bg-white border border-slate-300 rounded-xl text-base sm:text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                         />
                                     </div>
 

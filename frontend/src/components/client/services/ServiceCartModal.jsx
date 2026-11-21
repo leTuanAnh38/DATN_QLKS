@@ -87,7 +87,7 @@ export default function ServiceCartModal({
                         <button
                             type="button"
                             onClick={() => !isSubmittingCart && onClose()}
-                            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                            className="w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -159,15 +159,15 @@ export default function ServiceCartModal({
                                                 </div>
 
                                                 {/* Quantity Stepper & Remove */}
-                                                <div className="flex items-center gap-2.5 shrink-0">
+                                                <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                                                     <div className="inline-flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(ci.id, -1, true)}
-                                                            className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                                                             title="Giảm 1"
                                                         >
-                                                            <Minus className="w-3 h-3" />
+                                                            <Minus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                         <span className="px-2 text-xs font-bold text-slate-900 min-w-[20px] text-center">
                                                             {ci.quantity}
@@ -175,20 +175,20 @@ export default function ServiceCartModal({
                                                         <button
                                                             type="button"
                                                             onClick={() => updateCartQuantity(ci.id, 1, true)}
-                                                            className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                                                             title="Tăng 1"
                                                         >
-                                                            <Plus className="w-3 h-3" />
+                                                            <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                     </div>
 
                                                     <button
                                                         type="button"
                                                         onClick={() => removeFromCart(ci.id)}
-                                                        className="w-7 h-7 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
+                                                        className="w-9 h-9 sm:w-7 sm:h-7 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-600 flex items-center justify-center transition cursor-pointer"
                                                         title="Xóa món này"
                                                     >
-                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                        <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -333,7 +333,7 @@ export default function ServiceCartModal({
                                             ))}
                                         </div>
 
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
                                             <label className="text-[11px] font-bold text-slate-700 shrink-0">
                                                 Thời điểm hẹn giao:
                                             </label>
@@ -342,7 +342,7 @@ export default function ServiceCartModal({
                                                 value={cartScheduledDateTime}
                                                 min={formatToLocalDateTimeString(new Date())}
                                                 onChange={(e) => setCartScheduledDateTime(e.target.value)}
-                                                className="flex-1 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+                                                className="w-full sm:flex-1 px-3 py-2 sm:py-1.5 bg-white border border-slate-300 rounded-xl text-base sm:text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
                                             />
                                         </div>
                                     </div>

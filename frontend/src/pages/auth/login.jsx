@@ -539,12 +539,12 @@ export default function AuthBookingPage() {
                                 {/* BANNER NẾU ĐÃ ĐĂNG NHẬP */}
                                 {isAuthenticated && (
                                     <div className="mb-6 p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                                                <UserCheck className="w-4 h-4 text-amber-600" />
-                                                <span>Đang đăng nhập: <strong>{user?.full_name || user?.username}</strong></span>
+                                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                            <div className="text-xs font-bold text-slate-900 flex items-center gap-2 min-w-0">
+                                                <UserCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                                                <span className="truncate">Đang đăng nhập: <strong>{user?.full_name || user?.username}</strong></span>
                                             </div>
-                                            <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide shadow-xs">
+                                            <span className="text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide shadow-xs shrink-0">
                                                 {getRoleTitle(user?.role, user?.guest_profile?.vip_tier)}
                                             </span>
                                         </div>
@@ -709,7 +709,7 @@ export default function AuthBookingPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setShowPassword(!showPassword)}
-                                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                                    className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer transition-colors"
                                                     title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                                 >
                                                     {showPassword ? (
@@ -893,7 +893,7 @@ export default function AuthBookingPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowPassword(!showPassword)}
-                                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer transition-colors"
                                                         title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                                     >
                                                         {showPassword ? (
@@ -944,7 +944,7 @@ export default function AuthBookingPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer transition-colors"
                                                         title={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                                     >
                                                         {showConfirmPassword ? (
@@ -1230,29 +1230,29 @@ export default function AuthBookingPage() {
                     onClick={() => setLegalModal(null)}
                 >
                     <div
-                        className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-100 animate-fadeIn"
+                        className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl border border-slate-100 animate-fadeIn max-h-[90dvh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
-                            <div>
+                        <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100 shrink-0">
+                            <div className="min-w-0">
                                 <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
                                     {hotelName}
                                 </span>
-                                <h3 className="font-serif text-xl font-bold text-slate-900 mt-0.5">
+                                <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 mt-0.5">
                                     {legalModal === 'terms' ? 'Điều Khoản Dịch Vụ Hội Viên' : 'Chính Sách Bảo Mật Thông Tin'}
                                 </h3>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setLegalModal(null)}
-                                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer shrink-0"
                                 aria-label="Đóng"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="py-4 space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed max-h-[60vh] overflow-y-auto">
+                        <div className="flex-1 min-h-0 py-4 space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed overflow-y-auto">
                             {legalModal === 'terms' ? (
                                 <>
                                     <p>

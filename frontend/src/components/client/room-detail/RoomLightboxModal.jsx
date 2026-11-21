@@ -137,7 +137,7 @@ export default function RoomLightboxModal({
             {/* Dải thumbnail xem nhanh bên dưới modal Lightbox */}
             {gallery.length > 1 && (
                 <div
-                    className="w-full max-w-5xl mx-auto z-10 flex items-center justify-center gap-2 overflow-x-auto py-2"
+                    className="w-full max-w-5xl mx-auto z-10 flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-2 px-1"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {gallery.map((img, idx) => (

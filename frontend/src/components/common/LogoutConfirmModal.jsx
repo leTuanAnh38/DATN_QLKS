@@ -44,14 +44,14 @@ export default function LogoutConfirmModal({
             <div 
                 role="dialog"
                 aria-modal="true"
-                className="relative w-full max-w-md bg-white rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left max-h-[90vh] overflow-y-auto"
+                className="relative w-full max-w-md bg-white rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-200 text-slate-800 transition-all transform scale-100 animate-in zoom-in-95 duration-150 z-10 text-left max-h-[90dvh] overflow-y-auto"
             >
                 {/* Nút đóng góc phải */}
                 <button
                     type="button"
                     onClick={onClose}
                     disabled={isLoading}
-                    className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
+                    className="absolute top-3 right-3 sm:top-4 sm:right-4 w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
                     title="Đóng (Esc)"
                 >
                     <X className="w-4 h-4" />

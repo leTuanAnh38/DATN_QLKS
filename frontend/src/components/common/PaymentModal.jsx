@@ -363,7 +363,7 @@ export default function PaymentModal({
                             type="button"
                             onClick={handleInitiateCancel}
                             disabled={isLoading}
-                            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-50"
+                            className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-50"
                             title="Đóng / Hủy"
                         >
                             <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -380,32 +380,32 @@ export default function PaymentModal({
                     <strong className="font-mono tabular-nums font-bold text-amber-900">{formatTimer(timeLeft)}</strong>
                 </div>
 
-                {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 - Scrollable */}
+                {/* Body: Phân chia Layout grid md:grid-cols-2 gap-6 - Scrollable (QR ưu tiên hiển thị đầu trên Mobile) */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-start">
                     {/* ========================================================================= */}
-                    {/* CỘT TRÁI: THÔNG TIN THANH TOÁN                                             */}
+                    {/* CỘT TRÁI (DESKTOP) / DƯỚI (MOBILE): THÔNG TIN THANH TOÁN                 */}
                     {/* ========================================================================= */}
-                    <div className="space-y-4 sm:space-y-5">
+                    <div className="order-2 md:order-1 space-y-4 sm:space-y-5">
                         {/* Hộp nổi bật: Số tiền thanh toán */}
-                        <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent rounded-2xl sm:rounded-3xl p-5 border border-amber-200/80 shadow-xs">
-                            <div className="flex items-center justify-between mb-1.5">
+                        <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-amber-200/80 shadow-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                                 <span className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
-                                    <CreditCard className="w-4 h-4 text-amber-600" /> Số tiền cần thanh toán
+                                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0" /> Số tiền cần thanh toán
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => handleCopy(totalAmount.toString(), 'amount')}
-                                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 flex items-center gap-1 transition cursor-pointer"
+                                    className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-white/90 hover:bg-amber-100 border border-amber-200/80 text-[11px] font-semibold text-amber-800 hover:text-amber-950 flex items-center gap-1 transition cursor-pointer shrink-0"
                                     title="Sao chép số tiền"
                                 >
                                     {copiedKey === 'amount' ? (
                                         <span className="text-emerald-600 flex items-center gap-0.5 font-bold">
-                                            <Check className="w-3 h-3" /> Đã chép
+                                            <Check className="w-3.5 h-3.5" /> Đã chép
                                         </span>
                                     ) : (
                                         <>
-                                            <Copy className="w-3 h-3" /> Chép số tiền
+                                            <Copy className="w-3.5 h-3.5" /> Chép số tiền
                                         </>
                                     )}
                                 </button>
@@ -454,44 +454,44 @@ export default function PaymentModal({
                             </div>
 
                             {/* Số tài khoản */}
-                            <div className="flex items-center justify-between gap-3 py-1 border-t border-slate-200/60 pt-2.5">
+                            <div className="flex items-center justify-between gap-2.5 py-1 border-t border-slate-200/60 pt-2.5">
                                 <span className="text-slate-500 shrink-0">Số tài khoản:</span>
-                                <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 justify-end">
                                     <span className="font-mono text-sm sm:text-base font-black text-slate-900 tracking-wider break-all text-right">
                                         {bankConfig.account_no}
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => handleCopy(bankConfig.account_no, 'accountNo')}
-                                        className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95"
+                                        className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95 shrink-0"
                                         title="Sao chép số tài khoản"
                                     >
                                         {copiedKey === 'accountNo' ? (
-                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                            <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-600" />
                                         ) : (
-                                            <Copy className="w-3.5 h-3.5" />
+                                            <Copy className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                         )}
                                     </button>
                                 </div>
                             </div>
 
                             {/* Tên chủ tài khoản */}
-                            <div className="flex items-center justify-between gap-3 py-1 border-t border-slate-200/60 pt-2.5">
+                            <div className="flex items-center justify-between gap-2.5 py-1 border-t border-slate-200/60 pt-2.5">
                                 <span className="text-slate-500 shrink-0">Tên tài khoản:</span>
-                                <div className="flex items-center gap-2">
-                                    <strong className="text-slate-900 uppercase tracking-wide">
+                                <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                                    <strong className="text-slate-900 uppercase tracking-wide text-right break-words min-w-0">
                                         {bankConfig.account_name}
                                     </strong>
                                     <button
                                         type="button"
                                         onClick={() => handleCopy(bankConfig.account_name, 'accountName')}
-                                        className="p-1.5 rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95"
+                                        className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg bg-white hover:bg-slate-200 text-slate-600 border border-slate-200 transition cursor-pointer active:scale-95 shrink-0"
                                         title="Sao chép tên tài khoản"
                                     >
                                         {copiedKey === 'accountName' ? (
-                                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                            <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-600" />
                                         ) : (
-                                            <Copy className="w-3.5 h-3.5" />
+                                            <Copy className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                         )}
                                     </button>
                                 </div>
@@ -499,18 +499,18 @@ export default function PaymentModal({
 
                             {/* Nội dung chuyển khoản */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-1 border-t border-slate-200/60 pt-2.5 bg-blue-50/50 -mx-2 px-3 py-2 rounded-xl border border-blue-200/60">
-                                <div>
+                                <div className="min-w-0">
                                     <span className="text-[11px] font-bold text-blue-900 block">
                                         Nội dung chuyển khoản:
                                     </span>
-                                    <span className="font-mono text-sm font-black text-blue-700 tracking-wide select-all">
+                                    <span className="font-mono text-sm font-black text-blue-700 tracking-wide select-all break-all">
                                         {transferContent}
                                     </span>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => handleCopy(transferContent, 'content')}
-                                    className="self-start sm:self-auto px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1 cursor-pointer active:scale-95 shrink-0"
+                                    className="w-full sm:w-auto min-h-[40px] sm:min-h-0 justify-center px-3 py-2 sm:py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                                 >
                                     {copiedKey === 'content' ? (
                                         <>
@@ -537,9 +537,9 @@ export default function PaymentModal({
                     </div>
 
                     {/* ========================================================================= */}
-                    {/* CỘT PHẢI: MÃ VIETQR VỚI HIỆU ỨNG VIỀN ĐỨT NÉT                            */}
+                    {/* CỘT PHẢI (DESKTOP) / ĐẦU TIÊN (MOBILE): MÃ VIETQR VỚI VIỀN ĐỨT NÉT       */}
                     {/* ========================================================================= */}
-                    <div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
+                    <div className="order-1 md:order-2 flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 shadow-2xs mb-4">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             VietQR • Quét Mã Chuyển Khoản 24/7
@@ -635,8 +635,8 @@ export default function PaymentModal({
             {/* MODAL XÁC NHẬN KHI KHÁCH BẤM "HỦY BỎ"                                      */}
             {/* ========================================================================= */}
             {showCancelDialog && (
-                <div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-xs">
-                    <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center space-y-4">
+                <div className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-3 sm:p-4 animate-fadeIn backdrop-blur-xs">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-7 shadow-2xl border border-slate-100 text-center space-y-4 max-h-[90dvh] overflow-y-auto">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
                             <AlertTriangle className="w-7 h-7" />
                         </div>

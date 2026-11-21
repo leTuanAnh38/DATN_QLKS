@@ -1061,7 +1061,7 @@ export default function CorporateBooking() {
                             <span>2. Chọn Lịch Trình Lưu Trú Của Đoàn</span>
                         </h3>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 items-center pl-0 sm:pl-10.5">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 items-center pl-0 sm:pl-10.5">
                             <div className="min-w-0">
                                 <label className="block text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 truncate">
                                     Ngày nhận phòng (Check-in):
@@ -1071,7 +1071,7 @@ export default function CorporateBooking() {
                                     min={todayStr}
                                     value={checkInDate}
                                     onChange={(e) => handleCheckInDateChange(e.target.value)}
-                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
+                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
                                 />
                             </div>
 
@@ -1084,11 +1084,11 @@ export default function CorporateBooking() {
                                     min={checkInDate || todayStr}
                                     value={checkOutDate}
                                     onChange={(e) => setCheckOutDate(e.target.value)}
-                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
+                                    className="w-full px-3 sm:px-4 py-2.5 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 cursor-pointer transition font-sans tabular-nums min-w-0"
                                 />
                             </div>
 
-                            <div className="col-span-2 sm:col-span-1 flex sm:block items-center justify-between sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                            <div className="col-span-1 xs:col-span-2 sm:col-span-1 flex sm:block items-center justify-between sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                                 <span className="text-xs text-slate-500 block font-medium">Thời gian đoàn lưu trú:</span>
                                 <span className="text-xl sm:text-2xl font-black text-sky-700 font-sans tabular-nums">{nights} đêm</span>
                             </div>
@@ -1215,7 +1215,7 @@ export default function CorporateBooking() {
                                                         type="button"
                                                         disabled={qty <= 0}
                                                         onClick={() => handleRoomQtyChange(cat.id, -1)}
-                                                        className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95"
+                                                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95"
                                                     >
                                                         <Minus className="w-3.5 h-3.5" />
                                                     </button>
@@ -1224,7 +1224,7 @@ export default function CorporateBooking() {
                                                         type="button"
                                                         disabled={isSoldOut || (availRooms !== null && qty >= availRooms)}
                                                         onClick={() => handleRoomQtyChange(cat.id, 1)}
-                                                        className="w-8 h-8 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:from-slate-200 disabled:to-slate-200 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-2xs"
+                                                        className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:from-slate-200 disabled:to-slate-200 disabled:cursor-not-allowed text-white font-black text-sm flex items-center justify-center cursor-pointer transition active:scale-95 shadow-2xs"
                                                         title={availRooms !== null && qty >= availRooms ? `Chỉ còn ${availRooms} phòng trống` : ''}
                                                     >
                                                         <Plus className="w-3.5 h-3.5" />
@@ -1688,7 +1688,7 @@ export default function CorporateBooking() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, -1)}
-                                                                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
+                                                                            className="w-9 h-9 sm:w-7 sm:h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
                                                                         >
                                                                             -
                                                                         </button>
@@ -1696,17 +1696,17 @@ export default function CorporateBooking() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQtyInRoom(room.room_key, svc.service_id, 1)}
-                                                                            className="w-6 h-6 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
+                                                                            className="w-9 h-9 sm:w-7 sm:h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs flex items-center justify-center cursor-pointer"
                                                                         >
                                                                             +
                                                                         </button>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleRemoveServiceFromRoom(room.room_key, svc.service_id)}
-                                                                            className="text-slate-400 hover:text-rose-600 text-xs ml-1 cursor-pointer p-0.5"
+                                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs ml-0.5 cursor-pointer transition"
                                                                             title="Xóa dịch vụ"
                                                                         >
-                                                                            <X className="w-3.5 h-3.5" />
+                                                                            <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                                                                         </button>
                                                                     </div>
                                                                 </div>
@@ -2191,7 +2191,7 @@ export default function CorporateBooking() {
                                         setShowFastPasteModal(false);
                                         setFastPasteError('');
                                     }}
-                                    className="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
+                                    className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 transition rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -2223,7 +2223,7 @@ export default function CorporateBooking() {
                                             if (fastPasteError) setFastPasteError('');
                                         }}
                                         placeholder="Dán nội dung từ bảng Excel vào đây...&#10;Trần Thị Lan	048198005678	Nữ	20/10/1995&#10;Lê Văn Hoàng	048092003456	Nam	12/02/1988&#10;Phạm Minh Tuấn	048095007890	Nam	18/06/1992"
-                                        className="w-full min-h-[140px] sm:min-h-[180px] p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition placeholder:text-slate-400"
+                                        className="w-full min-h-[140px] sm:min-h-[180px] p-3 bg-slate-50 border border-slate-200 rounded-2xl text-base sm:text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition placeholder:text-slate-400"
                                     />
                                     {fastPasteError && (
                                         <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">

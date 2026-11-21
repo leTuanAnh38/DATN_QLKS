@@ -111,9 +111,9 @@ export default function Pagination({
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-3.5 bg-slate-50/70 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 sm:px-6 py-3.5 bg-slate-50/70 border-t border-slate-200">
             {/* Text đếm kết quả & Tùy chọn pageSize bên trái */}
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3 text-xs text-slate-500 font-medium text-center sm:text-left">
                 <div>
                     {totalCount !== null && totalCount !== undefined ? (
                         totalCount > 0 ? (
@@ -134,12 +134,12 @@ export default function Pagination({
                 </div>
 
                 {onPageSizeChange && (
-                    <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                    <div className="flex items-center gap-1.5 sm:pl-3 sm:border-l sm:border-slate-200">
                         <span className="text-slate-400">Số dòng:</span>
                         <select
                             value={pageSize}
                             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                            className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-2xs"
+                            className="px-2 py-1.5 sm:py-1 bg-white border border-slate-200 rounded-lg text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-2xs"
                         >
                             {pageSizeOptions.map((opt) => (
                                 <option key={opt} value={opt}>

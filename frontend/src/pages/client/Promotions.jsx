@@ -502,9 +502,9 @@ export default function PromotionsPage() {
 
                             {/* FLASH SALE COUNTDOWN TIMER HOẶC LIVE STATUS */}
                             {showCountdown ? (
-                                <div className="mt-8 inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-xl shadow-slate-200/60">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-amber-800 uppercase tracking-widest mb-3">
-                                        <Clock className="w-4 h-4 text-amber-600 animate-spin" style={{ animationDuration: '8s' }} />
+                                <div className="mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60">
+                                    <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider sm:tracking-widest mb-3 text-center">
+                                        <Clock className="w-4 h-4 text-amber-600 animate-spin shrink-0" style={{ animationDuration: '8s' }} />
                                         <span>
                                             {nearestExpiringPromo?.name
                                                 ? `Ưu Đãi "${nearestExpiringPromo.name}" Sắp Kết Thúc:`
@@ -512,30 +512,30 @@ export default function PromotionsPage() {
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 sm:gap-4 font-mono">
-                                        <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-3.5 sm:px-5 py-2 min-w-[64px] shadow-xs">
-                                            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.days).padStart(2, '0')}</span>
+                                    <div className="w-full sm:w-auto flex items-center justify-center gap-1 sm:gap-4 font-mono">
+                                        <div className="flex-1 sm:flex-none min-w-0 sm:min-w-[64px] flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-1.5 sm:px-5 py-2 shadow-xs">
+                                            <span className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.days).padStart(2, '0')}</span>
                                             <span className="text-[10px] text-slate-500 uppercase font-sans font-medium">Ngày</span>
                                         </div>
-                                        <span className="text-xl sm:text-2xl font-bold text-slate-300">:</span>
-                                        <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-3.5 sm:px-5 py-2 min-w-[64px] shadow-xs">
-                                            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.hours).padStart(2, '0')}</span>
+                                        <span className="text-lg sm:text-2xl font-bold text-slate-300 shrink-0">:</span>
+                                        <div className="flex-1 sm:flex-none min-w-0 sm:min-w-[64px] flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-1.5 sm:px-5 py-2 shadow-xs">
+                                            <span className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.hours).padStart(2, '0')}</span>
                                             <span className="text-[10px] text-slate-500 uppercase font-sans font-medium">Giờ</span>
                                         </div>
-                                        <span className="text-xl sm:text-2xl font-bold text-slate-300">:</span>
-                                        <div className="flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-3.5 sm:px-5 py-2 min-w-[64px] shadow-xs">
-                                            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                                        <span className="text-lg sm:text-2xl font-bold text-slate-300 shrink-0">:</span>
+                                        <div className="flex-1 sm:flex-none min-w-0 sm:min-w-[64px] flex flex-col items-center bg-slate-50 border border-slate-200 rounded-2xl px-1.5 sm:px-5 py-2 shadow-xs">
+                                            <span className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-slate-900">{String(timeLeft.minutes).padStart(2, '0')}</span>
                                             <span className="text-[10px] text-slate-500 uppercase font-sans font-medium">Phút</span>
                                         </div>
-                                        <span className="text-xl sm:text-2xl font-bold text-slate-300">:</span>
-                                        <div className="flex flex-col items-center bg-rose-50 border border-rose-200 rounded-2xl px-3.5 sm:px-5 py-2 min-w-[64px] shadow-xs">
-                                            <span className="text-2xl sm:text-3xl font-extrabold text-rose-600">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                                        <span className="text-lg sm:text-2xl font-bold text-slate-300 shrink-0">:</span>
+                                        <div className="flex-1 sm:flex-none min-w-0 sm:min-w-[64px] flex flex-col items-center bg-rose-50 border border-rose-200 rounded-2xl px-1.5 sm:px-5 py-2 shadow-xs">
+                                            <span className="text-xl xs:text-2xl sm:text-3xl font-extrabold text-rose-600">{String(timeLeft.seconds).padStart(2, '0')}</span>
                                             <span className="text-[10px] text-rose-500 uppercase font-sans font-medium">Giây</span>
                                         </div>
                                     </div>
 
                                     {nearestExpiringPromo?.code && (
-                                        <div className="mt-3 text-xs text-slate-500 flex items-center gap-1.5">
+                                        <div className="mt-3 text-xs text-slate-500 flex flex-wrap items-center justify-center gap-1.5">
                                             <span>Áp dụng mã:</span>
                                             <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                                                 {nearestExpiringPromo.code}
@@ -577,25 +577,25 @@ export default function PromotionsPage() {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="Tìm mã voucher, ưu đãi..."
-                                    className="w-full pl-9 pr-8 py-2.5 rounded-2xl bg-white border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 shadow-xs transition"
+                                    className="w-full pl-9 pr-10 py-2.5 rounded-2xl bg-white border border-slate-200 text-base sm:text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 shadow-xs transition"
                                 />
                                 {searchTerm && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchTerm('')}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 cursor-pointer"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
                                         title="Xóa tìm kiếm"
                                     >
-                                        <X className="w-3.5 h-3.5" />
+                                        <X className="w-4 h-4" />
                                     </button>
                                 )}
                             </div>
 
-                            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs self-start sm:self-auto text-xs font-semibold shrink-0">
+                            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs w-full sm:w-auto overflow-x-auto no-scrollbar text-xs font-semibold shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('all')}
-                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'all'
+                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'all'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -605,7 +605,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('percentage')}
-                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'percentage'
+                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'percentage'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -615,7 +615,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('fixed')}
-                                    className={`px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap ${activePromoTab === 'fixed'
+                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'fixed'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -721,7 +721,7 @@ export default function PromotionsPage() {
 
                                         {/* Coupon Code Block & Action Buttons */}
                                         <div className="pt-2">
-                                            <div className="flex items-center justify-between bg-amber-50/80 border border-dashed border-amber-300 rounded-2xl px-3.5 py-2.5 mb-3">
+                                            <div className="flex items-center justify-between gap-2 bg-amber-50/80 border border-dashed border-amber-300 rounded-2xl px-3.5 py-2.5 mb-3">
                                                 <div className="min-w-0">
                                                     <span className="text-[9px] uppercase tracking-wider text-amber-800 block font-bold">Mã Voucher:</span>
                                                     <span className="font-mono text-sm font-extrabold text-amber-900 tracking-wider truncate block">
@@ -731,7 +731,7 @@ export default function PromotionsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyCode(promo.code)}
-                                                    className={`p-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${isCopied
+                                                    className={`shrink-0 min-h-[40px] px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${isCopied
                                                             ? 'bg-emerald-600 text-white shadow-xs'
                                                             : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-200'
                                                         }`}
@@ -777,7 +777,7 @@ export default function PromotionsPage() {
                                 <Crown className="w-4 h-4 text-amber-600" />
                                 <span>ĐẶC QUYỀN HỘI VIÊN TA CLUB</span>
                             </div>
-                            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900">
+                            <h2 className="font-serif text-2xl sm:text-4xl font-bold text-slate-900">
                                 Tích Điểm Tối Đa & Nâng Hạng Thẻ
                             </h2>
                             <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
@@ -910,7 +910,7 @@ export default function PromotionsPage() {
                             <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">
                                 LỢI ÍCH ĐỘC QUYỀN
                             </span>
-                            <h2 className="font-serif text-3xl font-bold text-slate-900">
+                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
                                 Tại Sao Luôn Đặt Phòng Trực Tiếp Tại Website?
                             </h2>
                         </div>
@@ -1037,8 +1037,8 @@ export default function PromotionsPage() {
                                     onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
                                     className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-amber-700 transition cursor-pointer"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-6 h-6 rounded-full bg-amber-50 text-amber-700 text-xs flex items-center justify-center font-bold border border-amber-200">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <span className="w-6 h-6 shrink-0 rounded-full bg-amber-50 text-amber-700 text-xs flex items-center justify-center font-bold border border-amber-200">
                                             {idx + 1}
                                         </span>
                                         <span>{faq.q}</span>

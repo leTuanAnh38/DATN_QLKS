@@ -174,11 +174,11 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
             <div
-                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto"
+                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-[90dvh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Modal */}
-                <div className="relative px-6 pt-6 pb-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
+                <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shadow-xs">
@@ -206,27 +206,28 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                     {/* Thanh tiến trình 2 bước */}
                     {step < 3 && (
                         <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100/80">
-                            <div className={`flex items-center gap-2 text-xs font-semibold ${step === 1 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`flex items-center gap-1.5 sm:gap-2 text-xs font-semibold shrink-0 ${step === 1 ? 'text-amber-600' : 'text-slate-400'}`}>
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 ${step === 1 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                     1
                                 </span>
-                                <span>Nhập Email</span>
+                                <span className="whitespace-nowrap">Nhập Email</span>
                             </div>
-                            <div className="flex-1 h-0.5 bg-slate-100 mx-1">
+                            <div className="flex-1 h-0.5 bg-slate-100 mx-1 min-w-[20px]">
                                 <div className={`h-full bg-sky-600 transition-all duration-300 ${step === 2 ? 'w-full' : 'w-0'}`} />
                             </div>
-                            <div className={`flex items-center gap-2 text-xs font-semibold ${step === 2 ? 'text-amber-600' : 'text-slate-400'}`}>
-                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`flex items-center gap-1.5 sm:gap-2 text-xs font-semibold shrink-0 ${step === 2 ? 'text-amber-600' : 'text-slate-400'}`}>
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 ${step === 2 ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                                     2
                                 </span>
-                                <span>Xác thực OTP & Đổi mật khẩu</span>
+                                <span className="sm:hidden whitespace-nowrap">OTP &amp; Mật khẩu</span>
+                                <span className="hidden sm:inline whitespace-nowrap">Xác thực OTP &amp; Đổi mật khẩu</span>
                             </div>
                         </div>
                     )}
                 </div>
 
                 {/* Body Modal */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     {/* Thông báo lỗi */}
                     {errorMessage && (
                         <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2.5">
@@ -364,7 +365,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         placeholder="Tối thiểu 6 ký tự"
-                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                        className="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                     />
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                         <Lock className="w-4 h-4" />
@@ -372,7 +373,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                     <button
                                         type="button"
                                         onClick={() => setShowNewPassword(!showNewPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
                                     >
                                         {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
@@ -392,7 +393,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         placeholder="Nhập lại mật khẩu mới"
-                                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
+                                        className="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none"
                                     />
                                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-500 transition-colors pointer-events-none">
                                         <Lock className="w-4 h-4" />
@@ -400,7 +401,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
                                     >
                                         {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>

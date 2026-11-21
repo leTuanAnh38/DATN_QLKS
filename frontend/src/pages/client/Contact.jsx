@@ -214,7 +214,7 @@ export default function ContactPage() {
             {toast && (
                 <div
                     role="status"
-                    className={`fixed top-24 right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium transition-all duration-300 ${
+                    className={`fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium transition-all duration-300 ${
                         toast.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-emerald-500/10'
                             : 'bg-rose-50 text-rose-800 border-rose-200 shadow-rose-500/10'
@@ -314,7 +314,7 @@ export default function ContactPage() {
                                         value={formData.fullName}
                                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                                         placeholder="Nguyễn Văn A"
-                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -327,7 +327,7 @@ export default function ContactPage() {
                                         value={formData.phone}
                                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                         placeholder="(+84) 90 123 4567"
-                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                             </div>
@@ -343,7 +343,7 @@ export default function ContactPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         placeholder="guest@domain.com"
-                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                     />
                                 </div>
                                 <div>
@@ -354,7 +354,7 @@ export default function ContactPage() {
                                         <select
                                             value={formData.department}
                                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-9 cursor-pointer font-medium"
+                                            className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs appearance-none pr-9 cursor-pointer font-medium"
                                         >
                                             <option value="reservations">Đặt phòng lưu trú & Suite</option>
                                             <option value="dining">Dịch vụ Ẩm thực & Bar (F&B)</option>
@@ -387,7 +387,7 @@ export default function ContactPage() {
                                     value={formData.subject}
                                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     placeholder="Ví dụ: Đặt phòng Ocean Penthouse dịp kỷ niệm ngày cưới"
-                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
+                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs"
                                 />
                             </div>
 
@@ -407,7 +407,7 @@ export default function ContactPage() {
                                     value={formData.message}
                                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                     placeholder="Quý khách có thể cung cấp thêm thông tin về số lượng khách, chế độ ăn kiêng, sở thích gối nệm hoặc yêu cầu đón tiễn..."
-                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
+                                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-xs sm:placeholder:text-sm placeholder:text-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/10 focus:bg-white transition shadow-2xs leading-relaxed"
                                 />
                             </div>
 
@@ -525,7 +525,7 @@ export default function ContactPage() {
 
                         {/* Specialized Departments Contacts (Interactive - click to select department on Form) */}
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <span className="text-[10px] font-bold text-sky-700 uppercase tracking-widest block mb-0.5">
                                         Chọn nhanh bộ phận cần liên hệ
@@ -812,7 +812,7 @@ export default function ContactPage() {
                             <button
                                 type="button"
                                 onClick={() => handleSelectDepartment('transport', 'Yêu cầu đặt xe đưa đón sân bay Đà Nẵng')}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-600 hover:from-sky-600 hover:via-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/30 transition cursor-pointer active:scale-95"
+                                className="w-full sm:w-auto justify-center inline-flex items-center gap-2 px-5 py-3 sm:py-2.5 bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-600 hover:from-sky-600 hover:via-blue-700 hover:to-cyan-700 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/30 transition cursor-pointer active:scale-95"
                             >
                                 <span>Gửi yêu cầu đặt xe đưa đón</span>
                                 <Send className="w-3.5 h-3.5" />

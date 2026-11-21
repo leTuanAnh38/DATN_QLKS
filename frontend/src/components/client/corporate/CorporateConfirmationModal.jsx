@@ -67,7 +67,7 @@ export default function CorporateConfirmationModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition p-1.5 sm:p-2 rounded-xl cursor-pointer shrink-0"
+                        className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition rounded-xl cursor-pointer shrink-0"
                         title="Đóng"
                     >
                         <X className="w-4 h-4 sm:w-5 sm:h-5" />

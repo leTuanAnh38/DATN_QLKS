@@ -115,7 +115,7 @@ export default function RoomsComparisonAndStandards({
                         <table className="w-full min-w-[680px] border-collapse text-left">
                             <thead>
                                 <tr className="border-b border-slate-200/80">
-                                    <th className="py-5 px-6 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50/70 w-[28%]">
+                                    <th className="sticky left-0 z-10 py-4 sm:py-5 px-3 sm:px-6 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50 w-[28%] shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         Thông Số &amp; Tiện Nghi
                                     </th>
                                     {comparedRooms.map((room, idx) => {
@@ -142,7 +142,7 @@ export default function RoomsComparisonAndStandards({
                             <tbody className="divide-y divide-slate-100 text-xs sm:text-[13px]">
                                 {/* Dòng 1: Giá mỗi đêm */}
                                 <tr>
-                                    <td className="py-4 px-6 font-semibold text-slate-800">
+                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         <span className="inline-flex items-center gap-2.5">
                                             <Banknote className="w-4 h-4 text-sky-600 shrink-0" />
                                             <span>Giá phòng / đêm</span>
@@ -185,7 +185,7 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 2: Diện tích */}
                                 <tr>
-                                    <td className="py-4 px-6 font-semibold text-slate-800">
+                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         <span className="inline-flex items-center gap-2.5">
                                             <Maximize2 className="w-4 h-4 text-sky-600 shrink-0" />
                                             <span>Diện tích sàn</span>
@@ -208,7 +208,7 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 3: Tiêu chuẩn giường */}
                                 <tr>
-                                    <td className="py-4 px-6 font-semibold text-slate-800">
+                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         <span className="inline-flex items-center gap-2.5">
                                             <BedDouble className="w-4 h-4 text-sky-600 shrink-0" />
                                             <span>Tiêu chuẩn giường</span>
@@ -231,7 +231,7 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 4: Sức chứa tối đa */}
                                 <tr>
-                                    <td className="py-4 px-6 font-semibold text-slate-800">
+                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         <span className="inline-flex items-center gap-2.5">
                                             <Users className="w-4 h-4 text-sky-600 shrink-0" />
                                             <span>Sức chứa tiêu chuẩn</span>
@@ -257,7 +257,7 @@ export default function RoomsComparisonAndStandards({
                                     const AmenityIcon = getAmenityIcon(amenityName);
                                     return (
                                         <tr key={amenityName}>
-                                            <td className="py-4 px-6 font-semibold text-slate-800">
+                                            <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                                 <span className="inline-flex items-center gap-2.5">
                                                     <AmenityIcon className="w-4 h-4 text-sky-600 shrink-0" />
                                                     <span>{amenityName}</span>

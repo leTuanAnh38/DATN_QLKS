@@ -288,8 +288,8 @@ export default function TADaNangHotelLanding() {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.38)_0%,transparent_70%)] z-1 pointer-events-none" />
 
                 {/* Hero Content nổi bật trên cùng (relative z-10) */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white pt-8 pb-16 sm:pb-20">
-                    <h1 className="font-serif text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.18] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-all duration-700">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-14 text-center text-white pt-8 pb-16 sm:pb-20">
+                    <h1 className="font-serif text-2xl xs:text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.2] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-all duration-700">
                         {bannerImages[currentBanner].title} <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
                             {bannerImages[currentBanner].subtitle}
@@ -300,20 +300,20 @@ export default function TADaNangHotelLanding() {
                         {bannerImages[currentBanner].desc}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-[13px] text-white/95">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:gap-x-7 text-xs sm:text-[13px] font-medium text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
+                        <span className="inline-flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Giá trực tiếp tốt nhất</span>
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                        <span className="inline-flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
                             <span>Linh hoạt đổi hủy 24h</span>
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950/30 backdrop-blur-md border border-white/15 shadow-xs">
+                        <span className="inline-flex items-center gap-1.5">
                             <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                             </svg>
@@ -322,30 +322,34 @@ export default function TADaNangHotelLanding() {
                     </div>
 
                     {/* Dấu chấm chuyển slide (Dots Indicators) */}
-                    <div className="flex items-center justify-center gap-2 mt-5">
+                    <div className="flex items-center justify-center gap-1 mt-4">
                         {bannerImages.map((_, dotIdx) => (
                             <button
                                 key={dotIdx}
                                 type="button"
                                 onClick={() => setCurrentBanner(dotIdx)}
                                 onTouchStart={(e) => e.stopPropagation()}
-                                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                                    currentBanner === dotIdx
-                                        ? 'w-7 h-2 bg-amber-300 shadow-sm'
-                                        : 'w-2 h-2 bg-white/55 hover:bg-white/85'
-                                }`}
+                                className="p-2 flex items-center justify-center cursor-pointer"
                                 aria-label={`Xem banner ${dotIdx + 1}`}
-                            />
+                            >
+                                <span
+                                    className={`block transition-all duration-300 rounded-full ${
+                                        currentBanner === dotIdx
+                                            ? 'w-7 h-2 bg-amber-300 shadow-sm'
+                                            : 'w-2 h-2 bg-white/55 hover:bg-white/85'
+                                    }`}
+                                />
+                            </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Nút Previous & Next chuyển banner */}
+                {/* Nút Previous & Next chuyển banner (ẩn trên mobile < sm để không đè chữ, mobile vuốt ngang & bấm chấm) */}
                 <button
                     type="button"
                     onClick={() => setCurrentBanner((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="absolute left-3 sm:left-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition opacity-80 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
+                    className="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/35 hover:bg-black/60 text-white items-center justify-center backdrop-blur-xs transition sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
                     aria-label="Banner trước"
                 >
                     <ChevronLeft className="w-5 h-5 text-white" />
@@ -354,7 +358,7 @@ export default function TADaNangHotelLanding() {
                     type="button"
                     onClick={() => setCurrentBanner((prev) => (prev + 1) % bannerImages.length)}
                     onTouchStart={(e) => e.stopPropagation()}
-                    className="absolute right-3 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/35 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-xs transition opacity-80 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
+                    className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/35 hover:bg-black/60 text-white items-center justify-center backdrop-blur-xs transition sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer shadow-md active:scale-90"
                     aria-label="Banner kế tiếp"
                 >
                     <ChevronRight className="w-5 h-5 text-white" />
@@ -409,7 +413,7 @@ export default function TADaNangHotelLanding() {
                             </div>
 
                             {/* Field 2 & 3: Check-in & Check-out */}
-                            <div className="grid grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                            <div className="grid grid-cols-1 xs:grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
                                 {/* Field 2: Check-in */}
                                 <div
                                     onClick={() => {
@@ -419,7 +423,7 @@ export default function TADaNangHotelLanding() {
                                             checkInRef.current?.focus();
                                         }
                                     }}
-                                    className="px-2.5 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -431,7 +435,7 @@ export default function TADaNangHotelLanding() {
                                         min={getTodayStr()}
                                         value={checkInDate}
                                         onChange={handleCheckInChange}
-                                        className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
+                                        className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
                                     />
                                     <div className="text-[10px] sm:text-[10.5px] text-amber-800/90 font-semibold truncate mt-0.5">
                                         {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
@@ -447,7 +451,7 @@ export default function TADaNangHotelLanding() {
                                             checkOutRef.current?.focus();
                                         }
                                     }}
-                                    className="px-2.5 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -459,7 +463,7 @@ export default function TADaNangHotelLanding() {
                                         min={getTomorrowStr(checkInDate)}
                                         value={checkOutDate}
                                         onChange={handleCheckOutChange}
-                                        className="w-full bg-transparent text-xs sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
+                                        className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
                                     />
                                     <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
                                         {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
@@ -522,7 +526,7 @@ export default function TADaNangHotelLanding() {
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="self-start sm:self-auto font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 px-3 py-1 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
+                            className="w-full sm:w-auto justify-center font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 px-3.5 py-2 sm:py-1.5 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
                         >
                             <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
                             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
@@ -557,7 +561,7 @@ export default function TADaNangHotelLanding() {
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             TIN TỨC &amp; CẨM NANG
                         </span>
-                        <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 mb-2.5 tracking-tight">
+                        <h2 className="font-serif text-2xl sm:text-4xl font-bold text-slate-900 mb-2.5 tracking-tight">
                             Khám Phá Trải Nghiệm Mới Nhất
                         </h2>
                         <p className="text-slate-600 text-sm sm:text-base max-w-2xl leading-relaxed">
@@ -627,7 +631,7 @@ export default function TADaNangHotelLanding() {
                                     </Link>
 
                                     {/* Nội dung tóm tắt */}
-                                    <div className="p-6 space-y-2.5">
+                                    <div className="p-4 sm:p-6 space-y-2.5">
                                         <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="w-3 h-3 text-slate-400" />
@@ -653,7 +657,7 @@ export default function TADaNangHotelLanding() {
                                 </div>
 
                                 {/* Footer thẻ */}
-                                <div className="px-6 pb-5 pt-3.5 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
+                                <div className="px-4 sm:px-6 pb-4 sm:pb-5 pt-3.5 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
                                     <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5 min-w-0 max-w-[160px]">
                                         <PenLine className="w-3 h-3 text-amber-600/80 shrink-0" />
                                         <span className="truncate">{post.author || 'Ban Biên Tập'}</span>

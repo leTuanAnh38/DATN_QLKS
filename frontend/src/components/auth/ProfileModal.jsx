@@ -30,7 +30,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenChangePassword }) 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
             <div
-                className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 text-left"
+                className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90dvh] animate-in zoom-in-95 duration-200 text-left"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. Header Profile Cover (Fixed) */}
@@ -38,7 +38,7 @@ export default function ProfileModal({ isOpen, onClose, onOpenChangePassword }) 
                     <button
                         type="button"
                         onClick={onClose}
-                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition cursor-pointer backdrop-blur-xs"
+                        className="absolute top-3 right-3 sm:top-4 sm:right-4 w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center transition cursor-pointer backdrop-blur-xs"
                         title="Đóng (Esc)"
                     >
                         <X className="w-4 h-4" />

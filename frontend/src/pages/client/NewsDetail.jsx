@@ -114,7 +114,7 @@ export default function NewsDetail() {
         <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
             {/* THANH TIẾN ĐỘ ĐỌC BÀI VIẾT (READING PROGRESS BAR) */}
             <div
-                className="fixed top-0 left-0 h-1 bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-600 z-50 transition-all duration-150"
+                className="fixed top-0 left-0 h-1 bg-gradient-to-r from-sky-500 via-blue-600 to-cyan-600 z-[60] transition-all duration-150 pointer-events-none"
                 style={{ width: `${scrollProgress}%` }}
             />
 
@@ -192,16 +192,16 @@ export default function NewsDetail() {
                                     {post.title}
                                 </h1>
 
-                                <div className="flex items-center justify-between pt-2">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-sm font-bold shadow-xs shrink-0">
                                             <User className="w-5 h-5" />
                                         </div>
-                                        <div>
-                                            <span className="text-xs font-bold text-slate-800 block">
+                                        <div className="min-w-0">
+                                            <span className="text-xs font-bold text-slate-800 block truncate">
                                                 {post.author || 'Ban Biên Tập'}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 block">
+                                            <span className="text-[10px] text-slate-400 block truncate">
                                                 {hotelName} • {starCount}-Star Luxury Resort
                                             </span>
                                         </div>
@@ -211,7 +211,7 @@ export default function NewsDetail() {
                                     <button
                                         type="button"
                                         onClick={handleCopyLink}
-                                        className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-sky-700 hover:border-sky-200 text-xs font-semibold hover:bg-sky-50/50 transition cursor-pointer flex items-center gap-1.5"
+                                        className="min-h-[40px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-sky-700 hover:border-sky-200 text-xs font-semibold hover:bg-sky-50/50 transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
                                     >
                                         {isCopied ? (
                                             <>
@@ -248,25 +248,25 @@ export default function NewsDetail() {
 
                             {/* NỘI DUNG CHI TIẾT (RENDER AN TOÀN BẰNG DANGEROUSLYSETINNERHTML) */}
                             <div
-                                className="post-html-content prose prose-slate w-full max-w-none text-slate-700 text-sm sm:text-base leading-relaxed space-y-4 break-words overflow-hidden"
+                                className="post-html-content prose prose-slate w-full max-w-none text-slate-700 text-sm sm:text-base leading-relaxed space-y-4 break-words overflow-x-auto"
                                 dangerouslySetInnerHTML={{ __html: formatPostContent(post.content) }}
                             />
 
                             {/* Cuối bài viết: Tag & Nút quay lại */}
-                            <div className="pt-8 mt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div className="pt-8 mt-8 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                                 <Link
                                     to="/news"
-                                    className="px-4 py-2.5 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200/80 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
+                                    className="w-full sm:w-auto justify-center min-h-[42px] px-4 py-2.5 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200/80 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2 cursor-pointer shadow-2xs"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
                                     <span>Quay lại Trang Tin Tức</span>
                                 </Link>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
                                     <button
                                         type="button"
                                         onClick={handleCopyLink}
-                                        className="px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center gap-2"
+                                        className="w-full sm:w-auto justify-center min-h-[42px] px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center gap-2"
                                     >
                                         {isCopied ? (
                                             <>

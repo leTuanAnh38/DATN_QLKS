@@ -855,7 +855,7 @@ export default function DetailRoom() {
                     </nav>
 
                     {/* Thao tác nhanh bên phải: Chia sẻ & Lưu yêu thích luôn nằm cùng hàng ở góc phải */}
-                    <div className="flex items-center space-x-2 sm:space-x-4 text-xs font-semibold text-slate-600 shrink-0">
+                    <div className="flex items-center space-x-1 sm:space-x-4 text-xs font-semibold text-slate-600 shrink-0">
                         <button
                             type="button"
                             onClick={async () => {
@@ -877,29 +877,31 @@ export default function DetailRoom() {
                                     showToastNotice('info', 'Đã sao chép liên kết phòng!');
                                 }
                             }}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 hover:text-sky-600 transition cursor-pointer"
+                            className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 hover:text-sky-600 transition cursor-pointer"
                             title="Chia sẻ liên kết hạng phòng"
+                            aria-label="Chia sẻ liên kết hạng phòng"
                         >
                             {copiedShareLink ? (
                                 <>
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span className="text-emerald-700 font-bold text-[11px] sm:text-xs">Đã chép</span>
+                                    <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-emerald-600" />
+                                    <span className="hidden sm:inline text-emerald-700 font-bold text-xs">Đã chép</span>
                                 </>
                             ) : (
                                 <>
-                                    <Share2 className="w-3.5 h-3.5 text-slate-500" />
-                                    <span className="text-[11px] sm:text-xs">Chia sẻ</span>
+                                    <Share2 className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-slate-500" />
+                                    <span className="hidden sm:inline text-xs">Chia sẻ</span>
                                 </>
                             )}
                         </button>
                         <button
                             type="button"
                             onClick={handleToggleSaveRoom}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer ${isSaved ? 'text-rose-500' : 'hover:text-rose-500'}`}
+                            className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition cursor-pointer ${isSaved ? 'text-rose-500' : 'hover:text-rose-500'}`}
                             title={isSaved ? 'Đã lưu yêu thích' : 'Lưu yêu thích'}
+                            aria-label={isSaved ? 'Đã lưu yêu thích' : 'Lưu yêu thích'}
                         >
-                            <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
-                            <span className="text-[11px] sm:text-xs">{isSaved ? 'Đã lưu' : 'Yêu thích'}</span>
+                            <Heart className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            <span className="hidden sm:inline text-xs">{isSaved ? 'Đã lưu' : 'Yêu thích'}</span>
                         </button>
                     </div>
                 </div>
@@ -953,7 +955,7 @@ export default function DetailRoom() {
             {/* GALLERY TỰ ĐỘNG THÍCH ỨNG THEO SỐ LƯỢNG ẢNH THỰC TẾ */}
             <section className="bg-white pb-6 sm:pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden relative select-none">
+                    <div className="grid grid-cols-12 gap-3 h-[280px] sm:h-[480px] lg:h-[560px] rounded-3xl overflow-hidden relative select-none">
                         {/* Ảnh chính lớn (Tràn 100% nếu chỉ có 1 ảnh hoặc trên mobile, hoặc 50% nếu có từ 2 ảnh trở lên trên desktop) */}
                         <div
                             className={`${gallery.length === 1 ? 'col-span-12' : 'col-span-12 lg:col-span-6'} relative group overflow-hidden h-full cursor-pointer touch-pan-y`}
@@ -976,7 +978,7 @@ export default function DetailRoom() {
                             />
 
                             {/* Lớp gradient bóng mờ và tiêu đề ảnh */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-5 sm:p-6 text-white pointer-events-none pb-12 sm:pb-6">
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-4 sm:p-6 text-white pointer-events-none pb-14 sm:pb-6">
                                 <span className="text-[11px] uppercase tracking-widest text-sky-300 font-bold mb-1">
                                     {gallery.length === 1 ? 'Hình ảnh phòng' : `Góc nhìn ${safeImageIndex + 1} / ${gallery.length}`}
                                 </span>
@@ -1033,9 +1035,9 @@ export default function DetailRoom() {
                                 </>
                             )}
 
-                            {/* Dải chấm tròn phân trang ảnh trên Mobile (< lg) */}
+                            {/* Dải chấm tròn phân trang ảnh trên Mobile (< lg) - căn trái tránh đè nút Tất cả ảnh */}
                             {gallery.length > 1 && (
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 lg:hidden bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                                <div className="absolute bottom-4 left-4 sm:left-1/2 sm:-translate-x-1/2 z-20 flex items-center gap-1.5 lg:hidden bg-black/45 backdrop-blur-md px-2.5 py-1.5 rounded-full border border-white/10 max-w-[48%] overflow-x-auto no-scrollbar">
                                     {gallery.map((_, dotIdx) => (
                                         <button
                                             key={dotIdx}
@@ -1407,7 +1409,7 @@ export default function DetailRoom() {
 
             {/* Toast Thông báo sang trọng */}
             {toastNotice && (
-                <div className="fixed top-24 right-4 sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
+                <div className="fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span className="flex-1">{toastNotice.text}</span>
                     <button

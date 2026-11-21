@@ -56,7 +56,7 @@ export default function FeaturedRoomCategories() {
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         PHÒNG NGHỈ &amp; SUITES
                     </span>
-                    <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
+                    <h2 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold text-slate-900 tracking-tight leading-tight">
                         Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
                         <span className="bg-gradient-to-r from-slate-900 via-amber-800 to-amber-600 bg-clip-text text-transparent">
                             Đẳng Cấp & Sang Trọng

@@ -114,7 +114,7 @@ export default function GuestTestimonials() {
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ĐÁNH GIÁ KHÁCH HÀNG
                     </span>
-                    <h2 className="font-serif text-3xl sm:text-4xl lg:text-[42px] font-bold text-slate-900 leading-[1.22] tracking-tight">
+                    <h2 className="font-serif text-2xl sm:text-4xl lg:text-[42px] font-bold text-slate-900 leading-[1.22] tracking-tight">
                         Cảm Nhận Chân Thực Về {hotelName}
                     </h2>
                 </div>
@@ -162,7 +162,7 @@ export default function GuestTestimonials() {
                             return (
                                 <article
                                     key={rev.id || idx}
-                                    className="bg-white rounded-3xl p-7 sm:p-8 border border-slate-100 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                                    className="bg-white rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
                                 >
                                     <div>
                                         {/* 5 Ngôi sao vàng nâu sang trọng ở trên cùng */}

@@ -1118,14 +1118,14 @@ export default function Checkout() {
                                         )}
                                     </div>
                                 ) : availability?.available_rooms > 0 ? (
-                                    <div className="mt-4 p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-2 text-emerald-800 font-semibold">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                    <div className="mt-4 p-3 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+                                        <div className="flex items-center gap-2 text-emerald-800 font-semibold min-w-0">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                             <span>
                                                 Phòng còn trống ({availability.available_rooms} phòng sẵn sàng đón khách)
                                             </span>
                                         </div>
-                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1.5">
+                                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1.5 shrink-0">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                             Khả dụng
                                         </span>
@@ -1194,12 +1194,12 @@ export default function Checkout() {
                                 {/* KHỐI THÔNG TIN DOANH NGHIỆP & XUẤT HÓA ĐƠN VAT */}
                                 {customerType === 'CORPORATE' && (
                                     <div className="mb-6 p-4 sm:p-5 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-4 animate-in fade-in">
-                                        <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs">
+                                        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
                                                     <Building2 className="w-4 h-4" />
                                                 </div>
-                                                <div>
+                                                <div className="min-w-0">
                                                     <h3 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">
                                                         Thông tin Pháp nhân Doanh nghiệp (Xuất hóa đơn VAT)
                                                     </h3>
@@ -1208,7 +1208,7 @@ export default function Checkout() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span className="px-2.5 py-1 rounded-lg bg-amber-100/80 text-amber-900 text-[10px] font-extrabold uppercase tracking-wider border border-amber-300/80 shadow-2xs">
+                                            <span className="px-2.5 py-1 rounded-lg bg-amber-100/80 text-amber-900 text-[10px] font-extrabold uppercase tracking-wider border border-amber-300/80 shadow-2xs shrink-0">
                                                 VAT Invoice
                                             </span>
                                         </div>
@@ -1224,7 +1224,7 @@ export default function Checkout() {
                                                     value={companyName}
                                                     onChange={(e) => setCompanyName(e.target.value)}
                                                     required
-                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
 
@@ -1251,7 +1251,7 @@ export default function Checkout() {
                                                             }
                                                         }}
                                                         required
-                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-xs sm:text-sm font-mono text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition ${
+                                                        className={`w-full px-4 py-2.5 bg-white border rounded-xl text-base sm:text-sm font-mono text-slate-900 placeholder:font-sans placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition ${
                                                             taxCodeError ? 'border-rose-400 bg-rose-50/20' : 'border-slate-200 focus:border-sky-500'
                                                         }`}
                                                     />
@@ -1272,7 +1272,7 @@ export default function Checkout() {
                                                         value={companyAddress}
                                                         onChange={(e) => setCompanyAddress(e.target.value)}
                                                         required
-                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                     />
                                                 </div>
                                             </div>
@@ -1286,7 +1286,7 @@ export default function Checkout() {
                                                     placeholder="Ví dụ: ketoan@congty.vn (Mặc định gửi về email người đặt nếu bỏ trống)"
                                                     value={invoiceEmail}
                                                     onChange={(e) => setInvoiceEmail(e.target.value)}
-                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
 
@@ -1399,12 +1399,12 @@ export default function Checkout() {
                                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                                             Số lượng khách lưu trú
                                         </label>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex flex-wrap items-center gap-3">
                                             <div className="flex items-center space-x-3 bg-slate-50 p-2 rounded-2xl border border-slate-200">
                                                 <button
                                                     type="button"
                                                     onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer"
+                                                    className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer flex items-center justify-center"
                                                 >
                                                     -
                                                 </button>
@@ -1414,7 +1414,7 @@ export default function Checkout() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
-                                                    className="w-8 h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer"
+                                                    className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-300 transition cursor-pointer flex items-center justify-center"
                                                 >
                                                     +
                                                 </button>
@@ -1534,7 +1534,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, full_name: val } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                                                        className="w-full px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-xs font-medium focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
 
@@ -1546,7 +1546,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, id_type: val } : g));
                                                                         }}
-                                                                        className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
+                                                                        className="w-full px-2 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-xs text-slate-800 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 cursor-pointer"
                                                                     >
                                                                         <option value="CCCD">CCCD</option>
                                                                         <option value="PASSPORT">Hộ chiếu</option>
@@ -1563,7 +1563,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, identity_card: val.toUpperCase() } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                                                        className="w-full px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
 
@@ -1577,7 +1577,7 @@ export default function Checkout() {
                                                                             const val = e.target.value;
                                                                             setActualGuests(prev => prev.map((g, i) => i === idx ? { ...g, phone_number: val } : g));
                                                                         }}
-                                                                        className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                                                        className="w-full px-3 py-2 sm:py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-base sm:text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
                                                                     />
                                                                 </div>
                                                             </div>
@@ -1610,7 +1610,7 @@ export default function Checkout() {
                                     </div>
 
                                     {selectedServicesArray.length > 0 && (
-                                        <div className="shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-sky-50/70 border border-sky-200/80 text-xs font-bold shadow-2xs whitespace-nowrap self-start sm:self-center">
+                                        <div className="shrink-0 flex flex-wrap items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-2xl bg-sky-50/70 border border-sky-200/80 text-xs font-bold shadow-2xs self-start sm:self-center max-w-full">
                                             <span className="text-sky-900 flex items-center gap-1.5">
                                                 <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" />
                                                 <span>Đã chọn:</span>
@@ -1745,7 +1745,7 @@ export default function Checkout() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, -1)}
-                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Giảm số lượng"
                                                                         >
                                                                             -
@@ -1756,7 +1756,7 @@ export default function Checkout() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, 1)}
-                                                                            className="w-7 h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Tăng số lượng"
                                                                         >
                                                                             +
@@ -1835,7 +1835,7 @@ export default function Checkout() {
                                 {!appliedPromo ? (
                                     <div>
                                         <div className="flex gap-2">
-                                            <div className="relative flex-1">
+                                            <div className="relative flex-1 min-w-0">
                                                 <input
                                                     type="text"
                                                     placeholder="Nhập mã (VD: WELCOME10, TADANANG)"
@@ -1844,14 +1844,14 @@ export default function Checkout() {
                                                         setPromoInput(e.target.value.toUpperCase());
                                                         setPromoError('');
                                                     }}
-                                                    className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal placeholder:capitalize focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                                    className="w-full px-3.5 sm:px-4 py-3 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-sm font-semibold uppercase tracking-wider text-slate-900 placeholder:text-[11px] sm:placeholder:text-xs placeholder:text-slate-400 placeholder:font-normal placeholder:capitalize focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                                 />
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={handleApplyPromo}
                                                 disabled={isApplyingPromo || !promoInput.trim()}
-                                                className="px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:from-slate-200 disabled:via-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-2xl text-xs font-bold shadow-md shadow-sky-900/15 transition transform active:scale-95 flex items-center gap-2 whitespace-nowrap cursor-pointer"
+                                                className="px-4 sm:px-6 py-3 min-h-[44px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:from-slate-200 disabled:via-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-2xl text-xs font-bold shadow-md shadow-sky-900/15 transition transform active:scale-95 flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer"
                                             >
                                                 {isApplyingPromo ? (
                                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
