@@ -49,7 +49,9 @@ import {
     Bot,
     MessageSquare,
     Sparkles,
-    Headphones
+    Headphones,
+    ThumbsUp,
+    ThumbsDown
 } from 'lucide-react';
 import { reportService } from '../../../services/reportService';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -286,6 +288,9 @@ export default function Analytics({ onNavigateToCustomer }) {
         }
         if (chatbotLogFilter === 'fallback') {
             return chatbotLogs.filter((l) => l.response_source === 'local_smart_fallback');
+        }
+        if (chatbotLogFilter === 'unhelpful') {
+            return chatbotLogs.filter((l) => l.user_feedback === 'unhelpful');
         }
         return chatbotLogs;
     }, [chatbotLogs, chatbotLogFilter]);
@@ -1545,10 +1550,18 @@ export default function Analytics({ onNavigateToCustomer }) {
                             Giám sát lưu lượng hỏi đáp, phân bố ngôn ngữ, tỷ lệ Gemini AI và các yêu cầu chuyển tiếp Lễ tân
                         </p>
                     </div>
-                    <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 self-start sm:self-auto flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                        Độ trễ TB: {chatbotSummary.avg_latency_ms || 0} ms
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                        {typeof chatbotSummary.satisfaction_rate === 'number' && (
+                            <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center gap-1.5">
+                                <ThumbsUp className="w-3.5 h-3.5 text-emerald-600" />
+                                Hài lòng: {chatbotSummary.satisfaction_rate}% ({chatbotSummary.helpful_count || 0}/{chatbotSummary.feedback_total || 0})
+                            </span>
+                        )}
+                        <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                            Độ trễ TB: {chatbotSummary.avg_latency_ms || 0} ms
+                        </span>
+                    </div>
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-6">
@@ -1700,11 +1713,12 @@ export default function Analytics({ onNavigateToCustomer }) {
                     <div>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                             <h3 className="text-sm font-bold text-slate-800">Nhật Ký Tương Tác Gần Nhất</h3>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 {[
                                     { id: 'all', label: 'Tất cả' },
                                     { id: 'handoff', label: 'Chuyển Lễ tân (Handoff)' },
-                                    { id: 'fallback', label: 'Dùng Fallback' }
+                                    { id: 'fallback', label: 'Dùng Fallback' },
+                                    { id: 'unhelpful', label: 'Chưa hài lòng (👎)' }
                                 ].map((tab) => (
                                     <button
                                         key={tab.id}
@@ -1782,6 +1796,22 @@ export default function Analytics({ onNavigateToCustomer }) {
                                                     {log.latency_ms > 0 && (
                                                         <span className="ml-1.5 font-mono text-[10px] text-slate-400">
                                                             {log.latency_ms}ms
+                                                        </span>
+                                                    )}
+                                                    {log.user_feedback === 'helpful' && (
+                                                        <span
+                                                            className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]"
+                                                            title="Khách đánh giá hữu ích"
+                                                        >
+                                                            <ThumbsUp className="w-3 h-3" />
+                                                        </span>
+                                                    )}
+                                                    {log.user_feedback === 'unhelpful' && (
+                                                        <span
+                                                            className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[10px]"
+                                                            title="Khách chưa hài lòng"
+                                                        >
+                                                            <ThumbsDown className="w-3 h-3" />
                                                         </span>
                                                     )}
                                                 </td>

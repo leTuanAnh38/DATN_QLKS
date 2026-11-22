@@ -579,6 +579,8 @@ def build_hotel_context(request, date_info=None, lang='vi', guest_count=None, me
                 'price_formatted': format_currency(s.price),
                 'price_multilingual': format_currency_multilingual(s.price, lang=lang),
                 'description': s.description or '',
+                'ingredients': getattr(s, 'ingredients', '') or '',
+                'duration': getattr(s, 'duration', '') or '',
                 'image_url': s_img
             })
     except Exception as e:

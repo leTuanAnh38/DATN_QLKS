@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { X, PanelLeftClose, PanelLeftOpen, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
+import { useHotelSettings } from '../../store/hotelSettingStore';
+import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { authService } from '../../services/authService';
 import { useHasPermission } from '../../utils/permission';
 import UserAvatar from '../common/UserAvatar';
@@ -35,6 +37,15 @@ export default function Sidebar({
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuth();
+    const { settings } = useHotelSettings();
+    const [logoError, setLogoError] = useState(false);
+
+    const sidebarLogoUrl = settings?.logo_url ? resolveMediaUrl(settings.logo_url) : '';
+    const sidebarHotelName = settings?.hotel_name || 'TA ĐÀ NẴNG';
+
+    useEffect(() => {
+        setLogoError(false);
+    }, [sidebarLogoUrl]);
 
     // State thu gọn Sidebar trên Desktop (lưu vào localStorage nếu dùng internal state)
     const [internalCollapsed, setInternalCollapsed] = useState(() => {
@@ -177,7 +188,7 @@ export default function Sidebar({
             <aside
                 className={`${
                     effectiveCollapsed ? 'lg:w-20' : 'lg:w-80'
-                } w-80 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-all duration-300 ease-in-out print:hidden ${
+                } w-80 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-[transform,width] duration-300 ease-in-out will-change-transform print:hidden ${
                     isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
                 }`}
             >
@@ -190,15 +201,30 @@ export default function Sidebar({
                     <Link
                         to="/"
                         onClick={() => setIsMobileSidebarOpen && setIsMobileSidebarOpen(false)}
-                        className="flex items-center gap-3 hover:bg-slate-800/40 transition rounded-xl"
-                        title="TA ĐÀ NẴNG - Luxury Hotel Admin"
+                        className="flex items-center gap-3 hover:bg-slate-800/40 transition rounded-xl min-w-0"
+                        title={`${sidebarHotelName} - Luxury Hotel Admin`}
                     >
-                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
-                            TA
-                        </div>
+                        {sidebarLogoUrl && !logoError ? (
+                            <div className="w-10 h-10 rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-lg shadow-slate-950/40 border border-slate-700/60 shrink-0 overflow-hidden">
+                                <img
+                                    src={sidebarLogoUrl}
+                                    alt={sidebarHotelName}
+                                    onError={() => setLogoError(true)}
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
+                                TA
+                            </div>
+                        )}
                         <div className={`flex flex-col min-w-0 ${effectiveCollapsed ? 'lg:hidden' : ''}`}>
-                            <span className="text-white font-bold text-base tracking-wide font-sans truncate"> TA ĐÀ NẴNG </span>
-                            <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate"> Luxury Hotel Admin </span>
+                            <span className="text-white font-bold text-base tracking-wide font-sans truncate">
+                                {sidebarHotelName}
+                            </span>
+                            <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate">
+                                Luxury Hotel Admin
+                            </span>
                         </div>
                     </Link>
 

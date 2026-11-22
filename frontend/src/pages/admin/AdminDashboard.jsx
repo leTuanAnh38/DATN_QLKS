@@ -683,7 +683,7 @@ export default function HotelAdminDashboard({ initialTab }) {
             {/* Backdrop làm mờ khi mở Sidebar trên Mobile */}
             {isMobileSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden animate-fadeIn"
+                    className="fixed inset-0 bg-slate-950/50 z-40 lg:hidden"
                     onClick={() => setIsMobileSidebarOpen(false)}
                     aria-hidden="true"
                 />

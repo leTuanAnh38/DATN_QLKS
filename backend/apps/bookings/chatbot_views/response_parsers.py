@@ -91,8 +91,11 @@ def extract_suggestions(message, hotel_context, lang='vi', history=None):
         all_services = hotel_context.get('services', [])
 
         def score_service(s):
-            txt = f"{s.get('name', '')} {s.get('category', '')} {s.get('description', '')}".lower()
+            txt = f"{s.get('name', '')} {s.get('category', '')} {s.get('description', '')} {s.get('ingredients', '')} {s.get('duration', '')}".lower()
             s_score = 0
+            s_name_low = (s.get('name') or '').strip().lower()
+            if s_name_low and s_name_low in msg_lower:
+                s_score += 10
             if is_travel_or_shuttle and any(k in txt for k in ['xe', 'sân bay', 'đưa đón', 'airport', 'transfer', 'limousine', 'shuttle']):
                 s_score += 3
             if is_spa_query and any(k in txt for k in ['spa', 'massage', 'xông hơi', 'trị liệu', 'wellness']):
@@ -113,6 +116,8 @@ def extract_suggestions(message, hotel_context, lang='vi', history=None):
                 'category': s.get('category'),
                 'price_formatted': price_str,
                 'description': s.get('description'),
+                'duration': s.get('duration', ''),
+                'ingredients': s.get('ingredients', ''),
                 'image_url': s.get('image_url') or fallback_img
             })
 

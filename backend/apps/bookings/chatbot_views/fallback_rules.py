@@ -1018,23 +1018,93 @@ def local_smart_fallback(
         return "\n".join(lines)
 
     # -------------------------------------------------------------------------
-    # 6. DỊCH VỤ ẨM THỰC, SPA & ĐƯA ĐÓN SÂN BAY
+    # 6. DỊCH VỤ ẨM THỰC, SPA & ĐƯA ĐÓN SÂN BAY (BẮT CHI TIẾT THÀNH PHẦN / THỜI LƯỢNG)
     # -------------------------------------------------------------------------
-    is_svc_query = any(k in msg for k in [
+    services_all = hotel_context.get('services', [])
+    matched_specific_svc = None
+    best_svc_score = 0
+    for svc in services_all:
+        s_name_low = (svc.get('name') or '').strip().lower()
+        if not s_name_low:
+            continue
+        if s_name_low in msg:
+            sc = len(s_name_low) + 10
+        else:
+            s_words = [w for w in s_name_low.split() if len(w) >= 3]
+            hits = sum(1 for w in s_words if w in msg)
+            sc = hits if hits >= 2 else 0
+        if sc > best_svc_score:
+            best_svc_score = sc
+            matched_specific_svc = svc
+
+    is_svc_detail_q = bool(matched_specific_svc) and any(k in msg for k in [
+        'thành phần', 'bao gồm', 'gồm những gì', 'có gì', 'thời lượng', 'bao lâu', 'mấy phút', 'khẩu phần',
+        'giá', 'bao nhiêu', 'chi tiết', 'mô tả', 'ingredients', 'duration', 'how long', 'includes', 'details',
+        '구성', '시간', '얼마', '成分', '时长', '多久', '包含'
+    ])
+    if is_svc_detail_q and matched_specific_svc:
+        s = matched_specific_svc
+        dur = s.get('duration') or ''
+        ing = s.get('ingredients') or ''
+        desc = s.get('description') or ''
+        if lang == 'en':
+            lines = [f"Here are the full details for **{s['name']}** (*{s['category']}*):\n"]
+            lines.append(f"• **Rate**: **{s['price_multilingual']}**")
+            if dur:
+                lines.append(f"• **Duration / Serving**: {dur}")
+            if ing:
+                lines.append(f"• **Ingredients / Included**: {ing}")
+            if desc:
+                lines.append(f"• **Description**: {desc}")
+            lines.append("\nTap the **Service Card** below or ask me to order it directly to your room!")
+            return "\n".join(lines)
+        if lang == 'ko':
+            lines = [f"**{s['name']}** (*{s['category']}*) 상세 안내입니다:\n"]
+            lines.append(f"• **요금**: **{s['price_multilingual']}**")
+            if dur:
+                lines.append(f"• **소요 시간 / 분량**: {dur}")
+            if ing:
+                lines.append(f"• **구성 / 재료**: {ing}")
+            if desc:
+                lines.append(f"• **설명**: {desc}")
+            return "\n".join(lines)
+        if lang == 'zh':
+            lines = [f"为您介绍 **{s['name']}**（*{s['category']}*）的详细信息：\n"]
+            lines.append(f"• **价格**: **{s['price_multilingual']}**")
+            if dur:
+                lines.append(f"• **时长 / 份量**: {dur}")
+            if ing:
+                lines.append(f"• **包含项目 / 原料**: {ing}")
+            if desc:
+                lines.append(f"• **简介**: {desc}")
+            return "\n".join(lines)
+        lines = [f"Dạ em xin gửi Quý khách thông tin chi tiết về dịch vụ **{s['name']}** (*{s['category']}*) ạ:\n"]
+        lines.append(f"• **Đơn giá niêm yết**: **{s['price_multilingual']}**")
+        if dur:
+            lines.append(f"• **Thời lượng / Khẩu phần**: {dur}")
+        if ing:
+            lines.append(f"• **Thành phần / Hạng mục bao gồm**: {ing}")
+        if desc:
+            lines.append(f"• **Mô tả chi tiết**: {desc}")
+        lines.append("\nQuý khách có thể bấm vào **Thẻ Dịch Vụ** bên dưới để đặt ngay hoặc nhắn trực tiếp *'Đặt 1 " + s['name'] + "'* nếu đang lưu trú tại phòng ạ!")
+        return "\n".join(lines)
+
+    is_svc_query = bool(matched_specific_svc) or any(k in msg for k in [
         'dịch vụ', 'ăn', 'ẩm thực', 'nhà hàng', 'spa', 'massage', 'xe', 'đưa đón', 'sân bay', 'giặt', 'bar', 'service', 'menu',
         'dining', 'food', 'restaurant', 'shuttle', 'airport',
         '서비스', '식사', '레스토랑', '스파', '마사지', '공항', '픽업', '샌딩', '조식',
         '服务', '餐饮', '餐厅', '水疗', '按摩', '机场', '接送', '早餐'
     ])
     if is_svc_query:
-        services = hotel_context.get('services', [])
+        services = services_all
         if lang == 'en':
             lines = [f"Dear Valued Guest, **{h_info['name']}** offers 24/7 dining, Ocean Spa, and concierge services:\n"]
             if services:
                 lines.append("| Service / Dish | Category | Rate |")
                 lines.append("| :--- | :--- | :--- |")
                 for s in services[:8]:
-                    lines.append(f"| **{s['name']}** | {s['category']} | **{s['price_multilingual']}** |")
+                    dur_tag = f" *({s['duration']})*" if s.get('duration') else ""
+                    lines.append(f"| **{s['name']}**{dur_tag} | {s['category']} | **{s['price_multilingual']}** |")
             lines.append("\nSelect any **Service Card** below to place an order or visit our Services Menu!")
             return "\n".join(lines)
         if lang == 'ko':
@@ -1043,7 +1113,8 @@ def local_smart_fallback(
                 lines.append("| 서비스 / 메뉴 | 분류 | 요금 (KRW) |")
                 lines.append("| :--- | :--- | :--- |")
                 for s in services[:8]:
-                    lines.append(f"| **{s['name']}** | {s['category']} | **{s['price_multilingual']}** |")
+                    dur_tag = f" *({s['duration']})*" if s.get('duration') else ""
+                    lines.append(f"| **{s['name']}**{dur_tag} | {s['category']} | **{s['price_multilingual']}** |")
             lines.append("\n아래 **서비스 카드**를 선택하여 간편하게 주문하실 수 있습니다!")
             return "\n".join(lines)
         if lang == 'zh':
@@ -1052,7 +1123,8 @@ def local_smart_fallback(
                 lines.append("| 服务 / 餐品名称 | 类别 | 参考价格 (CNY) |")
                 lines.append("| :--- | :--- | :--- |")
                 for s in services[:8]:
-                    lines.append(f"| **{s['name']}** | {s['category']} | **{s['price_multilingual']}** |")
+                    dur_tag = f" *({s['duration']})*" if s.get('duration') else ""
+                    lines.append(f"| **{s['name']}**{dur_tag} | {s['category']} | **{s['price_multilingual']}** |")
             lines.append("\n点击下方**服务卡片**即可前往菜单下单或预约！")
             return "\n".join(lines)
 
@@ -1066,7 +1138,8 @@ def local_smart_fallback(
             lines.append("\n| Dịch vụ / Món ăn tiêu biểu | Phân loại | Đơn giá niêm yết |")
             lines.append("| :--- | :--- | :--- |")
             for s in services[:8]:
-                lines.append(f"| **{s['name']}** | {s['category']} | **{s['price_multilingual']}** |")
+                dur_tag = f" *({s['duration']})*" if s.get('duration') else ""
+                lines.append(f"| **{s['name']}**{dur_tag} | {s['category']} | **{s['price_multilingual']}** |")
         lines.append("\nQuý khách có thể bấm vào **Thẻ Dịch Vụ** bên dưới để xem thực đơn và đặt dịch vụ ngay lập tức ạ!")
         return "\n".join(lines)
 

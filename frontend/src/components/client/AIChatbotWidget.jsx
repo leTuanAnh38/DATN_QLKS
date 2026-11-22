@@ -32,9 +32,20 @@ import {
     Users,
     PackageSearch,
     Calculator,
-    ShieldCheck
+    ShieldCheck,
+    ThumbsUp,
+    ThumbsDown,
+    Plus,
+    Minus,
+    Headphones,
+    Clock
 } from 'lucide-react';
-import { askChatbot, confirmChatbotAction } from '../../services/chatbotService';
+import {
+    askChatbot,
+    confirmChatbotAction,
+    getChatbotStatus,
+    submitChatbotFeedback
+} from '../../services/chatbotService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 
@@ -69,11 +80,20 @@ const SUPPORTED_LANGS = [
     { code: 'zh', flag: '🇨🇳', label: '中文' }
 ];
 
+function formatPriceByLang(amount, lang = 'vi') {
+    const val = Math.max(0, Math.round(Number(amount) || 0));
+    const vndStr = `${val.toLocaleString('vi-VN')} đ`;
+    if (lang === 'en') return `${vndStr} (~$${Math.round(val / 25400)} USD)`;
+    if (lang === 'ko') return `${vndStr} (~₩${(Math.round(val / 18.5 / 100) * 100).toLocaleString('en-US')} KRW)`;
+    if (lang === 'zh') return `${vndStr} (~¥${Math.round(val / 3500)} CNY)`;
+    return vndStr;
+}
+
 const getWelcomeMessages = (stars = 5, hotelName = 'Khách Sạn TA Đà Nẵng') => ({
-    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• **Kiểm tra phòng trống thực tế theo ngày & So sánh giá**\n• **Thực đơn Ẩm thực tại phòng, Ocean Spa & Xe Limousine đón sân bay**\n• **Tư vấn lịch trình Du lịch Đà Nẵng – Hội An – Bà Nà Hills**\n• **Trợ lý lưu trú: Hóa đơn tạm tính, Wifi, gọi dọn phòng 1 chạm**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
-    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• **Date-Specific Room Availability & Rates (with USD conversion)**\n• **Fine Dining Menus, Ocean Spa & Private Airport Limousine**\n• **Da Nang – Hoi An – Ba Na Hills Sightseeing Itinerary**\n• **In-House Concierge: Live Folio Bill, Wi-Fi & Housekeeping**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
-    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• **날짜별 실시간 잔여 객실 및 1박 요금 (KRW 원화 자동 환산)**\n• **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• **다낭 · 호이안 · 바나힐 핵심 관광 코스 안내**\n• **투숙객 전용: 실시간 중간 정산서, 와이파이 및 객실 청소 요청**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
-    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• **按日期查询实时空房与优惠房价（人民币CNY自动换算）**\n• **客房送餐菜单、海景水疗SPA与豪华专车接送机**\n• **岘港 · 会安 · 巴拿山精选旅游攻略**\n• **在住贵宾服务：实时账单查询、Wi-Fi密码与一键客房清洁**\n\n您可以点击下方快捷问题或直接输入您的需求！`
+    vi: `Dạ em kính chào Quý khách! Em là Trợ lý ảo AI Concierge của **${hotelName} ${stars}★**.\n\nEm luôn sẵn sàng hỗ trợ Quý khách 24/7:\n• **Kiểm tra phòng trống theo ngày, ước tính chi phí & Đặt đoàn M.I.C.E**\n• **Thực đơn Ẩm thực tại phòng, Ocean Spa & Xe Limousine đón sân bay**\n• **Tư vấn lịch trình Du lịch Đà Nẵng – Hội An – Bà Nà Hills**\n• **Trợ lý lưu trú: Hóa đơn tạm tính, dọn phòng, báo hỏng, tìm đồ thất lạc & kết nối Lễ tân**\n\nQuý khách có thể bấm nhanh các gợi ý bên dưới hoặc gửi tin nhắn cho em nhé ạ!`,
+    en: `Dear Valued Guest! I am your ${stars}-Star AI Concierge at **${hotelName}**.\n\nI am at your service 24/7 to assist with:\n• **Date-Specific Room Availability, Price Estimator & Group M.I.C.E**\n• **Fine Dining Menus, Ocean Spa & Private Airport Limousine**\n• **Da Nang – Hoi An – Ba Na Hills Sightseeing Itinerary**\n• **In-House Concierge: Live Folio, Housekeeping, Maintenance, Lost & Found & Front Desk**\n\nPlease select one of the quick suggestions below or send me your inquiry!`,
+    ko: `고객님 안녕하십니까! **${hotelName} ${stars}성급 호텔 & 리조트**의 AI 컨시어지입니다.\n\n고객님의 완벽한 휴식을 위해 24시간 맞춤 안내를 제공합니다:\n• **날짜별 실시간 잔여 객실, 예상 요금 계산 & 단체 M.I.C.E**\n• **인룸 다이닝 메뉴, 오션 스파 & 다낭 공항 리무진 픽업**\n• **다낭 · 호이안 · 바나힐 핵심 관광 코스 안내**\n• **투숙객 전용: 실시간 정산서, 객실 청소, 시설 보수, 분실물 및 직원 연결**\n\n아래 빠른 질문 버튼을 누르시거나 언제든 편하게 질문해 주세요!`,
+    zh: `尊敬的贵宾，您好！我是**${hotelName} ${stars}星级度假酒店**的专属AI礼宾顾问。\n\n我将24小时竭诚为您提供服务：\n• **按日期查询实时空房、费用预算及企业团队 M.I.C.E**\n• **客房送餐菜单、海景水疗SPA与豪华专车接送机**\n• **岘港 · 会安 · 巴拿山精选旅游攻略**\n• **在住贵宾服务：实时账单、客房清洁、工程报修、失物招领及转人工前台**\n\n您可以点击下方快捷问题或直接输入您的需求！`
 });
 
 const QUICK_CHIPS_BY_LANG = {
@@ -83,7 +103,9 @@ const QUICK_CHIPS_BY_LANG = {
         { id: 'danang_tour', label: 'Du lịch Đà Nẵng & Xe VIP', icon: Compass, query: 'Gợi ý lịch trình tham quan Đà Nẵng, Cầu Rồng phun lửa và dịch vụ xe đưa đón VIP' },
         { id: 'vouchers_vip', label: 'Ưu đãi & Mã giảm giá', icon: Gift, query: 'Khách sạn đang có những mã giảm giá Voucher và ưu đãi thẻ thành viên VIP nào?' },
         { id: 'inhouse_bill', label: 'Hóa đơn tạm tính & Đơn phòng', icon: Receipt, query: 'Kiểm tra hóa đơn tạm tính và tiến trình đơn đặt phòng của tôi' },
-        { id: 'policy_wifi', label: 'Chính sách Nhận/Trả & Wifi', icon: Wifi, query: 'Cho tôi xin giờ nhận/trả phòng tiêu chuẩn, giờ mở cửa hồ bơi và mật khẩu Wifi' }
+        { id: 'policy_wifi', label: 'Chính sách Nhận/Trả & Wifi', icon: Wifi, query: 'Cho tôi xin giờ nhận/trả phòng tiêu chuẩn, giờ mở cửa hồ bơi và mật khẩu Wifi' },
+        { id: 'group_mice', label: 'Đặt đoàn M.I.C.E & VAT', icon: Users, query: 'Cho tôi hỏi chính sách đặt phòng đoàn M.I.C.E, chiết khấu công ty và xuất hóa đơn VAT' },
+        { id: 'staff_handoff', label: 'Gặp Lễ tân / Hỗ trợ gấp', icon: Headphones, query: 'Tôi muốn gặp nhân viên lễ tân để được hỗ trợ trực tiếp' }
     ],
     en: [
         { id: 'rooms_tomorrow', label: 'Rooms Available Tomorrow', icon: BedDouble, query: 'What rooms are available tomorrow and what are the rates in USD?' },
@@ -91,7 +113,9 @@ const QUICK_CHIPS_BY_LANG = {
         { id: 'danang_tour', label: 'Da Nang Guide & Shuttle', icon: Compass, query: 'Recommend Da Nang sightseeing itinerary (Dragon Bridge, Ba Na Hills, Hoi An) and VIP car service.' },
         { id: 'vouchers_vip', label: 'Promo Codes & VIP Perks', icon: Gift, query: 'What active promotional codes and VIP membership discounts are available?' },
         { id: 'inhouse_bill', label: 'Track Booking & Live Bill', icon: Receipt, query: 'Check my booking reservation status and current provisional bill' },
-        { id: 'policy_wifi', label: 'Check-in Policy & Wi-Fi', icon: Wifi, query: 'What are the check-in/out hours, pool hours and Wi-Fi password?' }
+        { id: 'policy_wifi', label: 'Check-in Policy & Wi-Fi', icon: Wifi, query: 'What are the check-in/out hours, pool hours and Wi-Fi password?' },
+        { id: 'group_mice', label: 'Group M.I.C.E & VAT', icon: Users, query: 'Tell me about corporate group M.I.C.E rates and VAT invoicing policy' },
+        { id: 'staff_handoff', label: 'Talk to Front Desk', icon: Headphones, query: 'I would like to talk to human staff at the front desk' }
     ],
     ko: [
         { id: 'rooms_tomorrow', label: '내일 예약 가능 객실 (KRW)', icon: BedDouble, query: '내일 이용 가능한 객실과 1박 요금(KRW 원화)을 알려주세요.' },
@@ -99,7 +123,9 @@ const QUICK_CHIPS_BY_LANG = {
         { id: 'danang_tour', label: '다낭 관광 코스 & VIP 차량', icon: Compass, query: '다낭 주요 관광지(용다리 불쇼, 바나힐, 호이안) 코스와 호텔 VIP 차량 서비스 알려주세요.' },
         { id: 'vouchers_vip', label: '할인 코드 & 멤버십 혜택', icon: Gift, query: '현재 사용 가능한 프로모션 할인 코드와 VIP 멤버십 혜택이 어떻게 되나요?' },
         { id: 'inhouse_bill', label: '내 예약 및 실시간 요금 조회', icon: Receipt, query: '내 예약 내역 확인해 줘' },
-        { id: 'policy_wifi', label: '체크인 시간 · 수영장 & 와이파이', icon: Wifi, query: '체크인/체크아웃 시간과 수영장 운영 시간, 와이파이 비밀번호 알려주세요.' }
+        { id: 'policy_wifi', label: '체크인 시간 · 수영장 & 와이파이', icon: Wifi, query: '체크인/체크아웃 시간과 수영장 운영 시간, 와이파이 비밀번호 알려주세요.' },
+        { id: 'group_mice', label: '단체 M.I.C.E · 법인 할인', icon: Users, query: '기업 단체 M.I.C.E 예약 할인 및 세금계산서 발행 정책 안내해 주세요.' },
+        { id: 'staff_handoff', label: '프런트 직원 연결', icon: Headphones, query: '프런트 데스크 직원 연결 부탁드립니다' }
     ],
     zh: [
         { id: 'rooms_tomorrow', label: '明日空房与房价 (CNY)', icon: BedDouble, query: '请问明天有哪些空房和房价（人民币换算）？' },
@@ -107,7 +133,9 @@ const QUICK_CHIPS_BY_LANG = {
         { id: 'danang_tour', label: '岘港旅游攻略与贵宾专车', icon: Compass, query: '推荐岘港必去景点（龙桥喷火、巴拿山、会安古镇）及酒店豪华专车服务。' },
         { id: 'vouchers_vip', label: '优惠码与VIP会员礼遇', icon: Gift, query: '请问目前有哪些可用优惠码和会员折扣？' },
         { id: 'inhouse_bill', label: '预订进度与实时账单查询', icon: Receipt, query: '查询我的客房预订订单状态' },
-        { id: 'policy_wifi', label: '入住政策、泳池与Wi-Fi', icon: Wifi, query: '请问入住退房时间、无边泳池开放时间及Wi-Fi密码？' }
+        { id: 'policy_wifi', label: '入住政策、泳池与Wi-Fi', icon: Wifi, query: '请问入住退房时间、无边泳池开放时间及Wi-Fi密码？' },
+        { id: 'group_mice', label: '团队 M.I.C.E 与发票', icon: Users, query: '请介绍企业团队 M.I.C.E 预订折扣及增值税发票政策' },
+        { id: 'staff_handoff', label: '转人工前台客服', icon: Headphones, query: '我想转人工客服联系前台' }
     ]
 };
 
@@ -152,8 +180,16 @@ const I18N_DICT = {
         inhouse_badge: (room) => `Đang lưu trú: Phòng P.${room}`,
         btn_folio: 'Hóa đơn tạm tính',
         btn_clean: 'Gọi dọn phòng',
+        btn_issue: 'Báo hỏng',
+        btn_lost_found: 'Tìm đồ',
         folio_query: 'Hóa đơn tạm tính của phòng tôi hiện tại là bao nhiêu?',
         clean_query: 'Dọn phòng giúp tôi',
+        issue_query: 'Thiết bị trong phòng tôi bị hỏng, nhờ kỹ thuật lên kiểm tra giúp',
+        lost_found_query: 'Kiểm tra giúp tôi xem phòng tôi có đồ bỏ quên thất lạc không',
+        svc_qty_label: 'Số lượng:',
+        svc_note_ph: 'Ghi chú thêm (vd: ít đường, không hành, giao lúc 19:00)...',
+        feedback_helpful: 'Hữu ích',
+        feedback_unhelpful: 'Chưa hài lòng',
         copy_btn: 'Sao chép',
         copied_btn: 'Đã sao chép',
         bubble_title: (s) => `Trợ Lý AI ${s}★`,
@@ -237,8 +273,16 @@ const I18N_DICT = {
         inhouse_badge: (room) => `In-House: Room P.${room}`,
         btn_folio: 'Live Bill',
         btn_clean: 'Make Up Room',
+        btn_issue: 'Report Issue',
+        btn_lost_found: 'Lost & Found',
         folio_query: 'What is my current provisional folio bill?',
         clean_query: 'Please clean my room',
+        issue_query: 'An appliance in my room is not working, please send a technician to repair it',
+        lost_found_query: 'Please check lost and found for items left behind in my room',
+        svc_qty_label: 'Quantity:',
+        svc_note_ph: 'Special note (e.g. less ice, deliver at 19:00)...',
+        feedback_helpful: 'Helpful',
+        feedback_unhelpful: 'Not helpful',
         copy_btn: 'Copy',
         copied_btn: 'Copied',
         bubble_title: (s) => `AI Concierge ${s}★`,
@@ -322,8 +366,16 @@ const I18N_DICT = {
         inhouse_badge: (room) => `투숙 중: ${room}호`,
         btn_folio: '실시간 정산서',
         btn_clean: '객실 청소',
+        btn_issue: '시설 수리',
+        btn_lost_found: '분실물',
         folio_query: '현재 제 객실 실시간 정산서(요금 내역)를 확인해 주세요',
         clean_query: '객실 청소 요청합니다',
+        issue_query: '객실 시설이 고장났어요, 수리 요청합니다',
+        lost_found_query: '객실 분실물 보관 내역 확인해 주세요',
+        svc_qty_label: '수량:',
+        svc_note_ph: '요청 사항 (예: 얼음 적게, 19시 배달)...',
+        feedback_helpful: '도움이 됨',
+        feedback_unhelpful: '개선 필요',
         copy_btn: '복사',
         copied_btn: '복사완료',
         bubble_title: (s) => `AI 컨시어지 ${s}★`,
@@ -407,8 +459,16 @@ const I18N_DICT = {
         inhouse_badge: (room) => `在住贵宾: ${room}号房`,
         btn_folio: '实时账单',
         btn_clean: '打扫房间',
+        btn_issue: '设施报修',
+        btn_lost_found: '失物查询',
         folio_query: '请帮我查询目前房间的实时账单明细',
         clean_query: '请安排打扫房间',
+        issue_query: '房间设备坏了，请安排工程维修人员检查',
+        lost_found_query: '请帮我查询房间是否有遗落失物',
+        svc_qty_label: '数量:',
+        svc_note_ph: '备注要求（如：少冰、19点送达）...',
+        feedback_helpful: '有帮助',
+        feedback_unhelpful: '不满意',
         copy_btn: '复制',
         copied_btn: '已复制',
         bubble_title: (s) => `AI 礼宾顾问 ${s}★`,
@@ -601,8 +661,8 @@ function renderFormattedContent(text) {
         }
 
         // 5. Danh sách Bullet chính (•, -, *, +)
-        if (/^[•\-+]\s+/.test(trimmed)) {
-            const bulletContent = trimmed.replace(/^[•\-+]\s+/, '');
+        if (/^[•\-+*]\s+/.test(trimmed)) {
+            const bulletContent = trimmed.replace(/^[•\-+*]\s+/, '');
             blocks.push(
                 <div key={`bl-${i}`} className="pl-1 my-0.5 text-slate-700 leading-relaxed flex items-start gap-1.5">
                     <span className="text-sky-600 font-bold mt-0.5">•</span>
@@ -669,6 +729,7 @@ export default function AIChatbotWidget() {
     const [activeStayInfo, setActiveStayInfo] = useState(null);
     const [actionStates, setActionStates] = useState({});
     const [handoffForms, setHandoffForms] = useState({});
+    const [serviceOrderDrafts, setServiceOrderDrafts] = useState({});
 
     // Khởi tạo lịch sử chat tách riêng theo user.id hoặc guest
     const loadMessagesForKey = (key, langCode = 'vi') => {
@@ -702,6 +763,7 @@ export default function AIChatbotWidget() {
             prevUserIdRef.current = userId;
             setActionStates({});
             setHandoffForms({});
+            setServiceOrderDrafts({});
 
             if (!userId && wasLoggedIn) {
                 setActiveStayInfo(null);
@@ -758,6 +820,24 @@ export default function AIChatbotWidget() {
             setShowCalloutBubble(false);
         }
     }, [isOpen]);
+
+    // Tự động lấy trạng thái lưu trú CHECKED_IN ngay khi mở khung chat (trước cả tin nhắn đầu tiên)
+    useEffect(() => {
+        if (!isOpen || !userId || activeStayInfo) return;
+        let cancelled = false;
+        getChatbotStatus(selectedLang)
+            .then((res) => {
+                if (!cancelled && res?.active_stay) {
+                    setActiveStayInfo(res.active_stay);
+                }
+            })
+            .catch(() => {
+                // ignore silent status check errors
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, userId, activeStayInfo, selectedLang]);
 
     const handleDismissBubble = (e) => {
         e.stopPropagation();
@@ -1193,6 +1273,8 @@ export default function AIChatbotWidget() {
 
             const botMsg = {
                 id: `bot-${Date.now()}`,
+                interaction_id: data?.interaction_id || null,
+                user_feedback: '',
                 role: 'model',
                 text: botReplyText,
                 time: botTime,
@@ -1232,6 +1314,25 @@ export default function AIChatbotWidget() {
         }
     };
 
+    const handleFeedback = async (msgId, interactionId, rating) => {
+        if (!interactionId) return;
+        const targetMsg = messages.find((m) => m.id === msgId);
+        const currentVal = targetMsg?.user_feedback || '';
+        const nextVal = currentVal === rating ? '' : rating;
+
+        setMessages((prev) =>
+            prev.map((m) => (m.id === msgId ? { ...m, user_feedback: nextVal } : m))
+        );
+        try {
+            await submitChatbotFeedback(interactionId, nextVal);
+        } catch {
+            // Khôi phục lại nếu gửi lỗi
+            setMessages((prev) =>
+                prev.map((m) => (m.id === msgId ? { ...m, user_feedback: currentVal } : m))
+            );
+        }
+    };
+
     const handleConfirmPendingAction = async (msgId, pendingAction) => {
         if (!pendingAction || actionStates[msgId]?.status === 'loading' || actionStates[msgId]?.status === 'done') {
             return;
@@ -1241,14 +1342,18 @@ export default function AIChatbotWidget() {
         try {
             let payload;
             if (pendingAction.type === 'create_service_request') {
+                const draft = serviceOrderDrafts[msgId] || {};
+                const qty = Math.max(1, Math.min(20, Number(draft.quantity ?? pendingAction.quantity ?? 1) || 1));
+                const noteVal = draft.note !== undefined ? draft.note : (pendingAction.note || '');
                 payload = {
                     action_type: 'create_service_request',
+                    lang: selectedLang,
                     booking_id: pendingAction.booking_id,
                     booking_code: pendingAction.booking_code,
                     phone_number: pendingAction.verified_phone || '',
                     service_id: pendingAction.service_id,
-                    quantity: pendingAction.quantity,
-                    note: pendingAction.note || ''
+                    quantity: qty,
+                    note: String(noteVal).trim()
                 };
             } else {
                 const form = handoffForms[msgId] || {};
@@ -1258,6 +1363,7 @@ export default function AIChatbotWidget() {
                     .map((m) => ({ role: m.role === 'model' ? 'model' : 'user', text: m.text }));
                 payload = {
                     action_type: 'human_handoff',
+                    lang: selectedLang,
                     name: (form.name ?? pendingAction.default_name ?? '').trim(),
                     email: (form.email ?? pendingAction.default_email ?? '').trim(),
                     subject: pendingAction.subject,
@@ -1273,7 +1379,7 @@ export default function AIChatbotWidget() {
                 {
                     id: `bot-confirm-${Date.now()}`,
                     role: 'model',
-                    detected_lang: selectedLang,
+                    detected_lang: res?.detected_lang || selectedLang,
                     text: res?.message || dict.confirm_success_fallback,
                     time: botTime
                 }
@@ -1563,27 +1669,45 @@ export default function AIChatbotWidget() {
 
                     {/* B. THANH ĐẶC QUYỀN KHÁCH ĐANG LƯU TRÚ (IN-HOUSE GUEST CONCIERGE BAR - TÔNG SÁNG) */}
                     {activeStayInfo && activeStayInfo.is_checked_in && (
-                        <div className="bg-amber-50/90 border-b border-amber-200/80 px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-800">
+                        <div className="bg-amber-50/90 border-b border-amber-200/80 px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-slate-800">
                             <div className="flex items-center gap-1.5 truncate">
                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
                                 <span className="font-semibold text-amber-900 truncate">
                                     {currentDict.inhouse_badge(activeStayInfo.room_number)}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="flex flex-wrap items-center gap-1 flex-shrink-0">
                                 <button
                                     type="button"
+                                    disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.folio_query)}
-                                    className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold cursor-pointer transition"
+                                    className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_folio}
                                 </button>
                                 <button
                                     type="button"
+                                    disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.clean_query)}
-                                    className="px-2 py-0.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-medium cursor-pointer transition"
+                                    className="px-2 py-0.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_clean}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isLoading}
+                                    onClick={() => handleSendMessage(currentDict.issue_query)}
+                                    className="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
+                                >
+                                    {currentDict.btn_issue}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isLoading}
+                                    onClick={() => handleSendMessage(currentDict.lost_found_query)}
+                                    className="px-2 py-0.5 rounded bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
+                                >
+                                    {currentDict.btn_lost_found}
                                 </button>
                             </div>
                         </div>
@@ -1976,11 +2100,25 @@ export default function AIChatbotWidget() {
                                                             type="button"
                                                             onClick={() => {
                                                                 setIsOpen(false);
-                                                                const qs = pe.check_in && pe.check_out
-                                                                    ? `?checkIn=${encodeURIComponent(pe.check_in)}&checkOut=${encodeURIComponent(pe.check_out)}`
-                                                                    : '';
+                                                                const params = new URLSearchParams();
+                                                                if (pe.check_in && pe.check_out) {
+                                                                    params.set('checkIn', pe.check_in);
+                                                                    params.set('checkOut', pe.check_out);
+                                                                }
+                                                                const validPromoCode =
+                                                                    pe.promo_code && !pe.promo_min_unmet
+                                                                        ? pe.promo_code
+                                                                        : '';
+                                                                if (validPromoCode) {
+                                                                    params.set('promo', validPromoCode);
+                                                                }
+                                                                const qs = params.toString() ? `?${params.toString()}` : '';
                                                                 navigate(`/checkout/${pe.room_id}${qs}`, {
-                                                                    state: { checkInDate: pe.check_in, checkOutDate: pe.check_out }
+                                                                    state: {
+                                                                        checkInDate: pe.check_in,
+                                                                        checkOutDate: pe.check_out,
+                                                                        ...(validPromoCode ? { promoCode: validPromoCode } : {})
+                                                                    }
                                                                 });
                                                             }}
                                                             className="w-full mt-1 py-1.5 px-2.5 rounded-lg bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white text-[10.5px] font-bold cursor-pointer active:scale-95 transition-all"
@@ -2001,33 +2139,102 @@ export default function AIChatbotWidget() {
                                             const form = handoffForms[msg.id] || {};
                                             return (
                                                 <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 to-white border border-emerald-200 shadow-xs space-y-2">
-                                                    {act.type === 'create_service_request' ? (
-                                                        <>
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span className="text-[11px] font-bold text-emerald-900">
-                                                                    {dict.svc_confirm_title(act.room_number)}
-                                                                </span>
-                                                                <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                                                                    #{act.booking_code}
-                                                                </span>
-                                                            </div>
-                                                            <div className="text-[11.5px] text-slate-700">
-                                                                <strong>{act.service_name}</strong> × {act.quantity} —{' '}
-                                                                <span className="font-bold text-emerald-700">{act.total_formatted}</span>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => handleConfirmPendingAction(msg.id, act)}
-                                                                disabled={isDone || isActLoading}
-                                                                className={`w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
-                                                                    isDone
-                                                                        ? 'bg-emerald-100 text-emerald-800 cursor-default'
-                                                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 disabled:opacity-60'
-                                                                }`}
-                                                            >
-                                                                {isDone ? dict.svc_confirm_done : isActLoading ? dict.svc_confirm_loading : dict.svc_confirm_btn}
-                                                            </button>
-                                                        </>
-                                                    ) : (
+                                                    {act.type === 'create_service_request' ? (() => {
+                                                        const draft = serviceOrderDrafts[msg.id] || {};
+                                                        const currentQty = Math.max(
+                                                            1,
+                                                            Math.min(20, Number(draft.quantity ?? act.quantity ?? 1) || 1)
+                                                        );
+                                                        const unitPrice = Number(act.unit_price || 0);
+                                                        const dynamicTotal =
+                                                            unitPrice > 0
+                                                                ? formatPriceByLang(unitPrice * currentQty, msgLang)
+                                                                : act.total_formatted;
+                                                        const currentNote = draft.note !== undefined ? draft.note : '';
+                                                        const updateQty = (delta) => {
+                                                            const next = Math.max(1, Math.min(20, currentQty + delta));
+                                                            setServiceOrderDrafts((prev) => ({
+                                                                ...prev,
+                                                                [msg.id]: { ...prev[msg.id], quantity: next }
+                                                            }));
+                                                        };
+                                                        return (
+                                                            <>
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span className="text-[11px] font-bold text-emerald-900">
+                                                                        {dict.svc_confirm_title(act.room_number)}
+                                                                    </span>
+                                                                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                                                        #{act.booking_code}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center justify-between gap-2 text-[11.5px] text-slate-700">
+                                                                    <strong className="truncate">{act.service_name}</strong>
+                                                                    <span className="font-bold text-emerald-700 whitespace-nowrap">
+                                                                        {dynamicTotal}
+                                                                    </span>
+                                                                </div>
+                                                                {!isDone && (
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
+                                                                            <span className="font-medium">{dict.svc_qty_label}</span>
+                                                                            <div className="inline-flex items-center gap-1.5 bg-white border border-emerald-200 rounded-lg px-1 py-0.5">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => updateQty(-1)}
+                                                                                    disabled={isActLoading || currentQty <= 1}
+                                                                                    className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
+                                                                                    aria-label="Giảm số lượng"
+                                                                                >
+                                                                                    <Minus className="w-3 h-3" />
+                                                                                </button>
+                                                                                <span className="min-w-[1.5rem] text-center font-bold text-slate-800 text-xs tabular-nums">
+                                                                                    {currentQty}
+                                                                                </span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => updateQty(1)}
+                                                                                    disabled={isActLoading || currentQty >= 20}
+                                                                                    className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
+                                                                                    aria-label="Tăng số lượng"
+                                                                                >
+                                                                                    <Plus className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                        <input
+                                                                            type="text"
+                                                                            maxLength={200}
+                                                                            disabled={isActLoading}
+                                                                            placeholder={dict.svc_note_ph}
+                                                                            value={currentNote}
+                                                                            onChange={(e) =>
+                                                                                setServiceOrderDrafts((prev) => ({
+                                                                                    ...prev,
+                                                                                    [msg.id]: {
+                                                                                        ...prev[msg.id],
+                                                                                        note: e.target.value
+                                                                                    }
+                                                                                }))
+                                                                            }
+                                                                            className="w-full px-2.5 py-1.5 text-base sm:text-[11px] rounded-lg border border-emerald-200 bg-white focus:outline-none focus:border-emerald-500"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleConfirmPendingAction(msg.id, act)}
+                                                                    disabled={isDone || isActLoading}
+                                                                    className={`w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                                                                        isDone
+                                                                            ? 'bg-emerald-100 text-emerald-800 cursor-default'
+                                                                            : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 disabled:opacity-60'
+                                                                    }`}
+                                                                >
+                                                                    {isDone ? dict.svc_confirm_done : isActLoading ? dict.svc_confirm_loading : dict.svc_confirm_btn}
+                                                                </button>
+                                                            </>
+                                                        );
+                                                    })() : (
                                                         <>
                                                             <div className="text-[11px] font-bold text-slate-800">
                                                                 {dict.handoff_title}
@@ -2260,6 +2467,12 @@ export default function AIChatbotWidget() {
                                                                     <h4 className="font-bold text-slate-800 text-xs truncate" title={srv.name}>
                                                                         {srv.name}
                                                                     </h4>
+                                                                    {srv.duration && (
+                                                                        <div className="inline-flex items-center gap-1 mt-0.5 text-[9.5px] font-medium text-sky-700 bg-sky-50 border border-sky-200/70 px-1.5 py-0.2 rounded">
+                                                                            <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+                                                                            <span className="truncate">{srv.duration}</span>
+                                                                        </div>
+                                                                    )}
                                                                     {srv.description && (
                                                                         <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
                                                                             {srv.description}
@@ -2353,6 +2566,37 @@ export default function AIChatbotWidget() {
                                                             </>
                                                         )}
                                                     </button>
+
+                                                    {msg.interaction_id && (
+                                                        <div className="flex items-center gap-0.5 ml-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleFeedback(msg.id, msg.interaction_id, 'helpful')}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                                                                    msg.user_feedback === 'helpful'
+                                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
+                                                                        : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50/70 border-transparent hover:border-emerald-200'
+                                                                }`}
+                                                                title={dict.feedback_helpful}
+                                                                aria-label={dict.feedback_helpful}
+                                                            >
+                                                                <ThumbsUp className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleFeedback(msg.id, msg.interaction_id, 'unhelpful')}
+                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                                                                    msg.user_feedback === 'unhelpful'
+                                                                        ? 'bg-rose-50 text-rose-600 border-rose-300'
+                                                                        : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50/70 border-transparent hover:border-rose-200'
+                                                                }`}
+                                                                title={dict.feedback_unhelpful}
+                                                                aria-label={dict.feedback_unhelpful}
+                                                            >
+                                                                <ThumbsDown className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <button

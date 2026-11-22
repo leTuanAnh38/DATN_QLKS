@@ -753,6 +753,10 @@ def _build_chatbot_analytics(start_date, end_date, prev_start, prev_end):
     handoff_rate = round((handoff_count / total_interactions) * 100, 1) if total_interactions > 0 else 0.0
     authenticated_count = ask_logs.filter(is_authenticated_user=True).count()
     avg_latency_ms = int(round(ask_logs.aggregate(avg=Avg('latency_ms'))['avg'] or 0))
+    helpful_count = ask_logs.filter(user_feedback='helpful').count()
+    unhelpful_count = ask_logs.filter(user_feedback='unhelpful').count()
+    feedback_total = helpful_count + unhelpful_count
+    satisfaction_rate = round((helpful_count / feedback_total) * 100, 1) if feedback_total > 0 else None
 
     intent_labels = dict(ChatbotInteractionLog.INTENT_CHOICES)
     intent_colors = ['#2563eb', '#0891b2', '#059669', '#d97706', '#7c3aed', '#db2777', '#4f46e5', '#64748b']
@@ -807,6 +811,7 @@ def _build_chatbot_analytics(start_date, end_date, prev_start, prev_end):
             'action_triggered': log.action_triggered,
             'user_message': log.user_message,
             'latency_ms': log.latency_ms,
+            'user_feedback': log.user_feedback,
             'created_at': timezone.localtime(log.created_at).strftime('%H:%M %d/%m'),
         })
 
@@ -823,6 +828,10 @@ def _build_chatbot_analytics(start_date, end_date, prev_start, prev_end):
             'handoff_rate': handoff_rate,
             'avg_latency_ms': avg_latency_ms,
             'authenticated_count': authenticated_count,
+            'helpful_count': helpful_count,
+            'unhelpful_count': unhelpful_count,
+            'feedback_total': feedback_total,
+            'satisfaction_rate': satisfaction_rate,
         },
         'intent_breakdown': intent_breakdown,
         'language_breakdown': language_breakdown,

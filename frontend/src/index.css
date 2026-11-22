@@ -35,6 +35,12 @@ body {
   background-color: #f8fafc;
 }
 
+/* Tắt hiệu ứng nháy nền xanh/xám mặc định khi chạm nút/link trên điện thoại */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Định nghĩa lớp font-serif dùng Playfair Display tiếng Việt chuẩn không bị lỗi dấu */
 .font-serif {
   font-family: 'Playfair Display', Georgia, serif;

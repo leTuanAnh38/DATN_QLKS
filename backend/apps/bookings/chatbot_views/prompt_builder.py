@@ -44,10 +44,18 @@ def generate_system_prompt(
         )
     rooms_text = "\n".join(room_lines) if room_lines else "Tất cả các hạng phòng đang được phục vụ."
 
-    # 2. Chuỗi dịch vụ (nạp tối đa 40 dịch vụ đang kích hoạt)
+    # 2. Chuỗi dịch vụ (nạp tối đa 40 dịch vụ đang kích hoạt, kèm thời lượng & thành phần)
     svc_lines = []
     for s in hotel_context['services'][:40]:
-        svc_lines.append(f"- [{s['category']}] {s['name']}: {s['price_formatted']} ({s['description']})")
+        detail_parts = []
+        if s.get('duration'):
+            detail_parts.append(f"Thời lượng/Khẩu phần: {s['duration']}")
+        if s.get('ingredients'):
+            detail_parts.append(f"Thành phần/Bao gồm: {s['ingredients']}")
+        if s.get('description'):
+            detail_parts.append(s['description'])
+        detail_str = f" ({' | '.join(detail_parts)})" if detail_parts else ""
+        svc_lines.append(f"- [{s['category']}] {s['name']}: {s['price_formatted']}{detail_str}")
     services_text = "\n".join(svc_lines) if svc_lines else "Phục vụ 24/7 ẩm thực, spa, tiện ích khách sạn."
 
     # 3. Chuỗi khuyến mãi & Hạng thẻ hội viên từ DB

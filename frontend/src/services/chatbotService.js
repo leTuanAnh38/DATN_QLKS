@@ -25,7 +25,31 @@ export const confirmChatbotAction = async (payload) => {
     return response.data;
 };
 
+/**
+ * Lấy trạng thái lưu trú CHECKED_IN hiện tại để hiện ngay thanh In-House Bar khi mở khung chat
+ * @param {string} lang - Ngôn ngữ hiện tại ('vi' | 'en' | 'ko' | 'zh')
+ */
+export const getChatbotStatus = async (lang = 'vi') => {
+    const response = await api.get('/chatbot/status/', { params: { lang } });
+    return response.data;
+};
+
+/**
+ * Gửi đánh giá Hữu ích / Chưa hài lòng (👍 / 👎) cho một lượt phản hồi Chatbot
+ * @param {number} interactionId
+ * @param {'helpful' | 'unhelpful' | ''} feedback
+ */
+export const submitChatbotFeedback = async (interactionId, feedback) => {
+    const response = await api.post('/chatbot/feedback/', {
+        interaction_id: interactionId,
+        feedback,
+    });
+    return response.data;
+};
+
 export default {
     askChatbot,
     confirmChatbotAction,
+    getChatbotStatus,
+    submitChatbotFeedback,
 };

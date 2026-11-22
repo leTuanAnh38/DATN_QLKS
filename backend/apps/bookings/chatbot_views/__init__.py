@@ -17,7 +17,12 @@ from .inhouse_requests import (
 from .prompt_builder import generate_system_prompt
 from .fallback_rules import local_smart_fallback
 from .response_parsers import extract_suggestions, extract_booking_tracker, evaluate_booking_cancel_context
-from .views import ChatbotAskView, ChatbotActionConfirmView
+from .views import (
+    ChatbotAskView,
+    ChatbotActionConfirmView,
+    ChatbotStatusView,
+    ChatbotFeedbackView,
+)
 
 __all__ = [
     "format_currency",
@@ -44,4 +49,6 @@ __all__ = [
     "evaluate_booking_cancel_context",
     "ChatbotAskView",
     "ChatbotActionConfirmView",
+    "ChatbotStatusView",
+    "ChatbotFeedbackView",
 ]

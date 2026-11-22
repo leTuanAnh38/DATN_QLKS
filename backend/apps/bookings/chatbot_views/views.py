@@ -3,6 +3,7 @@ import os
 import re
 import time
 import logging
+from datetime import timedelta
 import requests
 from django.conf import settings
 from django.db.models import Q
@@ -116,7 +117,7 @@ def _record_chatbot_log(
     try:
         user = getattr(request, 'user', None)
         is_auth = bool(user and user.is_authenticated)
-        ChatbotInteractionLog.objects.create(
+        return ChatbotInteractionLog.objects.create(
             user=user if is_auth else None,
             detected_lang=str(detected_lang or 'vi')[:10],
             intent_category=str(intent_category or 'general')[:40],
@@ -129,6 +130,7 @@ def _record_chatbot_log(
         )
     except Exception as e:
         logger.warning(f"Lỗi ghi ChatbotInteractionLog: {e}")
+        return None
 
 
 class ChatbotAnonThrottle(AnonRateThrottle):
@@ -347,7 +349,7 @@ class ChatbotAskView(APIView):
 
         def _build_logged_response(reply_text, source):
             elapsed_ms = int((time.perf_counter() - start_ts) * 1000)
-            _record_chatbot_log(
+            log_obj = _record_chatbot_log(
                 request,
                 detected_lang=detected_lang,
                 intent_category=intent_category,
@@ -357,7 +359,13 @@ class ChatbotAskView(APIView):
                 bot_reply=reply_text,
                 latency_ms=elapsed_ms,
             )
-            return Response({'success': True, 'reply': reply_text, 'source': source, **base_meta})
+            return Response({
+                'success': True,
+                'interaction_id': log_obj.id if log_obj else None,
+                'reply': reply_text,
+                'source': source,
+                **base_meta,
+            })
 
         # 2. Kiểm tra Gemini API Key
         if hasattr(settings, 'GEMINI_API_KEY'):
@@ -400,7 +408,8 @@ class ChatbotAskView(APIView):
             'contents': contents,
             'generationConfig': {
                 'temperature': 0.65,
-                'maxOutputTokens': 1100
+                'maxOutputTokens': 1500,
+                'thinkingConfig': {'thinkingBudget': 0},
             }
         }
 
@@ -423,9 +432,17 @@ class ChatbotAskView(APIView):
                         return _build_logged_response(reply_text, 'gemini_ai')
 
             logger.warning(f"Gemini API phản hồi mã lỗi {response.status_code}: {response.text[:200]}")
-            if response.status_code in [404, 400]:
+            if response.status_code in [404, 400, 503]:
                 alt_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-                alt_resp = requests.post(alt_url, json=payload, headers=headers, timeout=8)
+                alt_payload = {
+                    'system_instruction': payload['system_instruction'],
+                    'contents': contents,
+                    'generationConfig': {
+                        'temperature': 0.65,
+                        'maxOutputTokens': 1500,
+                    }
+                }
+                alt_resp = requests.post(alt_url, json=alt_payload, headers=headers, timeout=8)
                 if alt_resp.status_code == 200:
                     alt_data = alt_resp.json()
                     alt_cand = alt_data.get('candidates', [])
@@ -444,6 +461,59 @@ class ChatbotAskView(APIView):
         return _build_logged_response(fallback_reply, 'local_smart_fallback')
 
 
+def _confirm_msg(lang, key, **kwargs):
+    """Chuỗi phản hồi đa ngôn ngữ cho endpoint /api/chatbot/confirm-action/."""
+    messages = {
+        'vi': {
+            'invalid_action': 'Hành động xác nhận không hợp lệ.',
+            'invalid_qty': 'Số lượng dịch vụ phải từ 1 đến 20.',
+            'booking_not_found': 'Không tìm thấy đơn đặt phòng.',
+            'unauthorized': 'Quý khách cần đăng nhập hoặc xác thực đúng Mã đơn + SĐT để đặt dịch vụ phòng.',
+            'not_checked_in': 'Chỉ có thể đặt dịch vụ tại phòng khi đơn đang ở trạng thái Đang lưu trú (Checked-in).',
+            'service_not_found': 'Dịch vụ không tồn tại hoặc đã ngừng phục vụ.',
+            'service_confirmed': 'Đã xác nhận đặt {quantity}x {service_name} cho Phòng {room_number} thành công! Nhân viên sẽ chuẩn bị và phục vụ Quý khách ngay ạ.',
+            'handoff_missing_fields': 'Vui lòng cung cấp đầy đủ Họ tên, Email và Nội dung cần hỗ trợ.',
+            'handoff_confirmed': 'Đã chuyển yêu cầu của Quý khách tới Lễ tân & Quản lý trực ca. Nhân viên sẽ phản hồi trong ít phút!',
+        },
+        'en': {
+            'invalid_action': 'Invalid confirmation action.',
+            'invalid_qty': 'Service quantity must be between 1 and 20.',
+            'booking_not_found': 'Reservation not found.',
+            'unauthorized': 'Please sign in or verify your Booking Code + Phone Number to order room service.',
+            'not_checked_in': 'In-room services can only be ordered for an active Checked-In stay.',
+            'service_not_found': 'This service is unavailable or no longer active.',
+            'service_confirmed': 'Confirmed {quantity}x {service_name} for Room {room_number}! Our team is preparing your request now.',
+            'handoff_missing_fields': 'Please provide your Full Name, Email, and Message so our staff can reach you.',
+            'handoff_confirmed': 'Your request has been forwarded to our Front Desk & Duty Manager. A staff member will respond shortly!',
+        },
+        'ko': {
+            'invalid_action': '유효하지 않은 확인 요청입니다.',
+            'invalid_qty': '수량은 1개에서 20개 사이여야 합니다.',
+            'booking_not_found': '예약 내역을 찾을 수 없습니다.',
+            'unauthorized': '객실 서비스를 주문하려면 로그인하거나 예약 번호와 전화번호를 인증해 주세요.',
+            'not_checked_in': '체크인 완료(투숙 중) 상태의 예약만 객실 서비스를 주문할 수 있습니다.',
+            'service_not_found': '해당 서비스는 존재하지 않거나 현재 이용할 수 없습니다.',
+            'service_confirmed': '{room_number}호 객실로 {service_name} {quantity}개 주문이 확정되었습니다! 직원이 신속히 준비하겠습니다.',
+            'handoff_missing_fields': '성함, 이메일, 문의 내용을 모두 입력해 주세요.',
+            'handoff_confirmed': '프런트 데스크 및 당직 매니저에게 요청이 전달되었습니다. 곧 직원이 답변드리겠습니다!',
+        },
+        'zh': {
+            'invalid_action': '无效的确认操作。',
+            'invalid_qty': '服务数量必须在 1 到 20 之间。',
+            'booking_not_found': '未找到该预订订单。',
+            'unauthorized': '请先登录或验证预订编号和手机号后再下单客房服务。',
+            'not_checked_in': '仅限在住（已入住）状态的订单可在线下单客房服务。',
+            'service_not_found': '该服务不存在或已停止供应。',
+            'service_confirmed': '已为 {room_number} 号房成功确认 {quantity} 份 {service_name}！工作人员将尽快为您安排。',
+            'handoff_missing_fields': '请完整填写您的姓名、电子邮箱和需要协助的内容。',
+            'handoff_confirmed': '您的请求已转交至酒店前台与值班经理，工作人员将在几分钟内与您联系！',
+        },
+    }
+    lang_code = lang if lang in messages else 'vi'
+    template = messages[lang_code].get(key) or messages['vi'][key]
+    return template.format(**kwargs)
+
+
 class ChatbotActionConfirmView(APIView):
     """
     API POST /api/chatbot/confirm-action/
@@ -457,22 +527,25 @@ class ChatbotActionConfirmView(APIView):
     def post(self, request, *args, **kwargs):
         data = request.data or {}
         action_type = str(data.get('action_type') or data.get('type') or '').strip()
+        raw_lang = str(data.get('lang') or '').strip().lower()
+        lang = raw_lang if raw_lang in ('vi', 'en', 'ko', 'zh') else None
 
         if action_type == 'create_service_request':
-            return self._confirm_service_request(request, data)
+            return self._confirm_service_request(request, data, preferred_lang=lang)
         if action_type == 'human_handoff':
-            return self._confirm_human_handoff(request, data)
+            return self._confirm_human_handoff(request, data, preferred_lang=lang)
         return Response(
-            {'success': False, 'message': 'Hành động xác nhận không hợp lệ.'},
+            {'success': False, 'message': _confirm_msg(lang or 'vi', 'invalid_action')},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    def _confirm_service_request(self, request, data):
+    def _confirm_service_request(self, request, data, preferred_lang=None):
         booking_id = data.get('booking_id')
         booking_code = str(data.get('booking_code') or '').strip().upper()
         phone_number = str(data.get('phone_number') or '').strip()
         service_id = data.get('service_id')
         note = str(data.get('note') or '').strip()[:200]
+        lang = preferred_lang or detect_language(note, preferred_lang='vi')
 
         try:
             quantity = int(data.get('quantity', 1))
@@ -480,7 +553,7 @@ class ChatbotActionConfirmView(APIView):
             quantity = 1
         if quantity < 1 or quantity > 20:
             return Response(
-                {'success': False, 'message': 'Số lượng dịch vụ phải từ 1 đến 20.'},
+                {'success': False, 'message': _confirm_msg(lang, 'invalid_qty')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -490,7 +563,7 @@ class ChatbotActionConfirmView(APIView):
         if not booking and booking_code:
             booking = Booking.objects.filter(booking_code=booking_code).select_related('room', 'guest').first()
         if not booking:
-            return Response({'success': False, 'message': 'Không tìm thấy đơn đặt phòng.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'message': _confirm_msg(lang, 'booking_not_found')}, status=status.HTTP_404_NOT_FOUND)
 
         user = request.user
         is_authorized = False
@@ -507,19 +580,19 @@ class ChatbotActionConfirmView(APIView):
 
         if not is_authorized:
             return Response(
-                {'success': False, 'message': 'Quý khách cần đăng nhập hoặc xác thực đúng Mã đơn + SĐT để đặt dịch vụ phòng.'},
+                {'success': False, 'message': _confirm_msg(lang, 'unauthorized')},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         if booking.status != 'checked_in' or not booking.room:
             return Response(
-                {'success': False, 'message': 'Chỉ có thể đặt dịch vụ tại phòng khi đơn đang ở trạng thái Đang lưu trú (Checked-in).'},
+                {'success': False, 'message': _confirm_msg(lang, 'not_checked_in')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         service_item = ServiceItem.objects.filter(pk=service_id, is_active=True).first()
         if not service_item:
-            return Response({'success': False, 'message': 'Dịch vụ không tồn tại hoặc đã ngừng phục vụ.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'message': _confirm_msg(lang, 'service_not_found')}, status=status.HTTP_404_NOT_FOUND)
 
         sr = ServiceRequest.objects.create(
             booking=booking,
@@ -533,7 +606,7 @@ class ChatbotActionConfirmView(APIView):
         )
         _record_chatbot_log(
             request,
-            detected_lang=detect_language(note),
+            detected_lang=lang,
             intent_category='service_order',
             response_source='confirm_action',
             action_triggered='service_order_confirmed',
@@ -548,10 +621,17 @@ class ChatbotActionConfirmView(APIView):
             'total_price': int(sr.total_price),
             'room_number': booking.room.room_number,
             'booking_code': booking.booking_code,
-            'message': f'Đã xác nhận đặt {quantity}x {service_item.name} cho Phòng {booking.room.room_number} thành công!'
+            'detected_lang': lang,
+            'message': _confirm_msg(
+                lang,
+                'service_confirmed',
+                quantity=quantity,
+                service_name=service_item.name,
+                room_number=booking.room.room_number,
+            )
         }, status=status.HTTP_201_CREATED)
 
-    def _confirm_human_handoff(self, request, data):
+    def _confirm_human_handoff(self, request, data, preferred_lang=None):
         user = request.user
         is_auth = bool(user and user.is_authenticated)
         name = str(data.get('name') or (user.get_full_name() or user.username if is_auth else '')).strip()[:120]
@@ -559,10 +639,11 @@ class ChatbotActionConfirmView(APIView):
         subject = str(data.get('subject') or '[AI Concierge Handoff] Yêu cầu hỗ trợ trực tiếp').strip()[:200]
         msg_body = str(data.get('message') or '').strip()[:1500]
         excerpt_raw = data.get('conversation_excerpt')
+        lang = preferred_lang or detect_language(msg_body, preferred_lang='vi')
 
         if not name or not email or '@' not in email or not msg_body:
             return Response(
-                {'success': False, 'message': 'Vui lòng cung cấp đầy đủ Họ tên, Email và Nội dung cần hỗ trợ.'},
+                {'success': False, 'message': _confirm_msg(lang, 'handoff_missing_fields')},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -593,7 +674,7 @@ class ChatbotActionConfirmView(APIView):
         )
         _record_chatbot_log(
             request,
-            detected_lang=detect_language(msg_body),
+            detected_lang=lang,
             intent_category='human_handoff',
             response_source='confirm_action',
             action_triggered='handoff_confirmed',
@@ -621,5 +702,106 @@ class ChatbotActionConfirmView(APIView):
         return Response({
             'success': True,
             'contact_id': contact.id,
-            'message': 'Đã chuyển yêu cầu của Quý khách tới Lễ tân & Quản lý trực ca. Nhân viên sẽ phản hồi trong ít phút!'
+            'detected_lang': lang,
+            'message': _confirm_msg(lang, 'handoff_confirmed')
         }, status=status.HTTP_201_CREATED)
+
+
+class ChatbotStatusView(APIView):
+    """
+    API GET /api/chatbot/status/
+    Trả về trạng thái lưu trú đang CHECKED_IN của khách đã đăng nhập để hiển thị ngay
+    thanh In-House Concierge Bar khi mở khung chat (trước cả khi gửi tin nhắn đầu tiên).
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        user = getattr(request, 'user', None)
+        if not (user and user.is_authenticated):
+            return Response({'success': True, 'active_stay': None})
+
+        lang = str(request.query_params.get('lang') or 'vi').strip().lower()
+        if lang not in ('vi', 'en', 'ko', 'zh'):
+            lang = 'vi'
+
+        checked_in_bk = (
+            Booking.objects.filter(guest=user, status='checked_in', room__isnull=False)
+            .select_related('category', 'room', 'invoice', 'group_booking', 'applied_promotion')
+            .prefetch_related('extra_services', 'service_requests__service', 'service_requests__assigned_staff', 'payments')
+            .order_by('-created_at')
+            .first()
+        )
+        if not checked_in_bk:
+            return Response({'success': True, 'active_stay': None})
+
+        st = build_active_stay_details(checked_in_bk, lang=lang)
+        if not st:
+            return Response({'success': True, 'active_stay': None})
+
+        return Response({
+            'success': True,
+            'active_stay': {
+                'booking_code': st['booking_code'],
+                'room_number': st['room_number'],
+                'category_name': st['category_name'],
+                'is_checked_in': st['is_checked_in'],
+                'grand_total_formatted': st['grand_total_formatted'],
+            }
+        })
+
+
+class ChatbotFeedbackView(APIView):
+    """
+    API POST /api/chatbot/feedback/
+    Lưu đánh giá Hữu ích / Chưa hài lòng (👍 / 👎) cho một lượt tương tác Chatbot.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [ChatbotAnonThrottle, ChatbotUserThrottle]
+
+    def post(self, request, *args, **kwargs):
+        data = request.data or {}
+        interaction_id = data.get('interaction_id')
+        feedback = str(data.get('feedback') or '').strip().lower()
+
+        if feedback not in ('helpful', 'unhelpful', ''):
+            return Response(
+                {'success': False, 'message': 'Giá trị đánh giá không hợp lệ (helpful | unhelpful).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not interaction_id or not str(interaction_id).isdigit():
+            return Response(
+                {'success': False, 'message': 'Thiếu mã tương tác hợp lệ (interaction_id).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        log_obj = ChatbotInteractionLog.objects.filter(pk=int(interaction_id)).first()
+        if not log_obj:
+            return Response(
+                {'success': False, 'message': 'Không tìm thấy lượt tương tác.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user = getattr(request, 'user', None)
+        is_auth = bool(user and user.is_authenticated)
+        if log_obj.user_id:
+            is_staff = is_auth and (user.is_superuser or getattr(user, 'role', '') in INHOUSE_BOOKING_ROLES)
+            if not (is_auth and (user.id == log_obj.user_id or is_staff)):
+                return Response(
+                    {'success': False, 'message': 'Không có quyền đánh giá lượt tương tác này.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            if log_obj.created_at and (timezone.now() - log_obj.created_at) > timedelta(hours=24):
+                return Response(
+                    {'success': False, 'message': 'Phiên đánh giá cho lượt tương tác này đã hết hạn.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        log_obj.user_feedback = feedback
+        log_obj.save(update_fields=['user_feedback'])
+        return Response({
+            'success': True,
+            'interaction_id': log_obj.id,
+            'feedback': log_obj.user_feedback,
+        })

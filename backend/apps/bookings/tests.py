@@ -721,6 +721,102 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertTrue(any(l['code'] == 'en' for l in cb['language_breakdown']))
         self.assertEqual(len(cb['recent_logs']), 3)
 
+    def test_service_ingredients_duration_status_feedback_and_multilingual_confirm(self):
+        # 1. ServiceItem ingredients & duration synced into context & offline detail response
+        svc_cat = ServiceCategory.objects.create(name='Ocean Spa & Wellness')
+        svc_item = ServiceItem.objects.create(
+            category=svc_cat,
+            name='Massage Đá Nóng Thảo Mộc',
+            description='Liệu trình thư giãn toàn thân chuyên sâu',
+            duration='60 phút',
+            ingredients='Tinh dầu sả chanh, đá nóng bazan, trà thảo mộc',
+            price=Decimal('650000'),
+            is_active=True,
+        )
+
+        self.client.force_authenticate(user=None)
+        res_svc = self.client.post('/api/chatbot/ask/', {
+            'message': f'{svc_item.name} có thành phần gì và làm trong bao lâu?'
+        }, format='json')
+        self.assertEqual(res_svc.status_code, 200)
+        self.assertIsNotNone(res_svc.data.get('interaction_id'))
+        self.assertIn('60 phút', res_svc.data['reply'])
+        self.assertIn('Tinh dầu sả chanh', res_svc.data['reply'])
+
+        # 2. GET /api/chatbot/status/ returns active_stay immediately for checked-in user
+        res_anon_status = self.client.get('/api/chatbot/status/')
+        self.assertEqual(res_anon_status.status_code, 200)
+        self.assertIsNone(res_anon_status.data.get('active_stay'))
+
+        self.client.force_authenticate(user=self.guest_b)
+        res_auth_status = self.client.get('/api/chatbot/status/?lang=en')
+        self.assertEqual(res_auth_status.status_code, 200)
+        self.assertIsNotNone(res_auth_status.data.get('active_stay'))
+        self.assertEqual(res_auth_status.data['active_stay']['room_number'], self.room_101.room_number)
+
+        # 3. Multilingual confirm-action (EN) with custom qty & note
+        res_confirm_en = self.client.post('/api/chatbot/confirm-action/', {
+            'action_type': 'create_service_request',
+            'lang': 'en',
+            'booking_id': self.bk_b.id,
+            'service_id': svc_item.id,
+            'quantity': 3,
+            'note': 'Deliver at 19:00 please',
+        }, format='json')
+        self.assertEqual(res_confirm_en.status_code, 201)
+        self.assertEqual(res_confirm_en.data['quantity'], 3)
+        self.assertEqual(res_confirm_en.data['detected_lang'], 'en')
+        self.assertIn('Confirmed 3x', res_confirm_en.data['message'])
+
+        # 4. Feedback endpoint (👍 / 👎) with ownership check + Reports analytics
+        res_ask_auth = self.client.post('/api/chatbot/ask/', {
+            'message': 'What is my current provisional bill?'
+        }, format='json')
+        auth_log_id = res_ask_auth.data['interaction_id']
+        self.assertIsNotNone(auth_log_id)
+
+        # Other user cannot rate guest_b's log
+        self.client.force_authenticate(user=self.guest_a)
+        res_fb_forbidden = self.client.post('/api/chatbot/feedback/', {
+            'interaction_id': auth_log_id,
+            'feedback': 'unhelpful',
+        }, format='json')
+        self.assertEqual(res_fb_forbidden.status_code, 403)
+
+        # Owner rates helpful
+        self.client.force_authenticate(user=self.guest_b)
+        res_fb_ok = self.client.post('/api/chatbot/feedback/', {
+            'interaction_id': auth_log_id,
+            'feedback': 'helpful',
+        }, format='json')
+        self.assertEqual(res_fb_ok.status_code, 200)
+        self.assertEqual(res_fb_ok.data['feedback'], 'helpful')
+
+        # Anonymous guest rates anonymous interaction unhelpful
+        self.client.force_authenticate(user=None)
+        res_fb_anon = self.client.post('/api/chatbot/feedback/', {
+            'interaction_id': res_svc.data['interaction_id'],
+            'feedback': 'unhelpful',
+        }, format='json')
+        self.assertEqual(res_fb_anon.status_code, 200)
+
+        # Admin Analytics reflects 50% satisfaction (1 helpful / 2 total)
+        admin_user = User.objects.create_user(
+            username='cb_admin_fb',
+            email='cb_admin_fb@example.com',
+            password='Password123!',
+            role='admin',
+            is_superuser=True,
+        )
+        self.client.force_authenticate(user=admin_user)
+        res_rep = self.client.get('/api/reports/?filter=month')
+        self.assertEqual(res_rep.status_code, 200)
+        cb_sum = res_rep.data['chatbot_analytics']['summary']
+        self.assertEqual(cb_sum['helpful_count'], 1)
+        self.assertEqual(cb_sum['unhelpful_count'], 1)
+        self.assertEqual(cb_sum['feedback_total'], 2)
+        self.assertEqual(cb_sum['satisfaction_rate'], 50.0)
+
 
 class GroupBookingCancellationTests(APITestCase):
     def setUp(self):

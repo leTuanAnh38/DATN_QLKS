@@ -163,14 +163,14 @@ export default function Navbar({
             {/* Backdrop làm mờ nền khi mở Mobile Drawer */}
             {mobileMenuOpen && (
                 <div
-                    className="fixed inset-0 z-[90] bg-slate-900/40 backdrop-blur-[1px] xl:hidden animate-fadeIn"
+                    className="fixed inset-0 z-40 bg-slate-900/40 xl:hidden"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-hidden="true"
                 />
             )}
 
             {/* 2. HEADER NAVIGATION */}
-            <header className={`sticky top-0 ${mobileMenuOpen ? 'z-[95]' : 'z-50'} bg-white border-b border-slate-200 shadow-xs transition-all`}>
+            <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-xs">
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 xl:gap-8">
                     {/* Brand Logo: Co giãn an toàn trên 375px, giữ nguyên vẹn trên máy tính */}
                     <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0 flex-1 xl:flex-none xl:shrink-0">
@@ -386,9 +386,10 @@ export default function Navbar({
                         {/* Mobile Menu Button */}
                         <button
                             type="button"
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="xl:hidden min-w-[40px] min-h-[40px] p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none flex items-center justify-center"
+                            onClick={() => setMobileMenuOpen((prev) => !prev)}
+                            className="xl:hidden min-w-[40px] min-h-[40px] p-2 rounded-lg text-slate-600 sm:hover:text-slate-900 sm:hover:bg-slate-100 active:bg-slate-100 focus:outline-none select-none flex items-center justify-center"
                             aria-label="Toggle Menu"
+                            aria-expanded={mobileMenuOpen}
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 {mobileMenuOpen ? (
@@ -401,9 +402,9 @@ export default function Navbar({
                     </div>
                 </div>
 
-                {/* Mobile Navigation Dropdown */}
+                {/* Mobile Navigation Dropdown (phủ nổi absolute để không làm phình header và đẩy trang) */}
                 {mobileMenuOpen && (
-                    <div className="xl:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-fadeIn max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain">
+                    <div className="xl:hidden absolute top-full left-0 right-0 z-50 border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-xl max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
                         {/* Mobile User Status */}
                         {isAuthenticated && (
                             <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">

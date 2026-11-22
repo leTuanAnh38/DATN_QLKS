@@ -447,6 +447,12 @@ class ChatbotInteractionLog(models.Model):
         ('general', 'Chào hỏi / Tư vấn chung'),
     )
 
+    FEEDBACK_CHOICES = (
+        ('', 'Chưa đánh giá'),
+        ('helpful', 'Hữu ích'),
+        ('unhelpful', 'Chưa hài lòng'),
+    )
+
     user = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -463,6 +469,14 @@ class ChatbotInteractionLog(models.Model):
     bot_reply_preview = models.CharField(max_length=500, blank=True, default='', verbose_name="Tóm tắt phản hồi")
     latency_ms = models.PositiveIntegerField(default=0, verbose_name="Độ trễ (ms)")
     is_authenticated_user = models.BooleanField(default=False, verbose_name="Khách đã đăng nhập")
+    user_feedback = models.CharField(
+        max_length=12,
+        choices=FEEDBACK_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name="Đánh giá của khách"
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Thời gian")
 
     class Meta:
