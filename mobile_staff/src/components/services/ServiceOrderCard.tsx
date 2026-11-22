@@ -16,6 +16,7 @@ export interface ServiceOrderCardProps {
   isDark: boolean;
   isMyTask: boolean;
   isActionLoading: boolean;
+  canOperate?: boolean;
   badge: StatusBadgeConfig;
   actionConfig: ReturnType<typeof getServiceActionConfig>;
   lockReason: ServiceLockReason;
@@ -34,6 +35,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
   isDark,
   isMyTask,
   isActionLoading,
+  canOperate = true,
   badge,
   actionConfig,
   lockReason,
@@ -362,7 +364,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
 
       {/* Nút hành động 1 chạm */}
       <View style={styles.actionRow}>
-        {item.status === 'pending' && (
+        {canOperate && item.status === 'pending' && (
           <TouchableOpacity
             style={[styles.btnClaim, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
             onPress={() => onClaim(item)}
@@ -383,7 +385,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
           </TouchableOpacity>
         )}
 
-        {item.status === 'in_progress' && (
+        {canOperate && item.status === 'in_progress' && (
           <TouchableOpacity
             style={[styles.btnDeliver, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
             onPress={() => onUpdateStatus(item, 'delivering', actionConfig.deliveringLabel)}
@@ -404,7 +406,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
           </TouchableOpacity>
         )}
 
-        {item.status === 'delivering' && (
+        {canOperate && item.status === 'delivering' && (
           <TouchableOpacity
             style={[styles.btnComplete, (isActionLoading || lockReason) && { opacity: isActionLoading ? 0.65 : 0.45 }]}
             onPress={() => onPromptComplete(item, actionConfig.completeSuccessMsg)}
@@ -423,6 +425,23 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
               </>
             )}
           </TouchableOpacity>
+        )}
+
+        {!canOperate && item.status !== 'completed' && item.status !== 'cancelled' && (
+          <View
+            style={[
+              styles.doneBadge,
+              {
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : '#F0F9FF',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.3)' : '#BAE6FD',
+              },
+            ]}
+          >
+            <Ionicons name="eye-outline" size={15} color={isDark ? '#38BDF8' : '#0284C7'} style={{ marginRight: 6 }} />
+            <Text style={[styles.doneBadgeText, { color: isDark ? '#38BDF8' : '#0284C7' }]}>
+              Chế độ chỉ xem • {badge.label}
+            </Text>
+          </View>
         )}
 
         {item.status === 'completed' && (
@@ -453,7 +472,7 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
           </View>
         )}
 
-        {(item.status === 'pending' || item.status === 'in_progress') && (
+        {canOperate && (item.status === 'pending' || item.status === 'in_progress') && (
           <TouchableOpacity
             style={[styles.btnCancelOrder, isActionLoading && { opacity: 0.5 }]}
             onPress={() => onOpenCancelModal(item)}

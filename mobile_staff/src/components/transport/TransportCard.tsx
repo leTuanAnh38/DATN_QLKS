@@ -100,6 +100,14 @@ export const getStatusBadgeConfig = (status: string) => {
         label: 'Đã hoàn tất',
         icon: 'checkmark-circle-outline' as const,
       };
+    case 'cancelled':
+      return {
+        bg: Palette.rose.subtle,
+        border: Palette.rose.border,
+        text: Palette.rose.light,
+        label: 'Đã hủy',
+        icon: 'close-circle-outline' as const,
+      };
     default:
       return {
         bg: Palette.surface.cardSecondary,
@@ -115,8 +123,10 @@ export interface TransportCardProps {
   item: ServiceRequestItem;
   isMyTask: boolean;
   isActionLoading: boolean;
+  canOperate?: boolean;
   onClaim: (item: ServiceRequestItem) => void;
   onUpdateStatus: (item: ServiceRequestItem, newStatus: string, label: string) => void;
+  onOpenCancel?: (item: ServiceRequestItem) => void;
   onCallGuest: (phone: string) => void;
   onSendSms: (phone: string, guestName: string) => void;
   onOpenMap: (destination: string) => void;
@@ -126,8 +136,10 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
   item,
   isMyTask,
   isActionLoading,
+  canOperate = true,
   onClaim,
   onUpdateStatus,
+  onOpenCancel,
   onCallGuest,
   onSendSms,
   onOpenMap,
@@ -285,7 +297,7 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
         ) : null}
 
         {/* Chưa có ai nhận -> Nút Tiếp nhận cuốc xe */}
-        {!item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
+        {canOperate && !item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
           <TouchableOpacity
             style={[styles.claimButton, isActionLoading && { opacity: 0.65 }]}
             onPress={() => onClaim(item)}
@@ -304,7 +316,7 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
         )}
 
         {/* Đang chuẩn bị -> Bắt đầu đi đón */}
-        {item.status === 'in_progress' && (
+        {canOperate && item.status === 'in_progress' && (
           <TouchableOpacity
             style={[styles.departButton, isActionLoading && { opacity: 0.65 }]}
             onPress={() => onUpdateStatus(item, 'delivering', 'Đang đi đón khách')}
@@ -316,14 +328,14 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
             ) : (
               <>
                 <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN KHÁCH</Text>
+                <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN</Text>
               </>
             )}
           </TouchableOpacity>
         )}
 
         {/* Đang đi đón -> Hoàn tất */}
-        {item.status === 'delivering' && (
+        {canOperate && item.status === 'delivering' && (
           <TouchableOpacity
             style={[styles.completeButton, isActionLoading && { opacity: 0.65 }]}
             onPress={() => onUpdateStatus(item, 'completed', 'Hoàn tất chuyến xe')}
@@ -341,6 +353,25 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
           </TouchableOpacity>
         )}
 
+        {/* Nút Hủy cuốc xe (chỉ khi chờ nhận hoặc đang chuẩn bị) */}
+        {canOperate &&
+          onOpenCancel &&
+          (item.status === 'pending' || item.status === 'in_progress') && (
+            <TouchableOpacity
+              style={[
+                styles.cancelTripButton,
+                !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                isActionLoading && { opacity: 0.5 },
+              ]}
+              onPress={() => onOpenCancel(item)}
+              disabled={isActionLoading}
+              activeOpacity={0.75}
+              accessibilityLabel="Hủy cuốc xe"
+            >
+              <Ionicons name="close-circle-outline" size={17} color="#EF4444" />
+            </TouchableOpacity>
+          )}
+
         {item.status === 'completed' && (
           <View
             style={[
@@ -353,6 +384,21 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
           >
             <Ionicons name="checkmark-circle" size={15} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 5 }} />
             <Text style={[styles.doneBadgeText, !isDark && { color: '#059669' }]}>Chuyến đi hoàn tất</Text>
+          </View>
+        )}
+
+        {item.status === 'cancelled' && (
+          <View
+            style={[
+              styles.doneBadge,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
+              },
+            ]}
+          >
+            <Ionicons name="close-circle" size={15} color={isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 5 }} />
+            <Text style={[styles.doneBadgeText, { color: isDark ? '#F87171' : '#DC2626' }]}>Chuyến xe đã hủy</Text>
           </View>
         )}
       </View>
@@ -634,6 +680,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0A0F1D',
     letterSpacing: 0.5,
+  },
+  cancelTripButton: {
+    width: 44,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   doneBadge: {
     flex: 1,

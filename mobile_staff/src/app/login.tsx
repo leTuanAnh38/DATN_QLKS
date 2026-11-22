@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
   Modal,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,12 +36,17 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 
 export default function LoginScreen() {
   const { login, apiUrl, updateServerUrl } = useAuth();
-  const { colors, isDark } = useAppTheme();
+  const { colors, isDark, hotelName, hotelLogoUrl, refreshHotelSettings } = useAppTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const passwordInputRef = useRef<React.ComponentRef<typeof TextInput>>(null);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [hotelLogoUrl]);
 
   // Modal cấu hình IP máy chủ
   const [modalVisible, setModalVisible] = useState(false);
@@ -84,6 +90,7 @@ export default function LoginScreen() {
   const handleSaveUrl = async () => {
     if (!tempUrl.trim()) return;
     await updateServerUrl(tempUrl.trim());
+    await refreshHotelSettings();
     setModalVisible(false);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert('Thành công', `Đã cập nhật máy chủ:\n${tempUrl.trim()}`);
@@ -122,14 +129,33 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Logo & Tiêu đề Khách sạn */}
+          {/* Logo & Tiêu đề Khách sạn (đồng bộ từ Cài đặt Hệ thống) */}
           <View style={styles.logoSection}>
             <View style={[styles.logoOuterGlow, !isDark && { backgroundColor: 'rgba(245, 158, 11, 0.12)' }]}>
-              <View style={[styles.logoBadge, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#F59E0B' }]}>
-                <Ionicons name="business" size={38} color="#F59E0B" />
+              <View
+                style={[
+                  styles.logoBadge,
+                  (!isDark || (hotelLogoUrl && !logoError)) && {
+                    backgroundColor: '#FFFFFF',
+                    borderColor: '#F59E0B',
+                  },
+                ]}
+              >
+                {hotelLogoUrl && !logoError ? (
+                  <Image
+                    source={{ uri: hotelLogoUrl }}
+                    style={styles.logoImage}
+                    resizeMode="cover"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <Ionicons name="business" size={38} color="#F59E0B" />
+                )}
               </View>
             </View>
-            <Text style={[styles.brandTitle, !isDark && { color: '#0F172A' }]}>TA LUXURY HOTEL</Text>
+            <Text style={[styles.brandTitle, !isDark && { color: '#0F172A' }]}>
+              {(hotelName || 'TA LUXURY HOTEL').toUpperCase()}
+            </Text>
             <Text style={styles.brandSubtitle}>HỆ THỐNG ĐIỀU HÀNH HIỆN TRƯỜNG</Text>
             <Text style={[styles.brandDescription, !isDark && { color: '#64748B' }]}>
               Buồng phòng • Đội xe • Phục vụ • Kỹ thuật
@@ -370,16 +396,22 @@ const styles = StyleSheet.create({
     borderColor: '#F59E0B',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 10,
   },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+  },
   brandTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '900',
     color: '#F8FAFC',
-    letterSpacing: 2.5,
+    letterSpacing: 1.8,
+    textAlign: 'center',
   },
   brandSubtitle: {
     fontSize: 11,

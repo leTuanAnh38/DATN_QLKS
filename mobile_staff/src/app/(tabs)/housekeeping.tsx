@@ -40,20 +40,44 @@ export default function HousekeepingScreen() {
   const userRole = user?.role || '';
   const isServiceStaff = userRole === 'service_staff';
   const isTechnician = userRole === 'technician';
+  const isCashier = userRole === 'cashier' && !user?.is_superuser;
   const isManagerOrAdmin = Boolean(user?.is_superuser || ['admin', 'manager', 'owner'].includes(userRole));
 
-  // Phân quyền chuyên trách chuẩn PMS giống Web:
-  // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật & Phục vụ không có quyền)
-  const canAccessMinibar = !['technician', 'service_staff', 'cashier'].includes(userRole);
+  // Phân quyền chuyên trách chuẩn PMS khớp Backend:
+  // 1. Minibar: Buồng phòng, Lễ tân, Quản lý, Admin (Kỹ thuật, Phục vụ & Thu ngân không có quyền)
+  const canAccessMinibar = Boolean(
+    user?.is_superuser || !['technician', 'service_staff', 'cashier'].includes(userRole)
+  );
 
   // 2. Báo đồ bỏ quên: Buồng phòng, Phục vụ phòng, Kỹ thuật viên, Lễ tân, Quản lý, Admin
-  const canReportLostItem = !['cashier'].includes(userRole);
+  const canReportLostItem = Boolean(user?.is_superuser || userRole !== 'cashier');
 
-  // 3. Đã dọn xong -> Sẵn sàng: CHỈ Buồng phòng, Quản lý, Admin (Phục vụ & Kỹ thuật không được dọn)
-  const canMarkCleaned = ['housekeeper', 'manager', 'owner', 'admin'].includes(userRole) || isManagerOrAdmin;
+  // 3. Đã dọn xong -> Sẵn sàng: CHỈ Buồng phòng, Quản lý, Admin (Phục vụ, Lễ tân, Thu ngân & Kỹ thuật không được dọn)
+  const canMarkCleaned = Boolean(
+    user?.is_superuser || ['housekeeper', 'manager', 'owner', 'admin'].includes(userRole)
+  );
 
   // 4. Báo hỏng thiết bị: Buồng phòng, Phục vụ, Kỹ thuật, Lễ tân, Quản lý, Admin
-  const canReportMaintenance = !['cashier'].includes(userRole);
+  const canReportMaintenance = Boolean(user?.is_superuser || userRole !== 'cashier');
+
+  // 5. Đổi phòng khẩn cấp: Khớp backend frontdesk_mixin.py (không cho Phục vụ & Thu ngân)
+  const canChangeRoom = Boolean(
+    user?.is_superuser ||
+      ['admin', 'owner', 'manager', 'receptionist', 'housekeeper', 'technician'].includes(userRole)
+  );
+
+  // 6. Tra cứu CRM & Danh sách Đặt phòng tổng: Lễ tân, Thu ngân, Quản lý, Chủ, Admin
+  const canAccessCrmAndBookings = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(userRole)
+  );
+
+  // 7. Điều hướng nhanh sang Dịch vụ / Đội xe (chỉ khi vai trò có quyền mở tab & tạo yêu cầu)
+  const canNavigateServices = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist', 'service_staff', 'housekeeper'].includes(userRole)
+  );
+  const canNavigateTransport = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist', 'service_staff'].includes(userRole)
+  );
 
   const [rooms, setRooms] = useState<RoomItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -423,11 +447,12 @@ export default function HousekeepingScreen() {
         item={item}
         canAccessMinibar={canAccessMinibar}
         canMarkCleaned={canMarkCleaned}
+        canReportMaintenance={canReportMaintenance}
         actionLoading={actionLoadingId === item.id}
         {...roomActions}
       />
     ),
-    [canAccessMinibar, canMarkCleaned, actionLoadingId, roomActions]
+    [canAccessMinibar, canMarkCleaned, canReportMaintenance, actionLoadingId, roomActions]
   );
 
   return (
@@ -443,37 +468,41 @@ export default function HousekeepingScreen() {
           </Text>
         </View>
         <View style={styles.headerRightActions}>
-          <TouchableOpacity
-            style={[
-              styles.refreshCircleBtn,
-              !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
-            ]}
-            onPress={() => {
-              setBookingModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.7}
-            accessibilityLabel="Lịch đặt phòng"
-          >
-            <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
-          </TouchableOpacity>
+          {canAccessCrmAndBookings && (
+            <>
+              <TouchableOpacity
+                style={[
+                  styles.refreshCircleBtn,
+                  !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+                ]}
+                onPress={() => {
+                  setBookingModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+                accessibilityLabel="Lịch đặt phòng"
+              >
+                <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.refreshCircleBtn,
-              { borderColor: 'rgba(56, 189, 248, 0.4)' },
-              !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
-            ]}
-            onPress={() => {
-              setCrmGuestId(null);
-              setCrmModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.7}
-            accessibilityLabel="Hồ sơ khách hàng CRM"
-          >
-            <Ionicons name="people-outline" size={16} color="#38BDF8" />
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.refreshCircleBtn,
+                  { borderColor: 'rgba(56, 189, 248, 0.4)' },
+                  !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
+                ]}
+                onPress={() => {
+                  setCrmGuestId(null);
+                  setCrmModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+                accessibilityLabel="Hồ sơ khách hàng CRM"
+              >
+                <Ionicons name="people-outline" size={16} color="#38BDF8" />
+              </TouchableOpacity>
+            </>
+          )}
 
           <NotificationBell />
           <TouchableOpacity
@@ -651,11 +680,11 @@ export default function HousekeepingScreen() {
           <Ionicons name="search-outline" size={17} color={colors.textSubtle} style={{ marginLeft: 10 }} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Tìm nhanh số phòng (VD: 101, 202...)"
+            placeholder="Tìm số phòng, hạng phòng (101, Deluxe...)"
             placeholderTextColor={colors.textSubtle}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            keyboardType="numeric"
+            keyboardType="default"
             clearButtonMode="while-editing"
           />
           {searchQuery ? (
@@ -825,7 +854,7 @@ export default function HousekeepingScreen() {
         room={breakdownRoom}
         onClose={() => setBreakdownModalVisible(false)}
         onSuccess={fetchRooms}
-        onOpenChangeRoom={openChangeRoomModal}
+        onOpenChangeRoom={canChangeRoom ? openChangeRoomModal : undefined}
       />
 
       {/* Modal Khai Báo Đồ Khách Bỏ Quên */}
@@ -845,14 +874,19 @@ export default function HousekeepingScreen() {
         canAccessMinibar={canAccessMinibar}
         canReportLostItem={canReportLostItem}
         canReportMaintenance={canReportMaintenance}
+        canChangeRoom={canChangeRoom}
+        canOpenCrm={canAccessCrmAndBookings}
+        canNavigateServices={canNavigateServices}
+        canNavigateTransport={canNavigateTransport}
         isTechnician={isTechnician}
+        isCashier={isCashier}
         isManagerOrAdmin={isManagerOrAdmin}
         onToggleCleaning={handleToggleCleaning}
         onCompleteMakeUp={handleCompleteMakeUpCleaning}
         onOpenMinibar={openMinibarCheck}
         onOpenLostFound={openLostFoundModal}
         onOpenBreakdown={openBreakdownModal}
-        onOpenChangeRoom={openChangeRoomModal}
+        onOpenChangeRoom={canChangeRoom ? openChangeRoomModal : undefined}
         onOpenCrm={(guestId) => {
           setCrmGuestId(guestId);
           setCrmModalVisible(true);

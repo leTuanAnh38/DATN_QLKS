@@ -17,6 +17,7 @@ export interface CatalogItemCardProps {
   isDark: boolean;
   isToggling: boolean;
   canToggleActive?: boolean;
+  canOrder?: boolean;
   onToggleActive: (item: any) => void;
   onOrder: (item: any) => void;
 }
@@ -26,6 +27,7 @@ export const CatalogItemCard: React.FC<CatalogItemCardProps> = React.memo(({
   isDark,
   isToggling,
   canToggleActive = true,
+  canOrder = true,
   onToggleActive,
   onOrder,
 }) => {
@@ -151,17 +153,19 @@ export const CatalogItemCard: React.FC<CatalogItemCardProps> = React.memo(({
             )}
 
             {/* Nút Gọi món */}
-            <TouchableOpacity
-              style={[
-                styles.catalogOrderBtn,
-                !isAvailable && { opacity: 0.45 },
-              ]}
-              onPress={handleOrderPress}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="cart" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-              <Text style={styles.catalogOrderBtnText}>Gọi món</Text>
-            </TouchableOpacity>
+            {canOrder && (
+              <TouchableOpacity
+                style={[
+                  styles.catalogOrderBtn,
+                  !isAvailable && { opacity: 0.45 },
+                ]}
+                onPress={handleOrderPress}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="cart" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                <Text style={styles.catalogOrderBtnText}>Gọi món</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

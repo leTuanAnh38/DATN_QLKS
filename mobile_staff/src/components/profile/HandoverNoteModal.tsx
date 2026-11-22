@@ -46,7 +46,7 @@ export default function HandoverNoteModal({
       onSaveSuccess(tempHandoverNote.trim());
       onClose();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Thành công', 'Đã cập nhật sổ bàn giao ca trực!');
+      Alert.alert('Thành công', 'Đã cập nhật ghi chú ca trực cá nhân!');
     } catch {
       Alert.alert('Lỗi', 'Không thể lưu ghi chú.');
     } finally {
@@ -65,13 +65,13 @@ export default function HandoverNoteModal({
       >
         <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.modalHeaderRow}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Sổ Bàn Giao Ca Trực</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Ghi Chú Ca Trực Cá Nhân</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={22} color={isDark ? '#94A3B8' : '#64748B'} />
             </TouchableOpacity>
           </View>
           <Text style={[styles.modalDesc, { color: colors.textMuted }]}>
-            Nhập nội dung lưu ý nghiệp vụ cho ca trực tiếp theo:
+            Ghi chú cá nhân lưu trực tiếp trên thiết bị này để theo dõi trong ca làm việc:
           </Text>
           <TextInput
             style={[
@@ -104,7 +104,7 @@ export default function HandoverNoteModal({
               {savingHandover ? (
                 <ActivityIndicator color="#0A0F1D" size="small" />
               ) : (
-                <Text style={styles.modalSaveText}>Lưu Sổ Ca</Text>
+                <Text style={styles.modalSaveText}>Lưu Ghi Chú</Text>
               )}
             </TouchableOpacity>
           </View>

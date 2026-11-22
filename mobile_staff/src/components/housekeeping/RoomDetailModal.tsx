@@ -24,7 +24,12 @@ interface RoomDetailModalProps {
   canAccessMinibar: boolean;
   canReportLostItem: boolean;
   canReportMaintenance: boolean;
+  canChangeRoom?: boolean;
+  canOpenCrm?: boolean;
+  canNavigateServices?: boolean;
+  canNavigateTransport?: boolean;
   isTechnician: boolean;
+  isCashier?: boolean;
   isManagerOrAdmin: boolean;
   onToggleCleaning: (room: RoomItem) => void;
   onCompleteMakeUp?: (room: RoomItem) => void;
@@ -46,7 +51,12 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   canAccessMinibar,
   canReportLostItem,
   canReportMaintenance,
+  canChangeRoom = true,
+  canOpenCrm = true,
+  canNavigateServices = true,
+  canNavigateTransport = true,
   isTechnician,
+  isCashier = false,
   isManagerOrAdmin,
   onToggleCleaning,
   onCompleteMakeUp,
@@ -191,7 +201,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </View>
                   ) : null}
 
-                  {(bk.guest_id || (bk as any).guest) ? (
+                  {canOpenCrm && (bk.guest_id || (bk as any).guest) ? (
                     <TouchableOpacity
                       style={styles.detailCrmBtn}
                       onPress={() => {
@@ -284,6 +294,21 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                   </TouchableOpacity>
                 )}
               </View>
+            ) : isCashier ? (
+              <View
+                style={[
+                  styles.detailSectionBox,
+                  { marginTop: 4, borderColor: 'rgba(56, 189, 248, 0.25)' },
+                  !isDark && { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ionicons name="eye-outline" size={16} color="#0284C7" style={{ marginRight: 8 }} />
+                  <Text style={{ fontSize: 12.5, fontWeight: '600', color: isDark ? '#7DD3FC' : '#0369A1', flex: 1 }}>
+                    Chế độ đối chiếu Thu ngân (Chỉ xem trạng thái phòng & khách lưu trú).
+                  </Text>
+                </View>
+              </View>
             ) : (
               <>
                 <Text style={[styles.detailActionsHeading, !isDark && { color: '#64748B' }]}>
@@ -291,7 +316,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     ? 'Thao tác cho Kỹ thuật viên'
                     : canMarkCleaned
                     ? 'Thao tác nhanh cho Buồng phòng'
-                    : 'Thao tác cho Phục vụ phòng'}
+                    : 'Thao tác nhanh'}
                 </Text>
                 {room.status === 'cleaning' && !hasGuest && (
                   <View
@@ -379,8 +404,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 3. Thêm dịch vụ & Đặt xe: CHỈ cho phòng có khách và KHÔNG PHẢI Kỹ thuật */}
-                  {!isTechnician && room.status === 'occupied' && (
+                  {/* 3. Thêm dịch vụ & Đặt xe: CHỈ khi phòng có khách và vai trò có quyền truy cập tab tương ứng */}
+                  {canNavigateServices && room.status === 'occupied' && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,
@@ -396,7 +421,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {!isTechnician && room.status === 'occupied' && (
+                  {canNavigateTransport && room.status === 'occupied' && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,
@@ -446,8 +471,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 6. Đổi phòng khẩn cấp: CHỈ cho phòng có khách */}
-                  {room.status === 'occupied' && onOpenChangeRoom && (
+                  {/* 6. Đổi phòng khẩn cấp: CHỈ cho phòng có khách và vai trò có quyền */}
+                  {canChangeRoom && room.status === 'occupied' && onOpenChangeRoom && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,

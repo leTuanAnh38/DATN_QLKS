@@ -15,7 +15,7 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
-import { useAppTheme } from '../../contexts/ThemeContext';
+import { useAppTheme, resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 import apiClient from '../../api/client';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
@@ -33,6 +33,10 @@ import { useOfflineQueueCount } from '../../services/offlineQueue';
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
   const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
+  const canAccessCrmAndBookings = Boolean(
+    user?.is_superuser ||
+      ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(user?.role || '')
+  );
   const offlineQueueCount = useOfflineQueueCount();
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const styles = useMemo(() => createProfileStyles(colors, isDark), [colors, isDark]);
@@ -207,37 +211,44 @@ export default function ProfileScreen() {
 
   const getRoleDisplayName = (role: string | undefined) => {
     switch (role) {
+      case 'owner':
+        return 'Chủ Khách Sạn (Owner)';
+      case 'admin':
+        return 'Quản trị Hệ thống (Admin)';
+      case 'manager':
+        return 'Quản lý Vận hành (Manager)';
+      case 'receptionist':
+        return 'Lễ tân Khách sạn (Receptionist)';
+      case 'cashier':
+        return 'Thu ngân (Cashier)';
       case 'housekeeper':
         return 'Nhân viên Buồng phòng (Housekeeping)';
       case 'service_staff':
         return 'Nhân viên Phục vụ & Đội xe (Service/Driver)';
       case 'technician':
         return 'Kỹ thuật viên Bảo trì (Technician)';
-      case 'receptionist':
-        return 'Lễ tân Khách sạn (Receptionist)';
-      case 'manager':
-        return 'Quản lý Vận hành (Manager)';
       default:
         return role || 'Nhân viên Khách sạn';
     }
   };
 
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Nhân viên ca trực';
+  const resolvedAvatarUrl = resolveMobileMediaUrl(user?.avatar, apiUrl);
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top']}>
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
       <View style={styles.topHeader}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
             {hotelName.toUpperCase()} • {hotelStars} SAO
           </Text>
-          <Text style={styles.greetingTitle}>Hồ Sơ Cá Nhân</Text>
+          <Text style={styles.greetingTitle} numberOfLines={1}>Hồ Sơ Cá Nhân</Text>
         </View>
         <View style={styles.headerRightActions}>
           <NotificationBell />
           <TouchableOpacity style={styles.refreshCircleBtn} onPress={handleRefresh} activeOpacity={0.7}>
-            <Ionicons name="refresh" size={18} color="#F59E0B" />
+            <Ionicons name="refresh" size={17} color="#F59E0B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -249,8 +260,8 @@ export default function ProfileScreen() {
 
           <View style={styles.idCardTop}>
             <View style={styles.avatarGlow}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              {resolvedAvatarUrl ? (
+                <Image source={{ uri: resolvedAvatarUrl }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatarFallback}>
                   <Ionicons name="person" size={32} color={colors.gold} />
@@ -344,8 +355,8 @@ export default function ProfileScreen() {
                 color={themeMode === 'dark' ? colors.gold : colors.textMuted}
                 style={{ marginRight: 5 }}
               />
-              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]}>
-                Tối (Obsidian)
+              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Tối
               </Text>
             </TouchableOpacity>
 
@@ -363,8 +374,8 @@ export default function ProfileScreen() {
                 color={themeMode === 'light' ? colors.gold : colors.textMuted}
                 style={{ marginRight: 5 }}
               />
-              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]}>
-                Sáng (Luxury)
+              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Sáng
               </Text>
             </TouchableOpacity>
 
@@ -382,18 +393,18 @@ export default function ProfileScreen() {
                 color={themeMode === 'system' ? colors.gold : colors.textMuted}
                 style={{ marginRight: 5 }}
               />
-              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]}>
-                Hệ Thống
+              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Hệ thống
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 3. Nghiệp Vụ Vận Hành Khách Sạn & Sổ Ca (PMS / CRM) */}
+        {/* 3. Nghiệp Vụ Vận Hành Khách Sạn & Ghi Chú Ca */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Nghiệp Vụ & Sổ Ca Trực</Text>
+          <Text style={styles.sectionTitle}>Nghiệp Vụ & Ghi Chú Ca</Text>
 
-          {/* Sổ Bàn Giao Ca Trực */}
+          {/* Ghi Chú Ca Trực Cá Nhân (Lưu cục bộ trên thiết bị) */}
           <TouchableOpacity
             style={styles.actionRow}
             onPress={() => {
@@ -406,56 +417,60 @@ export default function ProfileScreen() {
               <Ionicons name="clipboard-outline" size={17} color={colors.gold} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.actionTitle}>Sổ Bàn Giao Ca Trực {hotelStars} Sao</Text>
+              <Text style={styles.actionTitle}>Ghi Chú Ca Trực Cá Nhân</Text>
               <Text style={styles.actionDesc} numberOfLines={1}>
-                {handoverNote ? `Lưu ý: "${handoverNote}"` : 'Chạm để cập nhật ghi chú bàn giao ca tiếp theo'}
+                {handoverNote ? `Lưu ý: "${handoverNote}"` : 'Lưu nhắc việc cá nhân trên thiết bị trong ca trực'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
 
-          <View style={styles.detailDivider} />
+          {canAccessCrmAndBookings && (
+            <>
+              <View style={styles.detailDivider} />
 
-          {/* Tra cứu khách hàng CRM */}
-          <TouchableOpacity
-            style={styles.actionRow}
-            onPress={() => {
-              setCrmGuestId(null);
-              setCrmModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
-              <Ionicons name="people-outline" size={17} color={colors.sky} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.actionTitle}>Tra Cứu Khách Hàng (CRM & Lịch Sử)</Text>
-              <Text style={styles.actionDesc}>Hạng thẻ VIP, lịch sử lưu trú & dùng dịch vụ</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
-          </TouchableOpacity>
+              {/* Tra cứu khách hàng CRM */}
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() => {
+                  setCrmGuestId(null);
+                  setCrmModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
+                  <Ionicons name="people-outline" size={17} color={colors.sky} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.actionTitle}>Tra Cứu Khách Hàng (CRM & Lịch Sử)</Text>
+                  <Text style={styles.actionDesc}>Hạng thẻ VIP, lịch sử lưu trú & dùng dịch vụ</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+              </TouchableOpacity>
 
-          <View style={styles.detailDivider} />
+              <View style={styles.detailDivider} />
 
-          {/* Quản lý đặt phòng & Lịch lưu trú */}
-          <TouchableOpacity
-            style={styles.actionRow}
-            onPress={() => {
-              setBookingModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
-              <Ionicons name="calendar-outline" size={17} color={colors.emerald} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.actionTitle}>Quản Lý Đặt Phòng & Lịch Lưu Trú</Text>
-              <Text style={styles.actionDesc}>Danh sách đơn đặt phòng & sơ đồ timeline tháng</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
-          </TouchableOpacity>
+              {/* Quản lý đặt phòng & Lịch lưu trú */}
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() => {
+                  setBookingModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}>
+                  <Ionicons name="calendar-outline" size={17} color={colors.emerald} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.actionTitle}>Quản Lý Đặt Phòng & Lịch Lưu Trú</Text>
+                  <Text style={styles.actionDesc}>Danh sách đơn đặt phòng & sơ đồ timeline tháng</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* 4. Cài Đặt Tài Khoản & Kết Nối */}
@@ -480,7 +495,7 @@ export default function ProfileScreen() {
 
           <View style={styles.detailDivider} />
 
-          {/* Thử Nghiệm Chuông iPhone */}
+          {/* Thử Nghiệm Thông Báo Đẩy */}
           <TouchableOpacity
             style={styles.actionRow}
             onPress={handleTestPush}
@@ -491,7 +506,7 @@ export default function ProfileScreen() {
               <Ionicons name="notifications-outline" size={17} color={colors.sky} />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.actionTitle}>Thử Nghiệm Chuông iPhone</Text>
+              <Text style={styles.actionTitle}>Thử Nghiệm Thông Báo Đẩy</Text>
               <Text style={styles.actionDesc}>Phát lệnh thông báo đẩy để kiểm tra chuông & rung</Text>
             </View>
             {testingPush ? (
@@ -572,7 +587,7 @@ export default function ProfileScreen() {
 
         {/* Thông tin phiên bản */}
         <Text style={styles.versionText}>
-          TA Luxury PMS Mobile Staff • v2.4.0 (Build 2026)
+          {hotelName || 'TA Luxury'} PMS Mobile Staff • v2.4.0 (Build 2026)
         </Text>
       </ScrollView>
 
@@ -597,6 +612,7 @@ export default function ProfileScreen() {
         apiUrl={apiUrl}
         onSaveUrl={async (url) => {
           await updateServerUrl(url);
+          await Promise.all([refreshHotelSettings(), measureLatency()]);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('Thành công', `Đã cập nhật máy chủ:\n${url}`);
         }}

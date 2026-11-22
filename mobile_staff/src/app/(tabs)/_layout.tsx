@@ -13,20 +13,21 @@ export default function TabLayout() {
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const role = user?.role || '';
-  const isManagerOrAdmin =
+  const isFullOpsRole =
     Boolean(user?.is_superuser) ||
-    ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(role);
+    ['admin', 'owner', 'manager', 'receptionist'].includes(role);
 
   // Phân quyền hiển thị Tab Bar thích ứng thông minh (Adaptive RBAC):
-  // 1. Buồng phòng (housekeeper): Sơ đồ phòng + Đồ thất lạc + Dịch vụ (yêu cầu buồng phòng) + Cá nhân
-  // 2. Phục vụ (service_staff): Sơ đồ phòng (báo hỏng/đồ bỏ quên như Web) + Dịch vụ F&B/Spa + Đội xe + Cá nhân
-  // 3. Kỹ thuật (technician): Bảo trì sự cố + Sơ đồ phòng + Cá nhân
-  // 4. Quản lý / Lễ tân / Admin: Xem toàn diện các phân hệ điều hành
-  const canAccessHousekeeping = isManagerOrAdmin || ['housekeeper', 'technician', 'service_staff'].includes(role);
-  const canAccessLostFound = isManagerOrAdmin || ['housekeeper', 'service_staff'].includes(role);
-  const canAccessTransport = isManagerOrAdmin || role === 'service_staff';
-  const canAccessServices = isManagerOrAdmin || ['service_staff', 'housekeeper'].includes(role);
-  const canAccessMaintenance = isManagerOrAdmin || role === 'technician';
+  // 1. Buồng phòng (housekeeper): Sơ đồ phòng + Đồ thất lạc + Dịch vụ (tiện ích phòng) + Cá nhân
+  // 2. Phục vụ (service_staff): Sơ đồ phòng + Đồ thất lạc + Đội xe + Dịch vụ F&B/Spa + Cá nhân
+  // 3. Kỹ thuật (technician): Sơ đồ phòng + Kỹ thuật bảo trì + Cá nhân
+  // 4. Thu ngân (cashier): Chế độ đối chiếu gọn nhẹ (Sơ đồ phòng + Dịch vụ + Cá nhân)
+  // 5. Quản lý / Chủ / Lễ tân / Admin: Xem toàn diện cả 6 phân hệ điều hành
+  const canAccessHousekeeping = isFullOpsRole || ['housekeeper', 'technician', 'service_staff', 'cashier'].includes(role);
+  const canAccessLostFound = isFullOpsRole || ['housekeeper', 'service_staff'].includes(role);
+  const canAccessTransport = isFullOpsRole || role === 'service_staff';
+  const canAccessServices = isFullOpsRole || ['service_staff', 'housekeeper', 'cashier'].includes(role);
+  const canAccessMaintenance = isFullOpsRole || role === 'technician';
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -49,9 +50,9 @@ export default function TabLayout() {
             shadowRadius: 12,
           },
           tabBarLabelStyle: {
-            fontSize: isManagerOrAdmin ? 10.5 : 11.5,
+            fontSize: isFullOpsRole ? 10 : 11.5,
             fontWeight: '700',
-            letterSpacing: 0.2,
+            letterSpacing: isFullOpsRole ? 0 : 0.2,
             marginTop: 2,
           },
         }}
@@ -70,7 +71,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'bed' : 'bed-outline'}
-                size={24}
+                size={isFullOpsRole ? 21 : 24}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),
@@ -86,7 +87,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'archive' : 'archive-outline'}
-                size={23}
+                size={isFullOpsRole ? 21 : 23}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),
@@ -102,7 +103,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'car-sport' : 'car-sport-outline'}
-                size={24}
+                size={isFullOpsRole ? 21 : 24}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),
@@ -118,7 +119,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'restaurant' : 'restaurant-outline'}
-                size={23}
+                size={isFullOpsRole ? 21 : 23}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),
@@ -134,7 +135,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'construct' : 'construct-outline'}
-                size={23}
+                size={isFullOpsRole ? 21 : 23}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),
@@ -149,7 +150,7 @@ export default function TabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons
                 name={focused ? 'person-circle' : 'person-circle-outline'}
-                size={24}
+                size={isFullOpsRole ? 21 : 24}
                 color={(color as string) || colors.tabBarInactive}
               />
             ),

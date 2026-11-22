@@ -47,9 +47,17 @@ import {
 export default function ServicesScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const userRole = user?.role || '';
   const canToggleCatalog = Boolean(
     user?.is_superuser ||
-      ['service_staff', 'admin', 'owner', 'manager', 'receptionist'].includes(user?.role || '')
+      ['service_staff', 'admin', 'owner', 'manager', 'receptionist'].includes(userRole)
+  );
+  // Thu ngân (cashier) chỉ đối chiếu đơn dịch vụ & thanh toán, không thao tác bếp/phục vụ
+  const canOperateServices = Boolean(user?.is_superuser || userRole !== 'cashier');
+  // Chỉ Lễ tân, Thu ngân, Quản lý, Chủ, Admin & Phục vụ (xem dị ứng/sở thích) được mở CRM
+  const canAccessCrm = Boolean(
+    user?.is_superuser ||
+      ['admin', 'owner', 'manager', 'receptionist', 'cashier', 'service_staff'].includes(userRole)
   );
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -709,7 +717,7 @@ export default function ServicesScreen() {
             text: 'Nhắn tin SMS',
             onPress: () => {
               safeOpenUrl(
-                `sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ khách sạn TA Luxury...`)}`,
+                `sms:${cleanPhone}?body=${encodeURIComponent(`Dạ em chào anh/chị phòng ${roomNumber || ''}, em từ bộ phận Phục vụ ${hotelName || 'TA Luxury'}...`)}`,
                 'Thiết bị không hỗ trợ nhắn tin SMS.'
               );
             },
@@ -1104,6 +1112,7 @@ export default function ServicesScreen() {
           isDark={isDark}
           isMyTask={isMyTask}
           isActionLoading={actionLoadingId === item.id}
+          canOperate={canOperateServices}
           badge={getStatusBadgeConfig(item.status, item)}
           actionConfig={getServiceActionConfig(item)}
           lockReason={lockReason}
@@ -1113,6 +1122,7 @@ export default function ServicesScreen() {
           onPromptComplete={handlePromptComplete}
           onOpenCancelModal={handleOpenCancelModal}
           onOpenCrm={() => {
+            if (!canAccessCrm) return;
             setCrmGuestId(item.guest_id || null);
             setCrmModalVisible(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -1126,7 +1136,7 @@ export default function ServicesScreen() {
         />
       );
     },
-    [isDark, checkIsMyTask, actionLoadingId, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
+    [isDark, checkIsMyTask, actionLoadingId, canOperateServices, canAccessCrm, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
   );
 
 
@@ -1144,30 +1154,34 @@ export default function ServicesScreen() {
           </Text>
         </View>
         <View style={styles.headerRightActions}>
-          <TouchableOpacity
-            style={[
-              styles.refreshCircleBtn,
-              { borderColor: 'rgba(56, 189, 248, 0.4)' },
-              !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
-            ]}
-            onPress={() => {
-              setCrmGuestId(null);
-              setCrmModalVisible(true);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            activeOpacity={0.7}
-            accessibilityLabel="Hồ sơ khách hàng CRM"
-          >
-            <Ionicons name="people-outline" size={16} color="#38BDF8" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.createOrderBtn}
-            onPress={() => openCreateOrderModal()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle" size={16} color="#0A0F1D" style={{ marginRight: 4 }} />
-            <Text style={styles.createOrderBtnText}>Gọi món</Text>
-          </TouchableOpacity>
+          {canAccessCrm && (
+            <TouchableOpacity
+              style={[
+                styles.refreshCircleBtn,
+                { borderColor: 'rgba(56, 189, 248, 0.4)' },
+                !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
+              ]}
+              onPress={() => {
+                setCrmGuestId(null);
+                setCrmModalVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Hồ sơ khách hàng CRM"
+            >
+              <Ionicons name="people-outline" size={16} color="#38BDF8" />
+            </TouchableOpacity>
+          )}
+          {canOperateServices && (
+            <TouchableOpacity
+              style={styles.createOrderBtn}
+              onPress={() => openCreateOrderModal()}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={16} color="#0A0F1D" style={{ marginRight: 4 }} />
+              <Text style={styles.createOrderBtnText}>Gọi món</Text>
+            </TouchableOpacity>
+          )}
           <NotificationBell />
           <TouchableOpacity
             style={[
@@ -1211,8 +1225,9 @@ export default function ServicesScreen() {
               !isDark && { color: mainViewMode === 'orders' ? '#0A0F1D' : '#475569' },
               mainViewMode === 'orders' && styles.topModeTabTextActive,
             ]}
+            numberOfLines={1}
           >
-            Đơn Phục Vụ ({orders.length})
+            Đơn phục vụ ({orders.length})
           </Text>
         </TouchableOpacity>
 
@@ -1243,8 +1258,9 @@ export default function ServicesScreen() {
               !isDark && { color: mainViewMode === 'catalog' ? '#0A0F1D' : '#475569' },
               mainViewMode === 'catalog' && styles.topModeTabTextActive,
             ]}
+            numberOfLines={1}
           >
-            Thực Đơn & Dịch Vụ {catalogCount ? `(${catalogCount})` : '(Menu)'}
+            Thực đơn {catalogCount ? `(${catalogCount})` : '(Menu)'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -1587,10 +1603,16 @@ export default function ServicesScreen() {
 
           {/* Cảnh báo đơn trễ hạn SLA nếu có */}
           {stats.overdue > 0 && (
-            <View style={styles.overdueAlertBanner}>
-              <Ionicons name="warning" size={15} color="#F87171" style={{ marginRight: 8 }} />
-              <Text style={styles.overdueAlertText}>
-                Có <Text style={{ fontWeight: '900', color: '#FCA5A5' }}>{stats.overdue}</Text> đơn đang trễ hạn SLA — Đã tự động ưu tiên lên đầu danh sách!
+            <View
+              style={[
+                styles.overdueAlertBanner,
+                { marginHorizontal: 14 },
+                !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+              ]}
+            >
+              <Ionicons name="warning" size={15} color={isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 8 }} />
+              <Text style={[styles.overdueAlertText, !isDark && { color: '#B91C1C' }]}>
+                Có <Text style={{ fontWeight: '900', color: isDark ? '#FCA5A5' : '#991B1B' }}>{stats.overdue}</Text> đơn đang trễ hạn SLA — Đã tự động ưu tiên lên đầu danh sách!
               </Text>
             </View>
           )}
@@ -1626,7 +1648,7 @@ export default function ServicesScreen() {
                       ? 'Chưa có đơn hoàn tất trong mục này'
                       : 'Không có yêu cầu phục vụ nào'}
               </Text>
-              <Text style={styles.emptySubtitle}>
+              <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
                 {scopeFilter === 'my_tasks' && activeTab === 'all'
                   ? scopeStats.completed > 0
                     ? `Tuyệt vời! Bạn đã hoàn thành ${scopeStats.completed} đơn. Bấm vào ô "Đã xong" để xem lại hoặc qua tab "Chưa ai nhận" để nhận thêm việc.`
@@ -1649,7 +1671,7 @@ export default function ServicesScreen() {
               onEndReached={handleLoadMoreOrders}
               onEndReachedThreshold={0.2}
               ListHeaderComponent={
-                roomBatches.length > 0 && activeTab !== 'completed' ? (
+                canOperateServices && roomBatches.length > 0 && activeTab !== 'completed' ? (
                   <View style={{ marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
                       <Ionicons name="cart" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
@@ -1686,6 +1708,7 @@ export default function ServicesScreen() {
         <ServiceCatalogView
           isDark={isDark}
           canToggleActive={canToggleCatalog}
+          canOrder={canOperateServices}
           onOrder={(serviceId) => openCreateOrderModal(serviceId)}
           onCatalogLoaded={(count) => setCatalogCount(count)}
         />

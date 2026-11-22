@@ -34,6 +34,12 @@ import {
 export default function LostFoundScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const userRole = user?.role || '';
+  const canCreateLostItem = Boolean(user?.is_superuser || userRole !== 'cashier');
+  // Khớp Backend lost_found_views.py: chỉ Lễ tân, Quản lý, Chủ, Admin được bàn giao trả khách
+  const canReturnLostItem = Boolean(
+    user?.is_superuser || ['receptionist', 'manager', 'owner', 'admin'].includes(userRole)
+  );
   const [items, setItems] = useState<LostFoundItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -187,6 +193,7 @@ export default function LostFoundScreen() {
       <LostFoundCard
         item={item}
         isLoading={actionLoadingId === item.id}
+        canReturn={canReturnLostItem}
         onPreviewImage={setPreviewImageUrl}
         onCallPhone={(phone) => safeOpenUrl(`tel:${phone}`, 'Thiết bị không hỗ trợ thực hiện cuộc gọi.')}
         onMarkContacted={handleMarkContacted}
@@ -196,32 +203,36 @@ export default function LostFoundScreen() {
         }}
       />
     ),
-    [actionLoadingId, handleMarkContacted]
+    [actionLoadingId, canReturnLostItem, handleMarkContacted]
   );
 
   return (
     <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
             {hotelName.toUpperCase()} • {hotelStars} SAO
           </Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>Đồ Thất Lạc</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
+            Đồ Thất Lạc
+          </Text>
         </View>
         <View style={styles.headerRightActions}>
+          {canCreateLostItem && (
+            <TouchableOpacity
+              style={styles.createPillBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCreateModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={15} color="#0A0F1D" style={{ marginRight: 4 }} />
+              <Text style={styles.createPillBtnText}>Báo đồ</Text>
+            </TouchableOpacity>
+          )}
           <NotificationBell />
-          <TouchableOpacity
-            style={styles.createPillBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setCreateModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle" size={16} color="#0A0F1D" style={{ marginRight: 4 }} />
-            <Text style={styles.createPillBtnText}>Báo đồ</Text>
-          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.refreshCircleBtn,
@@ -230,7 +241,7 @@ export default function LostFoundScreen() {
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <Ionicons name="refresh" size={18} color="#F59E0B" />
+            <Ionicons name="refresh" size={17} color="#F59E0B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -340,14 +351,16 @@ export default function LostFoundScreen() {
             style={{
               fontSize: 12,
               fontWeight: '800',
+              maxWidth: 88,
               color: showCategories || selectedCategory !== 'all'
                 ? (isDark ? '#FBBF24' : '#B45309')
                 : (isDark ? '#CBD5E1' : '#475569'),
             }}
+            numberOfLines={1}
           >
             {selectedCategory === 'all'
               ? 'Loại đồ'
-              : LOST_FOUND_CATEGORIES.find((c) => c.key === selectedCategory)?.label.split(' ')[0] || 'Lọc'}
+              : LOST_FOUND_CATEGORIES.find((c) => c.key === selectedCategory)?.label || 'Lọc'}
           </Text>
           <Ionicons
             name={showCategories ? 'chevron-up' : 'chevron-down'}
@@ -357,6 +370,41 @@ export default function LostFoundScreen() {
           />
         </TouchableOpacity>
       </View>
+
+      {/* Thanh tóm tắt lọc phụ khi đang thu gọn */}
+      {!showCategories && selectedCategory !== 'all' && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginHorizontal: 12,
+            marginBottom: 8,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: 9,
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FEF3C7',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A',
+          }}
+        >
+          <Text
+            style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#FBBF24' : '#B45309', flex: 1 }}
+            numberOfLines={1}
+          >
+            Đang lọc: {LOST_FOUND_CATEGORIES.find((c) => c.key === selectedCategory)?.label || selectedCategory}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setSelectedCategory('all');
+              Haptics.selectionAsync();
+            }}
+            style={{ paddingHorizontal: 6, paddingVertical: 2 }}
+          >
+            <Text style={{ fontSize: 11, color: '#EF4444', fontWeight: '800' }}>Xóa lọc</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Dải Chips Danh Mục Khi Bật Bộ Lọc */}
       {showCategories && (
@@ -418,15 +466,15 @@ export default function LostFoundScreen() {
                     color={isSelected ? '#0A0F1D' : (isDark ? '#94A3B8' : '#64748B')}
                     style={{ marginRight: 4 }}
                   />
-                  <Text
-                    style={[
-                      styles.categoryFilterChipText,
-                      !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
-                      isSelected && isDark && styles.categoryFilterChipTextActive,
-                    ]}
-                  >
-                    {cat.label.split(' ')[0]} ({count})
-                  </Text>
+                    <Text
+                      style={[
+                        styles.categoryFilterChipText,
+                        !isDark && { color: isSelected ? '#0A0F1D' : '#475569' },
+                        isSelected && isDark && styles.categoryFilterChipTextActive,
+                      ]}
+                    >
+                      {cat.label} ({count})
+                    </Text>
                 </TouchableOpacity>
               );
             })}
@@ -512,15 +560,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   greetingTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '800',
     color: '#F8FAFC',
     marginTop: 2,
   },
   refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
@@ -530,15 +578,15 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   createPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F59E0B',
-    paddingHorizontal: 11,
-    height: 36,
-    borderRadius: 18,
+    paddingHorizontal: 10,
+    height: 34,
+    borderRadius: 14,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

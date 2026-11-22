@@ -44,10 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedUser = await getUserInfo();
 
       if (savedToken && savedUser) {
-        setToken(savedToken);
-        setUser(savedUser);
-        // Kích hoạt lại push token cho thiết bị
-        registerForPushNotifications().catch(() => {});
+        if (savedUser.role === 'guest' && !savedUser.is_superuser) {
+          await clearAuthData();
+        } else {
+          setToken(savedToken);
+          setUser(savedUser);
+          // Kích hoạt lại push token cho thiết bị
+          registerForPushNotifications().catch(() => {});
+        }
       }
     } catch (e) {
       console.warn('Lỗi khởi tạo Auth:', e);
@@ -70,10 +74,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const refreshToken = data.refresh || data.tokens?.refresh;
 
       if (accessToken) {
+        const u = data.user || data;
+        const isSuperuser = Boolean(u.is_superuser);
+        const resolvedRole = u.role || 'service_staff';
+
+        // Chặn tài khoản khách hàng (guest) đăng nhập vào ứng dụng nội bộ nhân viên
+        if (resolvedRole === 'guest' && !isSuperuser) {
+          await clearAuthData();
+          return {
+            success: false,
+            message: 'Ứng dụng này chỉ dành cho nhân sự khách sạn. Quý khách vui lòng sử dụng website khách sạn.',
+          };
+        }
+
         await saveAuthTokens(accessToken, refreshToken);
         setToken(accessToken);
 
-        const u = data.user || data;
         const userData: UserInfo = {
           id: u.id,
           username: u.username || cleanIdentifier,
@@ -81,7 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           first_name: u.first_name,
           last_name: u.last_name,
           phone_number: u.phone_number,
-          role: u.role || 'service_staff',
+          role: resolvedRole,
+          is_superuser: isSuperuser,
           avatar: u.avatar,
           department: u.department,
           employee_code: u.employee_code,
@@ -94,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await saveUserInfo(userData);
         setUser(userData);
 
-        // Đăng ký nhận push notifications về iPhone
+        // Đăng ký nhận push notifications
         registerForPushNotifications().catch(() => {});
 
         return { success: true, user: userData };
@@ -124,6 +141,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await apiClient.get('/users/me/');
       if (res.data) {
         const u = res.data.user || res.data;
+        const isSuperuser = Boolean(u.is_superuser);
+        if (u.role === 'guest' && !isSuperuser) {
+          await logout();
+          return;
+        }
         const updated: UserInfo = {
           id: u.id,
           username: u.username,
@@ -132,6 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           last_name: u.last_name,
           phone_number: u.phone_number,
           role: u.role,
+          is_superuser: isSuperuser,
           avatar: u.avatar,
           department: u.department,
           employee_code: u.employee_code,

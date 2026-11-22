@@ -26,11 +26,16 @@ import {
   TransportCard,
   ServiceRequestItem,
   CreateTransportModal,
+  CancelTransportModal,
 } from '../../components/transport';
 
 export default function TransportScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const canOperateTransport = Boolean(
+    user?.is_superuser ||
+      ['service_staff', 'receptionist', 'manager', 'owner', 'admin'].includes(user?.role || '')
+  );
   const [requests, setRequests] = useState<ServiceRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,6 +45,9 @@ export default function TransportScreen() {
 
   // Modal Đặt xe đưa đón khách
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  // Modal Hủy cuốc xe có lý do
+  const [cancelTarget, setCancelTarget] = useState<ServiceRequestItem | null>(null);
+  const [cancellingTrip, setCancellingTrip] = useState(false);
 
   const fetchTransportRequests = useCallback(async () => {
     try {
@@ -286,9 +294,40 @@ export default function TransportScreen() {
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const msg = encodeURIComponent(
-      `Kính chào Quý khách ${guestName || ''}, xe đưa đón của TA Luxury Hotel đã sẵn sàng phục vụ. Quý khách vui lòng liên hệ tài xế khi đến điểm hẹn.`
+      `Kính chào Quý khách ${guestName || ''}, xe đưa đón của ${hotelName || 'TA Luxury Hotel'} đã sẵn sàng phục vụ. Quý khách vui lòng liên hệ tài xế khi đến điểm hẹn.`
     );
     safeOpenUrl(`sms:${phone}?body=${msg}`, 'Thiết bị không hỗ trợ nhắn tin SMS.');
+  };
+
+  const handleOpenCancelTrip = useCallback((item: ServiceRequestItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCancelTarget(item);
+  }, []);
+
+  const handleConfirmCancelTrip = async (reason: string) => {
+    if (!cancelTarget) return;
+    try {
+      setCancellingTrip(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      const res = await apiClient.patch(`/services/requests/${cancelTarget.id}/`, {
+        status: 'cancelled',
+        reason,
+      });
+      if (res.data?.success || res.data?.id) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        Alert.alert(
+          'Đã hủy cuốc xe',
+          `Cuốc xe cho khách ${cancelTarget.guest_name || ''} đã được hủy.\nLý do: ${reason}`
+        );
+        setCancelTarget(null);
+        await fetchTransportRequests();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể hủy cuốc xe này.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setCancellingTrip(false);
+    }
   };
 
   const renderItem = useCallback(
@@ -297,14 +336,16 @@ export default function TransportScreen() {
         item={item}
         isMyTask={item.assigned_staff === user?.id}
         isActionLoading={actionLoadingId === item.id}
+        canOperate={canOperateTransport}
         onClaim={handleClaim}
         onUpdateStatus={handleUpdateStatus}
+        onOpenCancel={handleOpenCancelTrip}
         onCallGuest={callGuest}
         onSendSms={sendSmsToGuest}
         onOpenMap={openMapNavigation}
       />
     ),
-    [user?.id, actionLoadingId, handleClaim, handleUpdateStatus]
+    [user?.id, actionLoadingId, canOperateTransport, handleClaim, handleUpdateStatus, handleOpenCancelTrip]
   );
 
   return (
@@ -320,17 +361,19 @@ export default function TransportScreen() {
           </Text>
         </View>
         <View style={styles.headerRightActions}>
-          <TouchableOpacity
-            style={styles.headerBookCarBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setCreateModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={15} color="#0A0F1D" />
-            <Text style={styles.headerBookCarBtnText}>Đặt xe</Text>
-          </TouchableOpacity>
+          {canOperateTransport && (
+            <TouchableOpacity
+              style={styles.headerBookCarBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCreateModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={15} color="#0A0F1D" />
+              <Text style={styles.headerBookCarBtnText}>Đặt xe</Text>
+            </TouchableOpacity>
+          )}
 
           <NotificationBell />
           <TouchableOpacity
@@ -396,22 +439,72 @@ export default function TransportScreen() {
         })}
       </View>
 
-      {/* 3. Ô Tìm Kiếm Nhanh */}
-      <View style={[styles.searchWrapper, !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }]}>
-        <Ionicons name="search-outline" size={18} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 12 }} />
-        <TextInput
-          style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
-          placeholder="Tìm tên khách, số phòng, lộ trình..."
-          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
-        />
-        {searchQuery ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 8 }}>
-            <Ionicons name="close-circle" size={18} color="#94A3B8" />
+      {/* 3. Ô Tìm Kiếm Nhanh & Nút xem cuốc đã hủy nếu có */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginBottom: 8, gap: 8 }}>
+        <View
+          style={[
+            styles.searchWrapper,
+            { flex: 1, marginHorizontal: 0, marginBottom: 0 },
+            !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+          ]}
+        >
+          <Ionicons name="search-outline" size={17} color={isDark ? '#64748B' : '#94A3B8'} style={{ marginLeft: 10 }} />
+          <TextInput
+            style={[styles.searchInput, !isDark && { color: '#0F172A' }]}
+            placeholder="Tìm tên khách, số phòng, lộ trình..."
+            placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 6 }}>
+              <Ionicons name="close-circle" size={17} color="#94A3B8" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {stats.cancelled > 0 && (
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              height: 40,
+              paddingHorizontal: 10,
+              borderRadius: 12,
+              borderWidth: 1,
+              backgroundColor:
+                filterType === 'cancelled'
+                  ? 'rgba(239, 68, 68, 0.16)'
+                  : (isDark ? '#1E293B' : '#FFFFFF'),
+              borderColor:
+                filterType === 'cancelled'
+                  ? '#EF4444'
+                  : (isDark ? '#334155' : '#E2E8F0'),
+            }}
+            onPress={() => {
+              setFilterType((prev) => (prev === 'cancelled' ? 'all' : 'cancelled'));
+              Haptics.selectionAsync();
+            }}
+            activeOpacity={0.75}
+          >
+            <Ionicons
+              name={filterType === 'cancelled' ? 'close-circle' : 'ban-outline'}
+              size={14}
+              color={filterType === 'cancelled' ? '#EF4444' : (isDark ? '#94A3B8' : '#64748B')}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={{
+                fontSize: 11.5,
+                fontWeight: '800',
+                color: filterType === 'cancelled' ? '#EF4444' : (isDark ? '#CBD5E1' : '#475569'),
+              }}
+            >
+              Hủy ({stats.cancelled})
+            </Text>
           </TouchableOpacity>
-        ) : null}
+        )}
       </View>
 
       {/* 4. Danh Sách Cuốc Xe */}
@@ -451,6 +544,16 @@ export default function TransportScreen() {
         onClose={() => setCreateModalVisible(false)}
         onSuccess={fetchTransportRequests}
       />
+
+      {/* Modal Hủy Cuốc Xe Có Lý Do */}
+      <CancelTransportModal
+        visible={Boolean(cancelTarget)}
+        isDark={isDark}
+        item={cancelTarget}
+        submitting={cancellingTrip}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleConfirmCancelTrip}
+      />
     </SafeAreaView>
   );
 }
@@ -475,15 +578,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   greetingTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '800',
     color: '#F8FAFC',
     marginTop: 2,
   },
   refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
@@ -493,20 +596,25 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   headerBookCarBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F59E0B',
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 34,
+    borderRadius: 14,
     gap: 3,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   headerBookCarBtnText: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 11.5,
+    fontWeight: '800',
     color: '#0A0F1D',
   },
   fixedFilterBar: {
@@ -550,7 +658,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#1F2937',
-    height: 42,
+    height: 40,
     marginBottom: 8,
   },
   searchInput: {

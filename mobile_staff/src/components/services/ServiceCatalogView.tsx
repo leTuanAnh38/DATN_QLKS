@@ -20,6 +20,7 @@ import { CatalogItemCard } from './CatalogItemCard';
 export interface ServiceCatalogViewProps {
   isDark: boolean;
   canToggleActive?: boolean;
+  canOrder?: boolean;
   onOrder: (serviceId?: number) => void;
   onCatalogLoaded?: (count: number) => void;
 }
@@ -27,6 +28,7 @@ export interface ServiceCatalogViewProps {
 export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
   isDark,
   canToggleActive = true,
+  canOrder = true,
   onOrder,
   onCatalogLoaded,
 }) => {
@@ -196,11 +198,12 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
         isDark={isDark}
         isToggling={togglingCatalogId === item.id}
         canToggleActive={canToggleActive}
+        canOrder={canOrder}
         onToggleActive={handleToggleCatalogActive}
         onOrder={(it) => onOrder(it.id)}
       />
     ),
-    [isDark, togglingCatalogId, canToggleActive, handleToggleCatalogActive, onOrder]
+    [isDark, togglingCatalogId, canToggleActive, canOrder, handleToggleCatalogActive, onOrder]
   );
 
   return (

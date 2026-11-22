@@ -22,7 +22,7 @@ export const createProfileStyles = (colors: ThemeColors, isDark: boolean) =>
       letterSpacing: 0.5,
     },
     greetingTitle: {
-      fontSize: 22,
+      fontSize: 19,
       fontWeight: '800',
       color: colors.text,
       marginTop: 2,
@@ -30,12 +30,12 @@ export const createProfileStyles = (colors: ThemeColors, isDark: boolean) =>
     headerRightActions: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
     },
     refreshCircleBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       backgroundColor: colors.card,
       justifyContent: 'center',
       alignItems: 'center',

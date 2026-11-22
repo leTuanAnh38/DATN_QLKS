@@ -37,11 +37,13 @@ export default function MaintenanceScreen() {
   const canCompleteMaintenance = Boolean(
     user?.is_superuser || ['technician', 'admin', 'owner', 'manager'].includes(user?.role || '')
   );
+  const canCreateMaintenance = Boolean(user?.is_superuser || (user?.role || '') !== 'cashier');
 
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('fixing');
+  const [scopeFilter, setScopeFilter] = useState<'all' | 'my_tasks' | 'unassigned'>('all');
   const [selectedIssueType, setSelectedIssueType] = useState<string>('all');
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,8 +93,14 @@ export default function MaintenanceScreen() {
     const fixing = tickets.filter((t) => t.status === 'fixing').length;
     const completed = tickets.filter((t) => t.status === 'completed').length;
     const cancelled = tickets.filter((t) => t.status === 'cancelled').length;
-    return { total, fixing, completed, cancelled };
-  }, [tickets]);
+    const myTasks = tickets.filter(
+      (t) => Boolean(user?.id && t.technician === user.id) && t.status === 'fixing'
+    ).length;
+    const unassigned = tickets.filter(
+      (t) => !t.technician && !t.technician_name && t.status === 'fixing'
+    ).length;
+    return { total, fixing, completed, cancelled, myTasks, unassigned };
+  }, [tickets, user?.id]);
 
   // Danh sách các tầng thực tế có sự cố phát sinh
   const availableFloors = useMemo(() => {
@@ -112,6 +120,12 @@ export default function MaintenanceScreen() {
   // Bộ lọc
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
+      if (scopeFilter === 'my_tasks') {
+        if (!user?.id || t.technician !== user.id) return false;
+      } else if (scopeFilter === 'unassigned') {
+        if (t.technician || t.technician_name || t.status !== 'fixing') return false;
+      }
+
       let matchFilter = true;
       if (filterStatus === 'fixing') {
         matchFilter = t.status === 'fixing';
@@ -145,7 +159,7 @@ export default function MaintenanceScreen() {
 
       return matchFilter && matchSearch;
     });
-  }, [tickets, filterStatus, selectedIssueType, selectedFloor, searchQuery]);
+  }, [tickets, scopeFilter, user?.id, filterStatus, selectedIssueType, selectedFloor, searchQuery]);
 
   // Infinite Scroll
   const [visibleCount, setVisibleCount] = useState(15);
@@ -153,7 +167,7 @@ export default function MaintenanceScreen() {
 
   useEffect(() => {
     setVisibleCount(15);
-  }, [filterStatus, selectedIssueType, selectedFloor, searchQuery]);
+  }, [scopeFilter, filterStatus, selectedIssueType, selectedFloor, searchQuery]);
 
   const displayedTickets = useMemo(() => {
     return filteredTickets.slice(0, visibleCount);
@@ -271,24 +285,28 @@ export default function MaintenanceScreen() {
     <SafeAreaView style={[styles.safeContainer, { backgroundColor: colors.background }]} edges={['top']}>
       {/* 1. Header Khách Sạn */}
       <View style={styles.topHeader}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
             {hotelName.toUpperCase()} • {hotelStars} SAO
           </Text>
-          <Text style={[styles.greetingTitle, { color: colors.text }]}>Kỹ Thuật & Bảo Trì</Text>
+          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
+            Kỹ Thuật & Bảo Trì
+          </Text>
         </View>
         <View style={styles.headerRightActions}>
-          <TouchableOpacity
-            style={styles.createTicketBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setCreateModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add-circle" size={16} color="#0A0F1D" style={{ marginRight: 4 }} />
-            <Text style={styles.createTicketBtnText}>Báo hỏng</Text>
-          </TouchableOpacity>
+          {canCreateMaintenance && (
+            <TouchableOpacity
+              style={styles.createTicketBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setCreateModalVisible(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={15} color="#0A0F1D" style={{ marginRight: 4 }} />
+              <Text style={styles.createTicketBtnText}>Báo hỏng</Text>
+            </TouchableOpacity>
+          )}
           <NotificationBell />
           <TouchableOpacity
             style={[
@@ -298,7 +316,7 @@ export default function MaintenanceScreen() {
             onPress={onRefresh}
             activeOpacity={0.7}
           >
-            <Ionicons name="refresh" size={18} color="#F59E0B" />
+            <Ionicons name="refresh" size={17} color="#F59E0B" />
           </TouchableOpacity>
         </View>
       </View>
@@ -378,7 +396,10 @@ export default function MaintenanceScreen() {
         </View>
 
         {(() => {
-          const activeFilterCount = (selectedFloor !== 'all' ? 1 : 0) + (selectedIssueType !== 'all' ? 1 : 0);
+          const activeFilterCount =
+            (scopeFilter !== 'all' ? 1 : 0) +
+            (selectedFloor !== 'all' ? 1 : 0) +
+            (selectedIssueType !== 'all' ? 1 : 0);
           const isHighlighted = showFilters || activeFilterCount > 0;
           return (
             <TouchableOpacity
@@ -427,7 +448,7 @@ export default function MaintenanceScreen() {
       </View>
 
       {/* Thanh tóm tắt lọc phụ khi đang thu gọn */}
-      {!showFilters && (selectedFloor !== 'all' || selectedIssueType !== 'all') && (
+      {!showFilters && (scopeFilter !== 'all' || selectedFloor !== 'all' || selectedIssueType !== 'all') && (
         <View
           style={{
             flexDirection: 'row',
@@ -448,6 +469,13 @@ export default function MaintenanceScreen() {
             <Text style={{ fontSize: 11, color: isDark ? '#FBBF24' : '#B45309', fontWeight: '700' }}>
               Đang lọc:
             </Text>
+            {scopeFilter !== 'all' && (
+              <View style={{ backgroundColor: isDark ? '#1E293B' : '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
+                <Text style={{ fontSize: 10.5, fontWeight: '700', color: isDark ? '#F8FAFC' : '#0F172A' }}>
+                  {scopeFilter === 'my_tasks' ? 'Việc của tôi' : 'Chưa ai nhận'}
+                </Text>
+              </View>
+            )}
             {selectedFloor !== 'all' && (
               <View style={{ backgroundColor: isDark ? '#1E293B' : '#FFFFFF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
                 <Text style={{ fontSize: 10.5, fontWeight: '700', color: isDark ? '#F8FAFC' : '#0F172A' }}>
@@ -465,6 +493,7 @@ export default function MaintenanceScreen() {
           </View>
           <TouchableOpacity
             onPress={() => {
+              setScopeFilter('all');
               setSelectedFloor('all');
               setSelectedIssueType('all');
               Haptics.selectionAsync();
@@ -476,9 +505,62 @@ export default function MaintenanceScreen() {
         </View>
       )}
 
-      {/* Panel Bộ Lọc Mở Rộng: Tầng & Phân Loại Sự Cố */}
+      {/* Panel Bộ Lọc Mở Rộng: Phạm vi, Tầng & Phân Loại Sự Cố */}
       {showFilters && (
         <View style={{ marginBottom: 4 }}>
+          {/* Lọc theo Phạm vi nhiệm vụ */}
+          <View style={styles.floorChipsContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.floorChipsScroll}
+            >
+              {[
+                { key: 'all', label: `Tất cả (${stats.total})`, icon: 'layers-outline' },
+                { key: 'my_tasks', label: `Việc của tôi (${stats.myTasks})`, icon: 'person-outline' },
+                { key: 'unassigned', label: `Chưa ai nhận (${stats.unassigned})`, icon: 'hand-left-outline' },
+              ].map((sc) => {
+                const isSelected = scopeFilter === sc.key;
+                return (
+                  <TouchableOpacity
+                    key={sc.key}
+                    style={[
+                      styles.issueChip,
+                      !isDark && {
+                        backgroundColor: isSelected ? 'rgba(245, 158, 11, 0.16)' : '#FFFFFF',
+                        borderColor: isSelected ? '#F59E0B' : '#E2E8F0',
+                      },
+                      isSelected && isDark && {
+                        backgroundColor: 'rgba(245, 158, 11, 0.2)',
+                        borderColor: '#F59E0B',
+                      },
+                    ]}
+                    onPress={() => {
+                      setScopeFilter(sc.key as any);
+                      Haptics.selectionAsync();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={sc.icon as any}
+                      size={12}
+                      color={isSelected ? '#F59E0B' : (isDark ? '#94A3B8' : '#64748B')}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        styles.issueChipText,
+                        !isDark && { color: isSelected ? '#B45309' : '#475569' },
+                        isSelected && { color: isDark ? '#FBBF24' : '#B45309', fontWeight: '800' },
+                      ]}
+                    >
+                      {sc.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
           {/* Lọc theo Tầng */}
           {availableFloors.length > 0 && (
             <View style={styles.floorChipsContainer}>
@@ -639,12 +721,12 @@ export default function MaintenanceScreen() {
         <MaintenanceListSkeleton />
       ) : filteredTickets.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="construct-outline" size={56} color="#334155" />
+          <Ionicons name="construct-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
           <Text style={[styles.emptyTitle, !isDark && { color: '#0F172A' }]}>
             Không có phiếu bảo trì nào
           </Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery || selectedIssueType !== 'all' || selectedFloor !== 'all'
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+            {searchQuery || scopeFilter !== 'all' || selectedIssueType !== 'all' || selectedFloor !== 'all'
               ? 'Thử thay đổi từ khóa hoặc bộ lọc để xem kết quả khác.'
               : 'Hiện tại toàn bộ trang thiết bị đang vận hành ổn định.'}
           </Text>
@@ -714,15 +796,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   greetingTitle: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: '800',
     color: '#F8FAFC',
     marginTop: 2,
   },
   refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
@@ -732,14 +814,14 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   createTicketBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F59E0B',
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    height: 34,
     borderRadius: 14,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
@@ -748,7 +830,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   createTicketBtnText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#0A0F1D',
   },

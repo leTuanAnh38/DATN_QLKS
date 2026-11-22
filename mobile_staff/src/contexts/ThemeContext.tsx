@@ -3,10 +3,29 @@ import { Appearance, AppState, ColorSchemeName } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Colors, Palette, ThemeColors } from '../constants/theme';
 import apiClient from '../api/client';
+import { getApiBaseUrl } from '../api/config';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 export type { ThemeColors };
+
+export function resolveMobileMediaUrl(rawUrl: unknown, apiBaseUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('data:')) return trimmed;
+
+  const origin = apiBaseUrl.replace(/\/api\/?$/i, '').replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(trimmed)) {
+    // Nếu backend trả URL localhost nhưng app đang trỏ máy chủ khác -> chuyển sang origin hiện tại
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(trimmed) && origin) {
+      return trimmed.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, origin);
+    }
+    return trimmed;
+  }
+  if (!origin) return trimmed;
+  return trimmed.startsWith('/') ? `${origin}${trimmed}` : `${origin}/${trimmed}`;
+}
 
 interface ThemeContextType {
   themeMode: ThemeMode;
@@ -16,6 +35,7 @@ interface ThemeContextType {
   palette: typeof Palette;
   hotelStars: number;
   hotelName: string;
+  hotelLogoUrl: string;
   refreshHotelSettings: () => Promise<void>;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   toggleTheme: () => Promise<void>;
@@ -33,10 +53,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   );
   const [hotelStars, setHotelStars] = useState<number>(5);
   const [hotelName, setHotelName] = useState<string>('TA LUXURY HOTEL');
+  const [hotelLogoUrl, setHotelLogoUrl] = useState<string>('');
 
   const refreshHotelSettings = useCallback(async () => {
     try {
-      const res = await apiClient.get('/hotel-settings/');
+      const [res, apiBaseUrl] = await Promise.all([
+        apiClient.get('/hotel-settings/'),
+        getApiBaseUrl(),
+      ]);
       const data = res.data?.data || res.data;
       if (data) {
         if (data.stars !== undefined && data.stars !== null) {
@@ -47,6 +71,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         if (data.hotel_name && typeof data.hotel_name === 'string') {
           setHotelName(data.hotel_name.trim());
+        }
+        if (typeof data.logo_url === 'string') {
+          setHotelLogoUrl(resolveMobileMediaUrl(data.logo_url, apiBaseUrl));
         }
       }
     } catch {
@@ -118,11 +145,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       palette: Palette,
       hotelStars,
       hotelName,
+      hotelLogoUrl,
       refreshHotelSettings,
       setThemeMode,
       toggleTheme,
     }),
-    [themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode, toggleTheme]
+    [themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, hotelLogoUrl, refreshHotelSettings, setThemeMode, toggleTheme]
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -140,6 +168,7 @@ export function useAppTheme(): ThemeContextType {
       palette: Palette,
       hotelStars: 5,
       hotelName: 'TA LUXURY HOTEL',
+      hotelLogoUrl: '',
       refreshHotelSettings: async () => {},
       setThemeMode: async () => {},
       toggleTheme: async () => {},

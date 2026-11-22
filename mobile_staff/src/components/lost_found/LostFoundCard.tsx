@@ -39,6 +39,7 @@ export interface LostFoundItem {
 export interface LostFoundCardProps {
   item: LostFoundItem;
   isLoading: boolean;
+  canReturn?: boolean;
   onPreviewImage: (url: string | null) => void;
   onCallPhone: (phone: string) => void;
   onMarkContacted: (item: LostFoundItem) => void;
@@ -48,6 +49,7 @@ export interface LostFoundCardProps {
 export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
   item,
   isLoading,
+  canReturn = true,
   onPreviewImage,
   onCallPhone,
   onMarkContacted,
@@ -214,38 +216,57 @@ export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
 
       {/* Nút hành động */}
       {(isStored || isContacted) ? (
-        <View style={styles.actionRowLF}>
-          {isStored && (
+        canReturn ? (
+          <View style={styles.actionRowLF}>
+            {isStored && (
+              <TouchableOpacity
+                style={[
+                  styles.contactActionBtn,
+                  !isDark && { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
+                  isLoading && { opacity: 0.65 },
+                ]}
+                onPress={() => onMarkContacted(item)}
+                disabled={isLoading}
+                activeOpacity={0.8}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#0284C7" />
+                ) : (
+                  <>
+                    <Ionicons name="call-outline" size={13} color="#0284C7" style={{ marginRight: 4 }} />
+                    <Text style={[styles.contactActionBtnText, !isDark && { color: '#0284C7' }]}>Đã gọi khách</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              style={[
-                styles.contactActionBtn,
-                !isDark && { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' },
-                isLoading && { opacity: 0.65 },
-              ]}
-              onPress={() => onMarkContacted(item)}
-              disabled={isLoading}
+              style={styles.returnActionBtn}
+              onPress={() => onOpenReturn(item)}
               activeOpacity={0.8}
             >
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#0284C7" />
-              ) : (
-                <>
-                  <Ionicons name="call-outline" size={13} color="#0284C7" style={{ marginRight: 4 }} />
-                  <Text style={[styles.contactActionBtnText, !isDark && { color: '#0284C7' }]}>Đã gọi khách</Text>
-                </>
-              )}
+              <Ionicons name="hand-left" size={14} color="#0A0F1D" style={{ marginRight: 5 }} />
+              <Text style={styles.returnActionBtnText}>BÀN GIAO TRẢ KHÁCH</Text>
             </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.returnActionBtn}
-            onPress={() => onOpenReturn(item)}
-            activeOpacity={0.8}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.returnedInfoBox,
+              {
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#FFFBEB',
+                borderColor: isDark ? 'rgba(245, 158, 11, 0.28)' : '#FDE68A',
+              },
+            ]}
           >
-            <Ionicons name="hand-left" size={14} color="#0A0F1D" style={{ marginRight: 5 }} />
-            <Text style={styles.returnActionBtnText}>BÀN GIAO TRẢ KHÁCH</Text>
-          </TouchableOpacity>
-        </View>
+            <Ionicons name="time-outline" size={14} color="#D97706" style={{ marginRight: 6 }} />
+            <Text style={[styles.returnedInfoText, { color: isDark ? '#FBBF24' : '#B45309' }]}>
+              {isContacted
+                ? 'Lễ tân đã liên hệ khách • Chờ bàn giao tại quầy'
+                : 'Đã lưu kho • Chờ Lễ tân liên hệ & bàn giao khách'}
+            </Text>
+          </View>
+        )
       ) : (
         <View
           style={[

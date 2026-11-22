@@ -26,9 +26,9 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   refreshCircleBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
@@ -38,7 +38,7 @@ export const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   fixedFilterBar: {
     flexDirection: 'row',
@@ -122,7 +122,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#1F2937',
-    height: 42,
+    height: 40,
     marginBottom: 8,
   },
   searchInput: {
@@ -556,8 +556,8 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F59E0B',
-    paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingHorizontal: 9,
+    height: 34,
     borderRadius: 14,
     shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
@@ -566,7 +566,7 @@ export const styles = StyleSheet.create({
     elevation: 3,
   },
   createOrderBtnText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#0A0F1D',
   },

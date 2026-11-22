@@ -86,6 +86,7 @@ interface RoomCardProps {
   item: RoomItem;
   canAccessMinibar: boolean;
   canMarkCleaned: boolean;
+  canReportMaintenance?: boolean;
   /** true khi phòng này đang xử lý 1 thao tác (hiện spinner, khóa nút) */
   actionLoading: boolean;
   onOpenDetail: (room: RoomItem) => void;
@@ -104,6 +105,7 @@ function RoomCard({
   item,
   canAccessMinibar,
   canMarkCleaned,
+  canReportMaintenance = true,
   actionLoading,
   onOpenDetail,
   onOpenMinibar,
@@ -385,7 +387,7 @@ function RoomCard({
             )}
           </TouchableOpacity>
         </View>
-      ) : canAccessMinibar && item.is_cleaning_requested ? (
+      ) : canMarkCleaned && item.is_cleaning_requested ? (
         <TouchableOpacity
           style={[
             styles.actionFullBtn,
@@ -416,12 +418,16 @@ function RoomCard({
             ]}
           >
             <Ionicons
-              name={isAvailable ? 'construct-outline' : 'apps-outline'}
+              name={isAvailable && canReportMaintenance ? 'construct-outline' : 'eye-outline'}
               size={13}
               color={isDark ? '#94A3B8' : '#64748B'}
             />
             <Text style={[styles.cardToolBtnTextSingle, { color: isDark ? '#94A3B8' : '#64748B' }]} numberOfLines={1}>
-              {isAvailable ? 'Chạm để báo hỏng' : 'Chạm để thao tác'}
+              {!canReportMaintenance
+                ? 'Chạm xem chi tiết'
+                : isAvailable
+                  ? 'Chạm để báo hỏng'
+                  : 'Chạm để thao tác'}
             </Text>
           </View>
         </View>

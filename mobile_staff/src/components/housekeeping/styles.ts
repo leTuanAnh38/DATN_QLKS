@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Palette.border.default,
-    height: 42,
+    height: 40,
     marginBottom: 8,
   },
   searchInput: {
