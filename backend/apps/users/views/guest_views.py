@@ -238,6 +238,16 @@ class AdminGuestDetailView(APIView):
 
         try:
             guest = User.objects.get(pk=pk, role='guest')
+            bookings_count = guest.bookings.count()
+            if bookings_count > 0:
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Không thể xóa tài khoản khách hàng "{guest.username}" vì đã phát sinh {bookings_count} đơn đặt phòng '
+                        'trong hệ thống. Để bảo toàn lịch sử hóa đơn và doanh thu, vui lòng Khóa tài khoản thay vì xóa.'
+                    )
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             guest_uname = guest.username
             guest.delete()
 

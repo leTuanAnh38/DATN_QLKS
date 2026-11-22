@@ -260,6 +260,13 @@ class RoomCategoryViewSet(viewsets.ModelViewSet):
                 'message': f'Không thể xóa hạng phòng "{name}" vì hiện đang có {rooms_count} phòng thực tế liên kết tới hạng phòng này. Vui lòng chuyển hoặc xóa các phòng thực tế trước.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        active_bookings = category.bookings.filter(status__in=['pending', 'confirmed', 'checked_in']).count()
+        if active_bookings > 0:
+            return Response({
+                'success': False,
+                'message': f'Không thể xóa hạng phòng "{name}" vì đang có {active_bookings} đơn đặt phòng đang hoạt động hoặc sắp nhận thuộc hạng phòng này.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         category.delete()
 
         log_action(

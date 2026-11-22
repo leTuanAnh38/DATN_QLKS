@@ -222,6 +222,19 @@ class AdminRoomDetailView(APIView):
         if not room:
             return Response({'success': False, 'message': 'Không tìm thấy phòng cần xóa.'}, status=status.HTTP_404_NOT_FOUND)
 
+        if room.status == 'occupied':
+            return Response({
+                'success': False,
+                'message': f'Không thể xóa phòng {room.room_number} vì hiện đang có khách lưu trú. Vui lòng chuyển phòng cho khách hoặc chờ Check-out trước.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        active_bookings = room.bookings.filter(status__in=['pending', 'confirmed', 'checked_in']).count()
+        if active_bookings > 0:
+            return Response({
+                'success': False,
+                'message': f'Không thể xóa phòng {room.room_number} vì đang gắn với {active_bookings} đơn đặt phòng đang hoạt động hoặc sắp nhận. Vui lòng đổi phòng hoặc chuyển trạng thái Bảo trì.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         room_num = room.room_number
         room.delete()
 

@@ -5,13 +5,17 @@ from ..bookings.models import Booking
 
 class ServiceCategorySerializer(serializers.ModelSerializer):
     services_count = serializers.SerializerMethodField()
+    total_services_count = serializers.SerializerMethodField()
 
     class Meta:
         model = ServiceCategory
-        fields = ['id', 'name', 'icon', 'description', 'services_count']
+        fields = ['id', 'name', 'icon', 'description', 'services_count', 'total_services_count']
 
     def get_services_count(self, obj):
         return obj.services.filter(is_active=True).count()
+
+    def get_total_services_count(self, obj):
+        return obj.services.count()
 
 
 class ServiceItemSerializer(serializers.ModelSerializer):

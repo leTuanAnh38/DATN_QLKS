@@ -410,6 +410,11 @@ export const hotelService = {
     async createServiceCategory(data) {
         try {
             const res = await api.post('/services/categories/', data);
+            try {
+                localStorage.setItem('pms_service_catalog_changed', Date.now().toString());
+                window.dispatchEvent(new CustomEvent('pms_service_catalog_changed', { detail: res.data }));
+            } catch (e) {}
+
             return {
                 success: true,
                 category: res.data?.category,
@@ -420,6 +425,64 @@ export const hotelService = {
             return {
                 success: false,
                 message: error.response?.data?.message || 'Không thể tạo nhóm dịch vụ.'
+            };
+        }
+    },
+
+    /**
+     * Admin: Cập nhật thông tin nhóm danh mục dịch vụ (PATCH /api/services/categories/<id>/)
+     * @param {number|string} id
+     * @param {Object} data - { name, icon, description }
+     */
+    async updateServiceCategory(id, data) {
+        try {
+            const res = await api.patch(`/services/categories/${id}/`, data);
+            try {
+                localStorage.setItem('pms_service_catalog_changed', Date.now().toString());
+                window.dispatchEvent(new CustomEvent('pms_service_catalog_changed', { detail: res.data }));
+            } catch (e) {}
+
+            return {
+                success: true,
+                category: res.data?.category,
+                message: res.data?.message || 'Đã cập nhật nhóm dịch vụ thành công.'
+            };
+        } catch (error) {
+            console.error('Lỗi khi cập nhật nhóm dịch vụ:', error);
+            return {
+                success: false,
+                message: error.response?.data?.message || 'Không thể cập nhật nhóm dịch vụ.'
+            };
+        }
+    },
+
+    /**
+     * Admin: Xóa an toàn nhóm danh mục dịch vụ (DELETE /api/services/categories/<id>/)
+     * Nếu nhóm đang có dịch vụ, truyền reassignTo để chuyển toàn bộ dịch vụ sang nhóm đích trước khi xóa.
+     * @param {number|string} id
+     * @param {number|string|null} reassignTo
+     */
+    async deleteServiceCategory(id, reassignTo = null) {
+        try {
+            const config = reassignTo ? { params: { reassign_to: reassignTo } } : {};
+            const res = await api.delete(`/services/categories/${id}/`, config);
+            try {
+                localStorage.setItem('pms_service_catalog_changed', Date.now().toString());
+                window.dispatchEvent(new CustomEvent('pms_service_catalog_changed', { detail: { id, reassignTo } }));
+            } catch (e) {}
+
+            return {
+                success: true,
+                moved_count: res.data?.moved_count || 0,
+                message: res.data?.message || 'Đã xóa nhóm dịch vụ thành công.'
+            };
+        } catch (error) {
+            console.error('Lỗi khi xóa nhóm dịch vụ:', error);
+            return {
+                success: false,
+                requires_reassign: Boolean(error.response?.data?.requires_reassign),
+                total_services_count: error.response?.data?.total_services_count || 0,
+                message: error.response?.data?.message || 'Không thể xóa nhóm dịch vụ này.'
             };
         }
     }

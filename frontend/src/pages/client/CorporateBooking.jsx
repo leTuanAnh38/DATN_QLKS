@@ -970,10 +970,10 @@ export default function CorporateBooking() {
                 </div>
             </div>
 
-            <main className={`flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 ${totalRoomsCount > 0 ? 'pb-28' : ''}`}>
+            {/* 2. HERO BANNER FULL-WIDTH ĐỒNG BỘ KÍCH CỠ VỚI CÁC TRANG KHÁC */}
+            <CorporateHeroBanner settings={settings} />
 
-                {/* 2. HERO BANNER LUXURY SÁNG SỦA, TINH TẾ */}
-                <CorporateHeroBanner settings={settings} />
+            <main className={`flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 ${totalRoomsCount > 0 ? 'pb-28' : ''}`}>
 
                 {submitError && (
                     <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-2 shadow-xs">

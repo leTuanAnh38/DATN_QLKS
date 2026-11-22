@@ -213,6 +213,26 @@ class AdminEmployeeDetailView(APIView):
                     'message': 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Quản trị viên hoặc cấp Quản lý khác.'
                 }, status=status.HTTP_403_FORBIDDEN)
 
+            shifts_count = employee.cashier_shifts.count()
+            if shifts_count > 0:
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Không thể xóa tài khoản nhân viên "{employee.username}" vì đã có {shifts_count} ca thu ngân (Z-Report) '
+                        'trong hệ thống. Để bảo toàn đối soát sổ quỹ, vui lòng Khóa / Ngưng hoạt động tài khoản thay vì xóa.'
+                    )
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            bookings_count = employee.bookings.count()
+            if bookings_count > 0:
+                return Response({
+                    'success': False,
+                    'message': (
+                        f'Không thể xóa tài khoản "{employee.username}" vì đang liên kết với {bookings_count} đơn đặt phòng. '
+                        'Vui lòng Khóa tài khoản thay vì xóa.'
+                    )
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             emp_username = employee.username
             emp_role = employee.get_role_display()
             employee.delete()

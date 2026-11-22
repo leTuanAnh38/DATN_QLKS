@@ -1,5 +1,7 @@
 """Danh mục dịch vụ, món dịch vụ và booking đang lưu trú."""
+from django.db import transaction
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -58,6 +60,131 @@ class ServiceCategoryListView(APIView):
             'category': ServiceCategorySerializer(cat, context={'request': request}).data,
             'data': ServiceCategorySerializer(cat, context={'request': request}).data
         }, status=status.HTTP_201_CREATED)
+
+
+class ServiceCategoryDetailView(APIView):
+    """
+    API Chi tiết / Cập nhật / Xóa an toàn Nhóm dịch vụ:
+    - GET /api/services/categories/<id>/
+    - PUT/PATCH /api/services/categories/<id>/: Đổi tên, icon, mô tả nhóm
+    - DELETE /api/services/categories/<id>/?reassign_to=<target_category_id>:
+      + Nếu nhóm trống (0 dịch vụ): xóa ngay.
+      + Nếu nhóm đang có dịch vụ: bắt buộc truyền reassign_to để chuyển toàn bộ dịch vụ
+        sang nhóm đích trong 1 transaction trước khi xóa (tránh CASCADE mất dịch vụ & lịch sử đơn).
+    """
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return [IsManagerOrAdminOnly()]
+
+    def get(self, request, pk):
+        category = get_object_or_404(ServiceCategory, pk=pk)
+        data = ServiceCategorySerializer(category, context={'request': request}).data
+        return Response({'success': True, 'category': data, 'data': data}, status=status.HTTP_200_OK)
+
+    def _update(self, request, pk, partial=False):
+        category = get_object_or_404(ServiceCategory, pk=pk)
+        old_name = category.name
+        serializer = ServiceCategorySerializer(
+            category,
+            data=request.data,
+            partial=partial,
+            context={'request': request}
+        )
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'message': 'Dữ liệu cập nhật nhóm dịch vụ không hợp lệ.',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        updated = serializer.save()
+        log_action(
+            user=request.user,
+            action='UPDATE',
+            module='SERVICE',
+            description=f'Cập nhật nhóm dịch vụ "{old_name}" -> "{updated.name}"',
+            request=request
+        )
+        out_data = ServiceCategorySerializer(updated, context={'request': request}).data
+        return Response({
+            'success': True,
+            'message': f'Đã cập nhật nhóm dịch vụ "{updated.name}" thành công.',
+            'category': out_data,
+            'data': out_data
+        }, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        return self._update(request, pk, partial=False)
+
+    def patch(self, request, pk):
+        return self._update(request, pk, partial=True)
+
+    def delete(self, request, pk):
+        category = get_object_or_404(ServiceCategory, pk=pk)
+        cat_name = category.name
+        total_items = category.services.count()
+
+        reassign_to = request.query_params.get('reassign_to')
+        if not reassign_to and isinstance(request.data, dict):
+            reassign_to = request.data.get('reassign_to')
+
+        if total_items > 0:
+            if not reassign_to:
+                return Response({
+                    'success': False,
+                    'requires_reassign': True,
+                    'total_services_count': total_items,
+                    'message': (
+                        f'Nhóm "{cat_name}" hiện đang chứa {total_items} dịch vụ. '
+                        'Vui lòng chọn một nhóm khác để chuyển toàn bộ dịch vụ trước khi xóa.'
+                    )
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not str(reassign_to).isdigit() or int(reassign_to) == category.pk:
+                return Response({
+                    'success': False,
+                    'message': 'Nhóm đích để chuyển dịch vụ không hợp lệ.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            target_cat = ServiceCategory.objects.filter(pk=int(reassign_to)).exclude(pk=category.pk).first()
+            if not target_cat:
+                return Response({
+                    'success': False,
+                    'message': 'Không tìm thấy nhóm đích để chuyển dịch vụ.'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            with transaction.atomic():
+                moved_count = category.services.update(category=target_cat)
+                category.delete()
+
+            log_action(
+                user=request.user,
+                action='DELETE',
+                module='SERVICE',
+                description=f'Chuyển {moved_count} dịch vụ từ nhóm "{cat_name}" sang "{target_cat.name}" và xóa nhóm "{cat_name}"',
+                request=request
+            )
+            return Response({
+                'success': True,
+                'moved_count': moved_count,
+                'reassigned_to': target_cat.id,
+                'message': f'Đã chuyển {moved_count} dịch vụ sang nhóm "{target_cat.name}" và xóa nhóm "{cat_name}".'
+            }, status=status.HTTP_200_OK)
+
+        category.delete()
+        log_action(
+            user=request.user,
+            action='DELETE',
+            module='SERVICE',
+            description=f'Xóa nhóm dịch vụ "{cat_name}"',
+            request=request
+        )
+        return Response({
+            'success': True,
+            'moved_count': 0,
+            'message': f'Đã xóa nhóm dịch vụ "{cat_name}" thành công.'
+        }, status=status.HTTP_200_OK)
 
 
 class ServiceItemViewSet(viewsets.ModelViewSet):
@@ -184,11 +311,21 @@ class ServiceItemViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         name = instance.name
-        pending_requests = instance.requests.filter(status__in=['pending', 'in_progress']).count()
-        if pending_requests > 0:
+        active_requests = instance.requests.filter(status__in=['pending', 'in_progress', 'delivering']).count()
+        if active_requests > 0:
             return Response({
                 'success': False,
-                'message': f'Không thể xóa dịch vụ "{name}" vì đang có {pending_requests} đơn yêu cầu đang chờ xử lý hoặc đang làm. Bạn có thể tạm ngưng phục vụ thay vì xóa.'
+                'message': f'Không thể xóa dịch vụ "{name}" vì đang có {active_requests} yêu cầu đang chờ xử lý, đang thực hiện hoặc đang giao. Vui lòng bấm Tạm ngưng phục vụ thay vì xóa.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        completed_requests = instance.requests.filter(status='completed').count()
+        if completed_requests > 0:
+            return Response({
+                'success': False,
+                'message': (
+                    f'Không thể xóa vĩnh viễn dịch vụ "{name}" vì đã phát sinh {completed_requests} đơn dịch vụ hoàn thành '
+                    'trong lịch sử. Để bảo toàn báo cáo doanh thu, vui lòng bấm "Tạm ngưng phục vụ" để ẩn khỏi thực đơn.'
+                )
             }, status=status.HTTP_400_BAD_REQUEST)
 
         instance.delete()

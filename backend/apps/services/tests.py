@@ -95,3 +95,135 @@ class ServiceRequestTests(APITestCase):
         self.assertEqual(res.status_code, 200)
         sr.refresh_from_db()
         self.assertEqual(sr.status, 'in_progress')
+
+
+class ServiceCategoryManagementTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='svc_admin',
+            email='svc_admin@example.com',
+            password='Password123!',
+            role='admin',
+            is_superuser=True,
+        )
+        self.cat_food = ServiceCategory.objects.create(name='Ẩm thực', icon='dining', description='Đồ ăn')
+        self.cat_drink = ServiceCategory.objects.create(name='Đồ uống', icon='bar', description='Nước uống')
+        self.cat_empty = ServiceCategory.objects.create(name='Nhóm trống', icon='tag')
+        self.item = ServiceItem.objects.create(
+            category=self.cat_food,
+            name='Bò Wagyu',
+            price=Decimal('700000'),
+            is_active=True,
+        )
+
+    def test_admin_can_update_service_category(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.patch(
+            f'/api/services/categories/{self.cat_food.id}/',
+            {'name': 'Ẩm thực tại phòng', 'description': 'Phục vụ 24/7'},
+            format='json',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.cat_food.refresh_from_db()
+        self.assertEqual(self.cat_food.name, 'Ẩm thực tại phòng')
+        self.assertEqual(res.data['category']['total_services_count'], 1)
+
+    def test_delete_non_empty_category_requires_reassign_then_moves_items(self):
+        self.client.force_authenticate(user=self.admin)
+
+        # Chặn xóa nếu chưa chọn nhóm đích để chuyển dịch vụ
+        blocked = self.client.delete(f'/api/services/categories/{self.cat_food.id}/')
+        self.assertEqual(blocked.status_code, 400)
+        self.assertTrue(blocked.data.get('requires_reassign'))
+        self.assertTrue(ServiceCategory.objects.filter(pk=self.cat_food.id).exists())
+        self.assertTrue(ServiceItem.objects.filter(pk=self.item.id).exists())
+
+        # Cho phép chuyển dịch vụ sang nhóm đích rồi mới xóa
+        ok = self.client.delete(
+            f'/api/services/categories/{self.cat_food.id}/?reassign_to={self.cat_drink.id}'
+        )
+        self.assertEqual(ok.status_code, 200)
+        self.assertEqual(ok.data.get('moved_count'), 1)
+        self.assertFalse(ServiceCategory.objects.filter(pk=self.cat_food.id).exists())
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.category_id, self.cat_drink.id)
+
+    def test_delete_empty_category_succeeds_directly(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.delete(f'/api/services/categories/{self.cat_empty.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(ServiceCategory.objects.filter(pk=self.cat_empty.id).exists())
+
+    def test_safe_delete_guards_for_service_guest_employee_and_room(self):
+        from django.urls import reverse
+        from ..payments.models import CashierShift
+
+        self.client.force_authenticate(user=self.admin)
+
+        guest = User.objects.create_user(
+            username='safe_del_guest',
+            email='safe_del_guest@example.com',
+            password='Password123!',
+            role='guest',
+        )
+        cashier = User.objects.create_user(
+            username='safe_del_cashier',
+            email='safe_del_cashier@example.com',
+            password='Password123!',
+            role='receptionist',
+        )
+        room_cat = RoomCategory.objects.create(
+            name='Safe Guard Suite',
+            slug='safe-guard-suite',
+            size=40.0,
+            bed_type='King',
+            capacity=2,
+            base_price=Decimal('2000000'),
+        )
+        room = Room.objects.create(
+            room_number='909',
+            category=room_cat,
+            status='occupied',
+            floor=9,
+        )
+        today = timezone.localdate()
+        booking = Booking.objects.create(
+            guest=guest,
+            category=room_cat,
+            room=room,
+            check_in_date=today,
+            check_out_date=today + timedelta(days=1),
+            total_amount=Decimal('2000000'),
+            status='checked_in',
+        )
+        ServiceRequest.objects.create(
+            booking=booking,
+            service=self.item,
+            quantity=1,
+            unit_price=self.item.price,
+            status='completed',
+        )
+        CashierShift.objects.create(
+            user=cashier,
+            opening_cash=Decimal('1000000'),
+        )
+
+        # 1. Dịch vụ đã có đơn completed -> chặn xóa vĩnh viễn
+        res_svc = self.client.delete(f'/api/services/items/{self.item.id}/')
+        self.assertEqual(res_svc.status_code, 400)
+        self.assertTrue(ServiceItem.objects.filter(pk=self.item.id).exists())
+
+        # 2. Khách hàng đã có booking -> chặn xóa
+        res_guest = self.client.delete(reverse('admin-guest-detail', args=[guest.id]))
+        self.assertEqual(res_guest.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=guest.id).exists())
+
+        # 3. Nhân viên đã có ca thu ngân -> chặn xóa
+        res_emp = self.client.delete(reverse('admin-employee-detail', args=[cashier.id]))
+        self.assertEqual(res_emp.status_code, 400)
+        self.assertTrue(User.objects.filter(pk=cashier.id).exists())
+
+        # 4. Phòng đang có khách lưu trú -> chặn xóa
+        res_room = self.client.delete(reverse('admin-room-detail', args=[room.id]))
+        self.assertEqual(res_room.status_code, 400)
+        self.assertTrue(Room.objects.filter(pk=room.id).exists())

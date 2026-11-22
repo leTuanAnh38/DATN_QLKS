@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ServiceCategoryListView,
+    ServiceCategoryDetailView,
     ServiceItemViewSet,
     ActiveGuestBookingsView,
     ServiceRequestViewSet,
@@ -14,6 +15,7 @@ router.register(r'', ServiceItemViewSet, basename='service')
 
 urlpatterns = [
     path('categories/', ServiceCategoryListView.as_view(), name='service-categories'),
+    path('categories/<int:pk>/', ServiceCategoryDetailView.as_view(), name='service-category-detail'),
     path('my-active-bookings/', ActiveGuestBookingsView.as_view(), name='service-active-bookings'),
     path('', include(router.urls)),
 ]

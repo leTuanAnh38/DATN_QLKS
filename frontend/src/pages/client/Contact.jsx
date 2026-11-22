@@ -263,10 +263,7 @@ export default function ContactPage() {
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="max-w-3xl flex flex-col items-start text-left">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md mb-4 text-sky-200 text-xs font-bold tracking-wider uppercase">
-                            <ShieldCheck className="w-3.5 h-3.5 text-sky-300" />
-                            <span>Đón Tiếp & Hỗ Trợ Khách Hàng 24/7</span>
-                        </div>
+                        
 
                         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />

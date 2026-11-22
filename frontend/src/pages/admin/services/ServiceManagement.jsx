@@ -71,10 +71,14 @@ export default function ServiceManagement() {
     const [filePreview, setFilePreview] = useState('');
     const fileInputRef = useRef(null);
 
-    // State cho Modal Thêm Nhóm Danh Mục
+    // State cho Modal Quản Lý Nhóm Danh Mục (Thêm / Sửa / Xóa an toàn)
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [newCatData, setNewCatData] = useState({ name: '', icon: '', description: '' });
+    const [editingCategoryId, setEditingCategoryId] = useState(null);
     const [submittingCat, setSubmittingCat] = useState(false);
+    const [deletingCategory, setDeletingCategory] = useState(null);
+    const [reassignTargetId, setReassignTargetId] = useState('');
+    const [deletingCatSubmitting, setDeletingCatSubmitting] = useState(false);
 
     // State cho Modal Xóa
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -379,32 +383,107 @@ export default function ServiceManagement() {
         }
     };
 
-    // Thêm nhóm danh mục mới
-    const handleCreateCategory = async (e) => {
+    // Mở Modal Quản Lý Nhóm Danh Mục
+    const handleOpenCategoryManager = () => {
+        setEditingCategoryId(null);
+        setNewCatData({ name: '', icon: '', description: '' });
+        setDeletingCategory(null);
+        setReassignTargetId('');
+        setIsCategoryModalOpen(true);
+    };
+
+    const handleStartEditCategory = (cat) => {
+        setDeletingCategory(null);
+        setEditingCategoryId(cat.id);
+        setNewCatData({
+            name: cat.name || '',
+            icon: cat.icon || '',
+            description: cat.description || '',
+        });
+    };
+
+    const handleCancelEditCategory = () => {
+        setEditingCategoryId(null);
+        setNewCatData({ name: '', icon: '', description: '' });
+    };
+
+    // Thêm mới hoặc cập nhật nhóm danh mục
+    const handleSaveCategory = async (e) => {
         e.preventDefault();
         if (!newCatData.name.trim()) return;
 
         setSubmittingCat(true);
         try {
-            const res = await hotelService.createServiceCategory({
+            const payload = {
                 name: newCatData.name.trim(),
                 icon: newCatData.icon.trim(),
                 description: newCatData.description.trim(),
-            });
+            };
+            const res = editingCategoryId
+                ? await hotelService.updateServiceCategory(editingCategoryId, payload)
+                : await hotelService.createServiceCategory(payload);
 
             if (res.success) {
                 showToast('success', res.message);
-                setIsCategoryModalOpen(false);
+                setEditingCategoryId(null);
                 setNewCatData({ name: '', icon: '', description: '' });
                 loadAllData(false);
             } else {
                 showToast('error', res.message);
             }
         } catch (error) {
-            console.error('Lỗi khi tạo nhóm:', error);
-            showToast('error', 'Không thể tạo nhóm dịch vụ.');
+            console.error('Lỗi khi lưu nhóm dịch vụ:', error);
+            showToast('error', 'Không thể lưu nhóm dịch vụ.');
         } finally {
             setSubmittingCat(false);
+        }
+    };
+
+    // Bắt đầu xác nhận xóa nhóm (tự động chọn sẵn nhóm đích nếu nhóm đang có dịch vụ)
+    const handleStartDeleteCategory = (cat) => {
+        setEditingCategoryId(null);
+        setNewCatData({ name: '', icon: '', description: '' });
+        setDeletingCategory(cat);
+        const firstOther = categories.find((c) => c.id !== cat.id);
+        setReassignTargetId(firstOther ? String(firstOther.id) : '');
+    };
+
+    // Thực hiện xóa nhóm dịch vụ an toàn
+    const handleConfirmDeleteCategory = async () => {
+        if (!deletingCategory) return;
+        const totalInCat =
+            deletingCategory.total_services_count ??
+            services.filter((s) => String(s.category_id) === String(deletingCategory.id)).length;
+
+        if (totalInCat > 0 && !reassignTargetId) {
+            showToast('error', 'Vui lòng chọn nhóm đích để chuyển các dịch vụ hiện có trước khi xóa.');
+            return;
+        }
+
+        setDeletingCatSubmitting(true);
+        try {
+            const deletedId = deletingCategory.id;
+            const res = await hotelService.deleteServiceCategory(
+                deletedId,
+                totalInCat > 0 ? reassignTargetId : null
+            );
+
+            if (res.success) {
+                showToast('success', res.message);
+                if (String(selectedCategory) === String(deletedId)) {
+                    setSelectedCategory('all');
+                }
+                setDeletingCategory(null);
+                setReassignTargetId('');
+                loadAllData(false);
+            } else {
+                showToast('error', res.message);
+            }
+        } catch (error) {
+            console.error('Lỗi khi xóa nhóm dịch vụ:', error);
+            showToast('error', 'Có lỗi xảy ra khi xóa nhóm dịch vụ.');
+        } finally {
+            setDeletingCatSubmitting(false);
         }
     };
 
@@ -466,26 +545,27 @@ export default function ServiceManagement() {
                         <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                     </a>
 
-                    {canCreateService && (
-                        <>
-                            <button
-                                type="button"
-                                onClick={() => setIsCategoryModalOpen(true)}
-                                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
-                            >
-                                <FolderPlus className="w-3.5 h-3.5" />
-                                <span>Thêm Nhóm</span>
-                            </button>
+                    {(canCreateService || canUpdateService || canDeleteService) && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCategoryManager}
+                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-md shadow-slate-900/20 cursor-pointer"
+                            title="Thêm, chỉnh sửa hoặc xóa nhóm danh mục dịch vụ"
+                        >
+                            <FolderPlus className="w-3.5 h-3.5" />
+                            <span>Quản Lý Nhóm</span>
+                        </button>
+                    )}
 
-                            <button
-                                type="button"
-                                onClick={handleOpenCreateModal}
-                                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-1.5 transform active:scale-95 cursor-pointer"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span>Thêm Dịch Vụ Mới</span>
-                            </button>
-                        </>
+                    {canCreateService && (
+                        <button
+                            type="button"
+                            onClick={handleOpenCreateModal}
+                            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-1.5 transform active:scale-95 cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Thêm Dịch Vụ Mới</span>
+                        </button>
                     )}
                 </div>
             </div>
@@ -537,7 +617,16 @@ export default function ServiceManagement() {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between hover:border-slate-300 transition">
+                <button
+                    type="button"
+                    onClick={() => (canCreateService || canUpdateService || canDeleteService) && handleOpenCategoryManager()}
+                    className={`bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex items-center justify-between text-left transition ${
+                        (canCreateService || canUpdateService || canDeleteService)
+                            ? 'hover:border-purple-300 hover:shadow-xs cursor-pointer'
+                            : 'cursor-default'
+                    }`}
+                    title="Bấm để quản lý (thêm / sửa / xóa) nhóm dịch vụ"
+                >
                     <div>
                         <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider block">
                             NHÓM DANH MỤC
@@ -545,12 +634,16 @@ export default function ServiceManagement() {
                         <span className="text-2xl font-black text-purple-700 mt-0.5 block">
                             {stats.catCount}
                         </span>
-                        <span className="text-[11px] text-purple-600/80 font-medium">Ẩm thực, Spa, Bar, Giặt ủi...</span>
+                        <span className="text-[11px] text-purple-600/80 font-medium">
+                            {(canCreateService || canUpdateService || canDeleteService)
+                                ? 'Bấm để thêm / sửa / xóa'
+                                : 'Ẩm thực, Spa, Bar, Giặt ủi...'}
+                        </span>
                     </div>
-                    <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 shadow-2xs">
+                    <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 shadow-2xs shrink-0">
                         <Layers className="w-5 h-5" />
                     </div>
-                </div>
+                </button>
             </div>
 
             {/* BỘ LỌC, TÌM KIẾM & CHẾ ĐỘ XEM */}
@@ -1241,85 +1334,284 @@ export default function ServiceManagement() {
                 </div>
             )}
 
-            {/* MODAL THÊM NHÓM DANH MỤC */}
+            {/* MODAL QUẢN LÝ NHÓM DANH MỤC (THÊM / SỬA / XÓA AN TOÀN) */}
             {isCategoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up">
-                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                                    <FolderPlus className="w-5 h-5" />
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+                    onClick={() => !submittingCat && !deletingCatSubmitting && setIsCategoryModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="px-5 py-4 sm:px-6 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100 shrink-0">
+                                    <Layers className="w-5 h-5" />
                                 </div>
-                                <h3 className="font-black text-slate-900 text-base">Thêm Nhóm Danh Mục</h3>
+                                <div>
+                                    <h3 className="font-black text-slate-900 text-base">Quản Lý Nhóm Danh Mục Dịch Vụ</h3>
+                                    <p className="text-[11px] text-slate-500">
+                                        Thêm mới, đổi tên hoặc xóa an toàn (chuyển dịch vụ sang nhóm khác nếu nhóm đang có món)
+                                    </p>
+                                </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setIsCategoryModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer"
+                                disabled={submittingCat || deletingCatSubmitting}
+                                className="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition cursor-pointer shrink-0 disabled:opacity-50"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateCategory} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">
-                                    Tên Nhóm Dịch Vụ <span className="text-rose-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newCatData.name}
-                                    onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
-                                    placeholder="VD: Tour & Trải Nghiệm, Xe Đưa Đón..."
-                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
-                                    required
-                                />
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+                            {/* Cột trái: Danh sách các nhóm hiện có */}
+                            <div className="lg:col-span-7 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                                        Danh sách nhóm hiện có ({categories.length})
+                                    </h4>
+                                </div>
+
+                                {categories.length === 0 ? (
+                                    <div className="p-6 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
+                                        Chưa có nhóm danh mục nào. Hãy tạo nhóm đầu tiên ở cột bên cạnh.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2.5">
+                                        {categories.map((cat) => {
+                                            const totalInCat =
+                                                cat.total_services_count ??
+                                                services.filter((s) => String(s.category_id) === String(cat.id)).length;
+                                            const activeInCat = cat.services_count ?? 0;
+                                            const isEditingThis = editingCategoryId === cat.id;
+                                            const isDeletingThis = deletingCategory?.id === cat.id;
+                                            const otherCategories = categories.filter((c) => c.id !== cat.id);
+
+                                            return (
+                                                <div
+                                                    key={cat.id}
+                                                    className={`rounded-2xl border p-3.5 transition ${
+                                                        isDeletingThis
+                                                            ? 'border-rose-300 bg-rose-50/40'
+                                                            : isEditingThis
+                                                            ? 'border-blue-400 bg-blue-50/40'
+                                                            : 'border-slate-200 bg-slate-50/50 hover:bg-white'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-2.5">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                                                    {cat.name}
+                                                                </span>
+                                                                <span className="px-2 py-0.5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-600 tabular-nums">
+                                                                    {totalInCat} dịch vụ
+                                                                    {totalInCat !== activeInCat ? ` (${activeInCat} đang mở)` : ''}
+                                                                </span>
+                                                            </div>
+                                                            {cat.description && (
+                                                                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                                                                    {cat.description}
+                                                                </p>
+                                                            )}
+                                                            {cat.icon && (
+                                                                <span className="inline-block text-[10px] font-mono text-slate-400 mt-1">
+                                                                    icon: {cat.icon}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            {canUpdateService && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartEditCategory(cat)}
+                                                                    className="px-2.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                                                    title="Chỉnh sửa nhóm"
+                                                                >
+                                                                    <Edit2 className="w-3 h-3" />
+                                                                    <span>Sửa</span>
+                                                                </button>
+                                                            )}
+                                                            {canDeleteService && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartDeleteCategory(cat)}
+                                                                    className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold flex items-center gap-1 transition cursor-pointer"
+                                                                    title="Xóa nhóm"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                    <span>Xóa</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Khung xác nhận xóa an toàn ngay trong dòng */}
+                                                    {isDeletingThis && (
+                                                        <div className="mt-3 pt-3 border-t border-rose-200/80 space-y-2.5">
+                                                            {totalInCat > 0 ? (
+                                                                otherCategories.length > 0 ? (
+                                                                    <>
+                                                                        <div className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+                                                                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                                                            <span>
+                                                                                Nhóm này đang chứa <strong>{totalInCat} dịch vụ</strong>. Chọn nhóm đích bên dưới để chuyển toàn bộ dịch vụ trước khi xóa (giữ nguyên toàn bộ món & lịch sử doanh thu):
+                                                                            </span>
+                                                                        </div>
+                                                                        <select
+                                                                            value={reassignTargetId}
+                                                                            onChange={(e) => setReassignTargetId(e.target.value)}
+                                                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+                                                                        >
+                                                                            {otherCategories.map((target) => (
+                                                                                <option key={target.id} value={target.id}>
+                                                                                    Chuyển sang: {target.name}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="flex items-start gap-2 text-[11px] text-rose-800 bg-rose-100/70 border border-rose-200 rounded-xl p-2.5">
+                                                                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                                                        <span>
+                                                                            Không thể xóa nhóm cuối cùng khi vẫn còn <strong>{totalInCat} dịch vụ</strong> bên trong. Hãy tạo thêm ít nhất 1 nhóm khác để chuyển dịch vụ sang trước.
+                                                                        </span>
+                                                                    </div>
+                                                                )
+                                                            ) : (
+                                                                <p className="text-[11px] text-rose-700 font-medium">
+                                                                    Nhóm này đang trống (0 dịch vụ). Bạn có chắc chắn muốn xóa vĩnh viễn nhóm <strong>"{cat.name}"</strong>?
+                                                                </p>
+                                                            )}
+
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setDeletingCategory(null);
+                                                                        setReassignTargetId('');
+                                                                    }}
+                                                                    disabled={deletingCatSubmitting}
+                                                                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-[11px] font-bold transition cursor-pointer"
+                                                                >
+                                                                    Hủy
+                                                                </button>
+                                                                {!(totalInCat > 0 && otherCategories.length === 0) && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={handleConfirmDeleteCategory}
+                                                                        disabled={deletingCatSubmitting}
+                                                                        className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
+                                                                    >
+                                                                        {deletingCatSubmitting && (
+                                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                                        )}
+                                                                        <span>
+                                                                            {totalInCat > 0 ? 'Chuyển & Xóa Nhóm' : 'Xác Nhận Xóa'}
+                                                                        </span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">
-                                    Mã định danh nhóm (Tùy chọn)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={newCatData.icon}
-                                    onChange={(e) => setNewCatData({ ...newCatData, icon: e.target.value })}
-                                    placeholder="VD: am-thuc, spa, transport..."
-                                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
-                                />
-                            </div>
+                            {/* Cột phải: Form Thêm mới / Chỉnh sửa nhóm */}
+                            {(canCreateService || (editingCategoryId && canUpdateService)) && (
+                                <div className="lg:col-span-5">
+                                    <div className="bg-slate-50 rounded-2xl border border-slate-200/90 p-4 sm:p-5 lg:sticky lg:top-0">
+                                        <div className="flex items-center justify-between gap-2 mb-3.5 pb-2.5 border-b border-slate-200/80">
+                                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                                                <FolderPlus className="w-4 h-4 text-purple-600" />
+                                                <span>{editingCategoryId ? 'Chỉnh Sửa Nhóm' : 'Thêm Nhóm Mới'}</span>
+                                            </h4>
+                                            {editingCategoryId && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCancelEditCategory}
+                                                    className="text-[11px] font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                                                >
+                                                    Hủy sửa
+                                                </button>
+                                            )}
+                                        </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1">Mô Tả Nhóm</label>
-                                <textarea
-                                    rows="2"
-                                    value={newCatData.description}
-                                    onChange={(e) => setNewCatData({ ...newCatData, description: e.target.value })}
-                                    placeholder="Mô tả nhóm dịch vụ..."
-                                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition resize-none"
-                                />
-                            </div>
+                                        <form onSubmit={handleSaveCategory} className="space-y-3.5">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                                    Tên Nhóm Dịch Vụ <span className="text-rose-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={newCatData.name}
+                                                    onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
+                                                    placeholder="VD: Tour & Trải Nghiệm, Xe Đưa Đón..."
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 transition"
+                                                    required
+                                                />
+                                            </div>
 
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCategoryModalOpen(false)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
-                                >
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submittingCat}
-                                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                                >
-                                    {submittingCat && (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    )}
-                                    <span>Tạo Nhóm</span>
-                                </button>
-                            </div>
-                        </form>
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                                    Mã định danh nhóm (Tùy chọn)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={newCatData.icon}
+                                                    onChange={(e) => setNewCatData({ ...newCatData, icon: e.target.value })}
+                                                    placeholder="VD: am-thuc, spa, transport..."
+                                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 transition"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-700 mb-1">
+                                                    Mô Tả Nhóm
+                                                </label>
+                                                <textarea
+                                                    rows="3"
+                                                    value={newCatData.description}
+                                                    onChange={(e) => setNewCatData({ ...newCatData, description: e.target.value })}
+                                                    placeholder="Mô tả ngắn gọn nhóm dịch vụ..."
+                                                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500 transition resize-none"
+                                                />
+                                            </div>
+
+                                            <div className="pt-2 flex items-center justify-end gap-2">
+                                                {editingCategoryId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCancelEditCategory}
+                                                        className="px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                                    >
+                                                        Hủy
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="submit"
+                                                    disabled={submittingCat}
+                                                    className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                                >
+                                                    {submittingCat && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                                    <span>{editingCategoryId ? 'Lưu Cập Nhật' : 'Tạo Nhóm Mới'}</span>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
