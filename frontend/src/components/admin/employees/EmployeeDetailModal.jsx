@@ -18,7 +18,9 @@ export default function EmployeeDetailModal({
     const profile = employee.employee_profile || {};
     const isSelf = Boolean(currentUserId && employee.id === currentUserId);
     const isRestrictedRole = isManager && ['admin', 'owner', 'manager'].includes(employee.role);
-    const isSalaryProtected = Boolean(profile.salary_hidden || (isRestrictedRole && !isSelf));
+    const isSalaryProtected = Boolean(
+        profile.salary_hidden || (isManager && !isSelf && ['owner', 'manager'].includes(employee.role))
+    );
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">

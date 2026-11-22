@@ -178,6 +178,21 @@ class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
             base_salary=Decimal('25000000'),
         )
 
+        self.admin_staff = User.objects.create_user(
+            username='dir_admin',
+            email='dir_admin@example.com',
+            password='Password123!',
+            role='admin',
+        )
+        EmployeeProfile.objects.create(
+            user=self.admin_staff,
+            employee_code='NV-ADM01',
+            department='Ban Quản Lý & Điều Hành',
+            position='Quản Trị Viên Hệ Thống (System Admin)',
+            shift='Ca Hành Chính (08:00 - 17:00)',
+            base_salary=Decimal('18000000'),
+        )
+
         self.cashier = User.objects.create_user(
             username='dir_cashier',
             email='dir_cashier@example.com',
@@ -199,13 +214,15 @@ class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
         self.assertEqual(res.status_code, 200)
         rows = res.data.get('results') or res.data.get('employees')
         roles_order = [r['role'] for r in rows]
-        self.assertEqual(roles_order, ['owner', 'manager', 'cashier'])
+        self.assertEqual(roles_order, ['owner', 'admin', 'manager', 'cashier'])
 
         by_role = {r['role']: r for r in rows}
         # Lương Chủ KS bị ẩn với Manager
         self.assertTrue(by_role['owner']['employee_profile']['salary_hidden'])
         self.assertIsNone(by_role['owner']['employee_profile']['base_salary'])
-        # Manager vẫn thấy lương của chính mình và nhân viên cấp dưới
+        # Manager vẫn thấy lương của IT Admin, chính mình và nhân viên cấp dưới
+        self.assertFalse(by_role['admin']['employee_profile']['salary_hidden'])
+        self.assertEqual(by_role['admin']['employee_profile']['base_salary'], '18000000')
         self.assertFalse(by_role['manager']['employee_profile']['salary_hidden'])
         self.assertEqual(by_role['manager']['employee_profile']['base_salary'], '25000000')
         self.assertFalse(by_role['cashier']['employee_profile']['salary_hidden'])

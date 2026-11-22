@@ -732,7 +732,10 @@ export default function EmployeeManagement() {
     const isSelfRow = (emp) => Boolean(currentUser && emp.id === currentUser.id);
     const isRestrictedForManager = (emp) => isManager && ['admin', 'owner', 'manager'].includes(emp.role);
     const isSalaryHidden = (emp) =>
-        Boolean(emp.employee_profile?.salary_hidden || (isRestrictedForManager(emp) && !isSelfRow(emp)));
+        Boolean(
+            emp.employee_profile?.salary_hidden ||
+                (isManager && !isSelfRow(emp) && ['owner', 'manager'].includes(emp.role))
+        );
 
     // Thống kê nhanh: Sử dụng số liệu tổng thể từ Backend thay vì chỉ đếm trên trang 1
     const totalDisplay = stats?.total !== undefined ? stats.total : totalCount;
@@ -1129,10 +1132,17 @@ export default function EmployeeManagement() {
                                                         <span>Tài khoản của bạn</span>
                                                     </span>
                                                 ) : isRestrictedForManager(emp) ? (
-                                                    <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
-                                                        <Lock className="w-3 h-3" />
-                                                        <span>{emp.role === 'manager' ? 'Đồng cấp (Chỉ xem)' : 'Cấp trên (Chỉ xem)'}</span>
-                                                    </span>
+                                                    emp.role === 'admin' ? (
+                                                        <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200 flex items-center gap-1">
+                                                            <ShieldCheck className="w-3 h-3" />
+                                                            <span>Quản trị hệ thống</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                                                            <Lock className="w-3 h-3" />
+                                                            <span>{emp.role === 'manager' ? 'Đồng cấp (Chỉ xem)' : 'Cấp trên (Chỉ xem)'}</span>
+                                                        </span>
+                                                    )
                                                 ) : (
                                                     <>
                                                         {canUpdateEmployee && (
@@ -1307,10 +1317,17 @@ export default function EmployeeManagement() {
                                             <span>Tài khoản của bạn</span>
                                         </span>
                                     ) : isRestrictedForManager(emp) ? (
-                                        <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
-                                            <Lock className="w-3 h-3" />
-                                            <span>{emp.role === 'manager' ? 'Đồng cấp' : 'Cấp trên'}</span>
-                                        </span>
+                                        emp.role === 'admin' ? (
+                                            <span className="px-2 py-1 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200 flex items-center gap-1">
+                                                <ShieldCheck className="w-3 h-3" />
+                                                <span>Quản trị hệ thống</span>
+                                            </span>
+                                        ) : (
+                                            <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                                                <Lock className="w-3 h-3" />
+                                                <span>{emp.role === 'manager' ? 'Đồng cấp' : 'Cấp trên'}</span>
+                                            </span>
+                                        )
                                     ) : (
                                         <>
                                             {canUpdateEmployee && (

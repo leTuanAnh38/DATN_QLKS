@@ -85,13 +85,13 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             req_role = getattr(req_user, 'role', '')
             target_user = getattr(instance, 'user', None)
             target_role = getattr(target_user, 'role', '') if target_user else ''
-            # Quản lý (Manager) không được xem lương của Chủ KS, Admin hoặc Quản lý khác (trừ chính mình)
+            # Quản lý (Manager) không được xem lương của Chủ KS (Owner) hoặc Quản lý khác (trừ chính mình & IT Admin)
             if (
                 not req_user.is_superuser
                 and req_role == 'manager'
                 and target_user
                 and target_user.id != req_user.id
-                and target_role in ['owner', 'admin', 'manager']
+                and target_role in ['owner', 'manager']
             ):
                 data['base_salary'] = None
                 salary_hidden = True
