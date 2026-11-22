@@ -35,7 +35,7 @@ import { useOfflineQueueCount } from '../../services/offlineQueue';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
-  const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
+  const { isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
   const userRole = user?.role || '';
   const isExecutive = Boolean(
     user?.is_superuser || ['admin', 'owner', 'manager'].includes(userRole)
@@ -314,7 +314,7 @@ export default function ProfileScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         'Đã gửi lệnh thử nghiệm',
-        'Máy chủ đã phát lệnh thông báo đẩy! Hãy thử vuốt ra màn hình chính hoặc khóa màn hình iPhone để kiểm tra chuông & rung.'
+        'Máy chủ đã phát lệnh thông báo đẩy! Hãy thử vuốt ra màn hình chính hoặc khóa màn hình điện thoại để kiểm tra chuông & rung.'
       );
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Không thể gửi thông báo thử nghiệm.';
@@ -395,6 +395,27 @@ export default function ProfileScreen() {
           <Text style={styles.greetingTitle} numberOfLines={1}>Hồ Sơ Cá Nhân</Text>
         </View>
         <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={styles.refreshCircleBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setThemeMode(isDark ? 'light' : 'dark');
+            }}
+            onLongPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setThemeMode('system');
+              Alert.alert('Giao diện hệ thống', 'Đã chuyển về chế độ tự động theo thiết bị.');
+            }}
+            delayLongPress={450}
+            activeOpacity={0.7}
+            accessibilityLabel={isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+          >
+            <Ionicons
+              name={isDark ? 'sunny' : 'moon'}
+              size={17}
+              color={isDark ? '#F59E0B' : '#475569'}
+            />
+          </TouchableOpacity>
           <NotificationBell />
           <TouchableOpacity
             style={styles.refreshCircleBtn}
@@ -676,70 +697,7 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* 3. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Giao Diện Hệ Thống</Text>
-          <View style={styles.themeSegmentedBar}>
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'dark' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('dark');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="moon"
-                size={14}
-                color={themeMode === 'dark' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Tối
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'light' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('light');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="sunny"
-                size={14}
-                color={themeMode === 'light' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Sáng
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'system' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('system');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="phone-portrait-outline"
-                size={14}
-                color={themeMode === 'system' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Hệ thống
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 4. Cài Đặt Tài Khoản & Kết Nối */}
+        {/* 3. Cài Đặt Tài Khoản & Kết Nối */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Tài Khoản & Kết Nối</Text>
 

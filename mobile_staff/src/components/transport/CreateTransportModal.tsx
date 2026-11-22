@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
+import { useAppTheme } from '../../contexts/ThemeContext';
 import { getVehicleImage } from './TransportCard';
 
 export interface CreateTransportModalProps {
@@ -29,12 +30,22 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const { hotelName } = useAppTheme();
+  const defaultLobby = `Sảnh ${hotelName || 'TA Luxury Hotel'}`;
   const [occupiedRooms, setOccupiedRooms] = useState<any[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
   const [transportServices, setTransportServices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<any | null>(null);
   const [pickupLocation, setPickupLocation] = useState('Sân bay quốc tế Đà Nẵng');
-  const [dropoffLocation, setDropoffLocation] = useState('Sảnh TA Luxury Hotel');
+  const [dropoffLocation, setDropoffLocation] = useState(defaultLobby);
+
+  useEffect(() => {
+    if (visible) {
+      setDropoffLocation((prev) =>
+        !prev || prev.startsWith('Sảnh ') ? defaultLobby : prev
+      );
+    }
+  }, [visible, defaultLobby]);
   const [flightCode, setFlightCode] = useState('');
   const [pickupTime, setPickupTime] = useState('14:30');
   const [passengerCount, setPassengerCount] = useState(2);
