@@ -141,3 +141,79 @@ class GoogleLoginTests(APITestCase):
 
         self.assertEqual(res.status_code, 400)
         self.assertFalse(res.data['success'])
+
+
+class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
+    def setUp(self):
+        from decimal import Decimal
+        from .models import EmployeeProfile
+
+        self.owner = User.objects.create_user(
+            username='dir_owner',
+            email='dir_owner@example.com',
+            password='Password123!',
+            role='owner',
+        )
+        EmployeeProfile.objects.create(
+            user=self.owner,
+            employee_code='NV-OWN01',
+            department='Ban Quản Lý & Điều Hành',
+            position='Chủ Khách Sạn',
+            shift='Ca Hành Chính (08:00 - 17:00)',
+            base_salary=Decimal('50000000'),
+        )
+
+        self.manager = User.objects.create_user(
+            username='dir_manager',
+            email='dir_manager@example.com',
+            password='Password123!',
+            role='manager',
+        )
+        EmployeeProfile.objects.create(
+            user=self.manager,
+            employee_code='NV-MGR01',
+            department='Ban Quản Lý & Điều Hành',
+            position='Tổng Giám Đốc Điều Hành',
+            shift='Ca Hành Chính (08:00 - 17:00)',
+            base_salary=Decimal('25000000'),
+        )
+
+        self.cashier = User.objects.create_user(
+            username='dir_cashier',
+            email='dir_cashier@example.com',
+            password='Password123!',
+            role='cashier',
+        )
+        EmployeeProfile.objects.create(
+            user=self.cashier,
+            employee_code='NV-CAS01',
+            department='Kế Toán & Thu Ngân',
+            position='Thu Ngân',
+            shift='Ca Sáng (06:00 - 14:00)',
+            base_salary=Decimal('12000000'),
+        )
+
+    def test_hierarchy_sorting_and_manager_salary_masking(self):
+        self.client.force_authenticate(user=self.manager)
+        res = self.client.get('/api/users/admin/employees/')
+        self.assertEqual(res.status_code, 200)
+        rows = res.data.get('results') or res.data.get('employees')
+        roles_order = [r['role'] for r in rows]
+        self.assertEqual(roles_order, ['owner', 'manager', 'cashier'])
+
+        by_role = {r['role']: r for r in rows}
+        # Lương Chủ KS bị ẩn với Manager
+        self.assertTrue(by_role['owner']['employee_profile']['salary_hidden'])
+        self.assertIsNone(by_role['owner']['employee_profile']['base_salary'])
+        # Manager vẫn thấy lương của chính mình và nhân viên cấp dưới
+        self.assertFalse(by_role['manager']['employee_profile']['salary_hidden'])
+        self.assertEqual(by_role['manager']['employee_profile']['base_salary'], '25000000')
+        self.assertFalse(by_role['cashier']['employee_profile']['salary_hidden'])
+        self.assertEqual(by_role['cashier']['employee_profile']['base_salary'], '12000000')
+
+        # Bộ lọc theo ca làm việc hoạt động chính xác từ Backend
+        res_shift = self.client.get('/api/users/admin/employees/?shift=Ca Sáng (06:00 - 14:00)')
+        self.assertEqual(res_shift.status_code, 200)
+        shift_rows = res_shift.data.get('results') or res_shift.data.get('employees')
+        self.assertEqual(len(shift_rows), 1)
+        self.assertEqual(shift_rows[0]['role'], 'cashier')

@@ -3,6 +3,7 @@ export const HOTEL_DEPARTMENTS = [
         name: 'Ban Quản Lý & Điều Hành',
         codePrefix: 'NV-MGR',
         defaultRole: 'manager',
+        roles: ['admin', 'owner', 'manager'],
         positions: [
             'Tổng Giám Đốc (General Manager)',
             'Phó Giám Đốc Điều Hành (Operations Director)',
@@ -101,7 +102,7 @@ export const HOTEL_SHIFTS = [
     'Ca Chiều (14:00 - 22:00)',
     'Ca Đêm (22:00 - 06:00 hôm sau)',
     'Ca Hành Chính (08:00 - 17:00)',
-    'Ca Gãy / Linh Hoạt (10:00 - 14:00 & 18:00 - 22:00)',
+    'Ca Gãy (10:00 - 14:00 & 18:00 - 22:00)',
     'Ca Xoay (Linh hoạt 3 ca theo tuần)',
 ];
 

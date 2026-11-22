@@ -110,7 +110,11 @@ class OpenShiftView(APIView):
                 'message': f"Bạn đang có ca làm việc #{existing_open.shift_code} chưa kết thúc. Vui lòng kết ca hiện tại trước khi mở ca mới!"
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        shift_type = request.data.get('shift_type', 'MORNING')
+        raw_shift_type = str(request.data.get('shift_type', 'MORNING') or 'MORNING').strip().upper()
+        if raw_shift_type == 'ADMIN':
+            raw_shift_type = 'STANDARD'
+        valid_shift_types = {choice[0] for choice in CashierShift.SHIFT_TYPE_CHOICES}
+        shift_type = raw_shift_type if raw_shift_type in valid_shift_types else 'MORNING'
         opening_cash_raw = request.data.get('opening_cash', 0)
         notes = request.data.get('notes', '').strip()
 
@@ -390,7 +394,10 @@ class ShiftListView(APIView):
 
         shift_type = request.query_params.get('shift_type')
         if shift_type and shift_type != 'ALL':
-            queryset = queryset.filter(shift_type=shift_type)
+            if shift_type in ['STANDARD', 'ADMIN']:
+                queryset = queryset.filter(shift_type__in=['STANDARD', 'ADMIN'])
+            else:
+                queryset = queryset.filter(shift_type=shift_type)
 
         search = request.query_params.get('search')
         if search:

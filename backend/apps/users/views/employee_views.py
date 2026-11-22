@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from core_project.pagination import StandardResultsSetPagination
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField, F
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
@@ -31,7 +31,7 @@ class AdminEmployeeListCreateView(APIView):
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
-        queryset = User.objects.exclude(role='guest').select_related('employee_profile').order_by('-id')
+        queryset = User.objects.exclude(role='guest').select_related('employee_profile')
 
         # Tìm kiếm theo từ khóa
         q = request.query_params.get('q', '').strip()
@@ -59,11 +59,58 @@ class AdminEmployeeListCreateView(APIView):
         if department and department != 'all':
             queryset = queryset.filter(employee_profile__department=department)
 
+        # Lọc theo ca làm việc (hỗ trợ khớp linh hoạt cả chuỗi chuẩn và dữ liệu cũ)
+        shift = request.query_params.get('shift')
+        if shift and shift != 'all':
+            shift_lower = shift.lower()
+            if 'sáng' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='sáng')
+            elif 'chiều' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='chiều')
+            elif 'đêm' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='đêm')
+            elif 'hành chính' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='hành chính')
+            elif 'gãy' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='gãy')
+            elif 'xoay' in shift_lower:
+                queryset = queryset.filter(employee_profile__shift__icontains='xoay')
+            else:
+                queryset = queryset.filter(employee_profile__shift=shift)
+
         # Lọc theo trạng thái
         is_active = request.query_params.get('is_active')
         if is_active is not None and is_active != 'all':
             is_active_bool = is_active.lower() in ['true', '1']
             queryset = queryset.filter(is_active=is_active_bool)
+
+        # Sắp xếp: Mặc định theo cấp bậc vai trò (Chủ KS -> Admin -> Quản lý -> Thu ngân -> Lễ tân -> Buồng phòng -> Phục vụ -> Kỹ thuật)
+        sort_by = request.query_params.get('sort', 'hierarchy')
+        role_rank_expr = Case(
+            When(role='owner', then=Value(1)),
+            When(role='admin', then=Value(2)),
+            When(role='manager', then=Value(3)),
+            When(role='cashier', then=Value(4)),
+            When(role='receptionist', then=Value(5)),
+            When(role='housekeeper', then=Value(6)),
+            When(role='service_staff', then=Value(7)),
+            When(role='technician', then=Value(8)),
+            default=Value(9),
+            output_field=IntegerField(),
+        )
+        queryset = queryset.annotate(role_rank=role_rank_expr)
+
+        requester_role = getattr(request.user, 'role', '')
+        can_sort_salary = bool(request.user.is_superuser or requester_role in ['admin', 'owner'])
+
+        if sort_by == 'newest':
+            queryset = queryset.order_by('-id')
+        elif sort_by == 'name':
+            queryset = queryset.order_by('first_name', 'last_name', 'id')
+        elif sort_by == 'salary_desc' and can_sort_salary:
+            queryset = queryset.order_by(F('employee_profile__base_salary').desc(nulls_last=True), 'role_rank', 'id')
+        else:
+            queryset = queryset.order_by('role_rank', 'employee_profile__employee_code', 'id')
 
         all_employees = User.objects.exclude(role='guest')
         stats = {

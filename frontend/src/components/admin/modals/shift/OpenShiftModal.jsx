@@ -58,7 +58,7 @@ export default function OpenShiftModal({ isOpen, onClose, onShiftOpened }) {
             color: 'text-indigo-500 bg-indigo-50 border-indigo-200'
         },
         {
-            key: 'ADMIN',
+            key: 'STANDARD',
             name: 'Ca Hành Chính',
             time: '08:00 - 17:00',
             icon: Briefcase,

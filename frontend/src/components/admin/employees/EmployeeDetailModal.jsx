@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, X, ShieldCheck, Pencil } from 'lucide-react';
+import { User, X, ShieldCheck, Pencil, Lock } from 'lucide-react';
 import UserAvatar from '../../common/UserAvatar';
 import { formatCurrency } from '../../../utils/formatters';
 
@@ -7,6 +7,7 @@ export default function EmployeeDetailModal({
     isOpen,
     onClose,
     employee,
+    currentUserId = null,
     isManager = false,
     onOpenAssignRole,
     onOpenEdit,
@@ -15,7 +16,9 @@ export default function EmployeeDetailModal({
     if (!isOpen || !employee) return null;
 
     const profile = employee.employee_profile || {};
+    const isSelf = Boolean(currentUserId && employee.id === currentUserId);
     const isRestrictedRole = isManager && ['admin', 'owner', 'manager'].includes(employee.role);
+    const isSalaryProtected = Boolean(profile.salary_hidden || (isRestrictedRole && !isSelf));
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
@@ -116,9 +119,16 @@ export default function EmployeeDetailModal({
                             </div>
                             <div className="p-3 bg-white rounded-xl border border-slate-200">
                                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Lương cơ bản</span>
-                                <strong className="text-emerald-600 text-xs block mt-0.5">
-                                    {formatCurrency(profile.base_salary || profile.salary_base)}
-                                </strong>
+                                {isSalaryProtected ? (
+                                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[11px] font-semibold border border-slate-200">
+                                        <Lock className="w-3 h-3 shrink-0" />
+                                        <span>Bảo mật</span>
+                                    </span>
+                                ) : (
+                                    <strong className="text-emerald-600 text-xs block mt-0.5">
+                                        {formatCurrency(profile.base_salary || profile.salary_base)}
+                                    </strong>
+                                )}
                             </div>
                             <div className="p-3 bg-white rounded-xl border border-slate-200">
                                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Ngày vào làm</span>

@@ -114,7 +114,7 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
                         <option value="MORNING">Ca Sáng</option>
                         <option value="AFTERNOON">Ca Chiều</option>
                         <option value="NIGHT">Ca Đêm</option>
-                        <option value="ADMIN">Ca Hành Chính</option>
+                        <option value="STANDARD">Ca Hành Chính</option>
                     </select>
 
                     <button

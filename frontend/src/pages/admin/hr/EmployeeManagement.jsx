@@ -90,6 +90,7 @@ export default function EmployeeManagement() {
     const [departmentFilter, setDepartmentFilter] = useState('all');
     const [shiftFilter, setShiftFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('hierarchy'); // 'hierarchy' | 'newest' | 'name' | 'salary_desc'
 
     // Modals
     const [isRoleMatrixOpen, setIsRoleMatrixOpen] = useState(false);
@@ -154,19 +155,16 @@ export default function EmployeeManagement() {
     const fetchEmployees = async (page = null, silent = false) => {
         if (!silent) setIsLoading(true);
         const targetPage = page !== null ? page : currentPageRef.current;
-        const params = { page: targetPage };
+        const params = { page: targetPage, sort: sortBy };
         if (searchTerm) params.q = searchTerm;
         if (roleFilter !== 'all') params.role = roleFilter;
         if (departmentFilter !== 'all') params.department = departmentFilter;
+        if (shiftFilter !== 'all') params.shift = shiftFilter;
         if (statusFilter !== 'all') params.is_active = statusFilter;
 
         const res = await adminUserService.getEmployees(params);
         if (res.success) {
-            let list = res.results || res.employees || [];
-            // Lọc theo ca làm việc ở frontend nếu có chọn
-            if (shiftFilter !== 'all') {
-                list = list.filter((e) => e.employee_profile?.shift === shiftFilter);
-            }
+            const list = res.results || res.employees || [];
             setEmployees(list);
             setTotalCount(res.count !== undefined ? res.count : list.length);
             setTotalPages(res.total_pages || Math.ceil((res.count || list.length) / 10) || 1);
@@ -176,11 +174,11 @@ export default function EmployeeManagement() {
         if (!silent) setIsLoading(false);
     };
 
-    // Load khi bộ lọc thay đổi -> reset về trang 1
+    // Load khi bộ lọc hoặc thứ tự sắp xếp thay đổi -> reset về trang 1
     useEffect(() => {
         setCurrentPage(1);
         fetchEmployees(1);
-    }, [roleFilter, departmentFilter, shiftFilter, statusFilter]);
+    }, [roleFilter, departmentFilter, shiftFilter, statusFilter, sortBy]);
 
     // Xử lý chuyển trang
     const handlePageChange = (newPage) => {
@@ -724,12 +722,17 @@ export default function EmployeeManagement() {
         };
 
         return (
-            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1 ${styleMap[color] || styleMap.slate}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-                {name}
+            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 ${styleMap[color] || styleMap.slate}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current shrink-0"></span>
+                <span>{name}</span>
             </span>
         );
     };
+
+    const isSelfRow = (emp) => Boolean(currentUser && emp.id === currentUser.id);
+    const isRestrictedForManager = (emp) => isManager && ['admin', 'owner', 'manager'].includes(emp.role);
+    const isSalaryHidden = (emp) =>
+        Boolean(emp.employee_profile?.salary_hidden || (isRestrictedForManager(emp) && !isSelfRow(emp)));
 
     // Thống kê nhanh: Sử dụng số liệu tổng thể từ Backend thay vì chỉ đếm trên trang 1
     const totalDisplay = stats?.total !== undefined ? stats.total : totalCount;
@@ -973,7 +976,7 @@ export default function EmployeeManagement() {
 
             {/* Bảng Danh Sách Nhân Viên */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <h3 className="font-bold text-sm text-slate-900">
                             Danh Sách Nhân Viên Khách Sạn
@@ -982,9 +985,22 @@ export default function EmployeeManagement() {
                             {totalCount} Nhân sự
                         </span>
                     </div>
-                    <span className="text-xs text-slate-400">
-                        Đồng bộ hồ sơ nhân sự & phân quyền thời gian thực
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="emp-sort-select" className="text-[11px] font-semibold text-slate-500 hidden sm:inline">
+                            Sắp xếp:
+                        </label>
+                        <select
+                            id="emp-sort-select"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-600 transition cursor-pointer"
+                        >
+                            <option value="hierarchy">Theo cấp bậc & Mã NV</option>
+                            <option value="newest">Mới thêm gần đây</option>
+                            <option value="name">Theo tên (A - Z)</option>
+                            {!isManager && <option value="salary_desc">Lương cao đến thấp</option>}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="hidden md:block overflow-x-auto">
@@ -1045,12 +1061,12 @@ export default function EmployeeManagement() {
                                         </td>
 
                                         {/* Employee Code */}
-                                        <td className="py-3.5 px-4 font-mono font-bold text-blue-600">
+                                        <td className="py-3.5 px-4 font-mono font-bold text-blue-600 whitespace-nowrap">
                                             {emp.employee_profile?.employee_code || `NV-${emp.id}`}
                                         </td>
 
                                         {/* Role Badge */}
-                                        <td className="py-3.5 px-4">
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
                                             {getRoleBadge(emp.role)}
                                         </td>
 
@@ -1069,9 +1085,16 @@ export default function EmployeeManagement() {
                                             <div className="text-slate-800 font-medium">
                                                 {emp.employee_profile?.shift || 'Chưa xếp ca'}
                                             </div>
-                                            <div className="text-[11px] font-bold text-emerald-600">
-                                                {formatCurrency(emp.employee_profile?.base_salary || emp.employee_profile?.salary_base)}
-                                            </div>
+                                            {isSalaryHidden(emp) ? (
+                                                <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10.5px] font-semibold border border-slate-200">
+                                                    <Lock className="w-2.5 h-2.5 shrink-0" />
+                                                    <span>Bảo mật</span>
+                                                </span>
+                                            ) : (
+                                                <div className="text-[11px] font-bold text-emerald-600 tabular-nums">
+                                                    {formatCurrency(emp.employee_profile?.base_salary || emp.employee_profile?.salary_base)}
+                                                </div>
+                                            )}
                                         </td>
 
                                         {/* Status */}
@@ -1100,10 +1123,15 @@ export default function EmployeeManagement() {
                                                 >
                                                     <Eye className="w-3.5 h-3.5" />
                                                 </button>
-                                                {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
+                                                {isSelfRow(emp) && isRestrictedForManager(emp) ? (
+                                                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 flex items-center gap-1">
+                                                        <ShieldCheck className="w-3 h-3" />
+                                                        <span>Tài khoản của bạn</span>
+                                                    </span>
+                                                ) : isRestrictedForManager(emp) ? (
                                                     <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
                                                         <Lock className="w-3 h-3" />
-                                                        <span>Cấp trên (Chỉ xem)</span>
+                                                        <span>{emp.role === 'manager' ? 'Đồng cấp (Chỉ xem)' : 'Cấp trên (Chỉ xem)'}</span>
                                                     </span>
                                                 ) : (
                                                     <>
@@ -1233,9 +1261,16 @@ export default function EmployeeManagement() {
                                         <span className="text-slate-800 font-medium text-xs block truncate">
                                             {emp.employee_profile?.shift || 'Chưa xếp ca'}
                                         </span>
-                                        <span className="font-mono font-bold text-emerald-600 text-[11px] block">
-                                            {formatCurrency(emp.employee_profile?.base_salary)}
-                                        </span>
+                                        {isSalaryHidden(emp) ? (
+                                            <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-white text-slate-500 text-[10.5px] font-semibold border border-slate-200">
+                                                <Lock className="w-2.5 h-2.5 shrink-0" />
+                                                <span>Bảo mật</span>
+                                            </span>
+                                        ) : (
+                                            <span className="font-mono font-bold text-emerald-600 text-[11px] block">
+                                                {formatCurrency(emp.employee_profile?.base_salary)}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1266,10 +1301,15 @@ export default function EmployeeManagement() {
                                         <span>Xem</span>
                                     </button>
 
-                                    {isManager && ['admin', 'owner', 'manager'].includes(emp.role) ? (
+                                    {isSelfRow(emp) && isRestrictedForManager(emp) ? (
+                                        <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 flex items-center gap-1">
+                                            <ShieldCheck className="w-3 h-3" />
+                                            <span>Tài khoản của bạn</span>
+                                        </span>
+                                    ) : isRestrictedForManager(emp) ? (
                                         <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
                                             <Lock className="w-3 h-3" />
-                                            <span>Cấp trên</span>
+                                            <span>{emp.role === 'manager' ? 'Đồng cấp' : 'Cấp trên'}</span>
                                         </span>
                                     ) : (
                                         <>
@@ -1384,6 +1424,7 @@ export default function EmployeeManagement() {
                 isOpen={isDetailModalOpen}
                 onClose={() => setIsDetailModalOpen(false)}
                 employee={selectedEmployee}
+                currentUserId={currentUser?.id}
                 isManager={isManager}
                 onOpenAssignRole={handleOpenAssignRole}
                 onOpenEdit={handleOpenEdit}

@@ -55,14 +55,29 @@ export default function EmployeeCreateModal({
     if (!isOpen) return null;
 
     const handleRoleChange = (newRole) => {
-        const foundDept = HOTEL_DEPARTMENTS.find((d) => d.defaultRole === newRole);
+        const foundDept = HOTEL_DEPARTMENTS.find(
+            (d) => d.defaultRole === newRole || (Array.isArray(d.roles) && d.roles.includes(newRole))
+        );
         if (foundDept) {
             const positions = foundDept.positions;
+            let defaultPosition = positions[0] || 'Nhân viên';
+            if (newRole === 'admin') {
+                defaultPosition =
+                    positions.find((p) => p.toLowerCase().includes('quản trị')) || defaultPosition;
+            } else if (newRole === 'owner') {
+                defaultPosition =
+                    positions.find((p) => p.toLowerCase().includes('tổng giám đốc')) || defaultPosition;
+            }
+            const defaultShift = ['admin', 'owner', 'manager'].includes(newRole)
+                ? 'Ca Hành Chính (08:00 - 17:00)'
+                : 'Ca Sáng (06:00 - 14:00)';
+
             setFormData((prev) => ({
                 ...prev,
                 role: newRole,
                 department: foundDept.name,
-                position: positions[0] || 'Nhân viên',
+                position: defaultPosition,
+                shift: defaultShift,
                 employee_code: generateEmployeeCode(foundDept.name),
                 customPosition: false,
             }));

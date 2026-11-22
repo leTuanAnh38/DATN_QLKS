@@ -76,6 +76,28 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             'hire_date',
         )
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        salary_hidden = False
+        if request and getattr(request, 'user', None) and request.user.is_authenticated:
+            req_user = request.user
+            req_role = getattr(req_user, 'role', '')
+            target_user = getattr(instance, 'user', None)
+            target_role = getattr(target_user, 'role', '') if target_user else ''
+            # Quản lý (Manager) không được xem lương của Chủ KS, Admin hoặc Quản lý khác (trừ chính mình)
+            if (
+                not req_user.is_superuser
+                and req_role == 'manager'
+                and target_user
+                and target_user.id != req_user.id
+                and target_role in ['owner', 'admin', 'manager']
+            ):
+                data['base_salary'] = None
+                salary_hidden = True
+        data['salary_hidden'] = salary_hidden
+        return data
+
 
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
