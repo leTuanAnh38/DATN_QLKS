@@ -21,15 +21,85 @@ export const DEFAULT_BANNERS = {
     concierge_spa_img: 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=600&q=80',
 };
 
-export function applyFavicon(faviconUrl) {
-    if (!faviconUrl || typeof document === 'undefined') return;
+let latestFaviconToken = 0;
+
+function setFaviconElement(href, type = '') {
+    if (typeof document === 'undefined' || !href) return;
     let link = document.querySelector("link[rel*='icon']");
     if (!link) {
         link = document.createElement('link');
-        link.rel = 'shortcut icon';
+        link.rel = 'icon';
         document.head.appendChild(link);
     }
-    link.href = faviconUrl;
+    if (type) {
+        link.type = type;
+    } else {
+        link.removeAttribute('type');
+    }
+    link.href = href;
+}
+
+export function applyFavicon(faviconUrl) {
+    if (!faviconUrl || typeof document === 'undefined') return;
+    const token = ++latestFaviconToken;
+
+    // Nếu đã là data URL hoặc SVG thì gắn trực tiếp
+    if (faviconUrl.startsWith('data:') || /\.svg(\?|$)/i.test(faviconUrl)) {
+        setFaviconElement(faviconUrl, /\.svg(\?|$)/i.test(faviconUrl) ? 'image/svg+xml' : '');
+        return;
+    }
+
+    // Tự động cắt vuông giữa (tránh bóp dẹt ảnh ngang) và bo tròn nền trong suốt 4 góc bằng Canvas
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+        if (token !== latestFaviconToken) return;
+        try {
+            const size = 64;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                setFaviconElement(faviconUrl);
+                return;
+            }
+
+            ctx.clearRect(0, 0, size, size);
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.clip();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+
+            const natW = img.naturalWidth || img.width || size;
+            const natH = img.naturalHeight || img.height || size;
+            const cropSide = Math.min(natW, natH);
+            const sx = (natW - cropSide) / 2;
+            const sy = (natH - cropSide) / 2;
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, sx, sy, cropSide, cropSide, 0, 0, size, size);
+            ctx.restore();
+
+            const circularPng = canvas.toDataURL('image/png');
+            setFaviconElement(circularPng, 'image/png');
+        } catch {
+            // Fallback an toàn nếu nguồn ảnh ngoài không bật CORS
+            setFaviconElement(faviconUrl);
+        }
+    };
+    img.onerror = () => {
+        if (token !== latestFaviconToken) return;
+        setFaviconElement(faviconUrl);
+    };
+
+    const sep = faviconUrl.includes('?') ? '&' : '?';
+    img.src = `${faviconUrl}${sep}fav_cors=1`;
 }
 
 export function getFormattedHotelSlogan(settings) {
