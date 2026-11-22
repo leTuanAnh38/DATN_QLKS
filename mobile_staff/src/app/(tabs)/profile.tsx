@@ -59,9 +59,123 @@ export default function ProfileScreen() {
   // Đo độ trễ máy chủ API (ms)
   const [serverLatency, setServerLatency] = useState<number | null>(null);
 
-  // Sổ bàn giao ca trực (Shift Handover Note)
+  // Thống kê hiệu suất / công việc ca hôm nay theo vai trò
+  const [shiftKpi, setShiftKpi] = useState<{
+    title: string;
+    targetRoute: '/(tabs)/housekeeping' | '/(tabs)/services' | '/(tabs)/maintenance';
+    items: { label: string; value: string; color: string }[];
+  } | null>(null);
+  const [loadingKpi, setLoadingKpi] = useState(false);
+
+  // Sổ ghi chú ca trực cá nhân
   const [handoverNote, setHandoverNote] = useState('');
   const [handoverModalVisible, setHandoverModalVisible] = useState(false);
+
+  const isSameLocalDay = (dateStr?: string | null) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  const fetchShiftKpi = async () => {
+    const role = user?.role || '';
+    if (!role) return;
+    setLoadingKpi(true);
+    try {
+      if (role === 'service_staff') {
+        const res = await apiClient.get('/services/requests/?no_page=true');
+        const list = res.data?.results || res.data?.requests || res.data?.data || res.data || [];
+        const orders = Array.isArray(list) ? list : [];
+        const isMine = (o: any) => Boolean(user?.id && o.assigned_staff === user.id);
+        const doneToday = orders.filter(
+          (o: any) => isMine(o) && o.status === 'completed' && isSameLocalDay(o.updated_at || o.created_at)
+        ).length;
+        const activeMine = orders.filter(
+          (o: any) => isMine(o) && ['pending', 'in_progress', 'delivering'].includes(o.status)
+        ).length;
+        const unassigned = orders.filter(
+          (o: any) => !o.assigned_staff && ['pending', 'in_progress'].includes(o.status)
+        ).length;
+        setShiftKpi({
+          title: 'Hiệu Suất Phục Vụ Hôm Nay',
+          targetRoute: '/(tabs)/services',
+          items: [
+            { label: 'Đã xong hôm nay', value: String(doneToday), color: colors.emerald },
+            { label: 'Đang phụ trách', value: String(activeMine), color: colors.sky },
+            { label: 'Chưa ai nhận', value: String(unassigned), color: colors.gold },
+          ],
+        });
+      } else if (role === 'technician') {
+        const res = await apiClient.get('/rooms/maintenance-tickets/');
+        const list = res.data?.results || res.data?.tickets || res.data?.data || res.data || [];
+        const tickets = Array.isArray(list) ? list : [];
+        const doneToday = tickets.filter(
+          (t: any) =>
+            Boolean(user?.id && t.technician === user.id) &&
+            t.status === 'completed' &&
+            isSameLocalDay(t.completed_date || t.updated_at)
+        ).length;
+        const activeMine = tickets.filter(
+          (t: any) => Boolean(user?.id && t.technician === user.id) && t.status === 'fixing'
+        ).length;
+        const unassigned = tickets.filter(
+          (t: any) => !t.technician && !t.technician_name && t.status === 'fixing'
+        ).length;
+        setShiftKpi({
+          title: 'Hiệu Suất Kỹ Thuật Hôm Nay',
+          targetRoute: '/(tabs)/maintenance',
+          items: [
+            { label: 'Sửa xong hôm nay', value: String(doneToday), color: colors.emerald },
+            { label: 'Đang xử lý', value: String(activeMine), color: colors.sky },
+            { label: 'Chưa ai nhận', value: String(unassigned), color: colors.rose },
+          ],
+        });
+      } else if (role === 'housekeeper') {
+        const res = await apiClient.get('/rooms/admin/rooms/');
+        const list = res.data?.results || res.data?.rooms || res.data?.data || res.data || [];
+        const rooms = Array.isArray(list) ? list : [];
+        const needClean = rooms.filter((r: any) => r.status === 'cleaning' || r.is_cleaning_requested).length;
+        const inspectReq = rooms.filter((r: any) => r.latest_minibar_check?.status === 'requested').length;
+        const readyClean = rooms.filter((r: any) => r.status === 'available').length;
+        setShiftKpi({
+          title: 'Tình Hình Buồng Phòng Hôm Nay',
+          targetRoute: '/(tabs)/housekeeping',
+          items: [
+            { label: 'Cần dọn', value: String(needClean), color: colors.gold },
+            { label: 'Chờ Check-out', value: String(inspectReq), color: colors.rose },
+            { label: 'Phòng sạch', value: String(readyClean), color: colors.emerald },
+          ],
+        });
+      } else {
+        const res = await apiClient.get('/rooms/admin/rooms/');
+        const list = res.data?.results || res.data?.rooms || res.data?.data || res.data || [];
+        const rooms = Array.isArray(list) ? list : [];
+        const total = rooms.length;
+        const occupied = rooms.filter((r: any) => r.status === 'occupied').length;
+        const needOps = rooms.filter((r: any) => r.status === 'cleaning' || r.status === 'maintenance').length;
+        const occupancyRate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+        setShiftKpi({
+          title: 'Tổng Quan Vận Hành Hôm Nay',
+          targetRoute: '/(tabs)/housekeeping',
+          items: [
+            { label: 'Công suất phòng', value: `${occupancyRate}%`, color: colors.emerald },
+            { label: 'Đang có khách', value: `${occupied}/${total}`, color: colors.sky },
+            { label: 'Dọn / Bảo trì', value: String(needOps), color: colors.gold },
+          ],
+        });
+      }
+    } catch {
+      // Giữ nguyên KPI cũ nếu mạng yếu
+    } finally {
+      setLoadingKpi(false);
+    }
+  };
 
   const measureLatency = async () => {
     try {
@@ -159,10 +273,16 @@ export default function ProfileScreen() {
     loadHandoverNote();
   }, []);
 
+  useEffect(() => {
+    if (user?.role) {
+      fetchShiftKpi();
+    }
+  }, [user?.id, user?.role]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await Promise.all([refreshProfile(), measureLatency(), refreshHotelSettings()]);
+    await Promise.all([refreshProfile(), measureLatency(), refreshHotelSettings(), fetchShiftKpi()]);
     setRefreshing(false);
   };
 
@@ -336,6 +456,51 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+
+        {/* 1b. Thẻ Hiệu Suất & Công Việc Ca Hôm Nay (Thích ứng theo vai trò) */}
+        {shiftKpi && (
+          <TouchableOpacity
+            style={styles.sectionCard}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.navigate(shiftKpi.targetRoute);
+            }}
+            activeOpacity={0.85}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="stats-chart" size={14} color={colors.gold} />
+                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{shiftKpi.title}</Text>
+              </View>
+              {loadingKpi ? (
+                <ActivityIndicator size="small" color={colors.gold} />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: colors.gold, marginRight: 2 }}>
+                    Mở việc
+                  </Text>
+                  <Ionicons name="chevron-forward" size={14} color={colors.gold} />
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.idKpiRow, { marginTop: 0 }]}>
+              {shiftKpi.items.map((kpi, idx) => (
+                <React.Fragment key={kpi.label}>
+                  {idx > 0 && <View style={styles.idKpiDivider} />}
+                  <View style={styles.idKpiCol}>
+                    <Text style={[styles.idKpiVal, { fontSize: 17, fontWeight: '900', color: kpi.color }]} numberOfLines={1}>
+                      {kpi.value}
+                    </Text>
+                    <Text style={styles.idKpiLbl} numberOfLines={1}>
+                      {kpi.label}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* 2. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
         <View style={styles.sectionCard}>

@@ -32,6 +32,7 @@ import {
   LostFoundModal,
   RoomDetailModal,
   ChangeRoomModal,
+  CleaningChecklistModal,
 } from '../../components/housekeeping';
 
 export default function HousekeepingScreen() {
@@ -123,6 +124,12 @@ export default function HousekeepingScreen() {
   // Modal Hồ Sơ Khách Hàng CRM & Lịch Sử
   const [crmModalVisible, setCrmModalVisible] = useState(false);
   const [crmGuestId, setCrmGuestId] = useState<number | null>(null);
+
+  // Modal Checklist Dọn Phòng Chuẩn SOP (4 hạng mục)
+  const [checklistTarget, setChecklistTarget] = useState<{
+    room: RoomItem;
+    mode: 'checkout_clean' | 'stayover_clean' | 'makeup';
+  } | null>(null);
 
   const openRoomDetail = (room: RoomItem) => {
     setDetailRoom(room);
@@ -224,7 +231,58 @@ export default function HousekeepingScreen() {
     });
   }, [rooms, filterStatus, filterFloor, searchQuery]);
 
-  // Đổi trạng thái phòng 1 chạm (Chống bấm đúp khi đang xử lý)
+  // Thực thi gọi API đổi trạng thái phòng (dùng chung cho bắt đầu dọn & xác nhận sau checklist)
+  const executeRoomStatusChange = async (
+    room: RoomItem,
+    nextStatus: RoomItem['status'],
+    hasActiveGuest: boolean
+  ) => {
+    setActionLoadingId(room.id);
+    try {
+      const res = await apiClient.patch(`/rooms/admin/rooms/${room.id}/status/`, {
+        status: nextStatus,
+      });
+      if (res.data.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setChecklistTarget(null);
+        fetchRooms();
+      }
+    } catch (err: any) {
+      if (!err.response) {
+        const statusLabel =
+          nextStatus === 'cleaning'
+            ? 'Đang dọn dẹp'
+            : hasActiveGuest
+            ? 'Có khách lưu trú'
+            : 'Sẵn sàng đón khách';
+
+        await enqueueOfflineAction({
+          description: `Phòng ${room.room_number}: Chuyển trạng thái sang "${statusLabel}"`,
+          url: `/rooms/admin/rooms/${room.id}/status/`,
+          method: 'PATCH',
+          data: { status: nextStatus },
+        });
+
+        setRooms((prev) =>
+          prev.map((r) => (r.id === room.id ? { ...r, status: nextStatus } : r))
+        );
+        setChecklistTarget(null);
+
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác đổi trạng thái Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể đổi trạng thái phòng.';
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Thông báo', msg);
+      }
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Đổi trạng thái phòng (Hoàn tất dọn -> mở Checklist SOP 4 mục; Bắt đầu dọn -> xác nhận nhanh)
   const handleToggleCleaning = async (room: RoomItem) => {
     if (actionLoadingId === room.id) return;
     if (!canMarkCleaned) {
@@ -234,127 +292,87 @@ export default function HousekeepingScreen() {
     const isCleaning = room.status === 'cleaning';
     const hasActiveGuest = Boolean(room.current_booking);
 
-    // Nếu phòng đang dọn dẹp:
-    // - Nếu phòng có khách đang ở -> Chuyển về 'occupied' (Khách tiếp tục ở)
-    // - Nếu phòng trống -> Chuyển về 'available' (Phòng sạch đón khách mới)
-    const nextStatus = isCleaning ? (hasActiveGuest ? 'occupied' : 'available') : 'cleaning';
-
-    const actionTitle = isCleaning
-      ? (hasActiveGuest ? 'Hoàn tất dọn phòng khách ở' : 'Xác nhận ĐÃ DỌN SẠCH')
-      : 'Bắt đầu DỌN DẸP';
-
-    const actionDesc = isCleaning
-      ? (hasActiveGuest
-          ? `Phòng ${room.room_number} hiện đang có khách lưu trú (${room.current_booking?.guest_name || 'Khách'}). Xác nhận đã lau dọn sạch sẽ để phòng trở lại trạng thái "Có khách"?`
-          : `Phòng ${room.room_number} đã được lau dọn, thay ga gối sạch sẽ và sẵn sàng đón khách mới?`)
-      : `Bắt đầu ca dọn dẹp cho Phòng ${room.room_number}?`;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    Alert.alert(actionTitle, actionDesc, [
-      { text: 'Để sau', style: 'cancel' },
-      {
-        text: isCleaning ? (hasActiveGuest ? 'Khách tiếp tục ở' : 'Xác nhận đã dọn') : 'Bắt đầu dọn',
-        style: 'default',
-        onPress: async () => {
-          setActionLoadingId(room.id);
-          try {
-            const res = await apiClient.patch(`/rooms/admin/rooms/${room.id}/status/`, {
-              status: nextStatus,
-            });
-            if (res.data.success) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              fetchRooms();
-            }
-          } catch (err: any) {
-            if (!err.response) {
-              const statusLabel =
-                nextStatus === 'cleaning'
-                  ? 'Đang dọn dẹp'
-                  : hasActiveGuest
-                  ? 'Có khách lưu trú'
-                  : 'Sẵn sàng đón khách';
+    if (isCleaning) {
+      setChecklistTarget({
+        room,
+        mode: hasActiveGuest ? 'stayover_clean' : 'checkout_clean',
+      });
+      return;
+    }
 
-              await enqueueOfflineAction({
-                description: `Phòng ${room.room_number}: Chuyển trạng thái sang "${statusLabel}"`,
-                url: `/rooms/admin/rooms/${room.id}/status/`,
-                method: 'PATCH',
-                data: { status: nextStatus },
-              });
-
-              // Cập nhật giao diện lạc quan (Optimistic Update)
-              setRooms((prev) =>
-                prev.map((r) => (r.id === room.id ? { ...r, status: nextStatus } : r))
-              );
-
-              Alert.alert(
-                'Đã lưu ngoại tuyến',
-                `Mất kết nối máy chủ! Thao tác đổi trạng thái Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
-              );
-            } else {
-              const msg = err.response?.data?.message || 'Không thể đổi trạng thái phòng.';
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              Alert.alert('Thông báo', msg);
-            }
-          } finally {
-            setActionLoadingId(null);
-          }
-        },
-      },
-    ]);
-  };
-
-  // Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room) cho khách đang ở
-  const handleCompleteMakeUpCleaning = async (room: RoomItem) => {
-    if (actionLoadingId === room.id) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
-      'Hoàn tất dọn phòng khách ở',
-      `Xác nhận đã lau dọn, thay ga gối sạch sẽ cho Phòng ${room.room_number}? Trạng thái phòng tiếp tục là Có khách.`,
+      'Bắt đầu DỌN DẸP',
+      `Bắt đầu ca dọn dẹp cho Phòng ${room.room_number}?`,
       [
-        { text: 'Hủy', style: 'cancel' },
+        { text: 'Để sau', style: 'cancel' },
         {
-          text: 'Hoàn tất',
+          text: 'Bắt đầu dọn',
           style: 'default',
-          onPress: async () => {
-            setActionLoadingId(room.id);
-            try {
-              const res = await apiClient.post(`/rooms/admin/rooms/${room.id}/complete-cleaning/`);
-              if (res.data.success) {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                fetchRooms();
-              }
-            } catch (err: any) {
-              if (!err.response) {
-                await enqueueOfflineAction({
-                  description: `Phòng ${room.room_number}: Hoàn tất dọn phòng khách ở`,
-                  url: `/rooms/admin/rooms/${room.id}/complete-cleaning/`,
-                  method: 'POST',
-                });
-
-                setRooms((prev) =>
-                  prev.map((r) =>
-                    r.id === room.id
-                      ? { ...r, is_cleaning_requested: false, cleaning_request_note: '' }
-                      : r
-                  )
-                );
-
-                Alert.alert(
-                  'Đã lưu ngoại tuyến',
-                  `Mất kết nối máy chủ! Thao tác hoàn tất dọn Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
-                );
-              } else {
-                const msg = err.response?.data?.message || 'Không thể cập nhật.';
-                Alert.alert('Lỗi', msg);
-              }
-            } finally {
-              setActionLoadingId(null);
-            }
-          },
+          onPress: () => executeRoomStatusChange(room, 'cleaning', hasActiveGuest),
         },
       ]
     );
+  };
+
+  // Xác nhận hoàn tất dọn dẹp phòng lưu trú (Make-up room) qua Checklist SOP
+  const handleCompleteMakeUpCleaning = async (room: RoomItem) => {
+    if (actionLoadingId === room.id) return;
+    if (!canMarkCleaned) {
+      Alert.alert('Không có quyền', 'Nghiệp vụ xác nhận dọn phòng thuộc thẩm quyền của nhân viên Buồng phòng.');
+      return;
+    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setChecklistTarget({ room, mode: 'makeup' });
+  };
+
+  // Xác nhận hoàn tất sau khi đã tick đủ 4 mục SOP
+  const handleConfirmChecklist = async () => {
+    if (!checklistTarget) return;
+    const { room, mode } = checklistTarget;
+    if (mode === 'makeup') {
+      setActionLoadingId(room.id);
+      try {
+        const res = await apiClient.post(`/rooms/admin/rooms/${room.id}/complete-cleaning/`);
+        if (res.data.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setChecklistTarget(null);
+          fetchRooms();
+        }
+      } catch (err: any) {
+        if (!err.response) {
+          await enqueueOfflineAction({
+            description: `Phòng ${room.room_number}: Hoàn tất dọn phòng khách ở`,
+            url: `/rooms/admin/rooms/${room.id}/complete-cleaning/`,
+            method: 'POST',
+          });
+
+          setRooms((prev) =>
+            prev.map((r) =>
+              r.id === room.id
+                ? { ...r, is_cleaning_requested: false, cleaning_request_note: '' }
+                : r
+            )
+          );
+          setChecklistTarget(null);
+
+          Alert.alert(
+            'Đã lưu ngoại tuyến',
+            `Mất kết nối máy chủ! Thao tác hoàn tất dọn Phòng ${room.room_number} đã được lưu vào Hàng đợi và sẽ tự động gửi khi có mạng trở lại.`
+          );
+        } else {
+          const msg = err.response?.data?.message || 'Không thể cập nhật.';
+          Alert.alert('Lỗi', msg);
+        }
+      } finally {
+        setActionLoadingId(null);
+      }
+    } else {
+      const hasActiveGuest = mode === 'stayover_clean';
+      const nextStatus = hasActiveGuest ? 'occupied' : 'available';
+      await executeRoomStatusChange(room, nextStatus, hasActiveGuest);
+    }
   };
 
   const openMinibarCheck = (room: RoomItem) => {
@@ -924,6 +942,16 @@ export default function HousekeepingScreen() {
         visible={crmModalVisible}
         onClose={() => setCrmModalVisible(false)}
         initialGuestId={crmGuestId}
+      />
+
+      {/* Modal Checklist Dọn Phòng Chuẩn SOP */}
+      <CleaningChecklistModal
+        visible={Boolean(checklistTarget)}
+        room={checklistTarget?.room || null}
+        mode={checklistTarget?.mode || 'checkout_clean'}
+        submitting={Boolean(checklistTarget && actionLoadingId === checklistTarget.room.id)}
+        onClose={() => setChecklistTarget(null)}
+        onConfirm={handleConfirmChecklist}
       />
     </SafeAreaView>
   );

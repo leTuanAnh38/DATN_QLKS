@@ -6,3 +6,4 @@ export * from './BreakdownModal';
 export * from './LostFoundModal';
 export * from './RoomDetailModal';
 export * from './ChangeRoomModal';
+export * from './CleaningChecklistModal';
