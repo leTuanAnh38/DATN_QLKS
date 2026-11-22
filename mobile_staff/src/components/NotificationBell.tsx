@@ -18,6 +18,7 @@ import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../api/client';
 import { useFocusPolling } from '../hooks/use-focus-polling';
+import { useAuth } from '../contexts/AuthContext';
 import { useAppTheme } from '../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -34,6 +35,7 @@ export interface NotificationItem {
 }
 
 export default function NotificationBell() {
+  const { user } = useAuth();
   const { isDark } = useAppTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -135,10 +137,30 @@ export default function NotificationBell() {
     }
   };
 
-  // Điều hướng nhanh (Deep link) từ thông báo sang đúng màn hình chuyên trách
+  // Điều hướng nhanh (Deep link) từ thông báo sang đúng màn hình chuyên trách (có kiểm tra quyền tab theo RBAC)
   const handleNotificationPress = (item: NotificationItem) => {
     markAsRead(item);
     onCloseModal();
+
+    const role = user?.role || '';
+    const isFullOps =
+      Boolean(user?.is_superuser) ||
+      ['admin', 'owner', 'manager', 'receptionist'].includes(role);
+    const canMaintenance = isFullOps || role === 'technician';
+    const canLostFound = isFullOps || ['housekeeper', 'service_staff'].includes(role);
+    const canTransport = isFullOps || role === 'service_staff';
+    const canServices = isFullOps || ['service_staff', 'housekeeper', 'cashier'].includes(role);
+
+    const navigateIfAllowed = (
+      target: '/(tabs)/maintenance' | '/(tabs)/lost_found' | '/(tabs)/transport' | '/(tabs)/services' | '/(tabs)/housekeeping',
+      allowed: boolean
+    ) => {
+      if (allowed) {
+        router.push(target as any);
+      } else {
+        router.push('/(tabs)/housekeeping' as any);
+      }
+    };
 
     const t = `${item.title || ''} ${item.message || ''} ${item.action_url || ''}`.toLowerCase();
     const type = (item.notification_type || '').toLowerCase();
@@ -151,7 +173,7 @@ export default function NotificationBell() {
       type === 'maintenance' ||
       t.includes('maintenance')
     ) {
-      router.push('/(tabs)/maintenance' as any);
+      navigateIfAllowed('/(tabs)/maintenance', canMaintenance);
       return;
     }
 
@@ -163,7 +185,7 @@ export default function NotificationBell() {
       type === 'lost_found' ||
       t.includes('lost-found')
     ) {
-      router.push('/(tabs)/lost_found' as any);
+      navigateIfAllowed('/(tabs)/lost_found', canLostFound);
       return;
     }
 
@@ -176,7 +198,7 @@ export default function NotificationBell() {
       type === 'transport' ||
       t.includes('transport')
     ) {
-      router.push('/(tabs)/transport' as any);
+      navigateIfAllowed('/(tabs)/transport', canTransport);
       return;
     }
 
@@ -190,7 +212,7 @@ export default function NotificationBell() {
       type === 'service' ||
       t.includes('service')
     ) {
-      router.push('/(tabs)/services' as any);
+      navigateIfAllowed('/(tabs)/services', canServices);
       return;
     }
 

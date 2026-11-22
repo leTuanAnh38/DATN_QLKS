@@ -183,9 +183,10 @@ export const createProfileStyles = (colors: ThemeColors, isDark: boolean) =>
     idKpiCol: {
       flex: 1,
       alignItems: 'center',
+      paddingHorizontal: 4,
     },
     idKpiVal: {
-      fontSize: 15,
+      fontSize: 13.5,
       fontWeight: '900',
       color: colors.gold,
     },

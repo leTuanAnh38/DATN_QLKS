@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
   Alert,
   ActivityIndicator,
   Image,
@@ -26,6 +27,8 @@ import {
   ChangePasswordModal,
   ServerConfigModal,
   HandoverNoteModal,
+  ExecutiveDashboardModal,
+  StaffDirectoryModal,
   createProfileStyles,
 } from '../../components/profile';
 import { useOfflineQueueCount } from '../../services/offlineQueue';
@@ -33,12 +36,21 @@ import { useOfflineQueueCount } from '../../services/offlineQueue';
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
   const { themeMode, resolvedTheme, isDark, colors, hotelStars, hotelName, refreshHotelSettings, setThemeMode } = useAppTheme();
+  const userRole = user?.role || '';
+  const isExecutive = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager'].includes(userRole)
+  );
+  const canViewStaffDirectory = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(userRole)
+  );
   const canAccessCrmAndBookings = Boolean(
     user?.is_superuser ||
-      ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(user?.role || '')
+      ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(userRole)
   );
   const offlineQueueCount = useOfflineQueueCount();
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
+  const [executiveModalVisible, setExecutiveModalVisible] = useState(false);
+  const [staffDirModalVisible, setStaffDirModalVisible] = useState(false);
   const styles = useMemo(() => createProfileStyles(colors, isDark), [colors, isDark]);
   const [refreshing, setRefreshing] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
@@ -355,6 +367,23 @@ export default function ProfileScreen() {
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || 'Nhân viên ca trực';
   const resolvedAvatarUrl = resolveMobileMediaUrl(user?.avatar, apiUrl);
 
+  // Rút gọn Bộ phận & tách Tên ca / Khung giờ để không bị cắt chữ trong ô 3 cột
+  const shortDepartment = (() => {
+    const raw = (user?.department || '').trim();
+    if (!raw) return 'Vận hành';
+    return raw.replace(/^Bộ phận\s+/i, '').replace(/^Phòng\s+/i, '');
+  })();
+
+  const parsedShift = (() => {
+    const raw = (user?.shift || '').trim();
+    if (!raw) return { shortLabel: 'Ca Sáng', hours: '' };
+    const match = raw.match(/^(.+?)\s*\((.+)\)$/);
+    const rawTitle = match ? match[1].trim() : raw;
+    const hours = match ? match[2].trim() : '';
+    const shortLabel = rawTitle.replace(/^Ca\s+Hành\s+Chính$/i, 'Hành chính');
+    return { shortLabel, hours };
+  })();
+
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top']}>
       {/* 1. Header Khách Sạn & Chuông Thông Báo */}
@@ -367,13 +396,28 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.headerRightActions}>
           <NotificationBell />
-          <TouchableOpacity style={styles.refreshCircleBtn} onPress={handleRefresh} activeOpacity={0.7}>
-            <Ionicons name="refresh" size={17} color="#F59E0B" />
+          <TouchableOpacity
+            style={styles.refreshCircleBtn}
+            onPress={handleRefresh}
+            disabled={refreshing}
+            activeOpacity={0.7}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F59E0B" />
+        }
+      >
         {/* 1. Thẻ Căn Cước Nhân Viên & Hiệu Suất Ca Trực (Master Staff Badge) */}
         <View style={styles.idCard}>
           <View style={styles.cardGoldTrim} />
@@ -402,8 +446,8 @@ export default function ProfileScreen() {
             </View>
 
             <View style={{ flex: 1, marginLeft: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={styles.staffName} numberOfLines={1}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <Text style={[styles.staffName, { flex: 1 }]} numberOfLines={1}>
                   {fullName}
                 </Text>
                 <TouchableOpacity onPress={openEditModal} activeOpacity={0.7} style={styles.quickEditBtn}>
@@ -411,7 +455,7 @@ export default function ProfileScreen() {
                   <Text style={styles.quickEditBtnText}>Sửa</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.staffUsername}>
+              <Text style={styles.staffUsername} numberOfLines={1}>
                 @{user?.username} • ID: {user?.employee_code || `NV-${user?.id || '01'}`}
                 {user?.phone_number ? ` • ${user.phone_number}` : ''}
               </Text>
@@ -429,20 +473,20 @@ export default function ProfileScreen() {
           <View style={styles.idKpiRow}>
             <View style={styles.idKpiCol}>
               <Text style={styles.idKpiVal} numberOfLines={1}>
-                {user?.department || 'Vận hành'}
+                {shortDepartment}
               </Text>
               <Text style={styles.idKpiLbl}>Bộ phận</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
               <Text style={[styles.idKpiVal, { color: colors.emerald }]} numberOfLines={1}>
-                {user?.shift || 'Ca Sáng'}
+                {parsedShift.shortLabel}
               </Text>
               <Text style={styles.idKpiLbl}>Ca làm việc</Text>
             </View>
             <View style={styles.idKpiDivider} />
             <View style={styles.idKpiCol}>
-              <Text style={[styles.idKpiVal, { color: colors.sky }]}>
+              <Text style={[styles.idKpiVal, { color: colors.sky }]} numberOfLines={1}>
                 {serverLatency !== null ? `${serverLatency}ms` : '4G/WiFi'}
               </Text>
               <Text style={styles.idKpiLbl}>Độ trễ API</Text>
@@ -451,8 +495,9 @@ export default function ProfileScreen() {
 
           <View style={styles.shiftActiveBar}>
             <View style={styles.pulseDot} />
-            <Text style={styles.shiftActiveText}>
-              ĐANG TRỰC CA • {serverLatency !== null ? `PING ${serverLatency}ms` : 'HỆ THỐNG ĐỒNG BỘ 4G'}
+            <Text style={[styles.shiftActiveText, { flex: 1 }]} numberOfLines={1}>
+              ĐANG TRỰC CA{parsedShift.hours ? ` • ${parsedShift.hours}` : ''}
+              {serverLatency !== null ? ` • PING ${serverLatency}ms` : ''}
             </Text>
           </View>
         </View>
@@ -468,9 +513,11 @@ export default function ProfileScreen() {
             activeOpacity={0.85}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8 }}>
                 <Ionicons name="stats-chart" size={14} color={colors.gold} />
-                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{shiftKpi.title}</Text>
+                <Text style={[styles.sectionTitle, { marginBottom: 0 }]} numberOfLines={1}>
+                  {shiftKpi.title}
+                </Text>
               </View>
               {loadingKpi ? (
                 <ActivityIndicator size="small" color={colors.gold} />
@@ -484,7 +531,7 @@ export default function ProfileScreen() {
               )}
             </View>
 
-            <View style={[styles.idKpiRow, { marginTop: 0 }]}>
+            <View style={[styles.idKpiRow, { marginTop: 0, marginBottom: 0 }]}>
               {shiftKpi.items.map((kpi, idx) => (
                 <React.Fragment key={kpi.label}>
                   {idx > 0 && <View style={styles.idKpiDivider} />}
@@ -502,72 +549,63 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
-        {/* 2. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
+        {/* 2. Nghiệp Vụ Vận Hành Khách Sạn & Điều Hành (Ưu tiên trên cùng) */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Giao Diện Hệ Thống</Text>
-          <View style={styles.themeSegmentedBar}>
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'dark' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('dark');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="moon"
-                size={14}
-                color={themeMode === 'dark' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Tối
-              </Text>
-            </TouchableOpacity>
+          <Text style={styles.sectionTitle}>
+            {isExecutive ? 'Điều Hành & Quản Trị Nhanh' : 'Nghiệp Vụ & Ghi Chú Ca'}
+          </Text>
 
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'light' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('light');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="sunny"
-                size={14}
-                color={themeMode === 'light' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Sáng
-              </Text>
-            </TouchableOpacity>
+          {/* Bảng Điều Hành & Doanh Thu + Điểm nóng hiện trường (Chủ KS / Quản lý / Admin) */}
+          {isExecutive && (
+            <>
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() => {
+                  setExecutiveModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.16)' }]}>
+                  <Ionicons name="analytics-outline" size={17} color={colors.gold} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.actionTitle}>Bảng Điều Hành & Doanh Thu</Text>
+                  <Text style={styles.actionDesc} numberOfLines={1}>
+                    Doanh thu ngày/tuần/tháng, công suất & điểm nóng hiện trường
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+              </TouchableOpacity>
+              <View style={styles.detailDivider} />
+            </>
+          )}
 
-            <TouchableOpacity
-              style={[styles.themeSegmentBtn, themeMode === 'system' && styles.themeSegmentBtnActive]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setThemeMode('system');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="phone-portrait-outline"
-                size={14}
-                color={themeMode === 'system' ? colors.gold : colors.textMuted}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]} numberOfLines={1}>
-                Hệ thống
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 3. Nghiệp Vụ Vận Hành Khách Sạn & Ghi Chú Ca */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Nghiệp Vụ & Ghi Chú Ca</Text>
+          {/* Danh Bạ & Ca Trực Nhân Sự (Quản lý / Chủ KS / Admin / Lễ tân) */}
+          {canViewStaffDirectory && (
+            <>
+              <TouchableOpacity
+                style={styles.actionRow}
+                onPress={() => {
+                  setStaffDirModalVisible(true);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.14)' }]}>
+                  <Ionicons name="id-card-outline" size={17} color="#A855F7" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.actionTitle}>Danh Bạ & Ca Trực Nhân Sự</Text>
+                  <Text style={styles.actionDesc} numberOfLines={1}>
+                    Lọc theo bộ phận, ca làm việc & gọi điều phối 1 chạm
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+              </TouchableOpacity>
+              <View style={styles.detailDivider} />
+            </>
+          )}
 
           {/* Ghi Chú Ca Trực Cá Nhân (Lưu cục bộ trên thiết bị) */}
           <TouchableOpacity
@@ -636,6 +674,69 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </>
           )}
+        </View>
+
+        {/* 3. Bộ Chuyển Đổi Giao Diện Nhanh (Theme Segmented Bar) */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Giao Diện Hệ Thống</Text>
+          <View style={styles.themeSegmentedBar}>
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'dark' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('dark');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="moon"
+                size={14}
+                color={themeMode === 'dark' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'dark' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Tối
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'light' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('light');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="sunny"
+                size={14}
+                color={themeMode === 'light' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'light' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Sáng
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.themeSegmentBtn, themeMode === 'system' && styles.themeSegmentBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setThemeMode('system');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="phone-portrait-outline"
+                size={14}
+                color={themeMode === 'system' ? colors.gold : colors.textMuted}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={[styles.themeSegmentText, themeMode === 'system' && styles.themeSegmentTextActive]} numberOfLines={1}>
+                Hệ thống
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 4. Cài Đặt Tài Khoản & Kết Nối */}
@@ -813,6 +914,23 @@ export default function ProfileScreen() {
           setBookingModalVisible(false);
           setCrmModalVisible(true);
         }}
+      />
+
+      {/* Modal Bảng Điều Hành & Doanh Thu + Điểm Nóng Hiện Trường */}
+      <ExecutiveDashboardModal
+        visible={executiveModalVisible}
+        onClose={() => setExecutiveModalVisible(false)}
+        onNavigateTab={(route) => router.navigate(route)}
+        onSelectVipGuest={(guestId) => {
+          setCrmGuestId(guestId);
+          setCrmModalVisible(true);
+        }}
+      />
+
+      {/* Modal Danh Bạ & Ca Trực Nhân Sự */}
+      <StaffDirectoryModal
+        visible={staffDirModalVisible}
+        onClose={() => setStaffDirModalVisible(false)}
       />
     </SafeAreaView>
   );

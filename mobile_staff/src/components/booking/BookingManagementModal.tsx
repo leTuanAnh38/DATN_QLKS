@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
@@ -20,6 +21,7 @@ export default function BookingManagementModal({
   onSelectGuest,
 }: BookingManagementModalProps) {
   const { isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [activeMainTab, setActiveMainTab] = useState<'list' | 'timeline'>('list');
 
   // Bookings for Tab 1
@@ -51,6 +53,7 @@ export default function BookingManagementModal({
         <View
           style={[
             styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 8) },
             !isDark && {
               backgroundColor: '#FFFFFF',
               borderTopColor: '#E2E8F0',
@@ -58,6 +61,18 @@ export default function BookingManagementModal({
             },
           ]}
         >
+          {/* Drag indicator */}
+          <View style={{ alignItems: 'center', paddingTop: 2, paddingBottom: 8 }}>
+            <View
+              style={{
+                width: 38,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isDark ? '#334155' : '#CBD5E1',
+              }}
+            />
+          </View>
+
           {/* Header */}
           <View style={[styles.headerRow, !isDark && { borderBottomColor: '#F1F5F9' }]}>
             <View>
@@ -102,8 +117,9 @@ export default function BookingManagementModal({
                   !isDark && activeMainTab !== 'list' && { color: '#64748B' },
                   activeMainTab === 'list' && styles.modeBtnTextActive,
                 ]}
+                numberOfLines={1}
               >
-                Danh Sách Đặt Phòng ({bookings.length})
+                Danh sách ({bookings.length})
               </Text>
             </TouchableOpacity>
 
@@ -130,8 +146,9 @@ export default function BookingManagementModal({
                   !isDark && activeMainTab !== 'timeline' && { color: '#64748B' },
                   activeMainTab === 'timeline' && styles.modeBtnTextActive,
                 ]}
+                numberOfLines={1}
               >
-                Lịch Lưu Trú (Timeline)
+                Lịch lưu trú
               </Text>
             </TouchableOpacity>
           </View>

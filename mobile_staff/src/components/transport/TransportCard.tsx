@@ -262,145 +262,157 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
         </Text>
       </View>
 
-      {/* Nút hành động cho tài xế */}
-      <View style={styles.actionContainer}>
-        {/* Nút bản đồ chỉ đường Maps */}
-        <TouchableOpacity
-          style={[styles.mapButton, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
-          onPress={() => onOpenMap(item.note || item.service_name)}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="navigate-circle" size={18} color="#0284C7" />
-        </TouchableOpacity>
-
-        {/* Nút gửi tin nhắn SMS mẫu cho khách */}
-        {item.guest_phone ? (
+      {/* Nút hành động 2 tầng thoáng, không bị chèn ép trên màn hình nhỏ */}
+      <View style={styles.actionStack}>
+        {/* Tầng 1: Tiện ích Bản đồ, SMS & Gọi điện cho khách */}
+        <View style={styles.utilityRow}>
           <TouchableOpacity
-            style={[styles.smsButton, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
-            onPress={() => onSendSms(item.guest_phone, item.guest_name)}
-            activeOpacity={0.7}
+            style={[styles.utilityBtn, styles.utilityBtnMap, !isDark && { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}
+            onPress={() => onOpenMap(item.note || item.service_name)}
+            activeOpacity={0.75}
           >
-            <Ionicons name="chatbubble-ellipses" size={16} color="#F59E0B" />
+            <Ionicons name="navigate-circle" size={16} color="#0284C7" style={{ marginRight: 5 }} />
+            <Text style={[styles.utilityBtnText, { color: isDark ? '#38BDF8' : '#0284C7' }]} numberOfLines={1}>
+              Chỉ đường
+            </Text>
           </TouchableOpacity>
-        ) : null}
 
-        {/* Nút gọi điện cho khách */}
-        {item.guest_phone ? (
-          <TouchableOpacity
-            style={[styles.callButton, !isDark && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}
-            onPress={() => onCallGuest(item.guest_phone)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="call" size={15} color="#10B981" />
-            <Text style={[styles.callButtonText, !isDark && { color: '#059669' }]}>Gọi</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {/* Chưa có ai nhận -> Nút Tiếp nhận cuốc xe */}
-        {canOperate && !item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
-          <TouchableOpacity
-            style={[styles.claimButton, isActionLoading && { opacity: 0.65 }]}
-            onPress={() => onClaim(item)}
-            disabled={isActionLoading}
-            activeOpacity={0.8}
-          >
-            {isActionLoading ? (
-              <ActivityIndicator size="small" color="#0A0F1D" />
-            ) : (
-              <>
-                <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.claimButtonText}>TIẾP NHẬN CUỐC</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* Đang chuẩn bị -> Bắt đầu đi đón */}
-        {canOperate && item.status === 'in_progress' && (
-          <TouchableOpacity
-            style={[styles.departButton, isActionLoading && { opacity: 0.65 }]}
-            onPress={() => onUpdateStatus(item, 'delivering', 'Đang đi đón khách')}
-            disabled={isActionLoading}
-            activeOpacity={0.8}
-          >
-            {isActionLoading ? (
-              <ActivityIndicator size="small" color="#0A0F1D" />
-            ) : (
-              <>
-                <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.departButtonText}>BẮT ĐẦU ĐÓN</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* Đang đi đón -> Hoàn tất */}
-        {canOperate && item.status === 'delivering' && (
-          <TouchableOpacity
-            style={[styles.completeButton, isActionLoading && { opacity: 0.65 }]}
-            onPress={() => onUpdateStatus(item, 'completed', 'Hoàn tất chuyến xe')}
-            disabled={isActionLoading}
-            activeOpacity={0.8}
-          >
-            {isActionLoading ? (
-              <ActivityIndicator size="small" color="#0A0F1D" />
-            ) : (
-              <>
-                <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
-                <Text style={styles.completeButtonText}>ĐÃ TRẢ KHÁCH XONG</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {/* Nút Hủy cuốc xe (chỉ khi chờ nhận hoặc đang chuẩn bị) */}
-        {canOperate &&
-          onOpenCancel &&
-          (item.status === 'pending' || item.status === 'in_progress') && (
+          {item.guest_phone ? (
             <TouchableOpacity
-              style={[
-                styles.cancelTripButton,
-                !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
-                isActionLoading && { opacity: 0.5 },
-              ]}
-              onPress={() => onOpenCancel(item)}
-              disabled={isActionLoading}
+              style={[styles.utilityBtn, styles.utilityBtnSms, !isDark && { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}
+              onPress={() => onSendSms(item.guest_phone, item.guest_name)}
               activeOpacity={0.75}
-              accessibilityLabel="Hủy cuốc xe"
             >
-              <Ionicons name="close-circle-outline" size={17} color="#EF4444" />
+              <Ionicons name="chatbubble-ellipses" size={14} color="#D97706" style={{ marginRight: 5 }} />
+              <Text style={[styles.utilityBtnText, { color: isDark ? '#FBBF24' : '#B45309' }]} numberOfLines={1}>
+                Nhắn tin
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {item.guest_phone ? (
+            <TouchableOpacity
+              style={[styles.utilityBtn, styles.utilityBtnCall, !isDark && { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}
+              onPress={() => onCallGuest(item.guest_phone)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="call" size={14} color="#10B981" style={{ marginRight: 5 }} />
+              <Text style={[styles.utilityBtnText, { color: isDark ? '#34D399' : '#059669' }]} numberOfLines={1}>
+                Gọi khách
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* Tầng 2: Nút hành động chính của chuyến đi + Nút Hủy */}
+        <View style={styles.actionContainer}>
+          {/* Chưa có ai nhận -> Nút Tiếp nhận cuốc xe */}
+          {canOperate && !item.assigned_staff && (item.status === 'pending' || item.status === 'in_progress') && (
+            <TouchableOpacity
+              style={[styles.claimButton, isActionLoading && { opacity: 0.65 }]}
+              onPress={() => onClaim(item)}
+              disabled={isActionLoading}
+              activeOpacity={0.8}
+            >
+              {isActionLoading ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="hand-right" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.claimButtonText} numberOfLines={1}>TIẾP NHẬN CUỐC</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
 
-        {item.status === 'completed' && (
-          <View
-            style={[
-              styles.doneBadge,
-              !isDark && {
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderColor: 'rgba(16, 185, 129, 0.3)',
-              },
-            ]}
-          >
-            <Ionicons name="checkmark-circle" size={15} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 5 }} />
-            <Text style={[styles.doneBadgeText, !isDark && { color: '#059669' }]}>Chuyến đi hoàn tất</Text>
-          </View>
-        )}
+          {/* Đang chuẩn bị -> Bắt đầu đi đón */}
+          {canOperate && item.status === 'in_progress' && (
+            <TouchableOpacity
+              style={[styles.departButton, isActionLoading && { opacity: 0.65 }]}
+              onPress={() => onUpdateStatus(item, 'delivering', 'Đang đi đón khách')}
+              disabled={isActionLoading}
+              activeOpacity={0.8}
+            >
+              {isActionLoading ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="navigate" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.departButtonText} numberOfLines={1}>BẮT ĐẦU ĐÓN KHÁCH</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
 
-        {item.status === 'cancelled' && (
-          <View
-            style={[
-              styles.doneBadge,
-              {
-                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
-                borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
-              },
-            ]}
-          >
-            <Ionicons name="close-circle" size={15} color={isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 5 }} />
-            <Text style={[styles.doneBadgeText, { color: isDark ? '#F87171' : '#DC2626' }]}>Chuyến xe đã hủy</Text>
-          </View>
-        )}
+          {/* Đang đi đón -> Hoàn tất */}
+          {canOperate && item.status === 'delivering' && (
+            <TouchableOpacity
+              style={[styles.completeButton, isActionLoading && { opacity: 0.65 }]}
+              onPress={() => onUpdateStatus(item, 'completed', 'Hoàn tất chuyến xe')}
+              disabled={isActionLoading}
+              activeOpacity={0.8}
+            >
+              {isActionLoading ? (
+                <ActivityIndicator size="small" color="#0A0F1D" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-done" size={16} color="#0A0F1D" style={{ marginRight: 6 }} />
+                  <Text style={styles.completeButtonText} numberOfLines={1}>ĐÃ TRẢ KHÁCH XONG</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Nút Hủy cuốc xe (chỉ khi chờ nhận hoặc đang chuẩn bị) */}
+          {canOperate &&
+            onOpenCancel &&
+            (item.status === 'pending' || item.status === 'in_progress') && (
+              <TouchableOpacity
+                style={[
+                  styles.cancelTripButton,
+                  !isDark && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                  isActionLoading && { opacity: 0.5 },
+                ]}
+                onPress={() => onOpenCancel(item)}
+                disabled={isActionLoading}
+                activeOpacity={0.75}
+                accessibilityLabel="Hủy cuốc xe"
+              >
+                <Ionicons name="close-circle-outline" size={15} color="#EF4444" style={{ marginRight: 4 }} />
+                <Text style={styles.cancelTripButtonText}>Hủy</Text>
+              </TouchableOpacity>
+            )}
+
+          {item.status === 'completed' && (
+            <View
+              style={[
+                styles.doneBadge,
+                !isDark && {
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  borderColor: 'rgba(16, 185, 129, 0.3)',
+                },
+              ]}
+            >
+              <Ionicons name="checkmark-circle" size={15} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 5 }} />
+              <Text style={[styles.doneBadgeText, !isDark && { color: '#059669' }]}>Chuyến đi hoàn tất</Text>
+            </View>
+          )}
+
+          {item.status === 'cancelled' && (
+            <View
+              style={[
+                styles.doneBadge,
+                {
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FECACA',
+                },
+              ]}
+            >
+              <Ionicons name="close-circle" size={15} color={isDark ? '#F87171' : '#DC2626'} style={{ marginRight: 5 }} />
+              <Text style={[styles.doneBadgeText, { color: isDark ? '#F87171' : '#DC2626' }]}>Chuyến xe đã hủy</Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -594,47 +606,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#CBD5E1',
   },
+  actionStack: {
+    marginTop: 4,
+    gap: 8,
+  },
+  utilityRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  utilityBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+  },
+  utilityBtnMap: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  utilityBtnSms: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  utilityBtnCall: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  utilityBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   actionContainer: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 4,
-  },
-  mapButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  smsButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
-  },
-  callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 14,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-  },
-  callButtonText: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#10B981',
-    marginLeft: 6,
   },
   claimButton: {
     flex: 1,
@@ -642,14 +650,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F59E0B',
-    height: 48,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 10,
   },
   claimButtonText: {
     fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   departButton: {
     flex: 1,
@@ -657,14 +666,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#38BDF8',
-    height: 48,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 10,
   },
   departButtonText: {
     fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   completeButton: {
     flex: 1,
@@ -672,24 +682,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#10B981',
-    height: 48,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 10,
   },
   completeButtonText: {
     fontSize: 12.5,
     fontWeight: '900',
     color: '#0A0F1D',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   cancelTripButton: {
-    width: 44,
-    height: 48,
-    borderRadius: 14,
+    flexDirection: 'row',
+    paddingHorizontal: 13,
+    height: 44,
+    borderRadius: 12,
     backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cancelTripButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#EF4444',
   },
   doneBadge: {
     flex: 1,
@@ -697,8 +714,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    height: 48,
-    borderRadius: 14,
+    height: 42,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.25)',
   },
