@@ -496,8 +496,7 @@ export default function PromotionsPage() {
                             </h1>
 
                             <p className="mt-4 text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
-                                Tận hưởng kỳ nghỉ biển chuẩn {starCount} sao quốc tế tại {hotelName} với cam kết giá tốt nhất,
-                                miễn phí nâng hạng phòng và voucher giảm giá trực tiếp cho mọi lượt đặt.
+                                Săn mã giảm giá độc quyền và đặc quyền hội viên TA Club với cam kết giá đặt trực tiếp tốt nhất.
                             </p>
 
                             {/* FLASH SALE COUNTDOWN TIMER HOẶC LIVE STATUS */}

@@ -229,13 +229,13 @@ export default function RoomsAndSuitesPage() {
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                         <div className="max-w-3xl flex flex-col items-start text-left">
                             <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
-                                Tuyệt Tác Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
+                                Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
                                 <span className="text-amber-400">
                                     Bên Bờ Biển Mỹ Khê
                                 </span>
                             </h1>
                             <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                                Trải nghiệm các hạng phòng và suites {settings?.stars || 3} sao chuẩn quốc tế, sở hữu tầm nhìn trực diện biển xanh bao la cùng dịch vụ phòng cao cấp 24/7 tại {hotelName}.
+                                Khám phá các hạng phòng và suites chuẩn {settings?.stars || 3} sao tầm nhìn hướng biển, tiện nghi hiện đại tại {hotelName}.
                             </p>
                         </div>
 

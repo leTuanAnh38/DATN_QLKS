@@ -151,12 +151,17 @@ class AdminEmployeeListCreateView(APIView):
 
     def post(self, request):
         requester_role = getattr(request.user, 'role', '')
-        if requester_role == 'manager':
-            new_role = request.data.get('role')
-            if new_role in ['admin', 'owner', 'manager']:
+        new_role = request.data.get('role')
+        if not request.user.is_superuser:
+            if requester_role == 'manager' and new_role in ['admin', 'owner', 'manager']:
                 return Response({
                     'success': False,
                     'message': 'Quản lý không có quyền tạo tài khoản với vai trò Chủ khách sạn, Quản trị viên hoặc Quản lý.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if requester_role == 'owner' and new_role == 'admin':
+                return Response({
+                    'success': False,
+                    'message': 'Chủ khách sạn không có quyền tạo tài khoản Quản trị viên Hệ thống (Admin).'
                 }, status=status.HTTP_403_FORBIDDEN)
 
         serializer = AdminEmployeeSerializer(data=request.data, context={'request': request})
@@ -204,20 +209,34 @@ class AdminEmployeeDetailView(APIView):
         except User.DoesNotExist:
             return Response({'success': False, 'message': 'Không tìm thấy thông tin nhân viên.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Thẩm quyền: Manager không được chỉnh sửa Admin hoặc Owner
+        # Thẩm quyền phân cấp:
+        # - Manager không được chỉnh sửa / phân quyền Admin, Owner hoặc thăng chức lên Manager/Owner/Admin
+        # - Owner không được chỉnh sửa / phân quyền Admin Hệ thống hoặc cấp vai trò Admin
         requester_role = getattr(request.user, 'role', '')
-        if requester_role == 'manager':
-            if employee.role in ['admin', 'owner']:
-                return Response({
-                    'success': False,
-                    'message': 'Quản lý không có quyền chỉnh sửa hồ sơ hoặc phân quyền của Chủ khách sạn và Quản trị viên.'
-                }, status=status.HTTP_403_FORBIDDEN)
-            new_role = request.data.get('role')
-            if new_role and new_role in ['admin', 'owner', 'manager'] and new_role != employee.role:
-                return Response({
-                    'success': False,
-                    'message': 'Quản lý không có quyền cấp quyền Chủ khách sạn, Quản trị viên hoặc thăng chức Quản lý.'
-                }, status=status.HTTP_403_FORBIDDEN)
+        new_role = request.data.get('role')
+        if not request.user.is_superuser:
+            if requester_role == 'manager':
+                if employee.role in ['admin', 'owner']:
+                    return Response({
+                        'success': False,
+                        'message': 'Quản lý không có quyền chỉnh sửa hồ sơ hoặc phân quyền của Chủ khách sạn và Quản trị viên.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                if new_role and new_role in ['admin', 'owner', 'manager'] and new_role != employee.role:
+                    return Response({
+                        'success': False,
+                        'message': 'Quản lý không có quyền cấp quyền Chủ khách sạn, Quản trị viên hoặc thăng chức Quản lý.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            elif requester_role == 'owner':
+                if employee.role == 'admin':
+                    return Response({
+                        'success': False,
+                        'message': 'Chủ khách sạn không có quyền chỉnh sửa hồ sơ hoặc phân quyền của Quản trị viên Hệ thống (Admin).'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                if new_role == 'admin' and employee.role != 'admin':
+                    return Response({
+                        'success': False,
+                        'message': 'Chủ khách sạn không có quyền cấp vai trò Quản trị viên Hệ thống (Admin).'
+                    }, status=status.HTTP_403_FORBIDDEN)
 
         serializer = AdminEmployeeSerializer(employee, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
@@ -252,13 +271,21 @@ class AdminEmployeeDetailView(APIView):
             if employee.id == request.user.id:
                 return Response({'success': False, 'message': 'Không thể xóa tài khoản quản trị đang đăng nhập hiện tại.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Thẩm quyền: Manager không được xóa Admin, Owner hoặc Manager khác
+            # Thẩm quyền:
+            # - Manager không được xóa Admin, Owner hoặc Manager khác
+            # - Owner không được xóa Admin Hệ thống
             requester_role = getattr(request.user, 'role', '')
-            if requester_role == 'manager' and employee.role in ['admin', 'owner', 'manager']:
-                return Response({
-                    'success': False,
-                    'message': 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Quản trị viên hoặc cấp Quản lý khác.'
-                }, status=status.HTTP_403_FORBIDDEN)
+            if not request.user.is_superuser:
+                if requester_role == 'manager' and employee.role in ['admin', 'owner', 'manager']:
+                    return Response({
+                        'success': False,
+                        'message': 'Quản lý không có quyền xóa tài khoản của Chủ khách sạn, Quản trị viên hoặc cấp Quản lý khác.'
+                    }, status=status.HTTP_403_FORBIDDEN)
+                if requester_role == 'owner' and employee.role == 'admin':
+                    return Response({
+                        'success': False,
+                        'message': 'Chủ khách sạn không có quyền xóa tài khoản Quản trị viên Hệ thống (Admin).'
+                    }, status=status.HTTP_403_FORBIDDEN)
 
             shifts_count = employee.cashier_shifts.count()
             if shifts_count > 0:

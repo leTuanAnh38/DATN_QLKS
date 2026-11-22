@@ -234,3 +234,41 @@ class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
         shift_rows = res_shift.data.get('results') or res_shift.data.get('employees')
         self.assertEqual(len(shift_rows), 1)
         self.assertEqual(shift_rows[0]['role'], 'cashier')
+
+    def test_owner_cannot_modify_or_assign_admin_role(self):
+        self.client.force_authenticate(user=self.owner)
+
+        # Owner không được chỉnh sửa / hạ quyền tài khoản Admin
+        res_patch_admin = self.client.patch(
+            f'/api/users/admin/employees/{self.admin_staff.id}/',
+            {'role': 'receptionist'},
+            format='json',
+        )
+        self.assertEqual(res_patch_admin.status_code, 403)
+
+        # Owner không được nâng quyền nhân viên khác lên Admin
+        res_promote = self.client.patch(
+            f'/api/users/admin/employees/{self.cashier.id}/',
+            {'role': 'admin'},
+            format='json',
+        )
+        self.assertEqual(res_promote.status_code, 403)
+
+        # Owner không được tạo mới tài khoản Admin
+        res_create_admin = self.client.post(
+            '/api/users/admin/employees/',
+            {
+                'fullName': 'Fake Admin',
+                'email': 'fake_admin@example.com',
+                'phone': '0909888777',
+                'password': 'Password123!',
+                'role': 'admin',
+            },
+            format='json',
+        )
+        self.assertEqual(res_create_admin.status_code, 403)
+
+        # Owner không được xóa tài khoản Admin
+        res_delete_admin = self.client.delete(f'/api/users/admin/employees/{self.admin_staff.id}/')
+        self.assertEqual(res_delete_admin.status_code, 403)
+        self.assertTrue(User.objects.filter(pk=self.admin_staff.id).exists())

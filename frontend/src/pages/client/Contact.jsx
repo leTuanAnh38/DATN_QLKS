@@ -273,7 +273,7 @@ export default function ContactPage() {
                         </h1>
 
                         <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md">
-                            Đội ngũ Lễ tân & Chăm sóc Khách hàng luôn sẵn sàng lắng nghe, tư vấn đặt phòng, hỗ trợ khách đoàn và giải đáp mọi yêu cầu của Quý khách 24/7.
+                            Đội ngũ Lễ tân & Chăm sóc Khách hàng luôn sẵn sàng tư vấn đặt phòng và hỗ trợ Quý khách 24/7.
                         </p>
                     </div>
                 </div>

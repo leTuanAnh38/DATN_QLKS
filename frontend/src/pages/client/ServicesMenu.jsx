@@ -876,7 +876,7 @@ export default function ServicesMenu() {
                                 </span>
                             </h1>
                             <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                                Thưởng thức ẩm thực mỹ vị, set trà chiều hoàng gia, liệu trình spa thảo dược và các tiện ích buồng phòng đẳng cấp {starCount} sao phục vụ tận phòng nghỉ của bạn tại {hotelName}.
+                                Ẩm thực thượng hạng, trà chiều, liệu trình spa và tiện ích buồng phòng chuẩn {starCount} sao phục vụ tận phòng 24/7.
                             </p>
 
                             {/* Thông tin phòng đang lưu trú của khách */}

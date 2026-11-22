@@ -9,6 +9,7 @@ export default function EmployeeDetailModal({
     employee,
     currentUserId = null,
     isManager = false,
+    isOwner = false,
     onOpenAssignRole,
     onOpenEdit,
     getRoleBadge
@@ -17,7 +18,9 @@ export default function EmployeeDetailModal({
 
     const profile = employee.employee_profile || {};
     const isSelf = Boolean(currentUserId && employee.id === currentUserId);
-    const isRestrictedRole = isManager && ['admin', 'owner', 'manager'].includes(employee.role);
+    const isRestrictedRole =
+        (isManager && ['admin', 'owner', 'manager'].includes(employee.role)) ||
+        (isOwner && employee.role === 'admin');
     const isSalaryProtected = Boolean(
         profile.salary_hidden || (isManager && !isSelf && ['owner', 'manager'].includes(employee.role))
     );

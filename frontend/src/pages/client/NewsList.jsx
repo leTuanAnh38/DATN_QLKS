@@ -184,7 +184,7 @@ export default function NewsList() {
                         </h1>
 
                         <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
-                            Cập nhật những thông tin mới nhất về văn hóa du lịch, nghệ thuật ẩm thực tinh tế và các sự kiện, ưu đãi đặc quyền tại {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}.
+                            Cập nhật cẩm nang du lịch Đà Nẵng, nghệ thuật ẩm thực và các sự kiện nổi bật tại {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}.
                         </p>
                     </div>
                 </div>

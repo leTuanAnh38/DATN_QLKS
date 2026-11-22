@@ -53,7 +53,8 @@ import { useHasPermission } from '../../../utils/permission';
 export default function EmployeeManagement() {
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
-    const isManager = currentUserRole === 'manager';
+    const isManager = !currentUser?.is_superuser && currentUserRole === 'manager';
+    const isOwner = !currentUser?.is_superuser && currentUserRole === 'owner';
     const canCreateEmployee = useHasPermission('employees', 'create');
     const canUpdateEmployee = useHasPermission('employees', 'update');
     const canDeleteEmployee = useHasPermission('employees', 'delete');
@@ -67,13 +68,18 @@ export default function EmployeeManagement() {
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState(null);
 
-    // Danh sách vai trò có thể thao tác (Quản lý không được can thiệp vào Admin/Owner/Manager)
+    // Danh sách vai trò có thể thao tác:
+    // - Manager không được gán Admin/Owner/Manager
+    // - Owner không được gán Admin Hệ thống
     const availableRoles = useMemo(() => {
         if (isManager) {
             return roles.filter((r) => !['admin', 'owner', 'manager'].includes(r.code || r.role));
         }
+        if (isOwner) {
+            return roles.filter((r) => (r.code || r.role) !== 'admin');
+        }
         return roles;
-    }, [roles, isManager]);
+    }, [roles, isManager, isOwner]);
 
     // Phân trang (Pagination)
     const [currentPage, setCurrentPage] = useState(1);
@@ -373,11 +379,18 @@ export default function EmployeeManagement() {
     // 2. CHỨC NĂNG CHỈNH SỬA THÔNG TIN NHÂN VIÊN
     // =========================================================================
     const handleOpenEdit = (emp) => {
-        // Quản lý không được can thiệp vào tài khoản Admin hoặc Chủ khách sạn
+        // Quản lý không được can thiệp vào Admin/Owner/Manager; Chủ KS không được can thiệp vào Admin Hệ thống
         if (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) {
             setAlertMessage({
                 type: 'error',
                 text: 'Quản lý không có quyền chỉnh sửa hồ sơ của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+        if (isOwner && emp.role === 'admin') {
+            setAlertMessage({
+                type: 'error',
+                text: 'Chủ khách sạn không có quyền chỉnh sửa hồ sơ của Quản trị viên Hệ thống (Admin).',
             });
             return;
         }
@@ -484,6 +497,13 @@ export default function EmployeeManagement() {
             setAlertMessage({
                 type: 'error',
                 text: 'Quản lý không có quyền phân quyền hoặc thay đổi vai trò của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+        if (isOwner && emp.role === 'admin') {
+            setAlertMessage({
+                type: 'error',
+                text: 'Chủ khách sạn không có quyền phân quyền hoặc thay đổi vai trò của Quản trị viên Hệ thống (Admin).',
             });
             return;
         }
@@ -611,6 +631,13 @@ export default function EmployeeManagement() {
             });
             return;
         }
+        if (isOwner && emp.role === 'admin') {
+            setAlertMessage({
+                type: 'error',
+                text: 'Chủ khách sạn không có quyền xóa tài khoản Quản trị viên Hệ thống (Admin).',
+            });
+            return;
+        }
         setSelectedEmployee(emp);
         setIsDeleteModalOpen(true);
     };
@@ -662,6 +689,13 @@ export default function EmployeeManagement() {
             setAlertMessage({
                 type: 'error',
                 text: 'Quản lý không có quyền khóa tài khoản của Chủ khách sạn, Admin hoặc Quản lý khác.',
+            });
+            return;
+        }
+        if (isOwner && emp.role === 'admin') {
+            setAlertMessage({
+                type: 'error',
+                text: 'Chủ khách sạn không có quyền khóa tài khoản Quản trị viên Hệ thống (Admin).',
             });
             return;
         }
@@ -730,7 +764,9 @@ export default function EmployeeManagement() {
     };
 
     const isSelfRow = (emp) => Boolean(currentUser && emp.id === currentUser.id);
-    const isRestrictedForManager = (emp) => isManager && ['admin', 'owner', 'manager'].includes(emp.role);
+    const isRestrictedForManager = (emp) =>
+        (isManager && ['admin', 'owner', 'manager'].includes(emp.role)) ||
+        (isOwner && emp.role === 'admin');
     const isSalaryHidden = (emp) =>
         Boolean(
             emp.employee_profile?.salary_hidden ||
@@ -1443,6 +1479,7 @@ export default function EmployeeManagement() {
                 employee={selectedEmployee}
                 currentUserId={currentUser?.id}
                 isManager={isManager}
+                isOwner={isOwner}
                 onOpenAssignRole={handleOpenAssignRole}
                 onOpenEdit={handleOpenEdit}
                 getRoleBadge={getRoleBadge}

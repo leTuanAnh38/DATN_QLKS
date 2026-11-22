@@ -30,7 +30,7 @@ export default function CorporateHeroBanner({ settings }) {
                             </span>
                         </h1>
                         <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-normal max-w-2xl">
-                            Giải pháp lưu trú toàn diện cho công tác, hội thảo và du lịch tập thể. Đặt nhiều phòng cùng lúc với chiết khấu hợp đồng ưu đãi, xuất Hóa đơn GTGT (VAT) điện tử hợp lệ và điều phối chuyên nghiệp.
+                            Giải pháp lưu trú chuyên nghiệp cho công tác, hội thảo và du lịch tập thể với quy trình đặt nhiều phòng nhanh chóng.
                         </p>
                     </div>
 
