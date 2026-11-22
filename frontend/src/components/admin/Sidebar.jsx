@@ -205,12 +205,12 @@ export default function Sidebar({
                         title={`${sidebarHotelName} - Luxury Hotel Admin`}
                     >
                         {sidebarLogoUrl && !logoError ? (
-                            <div className="w-10 h-10 rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-lg shadow-slate-950/40 border border-slate-700/60 shrink-0 overflow-hidden">
+                            <div className="w-10 h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg shadow-slate-950/40 ring-1 ring-amber-400/40 shrink-0 overflow-hidden">
                                 <img
                                     src={sidebarLogoUrl}
                                     alt={sidebarHotelName}
                                     onError={() => setLogoError(true)}
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full object-cover object-center scale-105"
                                 />
                             </div>
                         ) : (
