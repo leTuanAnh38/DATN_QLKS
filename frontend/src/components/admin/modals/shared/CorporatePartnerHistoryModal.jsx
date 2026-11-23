@@ -37,8 +37,6 @@ export default function CorporatePartnerHistoryModal({
     partner,
     onClose
 }) {
-    if (!isOpen || !partner) return null;
-
     const [bookings, setBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchKeyword, setSearchKeyword] = useState('');
@@ -53,6 +51,7 @@ export default function CorporatePartnerHistoryModal({
 
     // Tải danh sách đơn đoàn của đối tác từ backend
     const fetchHistory = async () => {
+        if (!partner?.id) return;
         setIsLoading(true);
         const res = await bookingService.getCorporatePartnerBookings(partner.id);
         if (res.success) {
@@ -64,13 +63,13 @@ export default function CorporatePartnerHistoryModal({
     };
 
     useEffect(() => {
-        if (partner?.id) {
+        if (isOpen && partner?.id) {
             fetchHistory();
             setCurrentPage(1);
             setSearchKeyword('');
             setStatusFilter('all');
         }
-    }, [partner?.id]);
+    }, [isOpen, partner?.id]);
 
     // Lọc theo từ khóa tìm kiếm và trạng thái
     const filteredBookings = useMemo(() => {
@@ -119,6 +118,8 @@ export default function CorporatePartnerHistoryModal({
             .filter((b) => b.status !== 'cancelled')
             .reduce((sum, b) => sum + (parseInt(b.total_rooms, 10) || 0), 0);
     }, [bookings]);
+
+    if (!isOpen || !partner) return null;
 
     // Format phần trăm chiết khấu không thừa số .00
     const displayDiscount = parseFloat(partner.discount_percent) || 0;

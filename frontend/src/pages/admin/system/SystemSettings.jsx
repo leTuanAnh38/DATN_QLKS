@@ -189,10 +189,18 @@ export default function SystemSettings() {
 
         setIsSavingQr(true);
         try {
+            const normalizedName = qrFormData.account_name
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/Đ/g, 'D')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toUpperCase();
             const payload = {
                 bank_bin: qrFormData.bank_bin.trim(),
                 account_no: qrFormData.account_no.trim(),
-                account_name: qrFormData.account_name.trim().toUpperCase()
+                account_name: normalizedName
             };
             const response = await api.put('/payments/config/', payload);
             const resData = response.data?.data || response.data;
@@ -206,6 +214,9 @@ export default function SystemSettings() {
                 setSavedQrData(updated);
                 setIsEditingQr(false);
                 if (resData.updated_at) setQrLastUpdated(resData.updated_at);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('pms_bank_config_updated', { detail: updated }));
+                }
             }
             showToast('success', 'Lưu cấu hình thanh toán VietQR thành công!');
         } catch (error) {
@@ -390,7 +401,7 @@ export default function SystemSettings() {
         },
         {
             id: 'policies',
-            label: 'Thuế VAT, Dịch Vụ & Cọc',
+            label: 'Thuế, Phí & Cọc',
             desc: 'Tỷ lệ % VAT, phí dịch vụ, cọc đoàn và hủy phòng',
             icon: Percent,
             badge: 'Tài chính'

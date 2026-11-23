@@ -146,21 +146,21 @@ export const SERVICE_REQUEST_STATUSES = {
 // DANH SÁCH NGÂN HÀNG VIỆT NAM (VIETQR NAPAS 247)
 // =========================================================================
 export const POPULAR_BANKS = [
-    { bin: '970422', shortName: 'MB Bank', fullName: 'Ngân hàng TMCP Quân Đội' },
-    { bin: '970436', shortName: 'Vietcombank', fullName: 'Ngân hàng TMCP Ngoại Thương Việt Nam' },
-    { bin: '970415', shortName: 'VietinBank', fullName: 'Ngân hàng TMCP Công Thương Việt Nam' },
-    { bin: '970418', shortName: 'BIDV', fullName: 'Ngân hàng TMCP Đầu Tư và Phát Triển Việt Nam' },
-    { bin: '970407', shortName: 'Techcombank', fullName: 'Ngân hàng TMCP Kỹ Thương Việt Nam' },
-    { bin: '970416', shortName: 'ACB', fullName: 'Ngân hàng TMCP Á Châu' },
-    { bin: '970432', shortName: 'VPBank', fullName: 'Ngân hàng TMCP Việt Nam Thịnh Vượng' },
-    { bin: '970423', shortName: 'TPBank', fullName: 'Ngân hàng TMCP Tiên Phong' },
-    { bin: '970403', shortName: 'Sacombank', fullName: 'Ngân hàng TMCP Sài Gòn Thương Tín' },
-    { bin: '970405', shortName: 'Agribank', fullName: 'Ngân hàng Nông Nghiệp và Phát Triển Nông Thôn' },
-    { bin: '970443', shortName: 'SHB', fullName: 'Ngân hàng TMCP Sài Gòn - Hà Nội' },
-    { bin: '970437', shortName: 'HDBank', fullName: 'Ngân hàng TMCP Phát Triển TP.HCM' },
-    { bin: '970426', shortName: 'MSB', fullName: 'Ngân hàng TMCP Hàng Hải Việt Nam' },
-    { bin: '970448', shortName: 'OCB', fullName: 'Ngân hàng TMCP Phương Đông' },
-    { bin: '970441', shortName: 'VIB', fullName: 'Ngân hàng TMCP Quốc Tế Việt Nam' },
+    { bin: '970422', code: 'MB', shortName: 'MB Bank', fullName: 'Ngân hàng TMCP Quân Đội', logo: 'https://api.vietqr.io/img/MB.png' },
+    { bin: '970436', code: 'VCB', shortName: 'Vietcombank', fullName: 'Ngân hàng TMCP Ngoại Thương Việt Nam', logo: 'https://api.vietqr.io/img/VCB.png' },
+    { bin: '970415', code: 'ICB', shortName: 'VietinBank', fullName: 'Ngân hàng TMCP Công Thương Việt Nam', logo: 'https://api.vietqr.io/img/ICB.png' },
+    { bin: '970418', code: 'BIDV', shortName: 'BIDV', fullName: 'Ngân hàng TMCP Đầu Tư và Phát Triển Việt Nam', logo: 'https://api.vietqr.io/img/BIDV.png' },
+    { bin: '970407', code: 'TCB', shortName: 'Techcombank', fullName: 'Ngân hàng TMCP Kỹ Thương Việt Nam', logo: 'https://api.vietqr.io/img/TCB.png' },
+    { bin: '970416', code: 'ACB', shortName: 'ACB', fullName: 'Ngân hàng TMCP Á Châu', logo: 'https://api.vietqr.io/img/ACB.png' },
+    { bin: '970432', code: 'VPB', shortName: 'VPBank', fullName: 'Ngân hàng TMCP Việt Nam Thịnh Vượng', logo: 'https://api.vietqr.io/img/VPB.png' },
+    { bin: '970423', code: 'TPB', shortName: 'TPBank', fullName: 'Ngân hàng TMCP Tiên Phong', logo: 'https://api.vietqr.io/img/TPB.png' },
+    { bin: '970403', code: 'STB', shortName: 'Sacombank', fullName: 'Ngân hàng TMCP Sài Gòn Thương Tín', logo: 'https://api.vietqr.io/img/STB.png' },
+    { bin: '970405', code: 'VBA', shortName: 'Agribank', fullName: 'Ngân hàng Nông Nghiệp và Phát Triển Nông Thôn', logo: 'https://api.vietqr.io/img/VBA.png' },
+    { bin: '970443', code: 'SHB', shortName: 'SHB', fullName: 'Ngân hàng TMCP Sài Gòn - Hà Nội', logo: 'https://api.vietqr.io/img/SHB.png' },
+    { bin: '970437', code: 'HDB', shortName: 'HDBank', fullName: 'Ngân hàng TMCP Phát Triển TP.HCM', logo: 'https://api.vietqr.io/img/HDB.png' },
+    { bin: '970426', code: 'MSB', shortName: 'MSB', fullName: 'Ngân hàng TMCP Hàng Hải Việt Nam', logo: 'https://api.vietqr.io/img/MSB.png' },
+    { bin: '970448', code: 'OCB', shortName: 'OCB', fullName: 'Ngân hàng TMCP Phương Đông', logo: 'https://api.vietqr.io/img/OCB.png' },
+    { bin: '970441', code: 'VIB', shortName: 'VIB', fullName: 'Ngân hàng TMCP Quốc Tế Việt Nam', logo: 'https://api.vietqr.io/img/VIB.png' },
 ];
 
 /**

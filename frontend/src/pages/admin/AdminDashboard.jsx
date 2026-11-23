@@ -261,8 +261,14 @@ export default function HotelAdminDashboard({ initialTab }) {
         } else {
             const params = new URLSearchParams(location.search);
             const tabParam = params.get('tab');
+            const searchParam = params.get('search');
             if (tabParam) {
                 setActiveTab(tabParam);
+            }
+            if (tabParam === 'bookings' && searchParam) {
+                setBookingSubFilter('all');
+                setBookingQuickSearch(searchParam);
+                setIsBookingMenuOpen(true);
             }
         }
     }, [location.pathname, location.search]);
@@ -1047,9 +1053,10 @@ export default function HotelAdminDashboard({ initialTab }) {
                     {activeTab === 'booking-timeline' && (
                         canViewBookings ? (
                             <BookingTimeline
-                                onNavigateToBookings={() => {
+                                onNavigateToBookings={(searchCode) => {
                                     setActiveTab('bookings');
                                     setBookingSubFilter('all');
+                                    setBookingQuickSearch(typeof searchCode === 'string' ? searchCode : '');
                                     setIsBookingMenuOpen(true);
                                 }}
                             />

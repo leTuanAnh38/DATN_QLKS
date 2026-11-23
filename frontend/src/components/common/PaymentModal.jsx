@@ -33,6 +33,21 @@ const DEFAULT_BANK_CONFIG = {
 // Cache cấu hình ngân hàng ở mức module để mở lại modal tức thì không phải đợi API lặp lại
 let cachedBankConfig = null;
 
+if (typeof window !== 'undefined') {
+    window.addEventListener('pms_bank_config_updated', (e) => {
+        const next = e?.detail;
+        if (next && next.bank_bin && next.account_no) {
+            cachedBankConfig = {
+                bank_bin: next.bank_bin,
+                account_no: next.account_no,
+                account_name: String(next.account_name || DEFAULT_BANK_CONFIG.account_name).toUpperCase()
+            };
+        } else {
+            cachedBankConfig = null;
+        }
+    });
+}
+
 // Từ điển tên viết tắt các ngân hàng phổ biến theo BIN
 export const BANK_NAMES_BY_BIN = {
     '970422': { short: 'MB Bank', full: 'Ngân hàng TMCP Quân Đội' },

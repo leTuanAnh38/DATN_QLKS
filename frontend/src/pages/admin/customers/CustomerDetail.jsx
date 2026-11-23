@@ -26,7 +26,9 @@ import {
     ExternalLink,
     Loader2,
     AlertTriangle,
-    ShieldCheck
+    ShieldCheck,
+    ChevronRight,
+    Clock
 } from 'lucide-react';
 import adminUserService from '../../../services/adminUserService';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -271,36 +273,47 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
     const TierIcon = vipConfig.icon;
 
     return (
-        <div className="space-y-4 max-w-full animate-fadeIn pb-6">
-            {/* Header & Thanh Điều Hướng */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center gap-2.5">
+        <div className="space-y-3.5 max-w-full animate-fadeIn pb-6">
+            {/* Thanh Breadcrumb & Hành động gọn inline */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2 min-w-0">
                     <button
                         type="button"
                         onClick={() => navigate('/admin?tab=guests')}
-                        className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs"
+                        className="px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs shrink-0"
                         title="Quay lại danh sách khách hàng"
                     >
                         <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Quay lại danh sách</span>
+                        <span>Quay lại</span>
                     </button>
+                    <nav className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 min-w-0">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/admin?tab=guests')}
+                            className="hover:text-blue-600 font-medium transition cursor-pointer shrink-0"
+                        >
+                            Khách hàng & CRM
+                        </button>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="font-bold text-slate-800 truncate">
+                            {customer?.full_name || customer?.username || 'Hồ sơ khách hàng'}
+                        </span>
+                    </nav>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            fetchCustomerProfile();
-                            if (activeTab === 'bookings') fetchBookings(bookingCurrentPage);
-                            else fetchServiceRequests(serviceCurrentPage);
-                        }}
-                        disabled={isLoadingProfile || isLoadingBookings || isLoadingServices}
-                        className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
-                    >
-                        <RotateCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingProfile || isLoadingBookings || isLoadingServices ? 'animate-spin text-blue-600' : ''}`} />
-                        <span>Làm mới</span>
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        fetchCustomerProfile();
+                        if (activeTab === 'bookings') fetchBookings(bookingCurrentPage);
+                        else fetchServiceRequests(serviceCurrentPage);
+                    }}
+                    disabled={isLoadingProfile || isLoadingBookings || isLoadingServices}
+                    className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs shrink-0"
+                >
+                    <RotateCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingProfile || isLoadingBookings || isLoadingServices ? 'animate-spin text-blue-600' : ''}`} />
+                    <span>Làm mới</span>
+                </button>
             </div>
 
             {/* Thông báo lỗi nếu không tải được hồ sơ */}
@@ -340,9 +353,9 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                     name={customer.full_name || customer.username}
                                     role="guest"
                                     size="2xl"
-                                    className="w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl shadow-md ring-4 ring-slate-100 rounded-2xl"
+                                    className="w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl shadow-md ring-4 ring-slate-100 rounded-full"
                                 />
-                                <span className={`absolute -bottom-1 -right-1 p-1.5 rounded-full bg-white shadow-md border border-slate-100 ${vipConfig.iconColor}`} title={vipConfig.label}>
+                                <span className={`absolute bottom-0 right-0 p-1.5 rounded-full bg-white shadow-md border border-slate-200 ${vipConfig.iconColor}`} title={vipConfig.label}>
                                     <TierIcon className="w-3.5 h-3.5" />
                                 </span>
                             </div>
@@ -562,18 +575,18 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/80 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                                        <th className="p-4">Mã Đơn</th>
-                                        <th className="p-4">Hạng Phòng & Phòng Thực Tế</th>
-                                        <th className="p-4">Thời Gian (Check-in → Out)</th>
-                                        <th className="p-4">Tổng Tiền</th>
-                                        <th className="p-4">Trạng Thái</th>
-                                        <th className="p-4 text-right">Chi Tiết</th>
+                                        <th className="py-2.5 px-3.5">Mã Đơn</th>
+                                        <th className="py-2.5 px-3.5">Hạng Phòng & Phòng Thực Tế</th>
+                                        <th className="py-2.5 px-3.5">Thời Gian (Check-in → Out)</th>
+                                        <th className="py-2.5 px-3.5 text-right">Tổng Tiền</th>
+                                        <th className="py-2.5 px-3.5">Trạng Thái</th>
+                                        <th className="py-2.5 px-3.5 text-right">Chi Tiết</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {isLoadingBookings ? (
                                         <tr>
-                                            <td colSpan={6} className="p-12 text-center text-slate-400">
+                                            <td colSpan={6} className="p-10 text-center text-slate-400">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
                                                     <span className="font-medium text-slate-600">Đang tải lịch sử đặt phòng của khách...</span>
@@ -582,7 +595,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                         </tr>
                                     ) : bookings.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="p-12 text-center text-slate-400">
+                                            <td colSpan={6} className="p-10 text-center text-slate-400">
                                                 <div className="space-y-1.5 flex flex-col items-center justify-center">
                                                     <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 mb-1">
                                                         <Inbox className="w-6 h-6" />
@@ -600,11 +613,12 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                             };
                                             const roomNum = b.room_number || b.room?.room_number;
                                             const categoryName = b.room_name || b.category?.name || b.room?.category?.name || 'Tiêu chuẩn';
+                                            const displayAmount = Number(b.grand_total_amount || b.total_amount || 0);
 
                                             return (
                                                 <tr key={b.id} className="hover:bg-slate-50/70 transition">
                                                     {/* Mã đơn */}
-                                                    <td className="p-4 font-mono font-bold text-blue-600">
+                                                    <td className="py-2.5 px-3.5 font-mono font-bold text-blue-600">
                                                         #{b.booking_code}
                                                         <span className="block font-sans text-[10px] text-slate-400 font-normal mt-0.5">
                                                             {formatDateTimeDisplay(b.created_at)}
@@ -612,32 +626,32 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                     </td>
 
                                                     {/* Hạng phòng & Phòng */}
-                                                    <td className="p-4">
-                                                        <strong className="block font-bold text-slate-900 text-sm">
+                                                    <td className="py-2.5 px-3.5">
+                                                        <strong className="block font-bold text-slate-900 text-xs sm:text-[13px]">
                                                             {categoryName}
                                                         </strong>
                                                         <div className="flex items-center gap-1.5 mt-0.5">
                                                             {roomNum ? (
-                                                                <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[11px] font-bold">
+                                                                <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10.5px] font-bold">
                                                                     Phòng {roomNum}
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-slate-400 text-[11px]">Chưa gán phòng</span>
+                                                                <span className="text-slate-400 text-[10.5px]">Chưa gán phòng</span>
                                                             )}
                                                         </div>
                                                     </td>
 
                                                     {/* Check-in / Out */}
-                                                    <td className="p-4 text-slate-700">
-                                                        <div className="space-y-1">
+                                                    <td className="py-2.5 px-3.5 text-slate-700">
+                                                        <div className="space-y-0.5">
                                                             <div className="flex items-center gap-1.5 text-slate-800 font-medium">
-                                                                <span className="inline-flex items-center gap-1 font-semibold text-slate-900 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-200/60">
-                                                                    <LogIn className="w-3.5 h-3.5 text-blue-500" />
+                                                                <span className="inline-flex items-center gap-1 font-semibold text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200/60">
+                                                                    <LogIn className="w-3 h-3 text-blue-500" />
                                                                     <span>{formatDateDisplay(b.check_in_date)}</span>
                                                                 </span>
                                                                 <span className="text-slate-400">→</span>
-                                                                <span className="inline-flex items-center gap-1 font-semibold text-slate-900 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-200/60">
-                                                                    <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                                                                <span className="inline-flex items-center gap-1 font-semibold text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200/60">
+                                                                    <LogOut className="w-3 h-3 text-rose-500" />
                                                                     <span>{formatDateDisplay(b.check_out_date)}</span>
                                                                 </span>
                                                             </div>
@@ -650,9 +664,9 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                     </td>
 
                                                     {/* Tổng tiền */}
-                                                    <td className="p-4">
-                                                        <strong className="font-mono text-amber-600 font-bold text-sm block">
-                                                            {Number(b.total_amount || 0).toLocaleString('vi-VN')} đ
+                                                    <td className="py-2.5 px-3.5 text-right tabular-nums">
+                                                        <strong className="font-mono text-amber-600 font-bold text-[13px] block">
+                                                            {displayAmount.toLocaleString('vi-VN')} đ
                                                         </strong>
                                                         {b.applied_promotion && (
                                                             <span className="text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 font-mono">
@@ -662,18 +676,23 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                     </td>
 
                                                     {/* Trạng thái */}
-                                                    <td className="p-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusCfg.color}`}>
+                                                    <td className="py-2.5 px-3.5">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold border ${statusCfg.color}`}>
                                                             {statusCfg.label}
                                                         </span>
                                                     </td>
 
                                                     {/* Thao tác xem */}
-                                                    <td className="p-4 text-right">
+                                                    <td className="py-2.5 px-3.5 text-right">
                                                         <button
                                                             type="button"
-                                                            onClick={() => navigate('/admin?tab=bookings')}
-                                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-xs transition cursor-pointer shadow-2xs"
+                                                            onClick={() =>
+                                                                navigate(
+                                                                    `/admin?tab=bookings&search=${encodeURIComponent(b.booking_code || '')}`
+                                                                )
+                                                            }
+                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-slate-600 hover:text-blue-700 font-bold text-[11px] transition cursor-pointer shadow-2xs"
+                                                            title={`Mở đơn #${b.booking_code} tại Quản lý Đặt phòng`}
                                                         >
                                                             <span>Xem tại PMS</span>
                                                             <ExternalLink className="w-3 h-3" />
@@ -752,8 +771,8 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
 
                                                 <div className="text-[11px] flex items-center justify-between pt-1 border-t border-slate-200/50">
                                                     <span className="text-slate-500">Tổng tiền:</span>
-                                                    <strong className="font-mono text-amber-600 font-bold text-xs">
-                                                        {Number(b.total_amount || 0).toLocaleString('vi-VN')} đ
+                                                    <strong className="font-mono text-amber-600 font-bold text-xs tabular-nums">
+                                                        {Number(b.grand_total_amount || b.total_amount || 0).toLocaleString('vi-VN')} đ
                                                     </strong>
                                                 </div>
                                             </div>
@@ -761,7 +780,11 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                             <div className="flex items-center justify-end pt-1">
                                                 <button
                                                     type="button"
-                                                    onClick={() => navigate('/admin?tab=bookings')}
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/admin?tab=bookings&search=${encodeURIComponent(b.booking_code || '')}`
+                                                        )
+                                                    }
                                                     className="w-full sm:w-auto px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-blue-50 hover:text-blue-700 text-slate-600 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
                                                 >
                                                     <span>Xem tại PMS</span>
@@ -799,12 +822,12 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             <table className="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50/80 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                                        <th className="p-4">Tên Dịch Vụ / Món Ăn</th>
-                                        <th className="p-4">Thuộc Mã Đơn & Phòng</th>
-                                        <th className="p-4 text-center">Số Lượng</th>
-                                        <th className="p-4">Thành Tiền</th>
-                                        <th className="p-4">Ngày Giờ Yêu Cầu</th>
-                                        <th className="p-4">Trạng Thái</th>
+                                        <th className="py-2.5 px-3.5">Tên Dịch Vụ / Món Ăn</th>
+                                        <th className="py-2.5 px-3.5">Thuộc Mã Đơn & Phòng</th>
+                                        <th className="py-2.5 px-3.5 text-center">Số Lượng</th>
+                                        <th className="py-2.5 px-3.5 text-right">Thành Tiền</th>
+                                        <th className="py-2.5 px-3.5">Ngày Giờ Yêu Cầu</th>
+                                        <th className="py-2.5 px-3.5">Trạng Thái</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -843,14 +866,16 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                             return (
                                                 <tr key={req.id} className="hover:bg-slate-50/70 transition">
                                                     {/* Tên dịch vụ */}
-                                                    <td className="p-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="relative w-12 h-12 rounded-xl shrink-0 overflow-hidden border border-slate-200/80 shadow-2xs bg-slate-50 flex items-center justify-center">
+                                                    <td className="py-2.5 px-3.5">
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="relative w-10 h-10 rounded-xl shrink-0 overflow-hidden border border-slate-200/80 shadow-2xs bg-slate-50 flex items-center justify-center">
                                                                 {serviceImg ? (
                                                                     <>
                                                                         <img
                                                                             src={serviceImg}
                                                                             alt={serviceName}
+                                                                            loading="lazy"
+                                                                            decoding="async"
                                                                             className="w-full h-full object-cover"
                                                                             onError={(e) => {
                                                                                 e.currentTarget.style.display = 'none';
@@ -862,21 +887,21 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                                             className="w-full h-full bg-blue-50 text-blue-600 items-center justify-center text-sm"
                                                                             style={{ display: 'none' }}
                                                                         >
-                                                                            <Utensils className="w-5 h-5 text-blue-600" />
+                                                                            <Utensils className="w-4 h-4 text-blue-600" />
                                                                         </div>
                                                                     </>
                                                                 ) : (
                                                                     <div className="w-full h-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
-                                                                        <Utensils className="w-5 h-5 text-blue-600" />
+                                                                        <Utensils className="w-4 h-4 text-blue-600" />
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             <div className="min-w-0">
-                                                                <strong className="block font-bold text-slate-900 text-sm truncate" title={serviceName}>
+                                                                <strong className="block font-bold text-slate-900 text-xs sm:text-[13px] truncate" title={serviceName}>
                                                                     {serviceName}
                                                                 </strong>
                                                                 {req.note && (
-                                                                    <span className="text-[11px] text-slate-400 italic block mt-0.5 line-clamp-1" title={req.note}>
+                                                                    <span className="text-[10.5px] text-slate-400 italic block mt-0.5 line-clamp-1" title={req.note}>
                                                                         "{req.note}"
                                                                     </span>
                                                                 )}
@@ -885,25 +910,25 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                     </td>
 
                                                     {/* Thuộc mã đơn nào */}
-                                                    <td className="p-4">
+                                                    <td className="py-2.5 px-3.5">
                                                         <span className="font-mono font-bold text-blue-600 block">
                                                             #{bookingCode}
                                                         </span>
-                                                        <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-[10px] font-bold inline-block mt-0.5">
+                                                        <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px] font-bold inline-block mt-0.5">
                                                             Phòng {roomNum}
                                                         </span>
                                                     </td>
 
                                                     {/* Số lượng */}
-                                                    <td className="p-4 text-center">
-                                                        <span className="font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg text-xs">
+                                                    <td className="py-2.5 px-3.5 text-center">
+                                                        <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg text-xs">
                                                             x{req.quantity || 1}
                                                         </span>
                                                     </td>
 
                                                     {/* Thành tiền */}
-                                                    <td className="p-4">
-                                                        <strong className="font-mono text-amber-600 font-bold text-sm block">
+                                                    <td className="py-2.5 px-3.5 text-right tabular-nums">
+                                                        <strong className="font-mono text-amber-600 font-bold text-[13px] block">
                                                             {Number(req.total_price || 0).toLocaleString('vi-VN')} đ
                                                         </strong>
                                                         <span className="text-[10px] text-slate-400">
@@ -912,20 +937,21 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                                                     </td>
 
                                                     {/* Ngày giờ */}
-                                                    <td className="p-4 text-slate-700">
+                                                    <td className="py-2.5 px-3.5 text-slate-700">
                                                         <span className="font-semibold block text-slate-900">
                                                             {formatDateTimeDisplay(req.created_at || req.request_time)}
                                                         </span>
                                                         {req.is_scheduled && req.request_time && (
-                                                            <span className="text-[10px] text-amber-600 font-semibold block">
-                                                                ⏰ Hẹn giao: {formatDateTimeDisplay(req.request_time)}
+                                                            <span className="text-[10px] text-amber-600 font-semibold inline-flex items-center gap-1 mt-0.5">
+                                                                <Clock className="w-3 h-3 shrink-0" />
+                                                                <span>Hẹn giao: {formatDateTimeDisplay(req.request_time)}</span>
                                                             </span>
                                                         )}
                                                     </td>
 
                                                     {/* Trạng thái */}
-                                                    <td className="p-4">
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusCfg.color}`}>
+                                                    <td className="py-2.5 px-3.5">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-bold border ${statusCfg.color}`}>
                                                             {statusCfg.label}
                                                         </span>
                                                     </td>

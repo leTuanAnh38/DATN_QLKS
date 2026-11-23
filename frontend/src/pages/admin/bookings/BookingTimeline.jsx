@@ -1153,8 +1153,9 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        const codeToFilter = selectedBookingModal.booking_code || '';
                                         setSelectedBookingModal(null);
-                                        onNavigateToBookings();
+                                        onNavigateToBookings(codeToFilter);
                                     }}
                                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 >
