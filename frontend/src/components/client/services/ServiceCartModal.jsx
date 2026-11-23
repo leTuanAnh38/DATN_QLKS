@@ -200,7 +200,7 @@ export default function ServiceCartModal({
                                                     value={ci.note || ''}
                                                     onChange={(e) => updateCartItemNote(ci.id, e.target.value)}
                                                     placeholder="Ghi chú món này (VD: ít đá, không hành, sốt để riêng...)"
-                                                    className="w-full px-2.5 py-1 text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500"
+                                                    className="w-full px-2.5 py-1.5 sm:py-1 text-base sm:text-[11px] bg-white border border-slate-200 rounded-lg text-slate-700 placeholder:text-[11px] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500 focus:border-sky-500"
                                                 />
                                             </div>
                                         </div>
@@ -218,7 +218,7 @@ export default function ServiceCartModal({
                                         value={cartBookingId}
                                         onChange={(e) => setCartBookingId(e.target.value)}
                                         required
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                     >
                                         {activeBookings.map((b) => (
                                             <option key={b.id} value={b.id}>
@@ -233,7 +233,7 @@ export default function ServiceCartModal({
                                         onChange={(e) => setCartBookingId(e.target.value.toUpperCase())}
                                         placeholder="Nhập Mã Booking (VD: BK-02DE4E in trên bìa thẻ phòng)"
                                         required
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-bold text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
                                     />
                                 )}
                                 <span className="text-[10px] text-slate-400 mt-1 block">
@@ -359,7 +359,7 @@ export default function ServiceCartModal({
                                     value={cartGeneralNote}
                                     onChange={(e) => setCartGeneralNote(e.target.value)}
                                     placeholder="Ví dụ: Giao cùng lúc khi các món đã nấu xong, mang thêm 2 bộ chén đĩa..."
-                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
+                                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                 />
                             </div>
 

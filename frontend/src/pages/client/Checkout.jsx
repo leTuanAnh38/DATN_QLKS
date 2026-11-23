@@ -904,7 +904,10 @@ export default function Checkout() {
 
             {/* MOBILE STICKY BOTTOM BAR: GIÁ + NÚT ĐẶT PHÒNG (Chỉ hiện trên mobile) */}
             {!loadingRoom && room && !createdBooking && (
-                <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl shadow-slate-900/10 px-4 py-3 flex items-center gap-3">
+                <div
+                    className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl shadow-slate-900/10 px-4 py-3 flex items-center gap-3"
+                    style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                >
                     <div className="flex-1 min-w-0">
                         <div className="text-[11px] text-slate-500 truncate">{room.name} · {nights} đêm</div>
                         <div className="font-black text-lg text-rose-600 leading-tight">

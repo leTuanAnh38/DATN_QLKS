@@ -109,7 +109,7 @@ export default function ServiceOrderModal({
                                         value={selectedBookingId}
                                         onChange={(e) => setSelectedBookingId(e.target.value)}
                                         required
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs"
                                     >
                                         {activeBookings.map((b) => (
                                             <option key={b.id} value={b.id}>
@@ -143,7 +143,7 @@ export default function ServiceOrderModal({
                                         onChange={(e) => setSelectedBookingId(e.target.value.toUpperCase())}
                                         placeholder="Nhập Mã Booking (VD: BK-02DE4E)"
                                         required
-                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
+                                        className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-bold text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 uppercase tracking-wider shadow-2xs"
                                     />
                                 </div>
                             )}
@@ -324,7 +324,7 @@ export default function ServiceOrderModal({
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 placeholder="Ví dụ: Mang lên lúc 19:30, ít đường, nhiều đá, khăn tắm thêm, sốt để riêng..."
-                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs resize-none"
+                                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs resize-none"
                             ></textarea>
                         </div>
                     </div>

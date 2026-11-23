@@ -437,7 +437,7 @@ export default function Navbar({
                                         <button
                                             type="button"
                                             onClick={handleRequestLogout}
-                                            className="px-2 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                            className="px-2.5 py-1.5 min-h-[34px] text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
                                         >
                                             Thoát
                                         </button>

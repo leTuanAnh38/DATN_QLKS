@@ -710,8 +710,6 @@ export default function AIChatbotWidget() {
         location.pathname.startsWith('/rooms/') ||
         location.pathname.startsWith('/room/') ||
         location.pathname.startsWith('/checkout') ||
-        location.pathname.startsWith('/services') ||
-        location.pathname.startsWith('/menu') ||
         isCorporatePage;
 
     const { settings } = useHotelSettings();
