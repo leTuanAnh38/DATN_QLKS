@@ -162,7 +162,7 @@ export default function NewsList() {
             </div>
 
             {/* HERO BANNER CHUẨN LUXURY RESORT */}
-            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 <img
                     src={settings?.banner_news || "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"}
                     alt="Khách Sạn TA Đà Nẵng Resort"
@@ -176,7 +176,7 @@ export default function NewsList() {
                     <div className="max-w-3xl flex flex-col items-start text-left">
 
 
-                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
                             Khám Phá Trải Nghiệm & <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 Cẩm Nang Tinh Hoa

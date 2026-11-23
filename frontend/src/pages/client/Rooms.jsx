@@ -213,7 +213,7 @@ export default function RoomsAndSuitesPage() {
             </div>
 
             {/* 1. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
-            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
                 <img
                     src={bannerRoomsImg}
@@ -228,7 +228,7 @@ export default function RoomsAndSuitesPage() {
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                         <div className="max-w-3xl flex flex-col items-start text-left">
-                            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
                                 Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
                                 <span className="text-amber-400">
                                     Bên Bờ Biển Mỹ Khê

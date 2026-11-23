@@ -251,7 +251,7 @@ export default function ContactPage() {
             </div>
 
             {/* HERO BANNER CHUẨN LUXURY HOTEL & RESORT */}
-            <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 <img
                     src={hotelInfo.banner_contact || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"}
                     alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
@@ -265,7 +265,7 @@ export default function ContactPage() {
                     <div className="max-w-3xl flex flex-col items-start text-left">
                         
 
-                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
+                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}

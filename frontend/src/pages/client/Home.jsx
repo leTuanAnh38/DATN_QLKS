@@ -261,7 +261,7 @@ export default function TADaNangHotelLanding() {
                 onTouchStart={handleBannerTouchStart}
                 onTouchMove={handleBannerTouchMove}
                 onTouchEnd={handleBannerTouchEnd}
-                className="relative w-full min-h-[500px] lg:h-[560px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
+                className="relative w-full min-h-[440px] lg:h-[470px] xl:h-[520px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
             >
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
                 {bannerImages.map((b, idx) => (

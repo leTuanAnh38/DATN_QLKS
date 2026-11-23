@@ -1575,7 +1575,7 @@ export default function AIChatbotWidget() {
             {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
             {isOpen && (
                 <div
-                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[610px] sm:max-h-[85vh]"
+                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-20 sm:right-6 sm:w-[410px] sm:h-[550px] sm:max-h-[calc(100vh-6rem)]"
                     style={{
                         boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)'
                     }}

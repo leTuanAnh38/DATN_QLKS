@@ -17,13 +17,13 @@ export default function CorporateHeroBanner({ settings }) {
                 <div className="absolute inset-0 bg-gradient-to-r from-white via-white/55 to-transparent" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16 lg:py-24">
-                <div className="space-y-6 max-w-2xl lg:max-w-3xl">
-                    <div className="space-y-3.5">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-14">
+                <div className="space-y-5 max-w-2xl lg:max-w-3xl">
+                    <div className="space-y-3">
                         <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-sky-700">
                             DỊCH VỤ DOANH NGHIỆP & HỘI THẢO
                         </span>
-                        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
                             Khách Hàng Doanh Nghiệp <br className="hidden sm:inline" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700">
                                 & Đặt Phòng Theo Đoàn

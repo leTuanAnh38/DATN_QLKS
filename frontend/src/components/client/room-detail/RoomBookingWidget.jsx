@@ -51,9 +51,9 @@ export default function RoomBookingWidget({
         <>
             {/* CỘT PHẢI: STICKY BOOKING WIDGET (4 COLS TRÊN DESKTOP) */}
             <div className="lg:col-span-4" id="dat-phong">
-                <div className="sticky top-28 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-6 space-y-6">
+                <div className="lg:sticky lg:top-20 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-5 space-y-4 lg:max-h-[calc(100vh-5.75rem)] lg:overflow-y-auto">
                     {/* Khối giá hiển thị động */}
-                    <div className="pb-5 border-b border-slate-100">
+                    <div className="pb-3.5 border-b border-slate-100">
                         <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
                             <span className="uppercase font-bold tracking-wider text-sky-700">
                                 Giá ưu đãi đặt trực tiếp
@@ -225,7 +225,7 @@ export default function RoomBookingWidget({
                     <button
                         type="button"
                         onClick={handleGoToCheckout}
-                        className="group relative w-full py-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-2xl shadow-xl shadow-sky-900/20 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
+                        className="group relative w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-sm rounded-2xl shadow-xl shadow-sky-900/20 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all overflow-hidden cursor-pointer"
                     >
                         <span className="absolute inset-0 w-1/2 h-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-[300%] transition-transform duration-1000 ease-out pointer-events-none" />
                         <ShieldCheck className="w-4 h-4 text-white/90" />

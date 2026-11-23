@@ -320,13 +320,13 @@ export default function PaymentModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-6 animate-fadeIn">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 animate-fadeIn">
             {/* Backdrop click outside */}
             <div className="fixed inset-0" onClick={handleInitiateCancel} aria-hidden="true" />
 
             {/* Modal Box */}
             <div
-                className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[94vh] flex flex-col overflow-hidden z-10"
+                className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Modal - Fixed */}

@@ -48,7 +48,7 @@ export default function CorporateConfirmationModal({
             }}
             className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
         >
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-2xl w-full h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-2xl w-full h-[92dvh] sm:h-auto sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="bg-white border-b border-slate-100 p-3.5 sm:p-6 relative flex items-center justify-between gap-3 shrink-0">
                     <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">

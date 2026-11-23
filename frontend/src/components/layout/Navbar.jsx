@@ -171,7 +171,7 @@ export default function Navbar({
 
             {/* 2. HEADER NAVIGATION */}
             <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-xs">
-                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 xl:gap-8">
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4 xl:gap-6">
                     {/* Brand Logo: Co giãn an toàn trên 375px, giữ nguyên vẹn trên máy tính */}
                     <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0 flex-1 xl:flex-none xl:shrink-0">
                         {settings?.logo_url ? (

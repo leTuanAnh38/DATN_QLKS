@@ -855,7 +855,7 @@ export default function ServicesMenu() {
                 </div>
 
                 {/* HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
-                <header className="relative bg-slate-950 overflow-hidden py-16 lg:py-24 border-b border-slate-800 shadow-md">
+                <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
                     {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
                     <img
                         src={bannerServicesImg}
@@ -869,7 +869,7 @@ export default function ServicesMenu() {
                     {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
                     <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="max-w-3xl flex flex-col items-start text-left">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-white tracking-tight leading-tight drop-shadow-sm">
                                 Thực Đơn Dịch Vụ Tại Phòng <br className="hidden sm:inline" />
                                 <span className="text-amber-400">
                                     & Đặc Quyền Lưu Trú

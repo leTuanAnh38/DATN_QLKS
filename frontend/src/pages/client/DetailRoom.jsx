@@ -691,7 +691,7 @@ export default function DetailRoom() {
                 {/* Shimmer 5-Grid Gallery Skeleton */}
                 <div className="bg-white pb-8">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="grid grid-cols-12 gap-3 h-[420px] sm:h-[500px] lg:h-[560px] rounded-3xl overflow-hidden">
+                        <div className="grid grid-cols-12 gap-3 h-[320px] sm:h-[400px] lg:h-[420px] xl:h-[460px] rounded-3xl overflow-hidden">
                             <div className="col-span-12 lg:col-span-6 bg-slate-200 animate-pulse relative">
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                                     <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
@@ -929,7 +929,7 @@ export default function DetailRoom() {
                                     </span>
                                 )}
                             </div>
-                            <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+                            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 tracking-tight">
                                 {room.name}
                             </h1>
                         </div>
@@ -955,7 +955,7 @@ export default function DetailRoom() {
             {/* GALLERY TỰ ĐỘNG THÍCH ỨNG THEO SỐ LƯỢNG ẢNH THỰC TẾ */}
             <section className="bg-white pb-6 sm:pb-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-12 gap-3 h-[280px] sm:h-[480px] lg:h-[560px] rounded-3xl overflow-hidden relative select-none">
+                    <div className="grid grid-cols-12 gap-3 h-[280px] sm:h-[400px] lg:h-[420px] xl:h-[460px] rounded-3xl overflow-hidden relative select-none">
                         {/* Ảnh chính lớn (Tràn 100% nếu chỉ có 1 ảnh hoặc trên mobile, hoặc 50% nếu có từ 2 ảnh trở lên trên desktop) */}
                         <div
                             className={`${gallery.length === 1 ? 'col-span-12' : 'col-span-12 lg:col-span-6'} relative group overflow-hidden h-full cursor-pointer touch-pan-y`}

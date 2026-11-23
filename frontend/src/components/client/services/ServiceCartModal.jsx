@@ -46,7 +46,7 @@ export default function ServiceCartModal({
             />
             <div
                 className={`relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10 ${
-                    cart.length > 0 ? 'h-[92dvh] sm:h-auto sm:max-h-[92vh]' : 'max-h-[90dvh] sm:max-h-[92vh]'
+                    cart.length > 0 ? 'h-[92dvh] sm:h-auto sm:max-h-[88vh]' : 'max-h-[90dvh] sm:max-h-[88vh]'
                 }`}
                 onClick={(e) => e.stopPropagation()}
             >
