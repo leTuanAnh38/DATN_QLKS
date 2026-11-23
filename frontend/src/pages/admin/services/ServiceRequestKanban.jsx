@@ -937,23 +937,22 @@ export default function ServiceRequestKanban() {
                         })}
                     </div>
 
-                    {/* BẢNG CHO MÀN HÌNH MÁY TÍNH (>= md) */}
+                    {/* BẢNG CHO MÀN HÌNH MÁY TÍNH (>= md) - COMPACT 5 CỘT */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[11px] font-bold">
-                                    <th className="py-3 px-4 whitespace-nowrap">Phòng & Mã Đơn</th>
-                                    <th className="py-3 px-4 min-w-[130px]">Khách Hàng</th>
-                                    <th className="py-3 px-4 min-w-[240px]">Dịch Vụ Yêu Cầu</th>
-                                    <th className="py-3 px-4 whitespace-nowrap text-right">Chi Phí & Số Lượng</th>
-                                    <th className="py-3 px-4 whitespace-nowrap">Thời Gian</th>
-                                    <th className="py-3 px-4 text-center whitespace-nowrap">Trạng Thái & Thao Tác</th>
+                                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10.5px] font-bold">
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Phòng & Khách</th>
+                                    <th className="py-2.5 px-3">Dịch Vụ Yêu Cầu</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap text-right">Chi Phí</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Thời Gian</th>
+                                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Trạng Thái & Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-slate-700">
                                 {isLoading && allListItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                                        <td colSpan={5} className="py-10 text-center text-slate-400">
                                             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                                             <span>Đang tải danh sách yêu cầu dịch vụ...</span>
                                         </td>
@@ -962,8 +961,8 @@ export default function ServiceRequestKanban() {
 
                                 {!isLoading && listItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="py-12 text-center text-slate-400">
-                                            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-6 h-6" /></div>
+                                        <td colSpan={5} className="py-10 text-center text-slate-400">
+                                            <div className="w-11 h-11 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center mx-auto mb-2"><Inbox className="w-5 h-5" /></div>
                                             <p className="font-semibold text-slate-700">Không có yêu cầu dịch vụ nào</p>
                                             <p className="text-[11px] text-slate-400 mt-1">
                                                 {searchKeyword ? 'Hãy thử tìm kiếm với từ khóa khác.' : 'Chưa có yêu cầu nào trong mục này.'}
@@ -984,37 +983,38 @@ export default function ServiceRequestKanban() {
                                             key={item.id}
                                             className={`hover:bg-blue-50/25 transition duration-150 ${isUpdatingThis ? 'opacity-60 bg-slate-50' : ''}`}
                                         >
-                                            {/* 1. Phòng / Mã đơn */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap align-middle">
-                                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 font-mono font-black text-xs shadow-2xs">
-                                                    <DoorClosed className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                                                    <span>{item.room_number ? `Phòng ${item.room_number}` : 'Chờ xếp'}</span>
+                                            {/* 1. Phòng, Mã đơn & Khách hàng */}
+                                            <td className="py-2 px-3 align-middle max-w-[180px]">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-mono font-black text-[11px]">
+                                                        <DoorClosed className="w-3 h-3 text-indigo-500 shrink-0" />
+                                                        <span>{item.room_number ? `P.${item.room_number}` : 'Chờ xếp'}</span>
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-mono">#{item.booking_code}</span>
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 block mt-1 font-mono tracking-tight font-medium">
-                                                    #{item.booking_code}
-                                                </span>
+                                                <div className="font-bold text-slate-900 text-xs truncate mt-0.5" title={item.guest_name}>
+                                                    {item.guest_name || 'Khách lưu trú'}
+                                                </div>
                                                 {sla && (
-                                                    <div className="mt-1">
-                                                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold border ${sla.pill}`}>
-                                                            <Clock className="w-2.5 h-2.5 shrink-0" />
-                                                            <span>{sla.label}</span>
-                                                        </span>
-                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold border mt-0.5 ${sla.pill}`}>
+                                                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                                                        <span>{sla.label}</span>
+                                                    </span>
                                                 )}
                                                 {item.status === 'pending' && (
-                                                    <div className="mt-1">
+                                                    <div className="mt-0.5">
                                                         {getServiceLockReason(item) === 'NO_ROOM' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold" title="Chưa gán số phòng cụ thể">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 text-[9px] font-bold">
                                                                 <AlertTriangle className="w-2.5 h-2.5 shrink-0" /> Chưa gán phòng
                                                             </span>
                                                         )}
                                                         {getServiceLockReason(item) === 'WAIT_CHECKIN' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold" title="Dịch vụ ăn uống / spa yêu cầu khách nhận phòng trước khi phục vụ">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-bold">
                                                                 <Lock className="w-2.5 h-2.5 shrink-0" /> Chờ Check-in
                                                             </span>
                                                         )}
                                                         {!getServiceLockReason(item) && isRoomPrepService(item.service_name, item.category_name) && item.booking_status !== 'checked_in' && (
-                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold" title="Đã có số phòng! Nhân viên buồng phòng có thể chuẩn bị gối khăn / tiện nghi vào phòng trước khi khách tới">
+                                                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[9px] font-bold">
                                                                 <BedDouble className="w-2.5 h-2.5 shrink-0" /> Setup phòng
                                                             </span>
                                                         )}
@@ -1022,131 +1022,109 @@ export default function ServiceRequestKanban() {
                                                 )}
                                             </td>
 
-                                            {/* 2. Khách hàng */}
-                                            <td className="py-3.5 px-4 min-w-[130px] max-w-[180px] align-middle">
-                                                <div className="font-bold text-slate-900 text-xs truncate" title={item.guest_name}>
-                                                    {item.guest_name || 'Khách lưu trú'}
-                                                </div>
-                                                <span className="text-[11px] text-slate-400 block mt-0.5">
-                                                    Khách lưu trú
-                                                </span>
-                                            </td>
-
-                                            {/* 3. Dịch vụ yêu cầu */}
-                                            <td className="py-3.5 px-4 min-w-[240px] max-w-[360px] align-middle">
-                                                <div className="flex items-center gap-3">
+                                            {/* 2. Dịch vụ yêu cầu */}
+                                            <td className="py-2 px-3 max-w-[320px] align-middle">
+                                                <div className="flex items-center gap-2.5">
                                                     {item.service_image ? (
                                                         <img
                                                             src={item.service_image}
                                                             alt={item.service_name}
-                                                            className="w-11 h-11 rounded-xl object-cover border border-slate-200/80 shrink-0 shadow-2xs"
+                                                            className="w-9 h-9 rounded-lg object-cover border border-slate-200/80 shrink-0"
                                                         />
                                                     ) : (
-                                                        <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/60">
-                                                            <UtensilsCrossed className="w-5 h-5 text-slate-400" />
+                                                        <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center shrink-0 border border-slate-200/60">
+                                                            <UtensilsCrossed className="w-4 h-4 text-slate-400" />
                                                         </div>
                                                     )}
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="font-bold text-slate-900 text-xs sm:text-[13px] truncate" title={item.service_name}>
+                                                        <div className="font-bold text-slate-900 text-[13px] truncate" title={item.service_name}>
                                                             {item.service_name}
                                                         </div>
-                                                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                                            <span className="inline-block px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200/70">
+                                                        <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
                                                                 {item.category_name || 'Dịch vụ'}
                                                             </span>
                                                             {totalAmt === 0 ? (
-                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <Gift className="w-2.5 h-2.5 text-emerald-600" />
-                                                                    <span>Tiện ích miễn phí</span>
+                                                                <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold">
+                                                                    Miễn phí
                                                                 </span>
                                                             ) : item.is_paid ? (
-                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                                    <span>Đã trả trước</span>
+                                                                <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[10px] font-semibold">
+                                                                    Đã TT
                                                                 </span>
                                                             ) : (
-                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200/80 text-[10px] font-semibold shadow-2xs">
-                                                                    <CreditCard className="w-2.5 h-2.5 text-amber-600" />
-                                                                    <span>Thu Check-out</span>
+                                                                <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80 text-[10px] font-semibold">
+                                                                    Thu Check-out
                                                                 </span>
                                                             )}
                                                             {item.is_scheduled && item.request_time && item.status !== 'completed' && item.status !== 'cancelled' && (
-                                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold shadow-2xs">
-                                                                    <Clock className="w-2.5 h-2.5 text-indigo-600" />
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold">
+                                                                    <Clock className="w-2.5 h-2.5" />
                                                                     <span>Hẹn {new Date(item.request_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                                                                 </span>
                                                             )}
                                                         </div>
                                                         {item.note && (
-                                                            <div className="text-[11px] text-slate-500 italic truncate mt-1 flex items-center gap-1.5" title={item.note}>
-                                                                <MessageSquare className="w-3 h-3 text-slate-400 shrink-0" />
-                                                                <span className="truncate">{item.note}</span>
+                                                            <div className="text-[11px] text-slate-500 italic truncate mt-0.5" title={item.note}>
+                                                                "{item.note}"
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
                                             </td>
 
-                                            {/* 4. Chi phí & Số lượng gộp chung */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap text-right align-middle">
-                                                <div className="font-black text-rose-600 text-sm tracking-tight">
-                                                    {totalAmt.toLocaleString('vi-VN')} đ
+                                            {/* 3. Chi phí & Số lượng */}
+                                            <td className="py-2 px-3 whitespace-nowrap text-right align-middle tabular-nums">
+                                                <div className="font-black text-rose-600 text-[13px] tracking-tight">
+                                                    {totalAmt.toLocaleString('vi-VN')}₫
                                                 </div>
-                                                <span className="text-[11px] text-slate-500 font-semibold block mt-0.5">
+                                                <span className="text-[10.5px] text-slate-500 font-semibold block">
                                                     x{item.quantity || 1} suất
                                                 </span>
                                             </td>
 
-                                            {/* 5. Thời gian (2 dòng rõ ràng, chuẩn khách sạn) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600 align-middle">
+                                            {/* 4. Thời gian */}
+                                            <td className="py-2 px-3 whitespace-nowrap text-xs text-slate-600 align-middle tabular-nums">
                                                 {(() => {
                                                     const timeInfo = formatRequestDateTime(item.created_at);
                                                     return (
                                                         <div>
-                                                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                                                                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                                <span>{timeInfo.time}</span>
-                                                            </div>
-                                                            <div className="text-[10px] text-slate-400 font-medium pl-5 mt-0.5">
-                                                                {timeInfo.date}
-                                                            </div>
+                                                            <div className="font-bold text-slate-800">{timeInfo.time}</div>
+                                                            <div className="text-[10.5px] text-slate-400">{timeInfo.date}</div>
                                                         </div>
                                                     );
                                                 })()}
                                             </td>
 
-                                            {/* 6. Trạng thái & Thao tác (Gộp chung 1 cột duy nhất, chuẩn 5 sao) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap align-middle">
-                                                <div className="flex items-center justify-center">
+                                            {/* 5. Trạng thái & Thao tác gọn */}
+                                            <td className="py-2 px-3 whitespace-nowrap align-middle">
+                                                <div className="flex items-center justify-end gap-1.5">
                                                     {item.status === 'completed' && (
                                                         <span
-                                                            title={totalAmt === 0 ? "Tiện ích buồng phòng miễn phí đã hoàn thành" : "Yêu cầu dịch vụ đã hoàn thành và được tự động hạch toán vào hóa đơn phòng"}
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs select-none"
+                                                            title={totalAmt === 0 ? "Tiện ích buồng phòng miễn phí đã hoàn thành" : "Yêu cầu dịch vụ đã hoàn thành và tự động hạch toán vào hóa đơn phòng"}
+                                                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold select-none"
                                                         >
                                                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                                            <span>{totalAmt === 0 ? 'Hoàn thành (Tiện ích miễn phí)' : 'Hoàn thành (Đã tính vào phòng)'}</span>
+                                                            <span>{totalAmt === 0 ? 'Hoàn tất (Free)' : 'Hoàn tất'}</span>
                                                         </span>
                                                     )}
 
                                                     {item.status === 'pending' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
-                                                                <Clock className="w-3 h-3 text-amber-600 shrink-0" /> Chờ xử lý
-                                                            </span>
+                                                        <div className="flex items-center gap-1">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                 disabled={isUpdatingThis || needsCheckIn}
-                                                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 active:scale-95 ${
+                                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition shadow-xs flex items-center gap-1 active:scale-95 ${
                                                                     needsCheckIn
                                                                         ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer hover:shadow-md'
+                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
                                                                 }`}
                                                                 title={
                                                                     getServiceLockReason(item) === 'NO_ROOM'
-                                                                        ? "Chưa gán số phòng cụ thể. Cần liên hệ Lễ tân gán phòng trước khi thực hiện."
+                                                                        ? "Chưa gán số phòng cụ thể."
                                                                         : (getServiceLockReason(item) === 'WAIT_CHECKIN'
-                                                                            ? "Khách chưa làm thủ tục Check-in nhận phòng. Dịch vụ ăn uống / spa yêu cầu khách có mặt tại phòng để phục vụ."
+                                                                            ? "Khách chưa Check-in."
                                                                             : "Bắt đầu chuẩn bị")
                                                                 }
                                                             >
@@ -1158,7 +1136,7 @@ export default function ServiceRequestKanban() {
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'cancelled')}
                                                                 disabled={isUpdatingThis}
-                                                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                className="w-7 h-7 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg inline-flex items-center justify-center transition cursor-pointer"
                                                                 title="Hủy yêu cầu này"
                                                             >
                                                                 <X className="w-3.5 h-3.5" />
@@ -1167,25 +1145,21 @@ export default function ServiceRequestKanban() {
                                                     )}
 
                                                     {item.status === 'in_progress' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold">
-                                                                <ChefHat className="w-3 h-3 text-blue-600 shrink-0" /> Đang làm
-                                                            </span>
+                                                        <div className="flex items-center gap-1">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'delivering')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 active:scale-95"
+                                                                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
                                                             >
                                                                 <BellRing className="w-3 h-3 shrink-0" />
                                                                 <span>Giao phòng</span>
-                                                                <ArrowRight className="w-3 h-3 stroke-[2.5]" />
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'pending')}
                                                                 disabled={isUpdatingThis}
-                                                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                className="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg inline-flex items-center justify-center transition cursor-pointer"
                                                                 title="Trả về Chờ xử lý"
                                                             >
                                                                 <Undo2 className="w-3.5 h-3.5" />
@@ -1194,15 +1168,12 @@ export default function ServiceRequestKanban() {
                                                     )}
 
                                                     {item.status === 'delivering' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold">
-                                                                <BellRing className="w-3 h-3 text-purple-600 shrink-0" /> Đang giao
-                                                            </span>
+                                                        <div className="flex items-center gap-1">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'completed')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 active:scale-95"
+                                                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1 active:scale-95"
                                                             >
                                                                 <CheckCircle2 className="w-3 h-3 shrink-0" />
                                                                 <span>Hoàn tất</span>
@@ -1211,7 +1182,7 @@ export default function ServiceRequestKanban() {
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'in_progress')}
                                                                 disabled={isUpdatingThis}
-                                                                className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold transition cursor-pointer"
+                                                                className="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg inline-flex items-center justify-center transition cursor-pointer"
                                                                 title="Trả về Đang chuẩn bị"
                                                             >
                                                                 <Undo2 className="w-3.5 h-3.5" />
@@ -1220,36 +1191,36 @@ export default function ServiceRequestKanban() {
                                                     )}
 
                                                     {item.status === 'cancelled' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold">
-                                                                <XCircle className="w-3 h-3 text-rose-600 shrink-0" /> Đã hủy
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-bold">
+                                                                Đã hủy
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleUpdateStatus(item.id, 'pending')}
                                                                 disabled={isUpdatingThis}
-                                                                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                                                                className="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-blue-600 rounded-lg inline-flex items-center justify-center transition cursor-pointer"
+                                                                title="Khôi phục về Chờ xử lý"
                                                             >
-                                                                <RotateCcw className="w-3 h-3" />
-                                                                <span>Khôi phục</span>
+                                                                <RotateCcw className="w-3.5 h-3.5" />
                                                             </button>
                                                         </div>
                                                     )}
 
-                                                    {/* Nút In phiếu và Xem chi tiết (Rõ ràng, tinh tế, dễ bấm) */}
-                                                    <div className="flex items-center gap-1.5 ml-2.5 pl-2.5 border-l border-slate-200">
+                                                    {/* Nút In phiếu và Xem chi tiết */}
+                                                    <div className="flex items-center gap-1 pl-1.5 border-l border-slate-200">
                                                         <button
                                                             type="button"
                                                             onClick={() => handlePrintSlip(item)}
-                                                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition cursor-pointer border border-slate-200/70 active:scale-95"
-                                                            title="In phiếu phục vụ phòng (Print Slip)"
+                                                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center transition cursor-pointer"
+                                                            title="In phiếu phục vụ phòng"
                                                         >
                                                             <Printer className="w-3.5 h-3.5" />
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setSelectedItemForDetail(item)}
-                                                            className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 flex items-center justify-center transition cursor-pointer border border-blue-200/70 active:scale-95"
+                                                            className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-800 flex items-center justify-center transition cursor-pointer"
                                                             title="Xem chi tiết yêu cầu"
                                                         >
                                                             <Eye className="w-3.5 h-3.5" />
@@ -1651,10 +1622,10 @@ export default function ServiceRequestKanban() {
                 </div>
             )}
 
-            {/* BẢNG KANBAN BOARD 4 CỘT (DRAG AND DROP) */}
+            {/* BẢNG KANBAN BOARD 4 CỘT (COMPACT CHO 1366/1536PX) */}
             {viewMode === 'board' && (
             <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
                 {columns.map((col) => {
                     const columnItems = filterColumnItems(kanbanData[col.key] || []);
                     const isDropTarget = activeDropZone === col.key;
@@ -1667,38 +1638,38 @@ export default function ServiceRequestKanban() {
                             onDragOver={(e) => handleDragOver(e, col.key)}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, col.key)}
-                            className={`bg-slate-100/70 rounded-3xl border ${
+                            className={`bg-slate-100/70 rounded-2xl border ${
                                 col.borderColor
-                            } p-4 flex flex-col min-h-[580px] transition-all duration-200 ${
+                            } p-2.5 flex flex-col min-h-[460px] transition-all duration-200 ${
                                 isDropTarget ? col.dropHighlight : ''
                             }`}
                         >
                             {/* Column Header */}
-                            <div className="flex items-center justify-between pb-3.5 mb-3 border-b border-slate-200/80">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-base">{renderIcon(col.icon, "w-4 h-4")}</span>
-                                    <h3 className="font-bold text-xs text-slate-900 tracking-wide uppercase">
-                                        {col.title}
+                            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200/80 px-0.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="shrink-0">{renderIcon(col.icon, "w-3.5 h-3.5")}</span>
+                                    <h3 className="font-bold text-[11.5px] text-slate-900 tracking-wide uppercase truncate">
+                                        {col.title.split('(')[0].trim()}
                                     </h3>
                                 </div>
                                 <span
-                                    className={`px-2 py-0.5 rounded-full text-xs font-bold shadow-xs ${col.badgeBg}`}
+                                    className={`px-2 py-0.5 rounded-full text-[11px] font-bold shadow-xs shrink-0 ${col.badgeBg}`}
                                     title={isCompletedCol && columnItems.length > completedDisplayCount ? `Đang hiển thị ${displayedItems.length} trên tổng ${columnItems.length} đơn hoàn thành` : undefined}
                                 >
                                     {isCompletedCol && columnItems.length > completedDisplayCount
-                                        ? `${displayedItems.length} / ${columnItems.length}`
+                                        ? `${displayedItems.length}/${columnItems.length}`
                                         : columnItems.length}
                                 </span>
                             </div>
 
                             {/* Cards Container */}
-                            <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[750px] pr-1 scrollbar-thin">
+                            <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-245px)] pr-0.5 scrollbar-thin">
                                 {displayedItems.length === 0 ? (
-                                    <div className="h-44 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-xs text-center p-4">
-                                        <span className="mb-1"><Inbox className="w-6 h-6 text-slate-400 inline" /></span>
-                                        <span>Không có yêu cầu nào</span>
+                                    <div className="h-36 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 text-xs text-center p-3">
+                                        <span className="mb-1"><Inbox className="w-5 h-5 text-slate-400 inline" /></span>
+                                        <span>Không có yêu cầu</span>
                                         <span className="text-[10px] text-slate-400 mt-0.5">
-                                            Kéo thả thẻ vào đây để đổi trạng thái
+                                            Kéo thả thẻ vào đây
                                         </span>
                                     </div>
                                 ) : (
@@ -1716,7 +1687,7 @@ export default function ServiceRequestKanban() {
                                                 draggable={!isCompleted}
                                                 onDragStart={(e) => handleDragStart(e, item)}
                                                 onDragEnd={handleDragEnd}
-                                                className={`bg-white rounded-2xl border ${sla ? sla.borderGlow : 'border-slate-200/90'} p-4 shadow-xs transition-all duration-200 relative overflow-hidden flex flex-col justify-between ${
+                                                className={`bg-white rounded-xl border ${sla ? sla.borderGlow : 'border-slate-200/90'} p-3 shadow-xs transition-all duration-200 relative overflow-hidden flex flex-col justify-between ${
                                                     isCompleted
                                                         ? 'cursor-default ring-1 ring-emerald-100/80 bg-emerald-50/20'
                                                         : 'cursor-grab active:cursor-grabbing hover:shadow-md'

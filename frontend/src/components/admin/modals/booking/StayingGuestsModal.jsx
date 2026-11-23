@@ -132,8 +132,8 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-5xl w-full p-4 sm:p-6 shadow-2xl text-left max-h-[94vh] sm:max-h-[92vh] overflow-hidden flex flex-col justify-between animate-in zoom-in-95 duration-200 relative">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-5xl w-full p-4 sm:p-5 shadow-2xl text-left max-h-[88vh] overflow-hidden flex flex-col justify-between animate-in zoom-in-95 duration-200 relative">
                 {/* TOAST THÔNG BÁO NỔI */}
                 {modalToast && (
                     <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-rose-600 text-white border-rose-500 shadow-rose-600/30">
@@ -148,10 +148,10 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                     </div>
                 )}
                 {/* 1. HEADER MODAL */}
-                <div className="flex items-start justify-between pb-3.5 sm:pb-4 border-b border-slate-100">
+                <div className="flex items-start justify-between pb-3 border-b border-slate-100 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
-                            <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 shrink-0">
+                            <ClipboardCheck className="w-5 h-5 text-white" />
                         </div>
                         <div>
                             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -163,7 +163,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                                     Khách thực tế đang lưu trú
                                 </span>
                             </div>
-                            <h3 className="text-base sm:text-2xl font-bold text-slate-900 tracking-tight mt-0.5 sm:mt-1 leading-tight">
+                            <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5 leading-tight">
                                 Danh Sách Khai Báo Lưu Trú Khách Sạn
                             </h3>
                         </div>
@@ -172,7 +172,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition flex items-center justify-center font-bold text-sm cursor-pointer shrink-0"
                         title="Đóng cửa sổ"
                     >
                         <X className="w-4 h-4" />
@@ -180,7 +180,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                 </div>
 
                 {/* 2. THANH THỐNG KÊ NHANH & BỘ LỌC */}
-                <div className="py-3 sm:py-4 space-y-3">
+                <div className="py-2.5 sm:py-3 space-y-2.5 shrink-0">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                         <div className="p-2.5 sm:p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
                             <span className="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
@@ -460,7 +460,7 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
                 </div>
 
                 {/* 4. FOOTER MODAL */}
-                <div className="pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="pt-3 mt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
                     <div className="text-[11px] text-slate-500 text-center sm:text-left">
                         Hiển thị <strong>{filteredGuests.length}</strong> / <strong>{guests.length}</strong> khách lưu trú thực tế.
                     </div>

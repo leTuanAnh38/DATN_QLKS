@@ -522,13 +522,13 @@ export default function GuestManagement() {
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                            <tr className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                                <th className="p-4">Khách Hàng</th>
-                                <th className="p-4">Liên Hệ</th>
-                                <th className="p-4">CCCD / Passport</th>
-                                <th className="p-4">Hạng Thẻ & Điểm</th>
-                                <th className="p-4">Trạng Thái</th>
-                                <th className="p-4 text-right">Thao Tác</th>
+                            <tr className="bg-slate-50 text-slate-600 font-bold uppercase text-[10.5px] tracking-wider border-b border-slate-200">
+                                <th className="px-3 py-2.5">Khách Hàng</th>
+                                <th className="px-3 py-2.5">Liên Hệ</th>
+                                <th className="px-3 py-2.5 whitespace-nowrap">CCCD / Passport</th>
+                                <th className="px-3 py-2.5 whitespace-nowrap">Hạng Thẻ & Điểm</th>
+                                <th className="px-3 py-2.5 whitespace-nowrap">Trạng Thái</th>
+                                <th className="px-3 py-2.5 text-right whitespace-nowrap">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -560,21 +560,21 @@ export default function GuestManagement() {
                                     return (
                                         <tr key={g.id} className="hover:bg-slate-50/70 transition">
                                             {/* Khách hàng */}
-                                            <td className="p-4">
+                                            <td className="px-3 py-2.5">
                                                 <Link
                                                     to={`/admin/customers/${g.id}`}
-                                                    className="flex items-center gap-3 group"
+                                                    className="flex items-center gap-2.5 group"
                                                     title={`Bấm để xem hồ sơ chi tiết và lịch sử của ${g.full_name || g.username}`}
                                                 >
                                                     <UserAvatar
                                                         avatar={g.avatar}
                                                         name={g.full_name || g.username}
                                                         role="guest"
-                                                        size="md"
+                                                        size="sm"
                                                         border={false}
                                                     />
-                                                    <div>
-                                                        <strong className="block font-bold text-blue-600 hover:underline cursor-pointer text-sm">
+                                                    <div className="min-w-0">
+                                                        <strong className="block font-bold text-blue-600 hover:underline cursor-pointer text-[13px] truncate max-w-[180px]">
                                                             {g.full_name || g.username}
                                                         </strong>
                                                         <span className="text-[11px] text-slate-400 group-hover:text-slate-600">@{g.username}</span>
@@ -583,27 +583,27 @@ export default function GuestManagement() {
                                             </td>
 
                                             {/* Liên hệ */}
-                                            <td className="p-4">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
-                                                        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                            <td className="px-3 py-2.5">
+                                                <div className="space-y-0.5">
+                                                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs tabular-nums">
+                                                        <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                                                         <span>{g.phone_number || <span className="text-slate-400 font-normal italic">Chưa có SĐT</span>}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 text-slate-500 text-[11px] truncate max-w-[200px]" title={g.email}>
-                                                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                    <div className="flex items-center gap-1.5 text-slate-500 text-[11px] truncate max-w-[180px]" title={g.email}>
+                                                        <Mail className="w-3 h-3 text-slate-400 shrink-0" />
                                                         {g.email && !g.email.endsWith('.local') ? (
-                                                            <span>{g.email}</span>
+                                                            <span className="truncate">{g.email}</span>
                                                         ) : (
-                                                            <span className="text-slate-400 italic">Chưa có Email (Vãng lai)</span>
+                                                            <span className="text-slate-400 italic">Khách vãng lai</span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </td>
 
                                             {/* CCCD / Passport */}
-                                            <td className="p-4">
+                                            <td className="px-3 py-2.5 whitespace-nowrap">
                                                 {g.guest_profile?.id_card_number ? (
-                                                    <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded-md text-[11px]">
+                                                    <span className="font-mono font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px] tabular-nums">
                                                         {g.guest_profile.id_card_number}
                                                     </span>
                                                 ) : (
@@ -612,20 +612,20 @@ export default function GuestManagement() {
                                             </td>
 
                                             {/* Hạng thẻ & Điểm */}
-                                            <td className="p-4">
-                                                <div className="space-y-1">
-                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
-                                                        <Star className="w-3 h-3 fill-current" />
-                                                        <span>{g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng (Bronze)'}</span>
+                                            <td className="px-3 py-2.5 whitespace-nowrap">
+                                                <div className="space-y-0.5">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${tierStyles}`}>
+                                                        <Star className="w-2.5 h-2.5 fill-current" />
+                                                        <span>{g.current_tier?.name || g.guest_profile?.vip_tier || 'Đồng'}</span>
                                                     </span>
-                                                    <div className="text-[11px] font-semibold text-amber-600">
+                                                    <div className="text-[11px] font-semibold text-amber-600 tabular-nums">
                                                         {Number(g.total_points ?? g.guest_profile?.loyalty_points ?? 0).toLocaleString('vi-VN')} pts
                                                     </div>
                                                 </div>
                                             </td>
 
                                             {/* Trạng thái */}
-                                            <td className="p-4">
+                                            <td className="px-3 py-2.5 whitespace-nowrap">
                                                 {(() => {
                                                     const isWalkin = g.guest_type === 'walkin' || 
                                                                      (g.email && g.email.endsWith('.local')) || 
@@ -668,7 +668,7 @@ export default function GuestManagement() {
                                             </td>
 
                                             {/* Thao tác */}
-                                            <td className="p-4 text-right">
+                                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
                                                         type="button"
@@ -921,19 +921,19 @@ export default function GuestManagement() {
             {/* MODAL 1: CHỈNH SỬA THÔNG TIN KHÁCH HÀNG */}
             {/* ========================================================================= */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div
-                        className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[90vh] flex flex-col"
+                        className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
-                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs">
-                                    <Edit2 className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center shadow-xs shrink-0">
+                                    <Edit2 className="w-4.5 h-4.5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
                                         Chỉnh Sửa Thông Tin Khách Hàng
                                     </h3>
                                     <p className="text-xs text-slate-500 mt-0.5">
@@ -944,14 +944,15 @@ export default function GuestManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsEditModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                                 title="Đóng cửa sổ"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveEdit} className="p-6 overflow-y-auto space-y-4 text-xs">
+                        <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 min-h-0 text-xs">
+                            <div className="p-5 overflow-y-auto flex-1 space-y-3.5">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block font-bold text-slate-700 mb-1">Họ và tên đầy đủ *</label>
@@ -1168,8 +1169,9 @@ export default function GuestManagement() {
                                     Tài khoản đang hoạt động (Bỏ chọn để tạm khóa tài khoản)
                                 </label>
                             </div>
+                            </div>
 
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsEditModalOpen(false)}
@@ -1180,7 +1182,7 @@ export default function GuestManagement() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
+                                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
                                 >
                                     {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                     <span>{isSubmitting ? 'Đang lưu...' : 'Lưu Thay Đổi'}</span>
@@ -1195,19 +1197,19 @@ export default function GuestManagement() {
             {/* MODAL 2: XEM CHI TIẾT HỒ SƠ KHÁCH HÀNG */}
             {/* ========================================================================= */}
             {isDetailModalOpen && selectedGuest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div
-                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header: Tone nền trắng thanh lịch, loại bỏ dải banner tối */}
-                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
-                                    <User className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
+                                    <User className="w-4.5 h-4.5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
                                         Hồ Sơ Chi Tiết Khách Hàng
                                     </h3>
                                     <p className="text-xs text-slate-500 mt-0.5">
@@ -1218,14 +1220,14 @@ export default function GuestManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsDetailModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                                 title="Đóng cửa sổ"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto space-y-4 text-xs">
+                        <div className="p-5 overflow-y-auto flex-1 space-y-3.5 text-xs">
                             {/* Profile Card Header */}
                             <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
                                 <div className="flex items-center gap-3.5">
@@ -1282,18 +1284,17 @@ export default function GuestManagement() {
                                     <p className="text-slate-700 italic">{selectedGuest.guest_profile?.preferences || 'Chưa có ghi chú sở thích đặc biệt.'}</p>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Footer Modal Actions */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                               
-                                <button
-                                    type="button"
-                                    onClick={() => setIsDetailModalOpen(false)}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                                >
-                                    Đóng
-                                </button>
-                            </div>
+                        {/* Footer Modal Actions */}
+                        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsDetailModalOpen(false)}
+                                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                            >
+                                Đóng
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1303,19 +1304,19 @@ export default function GuestManagement() {
             {/* MODAL 3: THÊM MỚI KHÁCH HÀNG */}
             {/* ========================================================================= */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div
-                        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header: Tone nền trắng trang nhã, hiện đại */}
-                        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
-                                    <UserPlus className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
+                                    <UserPlus className="w-4.5 h-4.5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
                                         Thêm Tài Khoản Khách Hàng Mới
                                     </h3>
                                     <p className="text-xs text-slate-500 mt-0.5">
@@ -1326,14 +1327,15 @@ export default function GuestManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                                 title="Đóng cửa sổ"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSaveCreate} className="p-6 space-y-4 text-xs">
+                        <form onSubmit={handleSaveCreate} className="flex flex-col flex-1 min-h-0 text-xs">
+                            <div className="p-5 overflow-y-auto flex-1 space-y-3.5">
                             <div>
                                 <label className="block font-bold text-slate-700 mb-1">Họ và tên đầy đủ *</label>
                                 <input
@@ -1419,8 +1421,9 @@ export default function GuestManagement() {
                                     />
                                 </div>
                             </div>
+                            </div>
 
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateModalOpen(false)}
@@ -1431,7 +1434,7 @@ export default function GuestManagement() {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
+                                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition disabled:opacity-75 cursor-pointer flex items-center gap-2"
                                 >
                                     {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                     <span>{isSubmitting ? 'Đang tạo...' : 'Tạo Khách Hàng'}</span>

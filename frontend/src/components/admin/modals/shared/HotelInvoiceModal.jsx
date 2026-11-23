@@ -640,7 +640,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
                 }
             `}</style>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-y-auto max-h-[90dvh] my-2 sm:my-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-y-auto max-h-[88vh] my-2 sm:my-4">
                 {/* THANH ĐIỀU KHIỂN (Ẩn khi in) - Sticky top */}
                 <div className="no-print sticky top-0 z-20 bg-slate-900 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between border-b border-slate-800 shadow-xs">
                     <div className="flex items-center gap-1.5 sm:gap-2 truncate mr-2">
@@ -1463,7 +1463,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
             </div>
 
                 {/* FOOTER NÚT THAO TÁC Ở ĐÁY MODAL (Ẩn khi in) */}
-                <div className="no-print bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs text-slate-500">
+                <div className="no-print sticky bottom-0 z-20 bg-slate-50/95 backdrop-blur-xs px-4 sm:px-6 py-3 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs text-slate-500">
                     <div className="hidden sm:flex items-center gap-1.5">
                         <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
                         <span>Lưu ý: Trình duyệt hỗ trợ chọn <strong>"Save as PDF"</strong> (Lưu thành tệp PDF) hoặc in ra máy in A4 tiêu chuẩn.</span>

@@ -557,22 +557,22 @@ export default function MinibarManagement() {
                             <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px] tracking-wider">
                                 <tr>
                                     <th className="py-3.5 px-4">Mặt hàng</th>
-                                    <th className="py-3.5 px-4">Phân loại</th>
-                                    <th className="py-3.5 px-4 text-right">Đơn giá niêm yết</th>
-                                    <th className="py-3.5 px-4 text-center">Định mức / phòng</th>
-                                    <th className="py-3.5 px-4 text-center">Trạng thái bán</th>
-                                    <th className="py-3.5 px-4 text-center">Thao tác</th>
+                                    <th className="py-2.5 px-3">Phân loại</th>
+                                    <th className="py-2.5 px-3 text-right">Đơn giá</th>
+                                    <th className="py-2.5 px-3 text-center">Định mức / phòng</th>
+                                    <th className="py-2.5 px-3 text-center">Trạng thái</th>
+                                    <th className="py-2.5 px-3 text-center">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-100 text-[13px]">
                                 {paginatedItems.map((item) => {
                                     const cat = getCategoryObj(item.category);
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/60 transition">
                                             {/* Name & Image / Icon */}
-                                            <td className="py-3.5 px-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-lg shrink-0 overflow-hidden shadow-2xs relative">
+                                            <td className="py-2 px-3">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-base shrink-0 overflow-hidden relative">
                                                         {item.display_image || item.image || item.image_url ? (
                                                             <img
                                                                 src={item.display_image || item.image || item.image_url}
@@ -587,78 +587,77 @@ export default function MinibarManagement() {
                                                             />
                                                         ) : null}
                                                         <span style={{ display: (item.display_image || item.image || item.image_url) ? 'none' : 'flex' }} className="items-center justify-center text-slate-400">
-                                                            {renderCategoryIcon(item.category, 'w-5 h-5')}
+                                                            {renderCategoryIcon(item.category, 'w-4 h-4')}
                                                         </span>
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900">{item.name}</div>
-                                                        <div className="text-[11px] text-slate-400 font-mono">Mã món: #{item.id}</div>
+                                                        <div className="text-[10.5px] text-slate-400 font-mono">#{item.id}</div>
                                                     </div>
                                                 </div>
                                             </td>
 
                                             {/* Category Badge */}
-                                            <td className="py-3.5 px-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${cat.badge}`}>
-                                                    {renderCategoryIcon(item.category, 'w-3.5 h-3.5')}
+                                            <td className="py-2 px-3 whitespace-nowrap">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${cat.badge}`}>
+                                                    {renderCategoryIcon(item.category, 'w-3 h-3')}
                                                     <span>{cat.label}</span>
                                                 </span>
                                             </td>
 
                                             {/* Price */}
-                                            <td className="py-3.5 px-4 text-right">
-                                                <span className="font-bold text-amber-700 text-sm">
+                                            <td className="py-2 px-3 text-right whitespace-nowrap tabular-nums">
+                                                <span className="font-bold text-amber-700 text-[13px]">
                                                     {formatCurrency(item.price)}
                                                 </span>
                                             </td>
 
                                             {/* Standard Quantity */}
-                                            <td className="py-3.5 px-4 text-center">
-                                                <span className="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs">
+                                            <td className="py-2 px-3 text-center whitespace-nowrap tabular-nums">
+                                                <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold text-xs">
                                                     {item.standard_quantity || 0}
                                                 </span>
-                                                <span className="text-[11px] text-slate-400 ml-1">đơn vị</span>
+                                                <span className="text-[11px] text-slate-400 ml-1">đv</span>
                                             </td>
 
                                             {/* Active Toggle Switch */}
-                                            <td className="py-3.5 px-4 text-center">
+                                            <td className="py-2 px-3 text-center whitespace-nowrap">
                                                 {canUpdate ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleActive(item)}
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition cursor-pointer ${
+                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border transition cursor-pointer ${
                                                             item.is_active
                                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                                                                 : 'bg-slate-100 text-slate-500 border-slate-300 hover:bg-slate-200'
                                                         }`}
                                                         title={item.is_active ? 'Bấm để tạm ẩn ngừng bán' : 'Bấm để kích hoạt bán'}
                                                     >
-                                                        <span className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}></span>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
                                                         <span>{item.is_active ? 'Đang bán' : 'Tạm ẩn'}</span>
                                                     </button>
                                                 ) : (
                                                     <span
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${
                                                             item.is_active
                                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                                                                 : 'bg-slate-100 text-slate-500 border-slate-300'
                                                         }`}
-                                                        title="Trạng thái mở bán"
                                                     >
-                                                        <span className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
                                                         <span>{item.is_active ? 'Đang bán' : 'Tạm ẩn'}</span>
                                                     </span>
                                                 )}
                                             </td>
 
                                             {/* Action Buttons */}
-                                            <td className="py-3.5 px-4 text-center">
-                                                <div className="flex items-center justify-center gap-2">
+                                            <td className="py-2 px-3 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-1.5">
                                                     {canUpdate && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenEdit(item)}
-                                                            className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                                            className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer"
                                                             title="Chỉnh sửa thông tin & giá"
                                                         >
                                                             <Edit3 className="w-3.5 h-3.5" />
@@ -669,7 +668,7 @@ export default function MinibarManagement() {
                                                         <button
                                                             type="button"
                                                             onClick={() => setDeletingItem(item)}
-                                                            className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                                            className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer"
                                                             title="Xóa khỏi danh mục"
                                                         >
                                                             <Trash2 className="w-3.5 h-3.5" />
@@ -677,7 +676,7 @@ export default function MinibarManagement() {
                                                     )}
 
                                                     {!canUpdate && !canDelete && (
-                                                        <span className="text-xs text-slate-400 italic font-medium">Chỉ xem</span>
+                                                        <span className="text-[11px] text-slate-400 italic">Chỉ xem</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -884,14 +883,14 @@ export default function MinibarManagement() {
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
                     <div
-                        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
+                        className="bg-white w-full max-w-lg max-h-[88vh] rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="px-5 py-4 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
+                        <div className="px-5 py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
-                                    {editingItem ? <Edit3 className="w-5 h-5 text-blue-600" /> : <Wine className="w-5 h-5 text-blue-600" />}
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
+                                    {editingItem ? <Edit3 className="w-4.5 h-4.5 text-blue-600" /> : <Wine className="w-4.5 h-4.5 text-blue-600" />}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-base text-slate-900">
@@ -905,14 +904,15 @@ export default function MinibarManagement() {
                             <button
                                 type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
+                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer shrink-0"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {/* Form */}
-                        <form onSubmit={handleSubmitForm} className="p-5 space-y-4 text-xs sm:text-sm">
+                        <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0 text-xs sm:text-sm">
+                            <div className="p-5 space-y-3.5 overflow-y-auto flex-1">
                             {formError && (
                                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -1104,9 +1104,10 @@ export default function MinibarManagement() {
                                     </div>
                                 )}
                             </div>
+                            </div>
 
                             {/* Footer Buttons */}
-                            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}

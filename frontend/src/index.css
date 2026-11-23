@@ -305,3 +305,31 @@ input[type="date"]::-webkit-datetime-edit {
   }
 }
 
+/* =========================================================================
+   COMPACT ENTERPRISE PMS DESIGN TOKENS & UTILITIES (@ 100% ZOOM)
+   Tối ưu hiển thị mật độ cao cho màn hình 1366×768, 1440×900, 1536×864 & 1920×1080
+   ========================================================================= */
+.pms-admin {
+  --pms-sidebar-w: 14rem;      /* 224px (w-56) */
+  --pms-sidebar-mini-w: 4rem;  /* 64px  (w-16) */
+  --pms-topbar-h: 3.25rem;     /* 52px  (h-13) */
+}
+
+.pms-admin table {
+  font-variant-numeric: tabular-nums;
+}
+
+.pms-admin .pms-table th {
+  padding: 0.625rem 0.75rem;
+  font-size: 11px;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+}
+
+.pms-admin .pms-table td {
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+

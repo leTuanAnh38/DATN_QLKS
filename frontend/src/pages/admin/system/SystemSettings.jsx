@@ -405,39 +405,39 @@ export default function SystemSettings() {
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* TOAST THÔNG BÁO NỔI */}
             {toast && (
                 <div
-                    className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-semibold transition-all duration-300 animate-slideDown ${
+                    className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl border text-xs font-semibold transition-all duration-300 animate-slideDown ${
                         toast.type === 'success'
                             ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
                             : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
                     }`}
                 >
                     {toast.type === 'success' ? (
-                        <CheckCircle2 className="w-5 h-5 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
                     ) : (
-                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <AlertCircle className="w-4 h-4 shrink-0" />
                     )}
                     <span>{toast.message}</span>
                 </div>
             )}
 
             {/* HEADER TIÊU ĐỀ TRANG CÀI ĐẶT */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <span>Cài Đặt Hệ Thống & Vận Hành PMS</span>
+                    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+                        Cài Đặt Hệ Thống & Vận Hành PMS
                     </h1>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
-                        Trung tâm cấu hình toàn diện thông tin thương hiệu, quy định vận hành, chính sách tài chính và cổng thanh toán
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Cấu hình thông tin thương hiệu, banner, quy định giờ giấc, thuế/cọc và cổng thanh toán VietQR
                     </p>
                 </div>
             </div>
 
-            {/* TAB NAVIGATION TẬP TRUNG */}
-            <div className="bg-white rounded-2xl p-1.5 border border-slate-200 shadow-xs grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
+            {/* TAB NAVIGATION GỌN 1 DÒNG (SEGMENTED COMPACT) */}
+            <div className="bg-white rounded-xl p-1 border border-slate-200 shadow-xs flex flex-wrap lg:grid lg:grid-cols-5 gap-1">
                 {SETTING_TABS.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -446,25 +446,23 @@ export default function SystemSettings() {
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex flex-col text-left p-3 rounded-xl transition-all cursor-pointer relative ${
+                            title={tab.desc}
+                            className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer min-w-0 flex-1 ${
                                 isActive
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 ring-2 ring-blue-600/20'
+                                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                             }`}
                         >
-                            <div className="flex items-center justify-between w-full mb-1">
-                                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                    isActive
-                                        ? 'bg-white/20 text-white'
-                                        : 'bg-slate-100 text-slate-500'
-                                }`}>
-                                    {tab.badge}
-                                </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                                <span className="text-xs font-bold leading-tight truncate">{tab.label}</span>
                             </div>
-                            <span className="text-xs font-bold leading-tight line-clamp-1">{tab.label}</span>
-                            <span className={`text-[10px] mt-0.5 line-clamp-1 ${isActive ? 'text-blue-100' : 'text-slate-400'}`}>
-                                {tab.desc}
+                            <span className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded shrink-0 hidden xl:inline-block ${
+                                isActive
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-slate-100 text-slate-500'
+                            }`}>
+                                {tab.badge}
                             </span>
                         </button>
                     );

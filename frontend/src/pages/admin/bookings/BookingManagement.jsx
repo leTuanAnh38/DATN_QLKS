@@ -117,16 +117,16 @@ const formatDateTimeDisplay = (isoStr) => {
     }
 };
 
-// Danh sách các trạng thái đặt phòng
+// Danh sách các trạng thái đặt phòng (nhãn tiếng Việt ngắn gọn cho bảng Compact PMS)
 const STATUS_OPTIONS = [
-    { value: 'pending', label: 'Chờ duyệt (Pending)', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
-    { value: 'paid', label: 'Chờ duyệt (Đã TT QR)', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
-    { value: 'confirmed', label: 'Đã xác nhận (Confirmed)', color: 'bg-blue-50 text-blue-800 border-blue-300 focus:ring-blue-500' },
-    { value: 'checked_in', label: 'Đã Check-in (Checked-in)', color: 'bg-emerald-50 text-emerald-800 border-emerald-300 focus:ring-emerald-500' },
-    { value: 'checked_out', label: 'Đã Check-out (Checked-out)', color: 'bg-purple-50 text-purple-800 border-purple-300 focus:ring-purple-500' },
-    { value: 'completed', label: 'Đã Hoàn tất (Completed)', color: 'bg-indigo-50 text-indigo-800 border-indigo-300 focus:ring-indigo-500' },
-    { value: 'no_show', label: 'Khách không đến (No-show)', color: 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-500' },
-    { value: 'cancelled', label: 'Đã Hủy (Cancelled)', color: 'bg-rose-50 text-rose-800 border-rose-300 focus:ring-rose-500' }
+    { value: 'pending', label: 'Chờ duyệt', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
+    { value: 'paid', label: 'Chờ duyệt (QR)', color: 'bg-amber-50 text-amber-800 border-amber-300 focus:ring-amber-500' },
+    { value: 'confirmed', label: 'Đã xác nhận', color: 'bg-blue-50 text-blue-800 border-blue-300 focus:ring-blue-500' },
+    { value: 'checked_in', label: 'Đang ở', color: 'bg-emerald-50 text-emerald-800 border-emerald-300 focus:ring-emerald-500' },
+    { value: 'checked_out', label: 'Đã trả phòng', color: 'bg-purple-50 text-purple-800 border-purple-300 focus:ring-purple-500' },
+    { value: 'completed', label: 'Hoàn tất', color: 'bg-indigo-50 text-indigo-800 border-indigo-300 focus:ring-indigo-500' },
+    { value: 'no_show', label: 'No-show', color: 'bg-slate-100 text-slate-700 border-slate-300 focus:ring-slate-500' },
+    { value: 'cancelled', label: 'Đã hủy', color: 'bg-rose-50 text-rose-800 border-rose-300 focus:ring-rose-500' }
 ];
 
 
@@ -570,55 +570,86 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     }, [filteredBookings, currentPage, pageSize]);
 
     return (
-        <div className="space-y-6 min-w-0 max-w-full">
+        <div className="space-y-4 min-w-0 max-w-full">
             {/* TOAST THÔNG BÁO NỔI - Luôn hiển thị trên cùng (z-[99999]) */}
             {toast && (
                 <div
-                    className={`fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
+                    className={`fixed top-5 right-5 z-[99999] max-w-md px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-2 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toast.type === 'success'
                         ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
                         : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
                         }`}
                 >
-                    {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />}
+                    {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-white shrink-0" /> : <AlertTriangle className="w-4 h-4 text-white shrink-0" />}
                     <span>{toast.message}</span>
                 </div>
             )}
 
-            {/* HEADER PHÂN HỆ QUẢN LÝ ĐẶT PHÒNG */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div>
-                    <h2 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <CalendarCheck className="w-6 h-6 text-blue-600" />
-                        <span>Quản Lý Danh Sách Đặt Phòng</span>
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Theo dõi danh sách khách lưu trú, xác nhận đơn mới, kiểm tra CCCD/Hộ chiếu và cập nhật trạng thái phòng.
-                    </p>
+            {/* HEADER PHÂN HỆ QUẢN LÝ ĐẶT PHÒNG + SEGMENTED CONTROL */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 min-w-0">
+                    <div className="min-w-0">
+                        <h2 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                            <CalendarCheck className="w-5 h-5 text-blue-600 shrink-0" />
+                            <span>Quản Lý Đặt Phòng</span>
+                        </h2>
+                        <p className="text-[11.5px] text-slate-500 mt-0.5 truncate">
+                            Xác nhận đơn, kiểm tra CCCD, gán phòng & quản lý lưu trú
+                        </p>
+                    </div>
+
+                    {/* SEGMENTED CONTROL: KHÁCH LẺ VS KHÁCH ĐOÀN */}
+                    <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/80 w-fit shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setBookingSegment('individual')}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                                bookingSegment === 'individual'
+                                    ? 'bg-white text-blue-700 shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Khách lẻ</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setBookingSegment('group')}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                                bookingSegment === 'group'
+                                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-xs'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span>Khách đoàn (B2B)</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2.5">
-                    {/* NÚT XUẤT DS KHAI BÁO LƯU TRÚ CHO CÔNG AN (Chung toàn khách sạn) */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {/* NÚT XUẤT DS KHAI BÁO LƯU TRÚ */}
                     <button
                         type="button"
                         onClick={() => setIsStayingGuestsModalOpen(true)}
-                        className="px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-sm shadow-emerald-600/25 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                        className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                         title="Xem và xuất danh sách toàn bộ khách đang lưu trú thực tế tại khách sạn để nộp Công an phường"
                     >
                         <FileSpreadsheet className="w-3.5 h-3.5" />
                         <span>Khai báo lưu trú</span>
                     </button>
 
-                    {/* NÚT TẠO ĐẶT PHÒNG THAY ĐỔI ĐỘNG THEO PHÂN HỆ TAB */}
+                    {/* NÚT TẠO ĐẶT PHÒNG */}
                     {bookingSegment === 'group' ? (
                         canCreateBookings && (
                             <button
                                 type="button"
                                 onClick={() => groupBookingRef.current?.openCreateModal?.()}
-                                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-extrabold text-xs rounded-xl shadow-sm shadow-indigo-600/25 hover:shadow-indigo-600/40 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+                                className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 title="Tạo đơn đặt phòng theo đoàn hoặc hợp đồng doanh nghiệp B2B"
                             >
-                                <Plus className="w-4 h-4 stroke-[2.5]" />
-                                <span>Tạo Đặt Phòng Theo Đoàn</span>
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>Tạo Đặt Đoàn</span>
                             </button>
                         )
                     ) : (
@@ -626,16 +657,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             <button
                                 type="button"
                                 onClick={() => handleOpenWalkInModal('walk_in')}
-                                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-blue-600/25 hover:shadow-blue-600/40 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                                className="px-3.5 py-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
                                 title="Tiếp đón khách vãng lai nhận phòng ngay hoặc đặt phòng trước qua điện thoại/Zalo"
                             >
-                                <Plus className="w-4 h-4" />
+                                <Plus className="w-3.5 h-3.5" />
                                 <span>Tiếp đón & Đặt phòng</span>
                             </button>
                         )
                     )}
 
-                    {/* NÚT LÀM MỚI ĐỒNG BỘ ĐỘNG THEO PHÂN HỆ TAB */}
+                    {/* NÚT LÀM MỚI */}
                     <button
                         type="button"
                         onClick={async () => {
@@ -653,42 +684,12 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                             }
                         }}
                         disabled={bookingSegment === 'group' ? isGroupRefreshing : isLoading}
-                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95 hover:border-slate-300 disabled:opacity-50"
+                        className="p-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 hover:border-slate-300 disabled:opacity-50"
                         title="Tải lại danh sách mới nhất"
                     >
                         <RotateCw className={`w-3.5 h-3.5 text-slate-600 ${(bookingSegment === 'group' ? isGroupRefreshing : isLoading) ? 'animate-spin text-indigo-600' : ''}`} />
-                        <span>{(bookingSegment === 'group' ? isGroupRefreshing : isLoading) ? 'Đang tải...' : 'Làm mới'}</span>
                     </button>
                 </div>
-            </div>
-
-            {/* SEGMENTED CONTROL: KHÁCH LẺ VS KHÁCH ĐOÀN */}
-            <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/80 w-fit">
-                <button
-                    type="button"
-                    onClick={() => setBookingSegment('individual')}
-                    className={`px-4 py-2 rounded-xl font-bold text-xs transition flex items-center gap-2 cursor-pointer ${
-                        bookingSegment === 'individual'
-                            ? 'bg-white text-blue-700 shadow-sm shadow-slate-200'
-                            : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Khách Lẻ & Vãng Lai</span>
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setBookingSegment('group')}
-                    className={`px-4 py-2 rounded-xl font-bold text-xs transition flex items-center gap-2 cursor-pointer ${
-                        bookingSegment === 'group'
-                            ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-sm shadow-indigo-500/25'
-                            : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                >
-                    <Building2 className="w-3.5 h-3.5" />
-                    <span>Khách Đoàn & Doanh Nghiệp (B2B / Groups)</span>
-                </button>
             </div>
 
             {bookingSegment === 'group' ? (
@@ -703,7 +704,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     />
 
             {/* BẢNG DỮ LIỆU CHÍNH & THANH CÔNG CỤ (FILTER & SEARCH) */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden min-w-0 max-w-full">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden min-w-0 max-w-full">
                 {/* THANH FILTER DROPDOWN & TÌM KIẾM NHANH */}
                 <BookingFilterToolbar
                     quickFilterMode={quickFilterMode}
@@ -885,16 +886,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             </td>
 
                                             {/* CỘT 4: CHECK-IN / CHECK-OUT */}
-                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                            <td className="py-2 px-2.5 whitespace-nowrap tabular-nums">
                                                 <div className="font-semibold text-slate-800 text-xs">
-                                                    {formatDateDisplay(booking.check_in_date)}
+                                                    {formatDateDisplay(booking.check_in_date)?.slice(0, 5)}
                                                     <span className="text-slate-400 mx-1">→</span>
                                                     {formatDateDisplay(booking.check_out_date)}
                                                 </div>
                                                 <div className="flex flex-wrap items-center gap-1 mt-0.5">
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+                                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
                                                         <Moon className="w-2.5 h-2.5" />
-                                                        <span>{booking.nights || 1} đêm lưu trú</span>
+                                                        <span>{booking.nights || 1} đêm</span>
                                                     </span>
                                                     {/* Badge Khách đến muộn / Quá hạn nhận phòng */}
                                                     {(() => {

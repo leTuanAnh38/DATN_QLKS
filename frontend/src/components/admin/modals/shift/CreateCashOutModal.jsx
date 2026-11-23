@@ -362,7 +362,7 @@ export default function CreateCashOutModal({
                 }
             `}} />
 
-            <div className="cash-out-modal-card relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 text-left print:border-none print:shadow-none print:max-w-none print:max-h-none">
+            <div className="cash-out-modal-card relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-200 text-left print:border-none print:shadow-none print:max-w-none print:max-h-none">
                 {/* 1. HEADER (Fixed Non-Scrolling) */}
                 <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-200 bg-white">
                     <div className="flex items-center gap-3">

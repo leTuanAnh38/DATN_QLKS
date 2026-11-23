@@ -589,21 +589,18 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                     </p>
                 </div>
             ) : viewMode === 'table' ? (
-                /* CHẾ ĐỘ XEM BẢNG (TABLE VIEW) CHO CAO ĐIỂM / TRA CỨU NHANH */
-                <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden">
+                /* CHẾ ĐỘ XEM BẢNG (COMPACT 6 CỘT KHÔNG TRÀN NGANG) */
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs text-slate-700 border-collapse">
-                            <thead className="bg-slate-50/90 border-b border-slate-200 text-[10px] uppercase font-black tracking-wider text-slate-500">
+                            <thead className="bg-slate-50/90 border-b border-slate-200 text-[10.5px] uppercase font-bold tracking-wider text-slate-500">
                                 <tr>
-                                    <th className="py-3.5 px-4">Mã & Tên Đoàn</th>
-                                    <th className="py-3.5 px-4">Đối Tác B2B</th>
-                                    <th className="py-3.5 px-4">Trưởng Đoàn</th>
-                                    <th className="py-3.5 px-4">Quy Mô & Lưu Trú</th>
-                                    <th className="py-3.5 px-4">Phân Phòng</th>
-                                    <th className="py-3.5 px-4">Hợp Đồng & Cọc</th>
-                                    <th className="py-3.5 px-4">Công Nợ</th>
-                                    <th className="py-3.5 px-4">Trạng Thái</th>
-                                    <th className="py-3.5 px-4 text-right">Thao Tác</th>
+                                    <th className="py-2.5 px-3">Mã & Tên Đoàn / Đối Tác B2B</th>
+                                    <th className="py-2.5 px-3">Trưởng Đoàn</th>
+                                    <th className="py-2.5 px-3">Lưu Trú & Phân Phòng</th>
+                                    <th className="py-2.5 px-3 text-right">Hợp Đồng & Công Nợ</th>
+                                    <th className="py-2.5 px-3">Trạng Thái</th>
+                                    <th className="py-2.5 px-3 text-right">Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-medium">
@@ -615,89 +612,77 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                             className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
                                             onClick={() => setSelectedGroup(group)}
                                         >
-                                            <td className="py-3 px-4">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="font-mono text-[11px] font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/80">
+                                            {/* 1. Mã & Tên Đoàn + Đối tác B2B */}
+                                            <td className="py-2 px-3 max-w-[240px]">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="font-mono text-[11px] font-black text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200/80">
                                                         #{group.group_code}
                                                     </span>
+                                                    {m.partner ? (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200/80 text-[10px] font-bold truncate max-w-[140px]" title={m.partner.company_name}>
+                                                            <span className="truncate">{m.partner.company_name}</span>
+                                                            <span className="text-purple-600 shrink-0">-{m.partner.discount_percent}%</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400 text-[10px]">Đoàn tự do</span>
+                                                    )}
                                                 </div>
-                                                <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mt-0.5 max-w-[220px] truncate" title={group.group_name}>
+                                                <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors mt-0.5 truncate" title={group.group_name}>
                                                     {group.group_name}
                                                 </div>
                                             </td>
 
-                                            <td className="py-3 px-4">
-                                                {m.partner ? (
-                                                    <div className="space-y-0.5">
-                                                        <div className="font-bold text-purple-900 text-[11px] max-w-[160px] truncate" title={m.partner.company_name}>
-                                                            {m.partner.company_name}
-                                                        </div>
-                                                        <span className="inline-block px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[9px] font-black">
-                                                            -{m.partner.discount_percent}% B2B
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-slate-400 text-[11px]">Đoàn tự do</span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-3 px-4">
+                                            {/* 2. Trưởng đoàn */}
+                                            <td className="py-2 px-3 whitespace-nowrap">
                                                 <div className="font-bold text-slate-800">{group.leader_name}</div>
-                                                <div className="text-[11px] text-slate-500 font-mono">{group.leader_phone}</div>
+                                                <div className="text-[11px] text-slate-500 font-mono tabular-nums">{group.leader_phone}</div>
                                             </td>
 
-                                            <td className="py-3 px-4">
-                                                <div className="font-bold text-slate-900">
-                                                    {m.totalRooms} phòng {m.totalGuests ? `• ${m.totalGuests} khách` : ''}
+                                            {/* 3. Quy mô, Lưu trú & Tiến độ phân phòng */}
+                                            <td className="py-2 px-3 whitespace-nowrap">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-bold text-slate-900">
+                                                        {m.totalRooms} phòng{m.totalGuests ? ` • ${m.totalGuests}K` : ''}
+                                                    </span>
+                                                    {m.totalRooms > 0 && m.assignedCount === 0 ? (
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                                                            Chưa phân 0/{m.totalRooms}
+                                                        </span>
+                                                    ) : m.totalRooms > 0 && m.assignedCount < m.totalRooms ? (
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                                                            Phân {m.assignedCount}/{m.totalRooms}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                                            Đủ {m.assignedCount}/{m.totalRooms}
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div className="text-[11px] text-slate-500">
-                                                    {formatDate(group.check_in_date)} → {formatDate(group.check_out_date)} ({group.nights} đêm)
+                                                <div className="text-[11px] text-slate-500 mt-0.5 tabular-nums">
+                                                    {formatDate(group.check_in_date)} → {formatDate(group.check_out_date)} ({group.nights}Đ)
                                                 </div>
                                             </td>
 
-                                            <td className="py-3 px-4">
-                                                {m.totalRooms > 0 && m.assignedCount === 0 ? (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                                        <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
-                                                        <span>Chưa phân ({m.assignedCount}/{m.totalRooms})</span>
-                                                    </span>
-                                                ) : m.totalRooms > 0 && m.assignedCount < m.totalRooms ? (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                                                        <Clock className="w-3 h-3 text-amber-600 shrink-0" />
-                                                        <span>Đã phân {m.assignedCount}/{m.totalRooms}</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                                        <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
-                                                        <span>Đã đủ {m.assignedCount}/{m.totalRooms}</span>
-                                                    </span>
-                                                )}
+                                            {/* 4. Hợp đồng, Cọc & Công nợ */}
+                                            <td className="py-2 px-3 text-right whitespace-nowrap tabular-nums">
+                                                <div className="font-extrabold text-indigo-700">{formatCurrency(m.totalAmount)}</div>
+                                                <div className="mt-0.5 text-[10.5px]">
+                                                    {m.isCompleted ? (
+                                                        <span className="font-bold text-purple-700">Đã quyết toán</span>
+                                                    ) : m.remainingBalance > 0 ? (
+                                                        <span className="font-bold text-rose-600" title={`Đã cọc: ${formatCurrency(m.depositAmount)}`}>
+                                                            Nợ: {formatCurrency(m.remainingBalance)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-bold text-emerald-700">Đã thu 100%</span>
+                                                    )}
+                                                </div>
                                             </td>
 
-                                            <td className="py-3 px-4">
-                                                <div className="font-black text-indigo-700">{formatCurrency(m.totalAmount)}</div>
-                                                <div className="text-[10px] text-slate-500">Cọc: {formatCurrency(m.depositAmount)}</div>
-                                            </td>
-
-                                            <td className="py-3 px-4">
-                                                {m.isCompleted ? (
-                                                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                                                        Đã quyết toán
-                                                    </span>
-                                                ) : m.remainingBalance > 0 ? (
-                                                    <div className="text-[11px] font-black text-rose-600">
-                                                        Còn nợ: {formatCurrency(m.remainingBalance)}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                                                        Đã thu 100%
-                                                    </span>
-                                                )}
-                                            </td>
-
-                                            <td className="py-3 px-4">
+                                            {/* 5. Trạng thái */}
+                                            <td className="py-2 px-3 whitespace-nowrap">
                                                 <div className="flex flex-col items-start gap-1">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border shadow-2xs ${
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide inline-flex items-center gap-1 border ${
                                                         m.isCancelled
                                                             ? 'bg-rose-50 text-rose-700 border-rose-200'
                                                             : m.isCheckedIn
@@ -717,21 +702,22 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                                             : (group.status_display || group.status)}
                                                     </span>
                                                     {!m.isCancelled && group.cancel_request?.status === 'pending' && (
-                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-1 animate-pulse">
-                                                            <AlertCircle className="w-3 h-3 text-rose-600" />
-                                                            <span>YC hủy đoàn</span>
+                                                        <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-0.5 animate-pulse">
+                                                            <AlertCircle className="w-2.5 h-2.5 text-rose-600" />
+                                                            <span>YC hủy</span>
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
 
-                                            <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                                <div className="flex items-center justify-end gap-1.5">
+                                            {/* 6. Thao tác */}
+                                            <td className="py-2 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenInvoice(group)}
                                                         disabled={isPreparingInvoice}
-                                                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 transition cursor-pointer"
+                                                        className="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 transition cursor-pointer inline-flex items-center justify-center"
                                                         title="In chứng từ / hóa đơn"
                                                     >
                                                         <Printer className="w-3.5 h-3.5" />
@@ -739,7 +725,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedGroup(group)}
-                                                        className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition cursor-pointer flex items-center gap-1"
+                                                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition cursor-pointer inline-flex items-center gap-1"
                                                     >
                                                         <span>Chi tiết</span>
                                                         <ArrowRight className="w-3 h-3" />

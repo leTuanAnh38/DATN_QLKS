@@ -26,15 +26,15 @@ export default function EmployeeDetailModal({
     );
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div
-                className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
                             <User className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
@@ -49,14 +49,14 @@ export default function EmployeeDetailModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
                         title="Đóng cửa sổ"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5 text-xs text-slate-800 overflow-y-auto flex-1">
+                <div className="p-5 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
                     {/* Profile Card Header */}
                     <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                         <UserAvatar
@@ -176,45 +176,45 @@ export default function EmployeeDetailModal({
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Action Buttons */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            {!isRestrictedRole && (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onClose();
-                                            if (onOpenAssignRole) onOpenAssignRole(employee);
-                                        }}
-                                        className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
-                                    >
-                                        <ShieldCheck className="w-3.5 h-3.5" />
-                                        <span>Phân quyền vai trò</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onClose();
-                                            if (onOpenEdit) onOpenEdit(employee);
-                                        }}
-                                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
-                                    >
-                                        <Pencil className="w-3.5 h-3.5" />
-                                        <span>Sửa hồ sơ</span>
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
-                        >
-                            Đóng
-                        </button>
+                {/* Action Buttons */}
+                <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2">
+                        {!isRestrictedRole && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onClose();
+                                        if (onOpenAssignRole) onOpenAssignRole(employee);
+                                    }}
+                                    className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <ShieldCheck className="w-3.5 h-3.5" />
+                                    <span>Phân quyền vai trò</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onClose();
+                                        if (onOpenEdit) onOpenEdit(employee);
+                                    }}
+                                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    <span>Sửa hồ sơ</span>
+                                </button>
+                            </>
+                        )}
                     </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+                    >
+                        Đóng
+                    </button>
                 </div>
             </div>
         </div>

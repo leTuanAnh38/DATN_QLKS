@@ -358,31 +358,29 @@ export default function ContactManagement() {
                 </form>
             </div>
 
-            {/* Bảng dữ liệu */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200">
-                    <h3 className="text-sm font-bold text-slate-900">
+            {/* Bảng dữ liệu Compact */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                         Danh sách yêu cầu liên hệ ({totalCount} bản ghi)
                     </h3>
                 </div>
 
-                {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-sm border-collapse">
+                    <table className="w-full text-left text-[13px] border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="px-6 py-3.5">Khách hàng</th>
-                                <th className="px-4 py-3.5">Chủ đề</th>
-                                <th className="px-4 py-3.5">Nội dung tóm tắt</th>
-                                <th className="px-4 py-3.5">Ngày gửi</th>
-                                <th className="px-4 py-3.5">Trạng thái</th>
-                                <th className="sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 min-w-[130px] pr-6 pl-4 py-3.5 text-right">Thao tác</th>
+                            <tr className="bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                <th className="px-3 py-2.5">Khách hàng</th>
+                                <th className="px-3 py-2.5">Chủ đề & Tóm tắt</th>
+                                <th className="px-3 py-2.5 whitespace-nowrap">Ngày gửi</th>
+                                <th className="px-3 py-2.5 whitespace-nowrap">Trạng thái</th>
+                                <th className="px-3 py-2.5 text-right whitespace-nowrap">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                    <td colSpan={5} className="px-4 py-12 text-center">
                                         <div className="flex flex-col items-center justify-center gap-2 text-slate-400 text-xs font-medium">
                                             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                                             <span>Đang tải danh sách liên hệ...</span>
@@ -391,78 +389,76 @@ export default function ContactManagement() {
                                 </tr>
                             ) : contacts.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center">
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
-                                            <Inbox className="w-6 h-6" />
+                                    <td colSpan={5} className="px-4 py-12 text-center">
+                                        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                            <Inbox className="w-5 h-5" />
                                         </div>
-                                        <p className="text-sm text-slate-600 font-bold">Không có yêu cầu liên hệ nào</p>
-                                        <p className="text-xs text-slate-400 mt-1">Danh sách liên hệ hoặc phản hồi từ khách hàng sẽ xuất hiện ở đây.</p>
+                                        <p className="text-xs text-slate-600 font-bold">Không có yêu cầu liên hệ nào</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">Danh sách liên hệ hoặc phản hồi từ khách hàng sẽ xuất hiện ở đây.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 contacts.map((c) => (
                                     <tr key={c.id} className="hover:bg-blue-50/30 transition group">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                        <td className="px-3 py-2.5 max-w-[230px]">
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
                                                     {getInitials(c.name)}
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <div className={`text-slate-900 ${c.is_read ? 'font-semibold' : 'font-bold'}`}>{c.name}</div>
-                                                    <a href={`mailto:${c.email}`} className="text-xs text-slate-500 hover:text-blue-600 transition block truncate mt-0.5">{c.email}</a>
+                                                    <div className={`text-slate-900 truncate ${c.is_read ? 'font-semibold' : 'font-bold'}`}>{c.name}</div>
+                                                    <a href={`mailto:${c.email}`} className="text-[11px] text-slate-500 hover:text-blue-600 transition block truncate">{c.email}</a>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4">
+                                        <td className="px-3 py-2.5 max-w-[360px]">
                                             <div className="flex items-center gap-1.5">
                                                 <Mail className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                                <span className="text-blue-600 font-semibold text-xs line-clamp-1">{c.subject}</span>
+                                                <span className="text-blue-700 font-bold text-xs truncate">{c.subject}</span>
                                             </div>
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <p className="truncate max-w-xs text-slate-600 text-xs" title={c.message}>
+                                            <p className="truncate text-slate-500 text-[11.5px] mt-0.5" title={c.message}>
                                                 {c.message}
                                             </p>
                                         </td>
-                                        <td className="px-4 py-4 whitespace-nowrap">
-                                            <div className="text-slate-900 font-semibold text-xs">{formatTime(c.created_at)}</div>
-                                            <div className="text-[11px] text-slate-500 mt-0.5">{formatDate(c.created_at)}</div>
+                                        <td className="px-3 py-2.5 whitespace-nowrap tabular-nums">
+                                            <div className="text-slate-800 font-semibold text-xs">{formatTime(c.created_at)}</div>
+                                            <div className="text-[11px] text-slate-400">{formatDate(c.created_at)}</div>
                                         </td>
-                                        <td className="px-4 py-4 whitespace-nowrap">
+                                        <td className="px-3 py-2.5 whitespace-nowrap">
                                             <StatusBadge isRead={c.is_read} />
                                         </td>
-                                        <td className="sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 pr-6 pl-4 py-4 text-right whitespace-nowrap">
-                                            <div className="flex items-center justify-end gap-1.5">
+                                        <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-1">
                                                 {!c.is_read && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleMarkRead(c)}
                                                         disabled={markingId === c.id}
-                                                        className="w-8 h-8 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition cursor-pointer shadow-2xs disabled:opacity-50"
+                                                        className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition cursor-pointer disabled:opacity-50"
                                                         title="Đánh dấu đã đọc"
                                                     >
                                                         {markingId === c.id ? (
                                                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                                         ) : (
-                                                            <Check className="w-4 h-4" />
+                                                            <Check className="w-3.5 h-3.5" />
                                                         )}
                                                     </button>
                                                 )}
                                                 <button
                                                     type="button"
                                                     onClick={() => handleView(c)}
-                                                    className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer"
                                                     title="Xem chi tiết nội dung liên hệ"
                                                 >
-                                                    <Eye className="w-4 h-4" />
+                                                    <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setDeleteTarget(c)}
-                                                    className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer"
                                                     title="Xóa yêu cầu liên hệ"
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
+                                                    <Trash2 className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         </td>

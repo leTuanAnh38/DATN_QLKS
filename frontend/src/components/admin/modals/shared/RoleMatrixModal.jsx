@@ -373,7 +373,7 @@ export default function RoleMatrixModal({ isOpen, onClose, roles = [], onSaveSuc
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 1. MODAL HEADER */}

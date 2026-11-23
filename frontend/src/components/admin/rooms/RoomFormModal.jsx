@@ -52,31 +52,31 @@ export default function RoomFormModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div
-                className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                     <div className="flex items-center gap-3">
                         <div
-                            className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shadow-xs ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-xs ${
                                 isEdit
                                     ? 'bg-amber-50 border border-amber-200 text-amber-600'
-                                    : 'bg-blue-50 border border-blue-200 text-blue-600 text-xl'
+                                    : 'bg-blue-50 border border-blue-200 text-blue-600 text-lg'
                             }`}
                         >
-                            {isEdit ? <Edit3 className="w-5 h-5" /> : '＋'}
+                            {isEdit ? <Edit3 className="w-4 h-4" /> : '＋'}
                         </div>
                         <div>
-                            <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
-                                {isEdit ? `Chỉnh Sửa Thông Tin Phòng ${initialData?.room_number || ''}` : 'Thêm Phòng Mới Vào Sơ Đồ'}
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight">
+                                {isEdit ? `Chỉnh Sửa Phòng ${initialData?.room_number || ''}` : 'Thêm Phòng Mới'}
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-[11px] text-slate-500">
                                 {isEdit
                                     ? 'Cập nhật số phòng, tầng hoặc hạng phòng trong sơ đồ'
-                                    : 'Khởi tạo số phòng, phân loại tầng và gắn hạng phòng tương ứng'}
+                                    : 'Khởi tạo số phòng, tầng và gắn hạng phòng'}
                             </p>
                         </div>
                     </div>
@@ -91,7 +91,8 @@ export default function RoomFormModal({
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs text-slate-800 overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-xs text-slate-800">
+                    <div className="p-5 space-y-4 overflow-y-auto flex-1">
                     {/* Số phòng & Tầng */}
                     <div className="grid grid-cols-2 gap-3.5">
                         <div>
@@ -177,8 +178,10 @@ export default function RoomFormModal({
                         </div>
                     </div>
 
-                    {/* Footer Actions */}
-                    <div className={`pt-4 border-t border-slate-100 flex items-center ${isEdit ? 'justify-between' : 'justify-end gap-3'}`}>
+                    </div>
+
+                    {/* Footer Actions cố định đáy */}
+                    <div className={`px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center shrink-0 ${isEdit ? 'justify-between' : 'justify-end gap-2'}`}>
                         {isEdit && canDeleteRoom && isManagerOrAdmin ? (
                             <button
                                 type="button"
@@ -196,14 +199,14 @@ export default function RoomFormModal({
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2.5 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition cursor-pointer"
                             >
                                 Hủy bỏ
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/30 transition disabled:opacity-50 cursor-pointer"
+                                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
                             >
                                 {isSubmitting
                                     ? (isEdit ? 'Đang lưu...' : 'Đang tạo phòng...')

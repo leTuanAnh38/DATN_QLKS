@@ -107,23 +107,23 @@ export default function EmployeeCreateModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div
-                className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl font-bold shadow-xs">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-lg font-bold shadow-xs">
                             ＋
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-slate-900 tracking-tight">
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight">
                                 Thêm Mới Nhân Viên & Tài Khoản Nội Bộ
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                Khởi tạo tài khoản, phân quyền vai trò, chọn phòng ban, chức danh và ca làm việc
+                            <p className="text-[11px] text-slate-500">
+                                Khởi tạo tài khoản, phân quyền vai trò, phòng ban, chức danh và ca làm việc
                             </p>
                         </div>
                     </div>
@@ -138,7 +138,8 @@ export default function EmployeeCreateModal({
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs text-slate-800 overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-xs text-slate-800">
+                    <div className="p-5 space-y-4 overflow-y-auto flex-1">
                     {/* Khối 1: Thông tin tài khoản đăng nhập */}
                     <div>
                         <h4 className="font-bold text-xs uppercase tracking-wider text-blue-700 mb-3 flex items-center gap-1.5">
@@ -348,19 +349,21 @@ export default function EmployeeCreateModal({
                         </div>
                     </div>
 
-                    {/* Nút hành động */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+                    </div>
+
+                    {/* Footer cố định đáy */}
+                    <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-end gap-2 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer"
+                            className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition cursor-pointer"
                         >
                             Hủy
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/30 transition disabled:opacity-50 cursor-pointer"
+                            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
                         >
                             {isSubmitting ? 'Đang khởi tạo...' : 'Tạo Tài Khoản Nhân Viên'}
                         </button>

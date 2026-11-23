@@ -1045,20 +1045,19 @@ export default function EmployeeManagement() {
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                <th className="py-3.5 px-4">NHÂN VIÊN</th>
-                                <th className="py-3.5 px-4">MÃ NV</th>
-                                <th className="py-3.5 px-4">VAI TRÒ (RBAC)</th>
-                                <th className="py-3.5 px-4">PHÒNG BAN & CHỨC DANH</th>
-                                <th className="py-3.5 px-4">CA LÀM VIỆC & LƯƠNG</th>
-                                <th className="py-3.5 px-4 min-w-[110px] whitespace-nowrap">TRẠNG THÁI</th>
-                                <th className="sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 py-3.5 px-4 pr-6 text-right min-w-[210px]">THAO TÁC</th>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
+                                <th className="py-2.5 px-3">NHÂN VIÊN & MÃ NV</th>
+                                <th className="py-2.5 px-3">VAI TRÒ (RBAC)</th>
+                                <th className="py-2.5 px-3">PHÒNG BAN & CHỨC DANH</th>
+                                <th className="py-2.5 px-3">CA LÀM VIỆC & LƯƠNG</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">TRẠNG THÁI</th>
+                                <th className="py-2.5 px-3 text-right whitespace-nowrap">THAO TÁC</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="7" className="py-12 text-center text-slate-400">
+                                    <td colSpan="6" className="py-10 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                                             <div>Đang tải dữ liệu nhân sự...</div>
@@ -1067,65 +1066,65 @@ export default function EmployeeManagement() {
                                 </tr>
                             ) : employees.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="py-12 text-center text-slate-400">
+                                    <td colSpan="6" className="py-10 text-center text-slate-400">
                                         Không tìm thấy nhân viên nào phù hợp với bộ lọc.
                                     </td>
                                 </tr>
                             ) : (
                                 employees.map((emp) => (
                                     <tr key={emp.id} className="hover:bg-blue-50/30 transition group">
-                                        {/* Avatar & Name */}
-                                        <td className="py-3.5 px-4">
-                                            <div className="flex items-center gap-3">
+                                        {/* Avatar, Name & Employee Code */}
+                                        <td className="py-2 px-3 max-w-[260px]">
+                                            <div className="flex items-center gap-2.5 min-w-0">
                                                 <UserAvatar
                                                     avatar={emp.avatar}
                                                     name={emp.full_name || emp.username}
                                                     role={emp.role}
-                                                    size="md"
+                                                    size="sm"
                                                     border={false}
                                                 />
-                                                <div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenDetail(emp)}
-                                                        className="font-bold text-slate-900 hover:text-blue-600 transition text-left cursor-pointer"
-                                                    >
-                                                        {emp.full_name || emp.username}
-                                                    </button>
-                                                    <div className="text-[11px] text-slate-400">
-                                                        {emp.email} • {emp.phone_number || 'Chưa có SĐT'}
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenDetail(emp)}
+                                                            className="font-bold text-[13px] text-slate-900 hover:text-blue-600 transition text-left cursor-pointer truncate"
+                                                        >
+                                                            {emp.full_name || emp.username}
+                                                        </button>
+                                                        <span className="font-mono text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100 shrink-0">
+                                                            {emp.employee_profile?.employee_code || `NV-${emp.id}`}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-400 truncate">
+                                                        {emp.email}{emp.phone_number ? ` • ${emp.phone_number}` : ''}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
 
-                                        {/* Employee Code */}
-                                        <td className="py-3.5 px-4 font-mono font-bold text-blue-600 whitespace-nowrap">
-                                            {emp.employee_profile?.employee_code || `NV-${emp.id}`}
-                                        </td>
-
                                         {/* Role Badge */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                        <td className="py-2 px-3 whitespace-nowrap">
                                             {getRoleBadge(emp.role)}
                                         </td>
 
                                         {/* Department & Position */}
-                                        <td className="py-3.5 px-4">
-                                            <div className="font-semibold text-slate-800">
+                                        <td className="py-2 px-3 max-w-[200px]">
+                                            <div className="font-semibold text-slate-800 truncate" title={emp.employee_profile?.position}>
                                                 {emp.employee_profile?.position || 'Nhân viên'}
                                             </div>
-                                            <div className="text-[10px] text-slate-500 font-medium">
+                                            <div className="text-[10.5px] text-slate-500 truncate">
                                                 {emp.employee_profile?.department || 'Chưa xếp phòng ban'}
                                             </div>
                                         </td>
 
                                         {/* Shift & Salary */}
-                                        <td className="py-3.5 px-4">
-                                            <div className="text-slate-800 font-medium">
-                                                {emp.employee_profile?.shift || 'Chưa xếp ca'}
+                                        <td className="py-2 px-3 whitespace-nowrap">
+                                            <div className="text-slate-700 font-medium text-[11.5px]">
+                                                {(emp.employee_profile?.shift || 'Chưa xếp ca').split('(')[0].trim()}
                                             </div>
                                             {isSalaryHidden(emp) ? (
-                                                <span className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[10.5px] font-semibold border border-slate-200">
+                                                <span className="inline-flex items-center gap-1 mt-0.5 px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold border border-slate-200">
                                                     <Lock className="w-2.5 h-2.5 shrink-0" />
                                                     <span>Bảo mật</span>
                                                 </span>
@@ -1137,46 +1136,46 @@ export default function EmployeeManagement() {
                                         </td>
 
                                         {/* Status */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                        <td className="py-2 px-3 whitespace-nowrap">
                                             {emp.is_active ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
                                                     Hoạt động
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
                                                     Đã khóa
                                                 </span>
                                             )}
                                         </td>
 
-                                        {/* Actions */}
-                                        <td className="sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10 py-3.5 px-4 pr-6 text-right whitespace-nowrap">
-                                            <div className="flex items-center justify-end gap-1.5">
+                                        {/* Actions Compact */}
+                                        <td className="py-2 px-3 text-right whitespace-nowrap">
+                                            <div className="flex items-center justify-end gap-1">
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenDetail(emp)}
-                                                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
                                                     title="Xem chi tiết hồ sơ"
                                                 >
                                                     <Eye className="w-3.5 h-3.5" />
                                                 </button>
                                                 {isSelfRow(emp) && isRestrictedForManager(emp) ? (
-                                                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 flex items-center gap-1">
+                                                    <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 inline-flex items-center gap-1">
                                                         <ShieldCheck className="w-3 h-3" />
-                                                        <span>Tài khoản của bạn</span>
+                                                        <span>Của bạn</span>
                                                     </span>
                                                 ) : isRestrictedForManager(emp) ? (
                                                     emp.role === 'admin' ? (
-                                                        <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200 flex items-center gap-1">
+                                                        <span className="px-2 py-1 rounded-lg bg-purple-50 text-purple-800 text-[10px] font-bold border border-purple-200 inline-flex items-center gap-1">
                                                             <ShieldCheck className="w-3 h-3" />
-                                                            <span>Quản trị hệ thống</span>
+                                                            <span>Admin</span>
                                                         </span>
                                                     ) : (
-                                                        <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 flex items-center gap-1">
+                                                        <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200 inline-flex items-center gap-1">
                                                             <Lock className="w-3 h-3" />
-                                                            <span>{emp.role === 'manager' ? 'Đồng cấp (Chỉ xem)' : 'Cấp trên (Chỉ xem)'}</span>
+                                                            <span>Chỉ xem</span>
                                                         </span>
                                                     )
                                                 ) : (
@@ -1186,16 +1185,15 @@ export default function EmployeeManagement() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenAssignRole(emp)}
-                                                                    className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-2xs"
-                                                                    title="Phân quyền vai trò chi tiết"
+                                                                    className="w-7 h-7 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center transition cursor-pointer"
+                                                                    title="Phân quyền vai trò (RBAC)"
                                                                 >
                                                                     <ShieldCheck className="w-3.5 h-3.5" />
-                                                                    <span>Phân quyền</span>
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenEdit(emp)}
-                                                                    className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                                    className="w-7 h-7 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 flex items-center justify-center transition cursor-pointer"
                                                                     title="Chỉnh sửa hồ sơ"
                                                                 >
                                                                     <Pencil className="w-3.5 h-3.5" />
@@ -1203,12 +1201,12 @@ export default function EmployeeManagement() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleToggleStatus(emp)}
-                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer shadow-2xs ${
+                                                                    className={`w-7 h-7 rounded-lg flex items-center justify-center transition cursor-pointer ${
                                                                         emp.is_active
-                                                                            ? 'bg-amber-50 hover:bg-amber-100 text-amber-700'
+                                                                            ? 'bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-700'
                                                                             : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
                                                                     }`}
-                                                                    title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa'}
+                                                                    title={emp.is_active ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
                                                                 >
                                                                     {emp.is_active ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                                                                 </button>
@@ -1218,7 +1216,7 @@ export default function EmployeeManagement() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenDelete(emp)}
-                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs"
+                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer"
                                                                 title="Xóa tài khoản nhân viên"
                                                             >
                                                                 <Trash2 className="w-3.5 h-3.5" />

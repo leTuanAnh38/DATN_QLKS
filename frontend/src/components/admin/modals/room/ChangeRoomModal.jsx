@@ -164,13 +164,13 @@ export default function ChangeRoomModal({
     const selectedNewRoom = availableRooms.find((r) => String(r.id) === String(selectedRoomId));
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
             <div
-                className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="p-4 sm:px-6 sm:py-5 border-b border-indigo-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-between">
+                <div className="px-5 py-3.5 border-b border-indigo-200 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-600/10 border border-indigo-300 text-indigo-700 flex items-center justify-center text-xl sm:text-2xl font-bold shadow-xs shrink-0">
                             <ArrowRightLeft className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -489,7 +489,7 @@ export default function ChangeRoomModal({
                 </form>
 
                 {/* Footer Buttons */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/70 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={onClose}

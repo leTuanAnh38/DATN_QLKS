@@ -927,29 +927,28 @@ export default function InvoiceManagement() {
             </div>
 
             {/* ================================================================= */}
-            {/* 3. BẢNG DỮ LIỆU GIAO DỊCH (DATA TABLE)                            */}
+            {/* 3. BẢNG DỮ LIỆU GIAO DỊCH (DATA TABLE COMPACT 7 CỘT)              */}
             {/* ================================================================= */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                 {/* BẢNG DỮ LIỆU GIAO DỊCH (CHỈ HIỂN THỊ TRÊN DESKTOP/TABLET) */}
                 <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-xs sm:text-sm border-collapse">
+                    <table className="w-full text-left text-[13px] border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-                                <th className="py-4 px-4 sm:px-6">Mã Giao dịch</th>
-                                <th className="py-4 px-4 min-w-[200px]">Khách hàng</th>
-                                <th className="py-4 px-4">Mã Phòng / Đơn</th>
-                                <th className="py-4 px-4">Số tiền (VND)</th>
-                                <th className="py-4 px-4">Hình thức</th>
-                                <th className="py-4 px-4">Trạng thái</th>
-                                <th className="py-4 px-4">Ngày tạo</th>
-                                <th className="py-4 px-4 sm:px-6 text-center">Hành động</th>
+                                <th className="py-2.5 px-3">Mã GD / Thời gian</th>
+                                <th className="py-2.5 px-3">Khách hàng</th>
+                                <th className="py-2.5 px-3">Mã Đơn / Phòng</th>
+                                <th className="py-2.5 px-3 text-right">Số tiền</th>
+                                <th className="py-2.5 px-3">Hình thức</th>
+                                <th className="py-2.5 px-3">Trạng thái</th>
+                                <th className="py-2.5 px-3 text-center">Hành động</th>
                             </tr>
                         </thead>
 
                         <tbody className="divide-y divide-slate-100">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                                    <td colSpan={7} className="py-10 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
                                             <span>Đang tải dữ liệu giao dịch...</span>
@@ -958,7 +957,7 @@ export default function InvoiceManagement() {
                                 </tr>
                             ) : filteredPayments.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="py-12 text-center text-slate-400">
+                                    <td colSpan={7} className="py-10 text-center text-slate-400">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <Receipt className="w-8 h-8 text-slate-300" />
                                             <span className="font-medium text-slate-600">Không tìm thấy giao dịch nào</span>
@@ -971,22 +970,23 @@ export default function InvoiceManagement() {
                                     const isCompleted = payment.payment_status === 'COMPLETED';
                                     const isPending = payment.payment_status === 'PENDING';
                                     const isFailed = payment.payment_status === 'FAILED';
+                                    const { time, date } = formatTxnDateTime(payment.created_at);
 
                                     return (
                                         <tr
                                             key={payment.id}
                                             className="hover:bg-blue-50/30 transition duration-150"
                                         >
-                                            {/* 1. Mã Giao dịch */}
-                                            <td className="py-3.5 px-4 sm:px-6 font-mono text-xs whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5">
+                                            {/* 1. Mã Giao dịch + Thời gian tạo */}
+                                            <td className="py-2 px-3 whitespace-nowrap">
+                                                <div className="flex items-center gap-1 font-mono text-xs">
                                                     <span className="font-bold text-slate-800">
                                                         {payment.transaction_id || `TXN-${payment.id}`}
                                                     </span>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleCopyTxn(payment.transaction_id || `TXN-${payment.id}`)}
-                                                        className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition shrink-0"
+                                                        className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition shrink-0 cursor-pointer"
                                                         title="Sao chép mã giao dịch"
                                                     >
                                                         {copiedTxn === (payment.transaction_id || `TXN-${payment.id}`) ? (
@@ -996,10 +996,13 @@ export default function InvoiceManagement() {
                                                         )}
                                                     </button>
                                                 </div>
+                                                <div className="text-[11px] text-slate-400 font-medium mt-0.5 tabular-nums">
+                                                    {time} • {date}
+                                                </div>
                                             </td>
 
                                             {/* 2. Khách hàng */}
-                                            <td className="py-3.5 px-4 min-w-[200px]">
+                                            <td className="py-2 px-3 max-w-[200px]">
                                                 {(() => {
                                                     const isGroupOrCorp = Boolean(
                                                         payment.is_group || 
@@ -1010,32 +1013,31 @@ export default function InvoiceManagement() {
                                                     const phoneDisplay = payment.guest_phone || payment.booking?.guest?.phone;
 
                                                     return (
-                                                        <div className="flex items-center gap-2.5">
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shrink-0 ${
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[11px] uppercase shrink-0 ${
                                                                 isGroupOrCorp 
-                                                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-2xs' 
+                                                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' 
                                                                     : 'bg-slate-100 text-slate-600'
                                                             }`}>
                                                                 {isGroupOrCorp ? (
-                                                                    <Building2 className="w-4 h-4 text-indigo-600" />
+                                                                    <Building2 className="w-3.5 h-3.5 text-indigo-600" />
                                                                 ) : (
                                                                     payment.guest_name ? payment.guest_name[0] : 'K'
                                                                 )}
                                                             </div>
-                                                            <div>
-                                                                {isGroupOrCorp && (
-                                                                    <div className="mb-0.5">
-                                                                        <span className="inline-flex items-center gap-1 text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider whitespace-nowrap">
-                                                                            <Building2 className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
-                                                                            <span>Doanh nghiệp / Đoàn</span>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="font-bold text-slate-900 leading-snug truncate" title={payment.guest_name || payment.company_name || 'Khách vãng lai'}>
+                                                                        {payment.guest_name || payment.company_name || 'Khách vãng lai'}
+                                                                    </span>
+                                                                    {isGroupOrCorp && (
+                                                                        <span className="text-[9px] font-black px-1 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase shrink-0">
+                                                                            B2B
                                                                         </span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="font-bold text-slate-900 leading-snug">
-                                                                    {payment.guest_name || payment.company_name || 'Khách vãng lai'}
+                                                                    )}
                                                                 </div>
                                                                 {phoneDisplay && (
-                                                                    <div className="text-[11px] text-slate-400 mt-0.5">
+                                                                    <div className="text-[11px] text-slate-400 tabular-nums truncate">
                                                                         {phoneDisplay}
                                                                     </div>
                                                                 )}
@@ -1046,7 +1048,7 @@ export default function InvoiceManagement() {
                                             </td>
 
                                             {/* 3. Mã Phòng (Booking Code) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                            <td className="py-2 px-3 whitespace-nowrap">
                                                 {(() => {
                                                     const isGroupOrCorp = Boolean(
                                                         payment.is_group || 
@@ -1061,26 +1063,26 @@ export default function InvoiceManagement() {
                                                     );
 
                                                     return (
-                                                        <div className="space-y-1">
+                                                        <div className="space-y-0.5">
                                                             {isGroupOrCorp ? (
                                                                 <>
-                                                                    <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 text-xs inline-block shadow-2xs whitespace-nowrap">
+                                                                    <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 text-[11px] inline-block">
                                                                         #{codeDisplay}
                                                                     </span>
-                                                                    <div className="text-[11px] text-slate-600 flex items-center gap-1 font-medium whitespace-nowrap">
-                                                                        <Users className="w-3 h-3 text-indigo-600 shrink-0" />
-                                                                        <span>{payment.room_number || 'Đơn đặt đoàn'}</span>
+                                                                    <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                                                                        <Users className="w-3 h-3 text-indigo-500 shrink-0" />
+                                                                        <span>{payment.room_number || 'Đặt đoàn'}</span>
                                                                     </div>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-xs inline-block whitespace-nowrap">
+                                                                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 text-[11px] inline-block">
                                                                         #{codeDisplay}
                                                                     </span>
                                                                     {payment.room_number && (
-                                                                        <div className="text-[11px] text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                                                                        <div className="text-[11px] text-slate-500 flex items-center gap-1">
                                                                             <DoorOpen className="w-3 h-3 text-slate-400 shrink-0" />
-                                                                            <span>Phòng {payment.room_number}</span>
+                                                                            <span>P.{payment.room_number}</span>
                                                                         </div>
                                                                     )}
                                                                 </>
@@ -1091,60 +1093,42 @@ export default function InvoiceManagement() {
                                             </td>
 
                                             {/* 4. Số tiền (VND) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
-                                                <span className="font-mono font-black text-slate-900 text-sm whitespace-nowrap">
+                                            <td className="py-2 px-3 text-right whitespace-nowrap tabular-nums">
+                                                <span className="font-mono font-extrabold text-slate-900 text-[13px]">
                                                     {formatVND(payment.amount)}
                                                 </span>
                                             </td>
 
-                                            {/* 5. Hình thức (VietQR / Quẹt thẻ POS / Tiền mặt) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
-                                                {renderMethodBadge(payment.payment_method, false)}
+                                            {/* 5. Hình thức */}
+                                            <td className="py-2 px-3 whitespace-nowrap">
+                                                {renderMethodBadge(payment.payment_method, true)}
                                             </td>
 
                                             {/* 6. Trạng thái */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
+                                            <td className="py-2 px-3 whitespace-nowrap">
                                                 {isCompleted && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap shrink-0">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                         <CheckCircle2 className="w-3 h-3 shrink-0" />
                                                         <span>Thành công</span>
                                                     </span>
                                                 )}
                                                 {isPending && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shrink-0">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                                         <Clock className="w-3 h-3 shrink-0" />
                                                         <span>Chờ xử lý</span>
                                                     </span>
                                                 )}
                                                 {isFailed && (
-                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap shrink-0">
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                                         <XCircle className="w-3 h-3 shrink-0" />
                                                         <span>Thất bại</span>
                                                     </span>
                                                 )}
                                             </td>
 
-                                            {/* 7. Ngày tạo (Tách rời Giờ đậm và Ngày thanh thoát) */}
-                                            <td className="py-3.5 px-4 whitespace-nowrap">
-                                                {(() => {
-                                                    const { time, date } = formatTxnDateTime(payment.created_at);
-                                                    return (
-                                                        <div className="flex flex-col whitespace-nowrap">
-                                                            <span className="font-bold text-slate-800 text-xs flex items-center gap-1 font-mono">
-                                                                <Clock className="w-3 h-3 text-blue-600 shrink-0" />
-                                                                <span>{time}</span>
-                                                            </span>
-                                                            <span className="text-[11px] text-slate-400 font-medium mt-0.5">
-                                                                {date}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </td>
-
-                                            {/* 8. Cột Hành động: Nút "Xác nhận thu" & "Xem & In" */}
-                                            <td className="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-1.5">
+                                            {/* 7. Hành động gọn: Nút Thu tiền + Icon Xem/In */}
+                                            <td className="py-2 px-3 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-center gap-1">
                                                     {isPending && (
                                                         <button
                                                             type="button"
@@ -1153,27 +1137,26 @@ export default function InvoiceManagement() {
                                                                 setConfirmPaymentMethod(normalizeMethodKey(payment.payment_method || 'TRANSFER'));
                                                                 setConfirmNote('');
                                                             }}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs shadow-emerald-600/20 transition cursor-pointer active:scale-95"
+                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg shadow-xs transition cursor-pointer active:scale-95"
                                                             title="Xác nhận đã nhận tiền cho giao dịch này"
                                                         >
-                                                            <CheckCircle2 className="w-3.5 h-3.5" />
-                                                            <span>Xác nhận thu</span>
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                            <span>Thu</span>
                                                         </button>
                                                     )}
 
-                                                    {/* Nút Xem chi tiết / In hóa đơn */}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenPaymentModal(payment)}
-                                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 ${
+                                                        className={`inline-flex items-center justify-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg transition cursor-pointer active:scale-95 ${
                                                             isPending
-                                                                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                                                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-600/20'
+                                                                ? 'w-7 h-7 p-0 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                                                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
                                                         }`}
                                                         title={isPending ? 'Xem chi tiết phiếu thanh toán' : 'Xem chi tiết & in hóa đơn / phiếu thu'}
                                                     >
                                                         {isPending ? <Eye className="w-3.5 h-3.5" /> : <Printer className="w-3.5 h-3.5" />}
-                                                        <span>{isPending ? 'Chi tiết' : 'Xem & In'}</span>
+                                                        {!isPending && <span>In</span>}
                                                     </button>
                                                 </div>
                                             </td>
@@ -1424,12 +1407,12 @@ export default function InvoiceManagement() {
             {/* 5. MODAL XÁC NHẬN GIAO DỊCH PENDING                               */}
             {/* ================================================================= */}
             {confirmingPayment && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-6 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200">
-                        <div className="flex items-start justify-between pb-4 border-b border-slate-100 mb-5">
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl text-left animate-in zoom-in-95 duration-200">
+                        <div className="px-5 py-3.5 border-b border-slate-100 flex items-start justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                                    <Check className="w-5 h-5 text-emerald-700" />
+                                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                    <Check className="w-4.5 h-4.5 text-emerald-700" />
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-slate-900 text-base">Xác Nhận Đã Nhận Tiền</h3>
@@ -1439,15 +1422,15 @@ export default function InvoiceManagement() {
                             <button
                                 type="button"
                                 onClick={() => setConfirmingPayment(null)}
-                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer"
+                                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center transition cursor-pointer shrink-0"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="p-5 space-y-3.5 overflow-y-auto flex-1">
                             {/* Khối tóm tắt giao dịch */}
-                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2 text-xs">
                                 <div className="flex items-center justify-between">
                                     <span className="text-slate-500">Mã giao dịch:</span>
                                     <span className="font-mono font-bold text-slate-800">#{confirmingPayment.transaction_id || confirmingPayment.id}</span>
@@ -1520,27 +1503,27 @@ export default function InvoiceManagement() {
                                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white"
                                 />
                             </div>
+                        </div>
 
-                            {/* Footer hành động */}
-                            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                                <button
-                                    type="button"
-                                    onClick={() => setConfirmingPayment(null)}
-                                    disabled={isConfirmingLoading}
-                                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
-                                >
-                                    Đóng
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleConfirmPayment}
-                                    disabled={isConfirmingLoading}
-                                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                                >
-                                    <Check className="w-3.5 h-3.5" />
-                                    <span>{isConfirmingLoading ? 'Đang xác nhận...' : 'Xác nhận thu tiền'}</span>
-                                </button>
-                            </div>
+                        {/* Footer hành động */}
+                        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmingPayment(null)}
+                                disabled={isConfirmingLoading}
+                                className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmPayment}
+                                disabled={isConfirmingLoading}
+                                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
+                            >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>{isConfirmingLoading ? 'Đang xác nhận...' : 'Xác nhận thu tiền'}</span>
+                            </button>
                         </div>
                     </div>
                 </div>

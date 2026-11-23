@@ -146,6 +146,7 @@ export default function Analytics({ onNavigateToCustomer }) {
     const [lastUpdated, setLastUpdated] = useState(null);
 
     const [isExportOpen, setIsExportOpen] = useState(false);
+    const [activeSection, setActiveSection] = useState('business'); // 'business' | 'customers' | 'chatbot'
     const [chatbotLogFilter, setChatbotLogFilter] = useState('all'); // 'all' | 'handoff' | 'fallback'
 
     // Fetch dữ liệu báo cáo
@@ -435,10 +436,38 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
             )}
 
+            {/* THANH CHUYỂN 3 PHÂN KHU BÁO CÁO (CẮT GIẢM CUỘN DỌC) */}
+            <div className="bg-white p-1 rounded-xl border border-slate-200 shadow-xs inline-flex flex-wrap items-center gap-1 print:hidden">
+                {[
+                    { id: 'business', label: 'Kinh doanh & Công suất', icon: BarChart3 },
+                    { id: 'customers', label: 'Top VIP & Doanh nghiệp B2B', icon: Crown },
+                    { id: 'chatbot', label: 'Trợ lý AI Concierge', icon: Bot }
+                ].map((tab) => {
+                    const Icon = tab.icon;
+                    const active = activeSection === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setActiveSection(tab.id)}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                                active
+                                    ? 'bg-slate-900 text-white shadow-xs'
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            }`}
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
             {/* ========================================================================= */}
             {/* PHẦN 2: THẺ KPI CHUYÊN SÂU (6 CHỈ SỐ VÀNG HOTEL BUSINESS INTELLIGENCE)      */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className={`${activeSection === 'business' ? 'space-y-4' : 'hidden print:block print:space-y-4'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {/* KPI 1: TỔNG DOANH THU TRONG KỲ */}
                 <div 
                     className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition"
@@ -720,7 +749,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* Khung vẽ Recharts */}
-                <div className="w-full h-72 sm:h-84">
+                <div className="w-full h-64 sm:h-72">
                     {isLoading ? (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-2">
                             <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
@@ -1242,11 +1271,13 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </div>
                 </div>
             </div>
+            </div>
 
             {/* ========================================================================= */}
-            {/* PHẦN 5: BẢNG XẾP HẠNG TOP KHÁCH HÀNG VIP                                  */}
+            {/* PHẦN 5 & 6: BẢNG XẾP HẠNG TOP KHÁCH HÀNG VIP & DOANH NGHIỆP B2B          */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className={`${activeSection === 'customers' ? 'space-y-4' : 'hidden print:block print:space-y-4'}`}>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                 <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2">
@@ -1533,11 +1564,13 @@ export default function Analytics({ onNavigateToCustomer }) {
                     </table>
                 </div>
             </div>
+            </div>
 
             {/* ========================================================================= */}
             {/* PHẦN 7: HIỆU QUẢ & NHẬT KÝ TRỢ LÝ AI CONCIERGE                           */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className={`${activeSection === 'chatbot' ? 'block' : 'hidden print:block'}`}>
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                 <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2">
@@ -1823,6 +1856,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );

@@ -47,9 +47,12 @@ export default function Sidebar({
         setLogoError(false);
     }, [sidebarLogoUrl]);
 
-    // State thu gọn Sidebar trên Desktop (lưu vào localStorage nếu dùng internal state)
+    // State thu gọn Sidebar trên Desktop (mặc định tự thu gọn khi màn hình < 1440px để tối ưu 1366px)
     const [internalCollapsed, setInternalCollapsed] = useState(() => {
         try {
+            if (typeof window !== 'undefined' && window.innerWidth >= 1024 && window.innerWidth < 1440) {
+                return true;
+            }
             return localStorage.getItem('pms_sidebar_collapsed') === 'true';
         } catch {
             return false;
@@ -187,25 +190,25 @@ export default function Sidebar({
             `}</style>
             <aside
                 className={`${
-                    effectiveCollapsed ? 'lg:w-20' : 'lg:w-80'
-                } w-80 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-[transform,width] duration-300 ease-in-out will-change-transform print:hidden ${
+                    effectiveCollapsed ? 'lg:w-16' : 'lg:w-56'
+                } w-64 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-[transform,width] duration-250 ease-in-out will-change-transform print:hidden ${
                     isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
                 }`}
             >
                 {/* Logo Brand Header (Cố định phía trên) */}
                 <div
-                    className={`h-20 shrink-0 flex items-center border-b border-slate-800/80 transition-all duration-300 ${
-                        effectiveCollapsed ? 'lg:justify-center lg:px-2 px-6 justify-between' : 'justify-between px-6'
+                    className={`h-13 shrink-0 flex items-center border-b border-slate-800/80 transition-all duration-250 ${
+                        effectiveCollapsed ? 'lg:justify-center lg:px-1.5 px-3.5 justify-between' : 'justify-between px-3.5'
                     }`}
                 >
                     <Link
                         to="/"
                         onClick={() => setIsMobileSidebarOpen && setIsMobileSidebarOpen(false)}
-                        className="flex items-center gap-3 hover:bg-slate-800/40 transition rounded-xl min-w-0"
+                        className="flex items-center gap-2.5 hover:bg-slate-800/40 transition rounded-xl min-w-0"
                         title={`${sidebarHotelName} - Luxury Hotel Admin`}
                     >
                         {sidebarLogoUrl && !logoError ? (
-                            <div className="w-10 h-10 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-lg shadow-slate-950/40 ring-1 ring-amber-400/40 shrink-0 overflow-hidden">
+                            <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center shadow-md shadow-slate-950/40 ring-1 ring-amber-400/40 shrink-0 overflow-hidden">
                                 <img
                                     src={sidebarLogoUrl}
                                     alt={sidebarHotelName}
@@ -214,16 +217,16 @@ export default function Sidebar({
                                 />
                             </div>
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-serif font-black text-xl shadow-lg shadow-blue-600/40 shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base shadow-md shadow-blue-600/40 shrink-0">
                                 TA
                             </div>
                         )}
                         <div className={`flex flex-col min-w-0 ${effectiveCollapsed ? 'lg:hidden' : ''}`}>
-                            <span className="text-white font-bold text-base tracking-wide font-sans truncate">
+                            <span className="text-white font-bold text-[13px] leading-tight tracking-wide font-sans truncate">
                                 {sidebarHotelName}
                             </span>
-                            <span className="text-[10px] text-blue-400 uppercase tracking-widest font-semibold truncate">
-                                Luxury Hotel Admin
+                            <span className="text-[9.5px] text-blue-400 uppercase tracking-wider font-semibold truncate">
+                                Hotel PMS
                             </span>
                         </div>
                     </Link>
@@ -233,11 +236,11 @@ export default function Sidebar({
                         <button
                             type="button"
                             onClick={handleToggleCollapse}
-                            className="hidden lg:flex w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white items-center justify-center transition cursor-pointer shrink-0"
+                            className="hidden lg:flex w-7 h-7 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white items-center justify-center transition cursor-pointer shrink-0"
                             title="Thu gọn thanh điều hướng (Mini-Sidebar)"
                             aria-label="Thu gọn thanh điều hướng"
                         >
-                            <PanelLeftClose className="w-4 h-4" />
+                            <PanelLeftClose className="w-3.5 h-3.5" />
                         </button>
                     )}
 
@@ -245,32 +248,32 @@ export default function Sidebar({
                     <button
                         type="button"
                         onClick={() => setIsMobileSidebarOpen && setIsMobileSidebarOpen(false)}
-                        className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center lg:hidden transition cursor-pointer"
+                        className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center lg:hidden transition cursor-pointer"
                         title="Đóng thanh điều hướng"
                         aria-label="Đóng thanh điều hướng"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Nút mở rộng nhanh khi ở chế độ Mini-Sidebar trên Desktop */}
                 {effectiveCollapsed && (
-                    <div className="hidden lg:flex justify-center py-2.5 border-b border-slate-800/60 shrink-0">
+                    <div className="hidden lg:flex justify-center py-2 border-b border-slate-800/60 shrink-0">
                         <button
                             type="button"
                             onClick={handleToggleCollapse}
-                            className="w-10 h-9 rounded-xl bg-slate-800/90 hover:bg-blue-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shadow-xs"
+                            className="w-9 h-8 rounded-lg bg-slate-800/90 hover:bg-blue-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shadow-xs"
                             title="Mở rộng thanh điều hướng"
                             aria-label="Mở rộng thanh điều hướng"
                         >
-                            <PanelLeftOpen className="w-4 h-4" />
+                            <PanelLeftOpen className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 )}
 
                 {/* Nav Links (Cuộn độc lập khi menu dài ra) */}
                 <div
-                    className={`flex-1 min-h-0 overflow-y-auto custom-sidebar-scroll py-2.5 pb-12 space-y-3.5 ${effectiveCollapsed ? 'lg:px-2 px-3' : 'px-3'}`}
+                    className={`flex-1 min-h-0 overflow-y-auto custom-sidebar-scroll py-2 pb-8 space-y-2.5 ${effectiveCollapsed ? 'lg:px-1.5 px-2.5' : 'px-2.5'}`}
                 >
                     {/* ========================================================================= */}
                     {/* NHÓM 1: VẬN HÀNH TIỀN SẢNH (FRONT OFFICE) */}
@@ -301,8 +304,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-semibold transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-semibold transition cursor-pointer ${
                                             activeTab === 'overview'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -333,8 +336,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'rooms'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -393,8 +396,8 @@ export default function Sidebar({
                                             }
                                             onMouseLeave={scheduleCloseFlyout}
                                             className={`relative w-full flex items-center ${
-                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                            } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer select-none ${
+                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                            } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer select-none ${
                                                 activeTab === 'bookings' && bookingSubFilter === 'all'
                                                     ? 'bg-blue-600 text-white shadow-md'
                                                     : ['bookings', 'booking-timeline'].includes(activeTab)
@@ -489,8 +492,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'services' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -520,8 +523,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'invoices' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -603,8 +606,8 @@ export default function Sidebar({
                                             }
                                             onMouseLeave={scheduleCloseFlyout}
                                             className={`w-full flex items-center ${
-                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                            } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer select-none ${
+                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                            } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer select-none ${
                                                 activeTab === 'categories'
                                                     ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                     : activeTab === 'amenities' || activeTab === 'minibar'
@@ -712,8 +715,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'lost-and-found'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -747,8 +750,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'service-items' ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -796,8 +799,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             ['guests', 'customer-detail'].includes(activeTab)
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -826,8 +829,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'corporate-partners'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -859,8 +862,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'reviews' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -908,8 +911,8 @@ export default function Sidebar({
                                             }
                                             onMouseLeave={scheduleCloseFlyout}
                                             className={`w-full flex items-center ${
-                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                            } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer select-none ${
+                                                effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                            } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer select-none ${
                                                 ['posts', 'promotions'].includes(activeTab)
                                                     ? 'bg-slate-800 text-white'
                                                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -1018,8 +1021,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'contacts' ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -1068,8 +1071,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             ['analytics', 'reports'].includes(activeTab)
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -1101,8 +1104,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'employees'
                                                 ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                                                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -1134,8 +1137,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'settings' ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -1165,8 +1168,8 @@ export default function Sidebar({
                                         }
                                         onMouseLeave={scheduleCloseFlyout}
                                         className={`w-full flex items-center ${
-                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-3.5 justify-between' : 'justify-between px-3.5'
-                                        } py-2 rounded-xl text-left text-xs sm:text-[13px] font-medium transition cursor-pointer ${
+                                            effectiveCollapsed ? 'lg:justify-center lg:px-0 px-2.5 justify-between' : 'justify-between px-2.5'
+                                        } py-1.5 rounded-lg text-left text-xs sm:text-[12.5px] font-medium transition cursor-pointer ${
                                             activeTab === 'audit-logs' ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                                         }`}
                                     >
@@ -1184,10 +1187,10 @@ export default function Sidebar({
                 </div>
 
                 {/* Sidebar Footer Widget: Khối tĩnh hiển thị thông tin tài khoản quản lý & Đăng xuất (Cố định phía dưới) */}
-                <div className={`shrink-0 border-t border-slate-800/80 ${effectiveCollapsed ? 'lg:p-2.5 p-4' : 'p-4'} space-y-2`}>
+                <div className={`shrink-0 border-t border-slate-800/80 ${effectiveCollapsed ? 'lg:p-1.5 p-2.5' : 'p-2.5'} space-y-1.5`}>
                     <div
-                        className={`bg-slate-800/60 rounded-2xl flex items-center text-xs select-none ${
-                            effectiveCollapsed ? 'lg:flex-col lg:gap-2 lg:p-2 justify-between p-3' : 'justify-between p-3'
+                        className={`bg-slate-800/60 rounded-xl flex items-center text-xs select-none ${
+                            effectiveCollapsed ? 'lg:flex-col lg:gap-1.5 lg:p-1.5 justify-between p-2' : 'justify-between p-2'
                         }`}
                     >
                         <div
@@ -1226,13 +1229,13 @@ export default function Sidebar({
                 </div>
             </aside>
 
-            {/* Floating Tooltip / Popover Menu con khi ở chế độ Mini-Sidebar (w-20) */}
+            {/* Floating Tooltip / Popover Menu con khi ở chế độ Mini-Sidebar (w-16) */}
             {effectiveCollapsed && hoveredFlyout && (
                 <div
                     onMouseEnter={cancelCloseFlyout}
                     onMouseLeave={scheduleCloseFlyout}
                     style={{ top: `${hoveredFlyout.top}px` }}
-                    className="hidden lg:block fixed left-20 ml-2.5 z-[60] min-w-[210px] bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700/90 p-2.5 animate-fadeIn print:hidden"
+                    className="hidden lg:block fixed left-16 ml-2 z-[60] min-w-[200px] bg-slate-900 text-white rounded-xl shadow-2xl border border-slate-700/90 p-2 animate-fadeIn print:hidden"
                 >
                     {hoveredFlyout.group && (
                         <div className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 px-2 pb-1">

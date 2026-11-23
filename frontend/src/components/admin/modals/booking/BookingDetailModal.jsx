@@ -247,7 +247,7 @@ export default function BookingDetailModal({
     return (
         <>
             <div className="fixed inset-0 z-50 bg-slate-950/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
-                <div className="relative bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 max-w-2xl w-full shadow-2xl text-left max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="relative bg-white rounded-2xl border border-slate-200/90 max-w-2xl w-full shadow-2xl text-left max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                     {/* Header Modal - Cố định ở trên */}
                     <div className="p-5 sm:p-6 pb-4 border-b border-slate-200/90 text-slate-900 flex items-start justify-between shrink-0">
                         <div>

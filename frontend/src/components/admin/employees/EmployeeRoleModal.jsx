@@ -58,22 +58,22 @@ export default function EmployeeRoleModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
             <div
-                className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[92vh] flex flex-col"
+                className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900">
+                <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
-                            <ShieldCheck className="w-6 h-6 text-indigo-600" />
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
+                            <ShieldCheck className="w-5 h-5 text-indigo-600" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-base text-slate-900 tracking-tight">
-                                Phân Quyền Vai Trò & Vị Trí Cho Nhân Viên
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight">
+                                Phân Quyền Vai Trò & Vị Trí
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-[11px] text-slate-500">
                                 {employee.full_name || employee.username} (Mã: {employee.employee_profile?.employee_code || employee.id})
                             </p>
                         </div>
@@ -88,7 +88,8 @@ export default function EmployeeRoleModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-5 text-xs text-slate-800 overflow-y-auto flex-1">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-xs text-slate-800">
+                    <div className="p-5 space-y-4 overflow-y-auto flex-1">
                     {/* Danh sách các vai trò RBAC */}
                     <div>
                         <label className="block font-bold text-slate-700 mb-2">
@@ -195,7 +196,9 @@ export default function EmployeeRoleModal({
                         </div>
                     )}
 
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    </div>
+
+                    <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-between shrink-0">
                         {onOpenRoleMatrix ? (
                             <button
                                 type="button"
@@ -203,21 +206,21 @@ export default function EmployeeRoleModal({
                                 className="text-blue-600 font-bold hover:underline flex items-center gap-1.5 cursor-pointer text-xs"
                             >
                                 <ShieldCheck className="w-4 h-4 text-blue-600" />
-                                <span>Xem chi tiết ma trận toàn quyền</span>
+                                <span>Xem ma trận toàn quyền</span>
                             </button>
                         ) : <div />}
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl transition cursor-pointer"
+                                className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition cursor-pointer"
                             >
                                 Hủy
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/30 transition disabled:opacity-50 cursor-pointer"
+                                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition disabled:opacity-50 cursor-pointer"
                             >
                                 {isSubmitting ? 'Đang lưu...' : 'Xác Nhận Phân Quyền'}
                             </button>

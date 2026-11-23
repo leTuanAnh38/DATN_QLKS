@@ -313,11 +313,38 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
         try {
+            if (typeof window !== 'undefined' && window.innerWidth >= 1024 && window.innerWidth < 1440) {
+                return true;
+            }
             return localStorage.getItem('pms_sidebar_collapsed') === 'true';
         } catch {
             return false;
         }
     });
+
+    // Tự động thu gọn Mini-Sidebar khi resize xuống dưới 1440px (1366px) và mở lại khi >= 1440px (1536px / 1920px)
+    useEffect(() => {
+        let prevCompact = typeof window !== 'undefined' ? window.innerWidth < 1440 : false;
+        const handleResize = () => {
+            const w = window.innerWidth;
+            if (w < 1024) return;
+            const isNowCompact = w < 1440;
+            if (isNowCompact !== prevCompact) {
+                prevCompact = isNowCompact;
+                if (isNowCompact) {
+                    setIsSidebarCollapsed(true);
+                } else {
+                    try {
+                        setIsSidebarCollapsed(localStorage.getItem('pms_sidebar_collapsed') === 'true');
+                    } catch {
+                        setIsSidebarCollapsed(false);
+                    }
+                }
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Tự động đóng Sidebar trên Mobile khi chuyển tab hoặc chuyển URL
     useEffect(() => {
@@ -713,36 +740,36 @@ export default function HotelAdminDashboard({ initialTab }) {
             />
 
             {/* ========================================================================= */}
-            {/* 2. KHU VỰC NỘI DUNG CHÍNH (ml-0 trên Mobile, ml-20 / ml-80 trên Desktop)  */}
+            {/* 2. KHU VỰC NỘI DUNG CHÍNH (ml-0 trên Mobile, ml-16 / ml-56 trên Desktop)  */}
             {/* ========================================================================= */}
             <div
-                className={`flex-1 ml-0 ${
-                    isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-                } transition-all duration-300 ease-in-out flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full`}
+                className={`pms-admin flex-1 ml-0 ${
+                    isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'
+                } transition-all duration-250 ease-in-out flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full`}
             >
-                {/* Top Navbar: Ghim cố định trên cùng với sticky top-0 z-30, nền đặc bg-white, viền và bóng phân cách */}
-                <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm print:hidden">
-                    <div className="flex items-center gap-3">
+                {/* Top Navbar: Ghim cố định trên cùng gọn chuẩn Compact PMS (h-13 / 52px) */}
+                <header className="h-13 bg-white border-b border-slate-200 px-3.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-xs print:hidden">
+                    <div className="flex items-center gap-2.5">
                         {/* Nút Hamburger mở Sidebar trên Mobile */}
                         <button
                             type="button"
                             onClick={() => setIsMobileSidebarOpen(true)}
-                            className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center lg:hidden transition cursor-pointer shrink-0"
+                            className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center lg:hidden transition cursor-pointer shrink-0"
                             title="Mở menu quản trị"
                             aria-label="Mở menu quản trị"
                         >
-                            <Menu className="w-5 h-5" />
+                            <Menu className="w-4 h-4" />
                         </button>
                     </div>
 
                     {/* Right Status + Notifications + Avatar */}
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-4">
                         <div className="hidden lg:flex flex-col text-right">
-                            <span className="text-xs font-bold text-slate-900">
+                            <span className="text-[11.5px] font-bold text-slate-900 leading-tight">
                                 {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                             </span>
-                            <span className="text-[11px] text-emerald-600 font-medium flex items-center justify-end gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Hệ thống máy chủ ổn định
+                            <span className="text-[10.5px] text-emerald-600 font-medium flex items-center justify-end gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Hệ thống ổn định
                             </span>
                         </div>
 
@@ -750,11 +777,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                         <NotificationBell theme="light" />
 
                         {/* Profile Avatar Quản lý + Dropdown Menu */}
-                        <div className="relative pl-4 border-l border-slate-200" ref={profileMenuRef}>
+                        <div className="relative pl-3 border-l border-slate-200" ref={profileMenuRef}>
                             <button
                                 type="button"
                                 onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                                className="flex items-center gap-3 p-1 rounded-xl hover:bg-slate-100 transition cursor-pointer select-none group text-left"
+                                className="flex items-center gap-2.5 p-1 rounded-xl hover:bg-slate-100 transition cursor-pointer select-none group text-left"
                                 title="Tài khoản & Hồ sơ cá nhân"
                             >
                                 <div className="hidden sm:flex flex-col text-right">
@@ -769,7 +796,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                     avatar={user?.avatar}
                                     name={user?.full_name || user?.username}
                                     role={user?.role}
-                                    size="md"
+                                    size="sm"
                                     border={true}
                                     showOnline={true}
                                 />
@@ -857,7 +884,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 </header>
 
                 {/* Nội dung bảng điều khiển thay đổi theo Tab */}
-                <main className="p-3.5 sm:p-6 lg:p-8 space-y-6 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
+                <main className="p-3 sm:p-4 lg:p-5 space-y-4 flex-1 min-w-0 max-w-full print:p-0 print:m-0 print:w-full">
                     <Suspense fallback={
                         <div className="flex items-center justify-center py-24">
                             <div className="flex flex-col items-center gap-3">
@@ -1627,11 +1654,11 @@ export default function HotelAdminDashboard({ initialTab }) {
                             })()}
 
                             {/* CÔNG SUẤT THEO HẠNG PHÒNG & NGUỒN ĐẶT PHÒNG */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                                 {/* Biểu đồ thanh tiến độ công suất các hạng phòng (8 cột) */}
-                                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
+                                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
                                     <div>
-                                        <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center justify-between mb-4">
                                             <div>
                                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block"> GIÁM SÁT CÔNG SUẤT PMS </span>
                                                 <h3 className="text-base font-bold text-slate-900"> Tỷ lệ lấp đầy theo hạng phòng thực tế </h3>
@@ -1700,12 +1727,12 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 </div>
 
                                 {/* Donut Chart Cơ cấu lưu trú */}
-                                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col justify-between">
+                                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col justify-between">
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <div>
                                                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block"> CƠ CẤU LƯU TRÚ </span>
-                                                <h3 className="text-base font-bold text-slate-900">
+                                                <h3 className="text-sm font-bold text-slate-900">
                                                     {donutView === 'source' ? 'Nguồn Đặt Phòng' : 'Trạng Thái Đơn'}
                                                 </h3>
                                             </div>
@@ -1727,8 +1754,8 @@ export default function HotelAdminDashboard({ initialTab }) {
                                             </div>
                                         </div>
 
-                                        <div className="relative flex items-center justify-center my-4">
-                                            <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
+                                        <div className="relative flex items-center justify-center my-2.5">
+                                            <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 100 100">
                                                 <circle cx="50" cy="50" r="38" fill="none" stroke="#f1f5f9" strokeWidth="12" />
                                                 {donutSegments.map((seg, idx) => (
                                                     <circle
@@ -1772,19 +1799,19 @@ export default function HotelAdminDashboard({ initialTab }) {
                             </div>
 
                             {/* BẢNG DỮ LIỆU ĐẶT PHÒNG MỚI NHẤT */}
-                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
                                 <div className="xl:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-                                    <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                         <div>
-                                            <h3 className="text-base font-bold text-slate-900"> Danh sách Đặt phòng mới nhất </h3>
-                                            <p className="text-xs text-slate-500 mt-0.5"> Dữ liệu đặt phòng thời gian thực đồng bộ tự động </p>
+                                            <h3 className="text-sm font-bold text-slate-900"> Danh sách Đặt phòng mới nhất </h3>
+                                            <p className="text-[11px] text-slate-500 mt-0.5"> Dữ liệu đặt phòng thời gian thực đồng bộ tự động </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs">
+                                            <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-xs">
                                                 <button
                                                     type="button"
                                                     onClick={() => setBookingFilter('all')}
-                                                    className={`px-3 py-1 rounded-lg font-semibold transition ${bookingFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
+                                                    className={`px-2.5 py-1 rounded-md font-semibold transition ${bookingFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'
                                                         }`}
                                                 >
                                                     Tất cả
@@ -1792,7 +1819,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <button
                                                     type="button"
                                                     onClick={() => setBookingFilter('pending')}
-                                                    className={`px-3 py-1 rounded-lg font-semibold transition ${bookingFilter === 'pending' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-600'
+                                                    className={`px-2.5 py-1 rounded-md font-semibold transition ${bookingFilter === 'pending' ? 'bg-white text-amber-600 shadow-xs' : 'text-slate-600'
                                                         }`}
                                                 >
                                                     Chờ duyệt
@@ -1800,7 +1827,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                                 <button
                                                     type="button"
                                                     onClick={() => setBookingFilter('checked_in')}
-                                                    className={`px-3 py-1 rounded-lg font-semibold transition ${bookingFilter === 'checked_in' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
+                                                    className={`px-2.5 py-1 rounded-md font-semibold transition ${bookingFilter === 'checked_in' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600'
                                                         }`}
                                                 >
                                                     Đã check-in
@@ -1809,18 +1836,18 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         </div>
                                     </div>
 
-                                    {/* Table */}
+                                    {/* Table không ép min-w-[700px] */}
                                     <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-                                        <table className="w-full text-left border-collapse text-xs min-w-[700px]">
+                                        <table className="w-full text-left border-collapse text-xs">
                                             <thead>
                                                 <tr className="bg-slate-50/70 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                                                    <th className="py-3 px-3 pl-4 sm:pl-5 whitespace-nowrap">MÃ BOOKING</th>
-                                                    <th className="py-3 px-3 whitespace-nowrap">KHÁCH HÀNG</th>
-                                                    <th className="py-3 px-3 whitespace-nowrap">HẠNG PHÒNG & SỐ PHÒNG</th>
-                                                    <th className="py-3 px-3 whitespace-nowrap">LỊCH TRÌNH</th>
-                                                    <th className="py-3 px-3 whitespace-nowrap">TỔNG TIỀN</th>
-                                                    <th className="py-3 px-3 whitespace-nowrap">TRẠNG THÁI</th>
-                                                    <th className="py-3 px-3 pr-4 sm:pr-5 text-right whitespace-nowrap">THAO TÁC</th>
+                                                    <th className="py-2.5 px-2.5 pl-4 whitespace-nowrap">MÃ ĐƠN</th>
+                                                    <th className="py-2.5 px-2.5 whitespace-nowrap">KHÁCH HÀNG</th>
+                                                    <th className="py-2.5 px-2.5 whitespace-nowrap">PHÒNG</th>
+                                                    <th className="py-2.5 px-2.5 whitespace-nowrap">LỊCH TRÌNH</th>
+                                                    <th className="py-2.5 px-2.5 whitespace-nowrap">TỔNG TIỀN</th>
+                                                    <th className="py-2.5 px-2.5 whitespace-nowrap">TRẠNG THÁI</th>
+                                                    <th className="py-2.5 px-2.5 pr-4 text-right whitespace-nowrap">XEM</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">

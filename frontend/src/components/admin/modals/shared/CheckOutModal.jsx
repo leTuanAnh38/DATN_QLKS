@@ -919,8 +919,8 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                 <span>{modalToast.message}</span>
             </div>
         )}
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 max-w-4xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl border border-slate-200/90 max-w-4xl w-full shadow-2xl text-left max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
 
                 {/* ========================================================================= */}
                 {/* 1. FIXED MODAL HEADER                                                     */}

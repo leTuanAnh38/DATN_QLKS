@@ -132,8 +132,8 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     // Ref cho vùng scroll để tự động cuộn đến ngày hôm nay nếu ở tháng hiện tại
     const gridScrollRef = useRef(null);
 
-    // Chiều rộng mỗi cột ngày (px) - Tối ưu 52px để không bị cắt cụt chữ
-    const CELL_WIDTH = 52;
+    // Chiều rộng mỗi cột ngày (px) - Tối ưu 44px hiển thị nhiều ngày hơn trên 1366/1536px
+    const CELL_WIDTH = 44;
 
     // Tính toán số ngày trong tháng được chọn
     const daysInMonth = useMemo(() => {
@@ -358,260 +358,169 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-200">
-            {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG */}
-            <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-5">
-                <div>
-                    <h2 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <CalendarDays className="w-6 h-6 text-blue-600" />
-                        <span>Lịch Đặt Phòng Theo Sơ Đồ Trực Quan (Tape Chart)</span>
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                        Theo dõi mật độ lưu trú, phát hiện phòng trống và giám sát các đợt Check-in / Check-out theo từng phòng.
-                    </p>
+        <div className="space-y-3 animate-in fade-in duration-200">
+            {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG COMPACT */}
+            <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div>
+                        <h2 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                            <CalendarDays className="w-5 h-5 text-blue-600 shrink-0" />
+                            <span>Lịch Đặt Phòng (Tape Chart)</span>
+                        </h2>
+                    </div>
+
+                    {/* KPI Pills gọn ngay trên Header tiết kiệm ~120px chiều dọc */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold tabular-nums">
+                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                            {stats.totalRooms} phòng
+                        </span>
+                        <span className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {stats.checkedIn} đang ở
+                        </span>
+                        <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                            {stats.confirmed} xác nhận
+                        </span>
+                        <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+                            {stats.pending} chờ duyệt
+                        </span>
+                    </div>
                 </div>
 
-                {/* KHỐI ĐIỀU HƯỚNG THÁNG: < Tháng X / 2026 > + Hôm nay + Làm mới */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="inline-flex items-center bg-white text-slate-800 border border-slate-200/90 rounded-2xl p-1 shadow-2xs">
-                        {/* Nút Tháng trước */}
+                {/* KHỐI ĐIỀU HƯỚNG THÁNG */}
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center bg-white text-slate-800 border border-slate-200/90 rounded-xl p-0.5 shadow-2xs">
                         <button
                             type="button"
                             onClick={handlePrevMonth}
-                            className="p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer flex items-center gap-1 text-xs font-bold"
                             title="Chuyển về tháng trước"
                         >
                             <ChevronLeft className="w-4 h-4" />
-                            <span className="hidden sm:inline">Tháng trước</span>
                         </button>
 
-                        {/* Nhãn Tháng / Năm hiện tại */}
-                        <div className="px-4 py-1 text-center min-w-[140px] border-x border-slate-100 bg-slate-50/70 rounded-lg mx-1">
-                            <span className="block text-[9px] text-blue-600 uppercase tracking-widest font-black font-mono">
-                                PMS TIMELINE
-                            </span>
-                            <span className="text-sm font-black text-slate-900 tracking-tight">
+                        <div className="px-3 py-0.5 text-center min-w-[115px] border-x border-slate-100 bg-slate-50/70 rounded mx-0.5">
+                            <span className="text-xs font-black text-slate-900 tracking-tight">
                                 Tháng {currentMonth} / {currentYear}
                             </span>
                         </div>
 
-                        {/* Nút Tháng sau */}
                         <button
                             type="button"
                             onClick={handleNextMonth}
-                            className="p-2 rounded-xl text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer active:scale-95 flex items-center gap-1 text-xs font-bold"
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer flex items-center gap-1 text-xs font-bold"
                             title="Chuyển sang tháng tiếp theo"
                         >
-                            <span className="hidden sm:inline">Tháng sau</span>
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
 
-                    {/* Nút Quay về Hôm nay */}
                     <button
                         type="button"
                         onClick={handleJumpToToday}
-                        className="px-3.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs rounded-xl border border-blue-200/80 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+                        className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200/80 transition flex items-center gap-1 cursor-pointer"
                         title="Về tháng hiện tại"
                     >
                         <CalendarDays className="w-3.5 h-3.5 shrink-0 text-blue-600" />
                         <span>Hôm nay</span>
                     </button>
 
-                    {/* Nút Làm mới dữ liệu */}
                     <button
                         type="button"
                         onClick={fetchTimelineData}
                         disabled={isLoading}
-                        className="px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200/90 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 shadow-2xs hover:border-slate-300"
+                        className="p-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200/90 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
                         title="Tải lại dữ liệu từ CSDL"
                     >
                         <RotateCw className={`w-3.5 h-3.5 shrink-0 ${isLoading ? 'animate-spin text-blue-600' : 'text-slate-500'}`} />
-                        <span>{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
                     </button>
                 </div>
             </div>
 
-            {/* 2. KHỐI 4 THẺ THỐNG KÊ KPI ĐỒNG BỘ 5 SAO & QUY TẮC MÀU (LEGEND) */}
-            <div className="space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                    {/* 1. Tổng phòng */}
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                                TỔNG SỐ PHÒNG
-                            </span>
-                            <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                                <BedDouble className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-                        <div className="text-2xl font-black text-slate-900 tracking-tight">
-                            {stats.totalRooms}
-                            <span className="text-xs font-medium text-slate-400 ml-1">phòng</span>
-                        </div>
-                    </div>
-
-                    {/* 2. Đang ở (In-house) */}
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
-                                ĐANG Ở (IN-HOUSE)
-                            </span>
-                            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                                <Key className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-                        <div className="text-2xl font-black text-emerald-700 tracking-tight">
-                            {stats.checkedIn}
-                            <span className="text-xs font-medium text-slate-400 ml-1">khách</span>
-                        </div>
-                    </div>
-
-                    {/* 3. Đã xác nhận */}
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700">
-                                ĐÃ XÁC NHẬN
-                            </span>
-                            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                            </div>
-                        </div>
-                        <div className="text-2xl font-black text-blue-700 tracking-tight">
-                            {stats.confirmed}
-                            <span className="text-xs font-medium text-slate-400 ml-1">đơn</span>
-                        </div>
-                    </div>
-
-                    {/* 4. Chờ duyệt */}
-                    <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all">
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">
-                                CHỜ DUYỆT
-                            </span>
-                            <div className="relative w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                                <Clock className="w-3.5 h-3.5" />
-                                {stats.pending > 0 && (
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-2xl font-black text-amber-700 tracking-tight">
-                            {stats.pending}
-                            <span className="text-xs font-medium text-slate-400 ml-1">đơn</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Dải Quy Tắc Màu (Legend Pill Bar) */}
-                <div className="bg-white px-4 py-2.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <Info className="w-3.5 h-3.5 text-slate-400" />
-                        Quy tắc màu sơ đồ:
-                    </span>
-                    <div className="flex flex-wrap items-center gap-2">
-                        {/* Chờ xác nhận (Cam) */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-                            <span>Chờ xác nhận</span>
-                        </div>
-                        {/* Đã xác nhận (Xanh dương) */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200/80 text-blue-800 text-[11px] font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
-                            <span>Đã xác nhận</span>
-                        </div>
-                        {/* Đang lưu trú (Xanh ngọc) */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
-                            <span>Đang lưu trú</span>
-                        </div>
-                        {/* Đã trả phòng (Xám đá) */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-full bg-slate-500 shrink-0"></span>
-                            <span>Đã trả phòng</span>
-                        </div>
-                        {/* Cuối tuần (Hồng pastel) */}
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-700 text-[11px] font-semibold">
-                            <span className="w-2.5 h-2.5 rounded-full bg-rose-400 shrink-0"></span>
-                            <span>Cuối tuần (T7, CN)</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* 3. THANH BỘ LỌC TÌM KIẾM THEO PHÒNG, TẦNG, HẠNG PHÒNG */}
-            <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
-                    {/* Tìm kiếm phòng */}
-                    <div className="relative flex-1 min-w-[200px] max-w-sm">
-                        <Search className="w-4 h-4 text-slate-400 absolute inset-y-0 left-3 my-auto pointer-events-none" />
+            {/* 2. THANH BỘ LỌC + CHÚ THÍCH MÀU (GỘP 1 HÀNG GỌN) */}
+            <div className="bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 text-xs">
+                <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+                    <div className="relative w-48 sm:w-56">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute inset-y-0 left-2.5 my-auto pointer-events-none" />
                         <input
                             type="text"
                             value={searchRoom}
                             onChange={(e) => setSearchRoom(e.target.value)}
-                            placeholder="Tìm theo số phòng (VD: 101, 202)..."
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-white focus:bg-white rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-xs font-medium"
+                            placeholder="Tìm số phòng (101, 202)..."
+                            className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 hover:bg-white focus:bg-white rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-xs font-medium"
                         />
                     </div>
 
-                    {/* Lọc Hạng phòng */}
-                    <div className="relative">
-                        <select
-                            value={filterCategory}
-                            onChange={(e) => setFilterCategory(e.target.value)}
-                            className="py-2 pl-3 pr-8 bg-slate-50 hover:bg-white rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100 cursor-pointer"
-                        >
-                            <option value="all">Tất cả Hạng phòng</option>
-                            {categoryOptions.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="py-1.5 px-2.5 bg-slate-50 hover:bg-white rounded-lg border border-slate-200 text-slate-700 font-medium text-xs cursor-pointer max-w-[160px]"
+                    >
+                        <option value="all">Tất cả Hạng phòng</option>
+                        {categoryOptions.map((c) => (
+                            <option key={c.id} value={c.id}>
+                                {c.name}
+                            </option>
+                        ))}
+                    </select>
 
-                    {/* Lọc Tầng */}
-                    <div className="relative">
-                        <select
-                            value={filterFloor}
-                            onChange={(e) => setFilterFloor(e.target.value)}
-                            className="py-2 pl-3 pr-8 bg-slate-50 hover:bg-white rounded-xl border border-slate-200 text-slate-700 font-medium text-xs focus:ring-2 focus:ring-blue-100 cursor-pointer"
-                        >
-                            <option value="all">Tất cả Tầng</option>
-                            {floorOptions.map((f) => (
-                                <option key={f} value={f}>
-                                    Tầng {f}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                    <select
+                        value={filterFloor}
+                        onChange={(e) => setFilterFloor(e.target.value)}
+                        className="py-1.5 px-2.5 bg-slate-50 hover:bg-white rounded-lg border border-slate-200 text-slate-700 font-medium text-xs cursor-pointer"
+                    >
+                        <option value="all">Tất cả Tầng</option>
+                        {floorOptions.map((f) => (
+                            <option key={f} value={f}>
+                                Tầng {f}
+                            </option>
+                        ))}
+                    </select>
+
+                    <span className="text-slate-400 text-[11px] font-medium whitespace-nowrap">
+                        <strong className="text-slate-800">{filteredRooms.length}</strong>/{rooms.length} phòng
+                    </span>
                 </div>
 
-                <div className="text-slate-500 text-xs font-medium">
-                    Hiển thị <strong className="text-slate-900 font-black">{filteredRooms.length}</strong> / <strong className="text-slate-900 font-black">{rooms.length}</strong> phòng
+                {/* Chú thích màu gọn */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 border border-amber-200/80 text-amber-800">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>Chờ duyệt
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 border border-blue-200/80 text-blue-800">
+                        <span className="w-2 h-2 rounded-full bg-blue-600"></span>Xác nhận
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200/80 text-emerald-800">
+                        <span className="w-2 h-2 rounded-full bg-emerald-600"></span>Đang ở
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">
+                        <span className="w-2 h-2 rounded-full bg-slate-500"></span>Đã trả
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 border border-rose-200/80 text-rose-700">
+                        <span className="w-2 h-2 rounded-full bg-rose-400"></span>T7/CN
+                    </span>
                 </div>
             </div>
 
             {/* 4. SƠ ĐỒ TRỰC QUAN GANTT TIMELINE (GRID BẢNG TÍNH) */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs overflow-hidden relative">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden relative">
                 {isLoading && (
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs z-40 flex flex-col items-center justify-center gap-3">
-                        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-9 h-9 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                         <span className="text-xs font-bold text-slate-700">Đang tải sơ đồ phòng Tháng {currentMonth}/{currentYear}...</span>
                     </div>
                 )}
 
                 {errorMsg ? (
-                    <div className="p-12 text-center">
-                        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-xl mx-auto mb-3">
-                            <AlertTriangle className="w-6 h-6 text-rose-600" />
+                    <div className="p-10 text-center">
+                        <div className="w-11 h-11 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-2.5">
+                            <AlertTriangle className="w-5 h-5 text-rose-600" />
                         </div>
                         <h4 className="text-sm font-bold text-slate-900 mb-1">Không thể tải dữ liệu sơ đồ</h4>
-                        <p className="text-xs text-slate-500 mb-4">{errorMsg}</p>
+                        <p className="text-xs text-slate-500 mb-3">{errorMsg}</p>
                         <button
                             type="button"
                             onClick={fetchTimelineData}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
                         >
                             Thử lại
                         </button>
@@ -619,16 +528,13 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                 ) : (
                     <div
                         ref={gridScrollRef}
-                        className="overflow-x-auto overflow-y-auto max-h-[750px] relative scrollbar-thin scrollbar-thumb-slate-300"
+                        className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-225px)] min-h-[380px] relative scrollbar-thin scrollbar-thumb-slate-300"
                     >
-                        <div style={{ width: `${210 + daysInMonth * CELL_WIDTH}px` }} className="relative select-none">
-                            {/* ========================================================================= */}
+                        <div style={{ width: `${168 + daysInMonth * CELL_WIDTH}px` }} className="relative select-none">
                             {/* HÀNG TIÊU ĐỀ: DANH SÁCH NGÀY TRONG THÁNG (STICKY TOP) */}
-                            {/* ========================================================================= */}
                             <div className="sticky top-0 z-30 flex bg-slate-900 text-white border-b border-slate-800 shadow-xs">
-                                {/* Cột Góc trên cùng bên trái (Phòng / Ngày) */}
-                                <div className="w-[210px] min-w-[210px] p-3 sticky left-0 z-40 bg-slate-950 flex flex-col justify-center border-r border-slate-800">
-                                    <span className="text-xs font-black text-white tracking-wide uppercase">
+                                <div className="w-[168px] min-w-[168px] px-3 py-2 sticky left-0 z-40 bg-slate-950 flex flex-col justify-center border-r border-slate-800">
+                                    <span className="text-[11px] font-black text-white tracking-wide uppercase">
                                         Phòng / Ngày
                                     </span>
                                     <span className="text-[10px] text-slate-400 font-medium">
@@ -636,13 +542,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                     </span>
                                 </div>
 
-                                {/* Các ô Ngày trong tháng (1, 2, 3... 30/31) */}
                                 <div className="flex">
                                     {daysArray.map((d) => (
                                         <div
                                             key={d.day}
                                             style={{ width: `${CELL_WIDTH}px`, minWidth: `${CELL_WIDTH}px` }}
-                                            className={`p-1.5 text-center border-r border-slate-800 flex flex-col items-center justify-center transition ${
+                                            className={`py-1 px-0.5 text-center border-r border-slate-800 flex flex-col items-center justify-center transition ${
                                                 d.isWeekend
                                                     ? 'bg-slate-950/90 text-rose-300'
                                                     : d.isToday
@@ -651,11 +556,11 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                             }`}
                                             title={`${d.dayName}, ngày ${d.day}/${currentMonth}/${currentYear}`}
                                         >
-                                            <span className="text-[10px] font-bold opacity-80 block">
+                                            <span className="text-[9.5px] font-bold opacity-80 block leading-none">
                                                 {d.dayName}
                                             </span>
                                             <span
-                                                className={`text-xs font-black rounded-full w-5 h-5 flex items-center justify-center mt-0.5 ${
+                                                className={`text-[11px] font-black rounded-full w-5 h-5 flex items-center justify-center mt-0.5 ${
                                                     d.isToday ? 'bg-white text-blue-700 shadow-xs' : ''
                                                 }`}
                                             >
@@ -666,12 +571,10 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                 </div>
                             </div>
 
-                            {/* ========================================================================= */}
                             {/* BODY: DANH SÁCH TỪNG PHÒNG VÀ CÁC THẺ ĐẶT PHÒNG */}
-                            {/* ========================================================================= */}
                             <div className="divide-y divide-slate-100">
                                 {filteredRooms.length === 0 ? (
-                                    <div className="p-16 text-center text-slate-400 text-xs">
+                                    <div className="p-12 text-center text-slate-400 text-xs">
                                         Không tìm thấy phòng nào phù hợp với bộ lọc hiện tại.
                                     </div>
                                 ) : (
@@ -688,26 +591,25 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                         return (
                                             <div
                                                 key={room.id}
-                                                className="flex h-14 hover:bg-slate-50/60 transition group relative"
+                                                className="flex h-11 hover:bg-slate-50/60 transition group relative"
                                             >
-                                                {/* CỘT DỌC BÊN TRÁI (STICKY LEFT): Tên phòng và Tên hạng phòng */}
-                                                <div className="w-[210px] min-w-[210px] px-3.5 py-1.5 sticky left-0 z-20 bg-white group-hover:bg-slate-50 border-r border-slate-200 flex flex-col justify-center shadow-xs">
+                                                <div className="w-[168px] min-w-[168px] px-2.5 py-1 sticky left-0 z-20 bg-white group-hover:bg-slate-50 border-r border-slate-200 flex flex-col justify-center shadow-xs">
                                                     <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-1.5">
                                                             <span
-                                                                className={`w-2.5 h-2.5 rounded-full ${roomStatusDot} shrink-0 ring-2 ring-white shadow-xs`}
+                                                                className={`w-2 h-2 rounded-full ${roomStatusDot} shrink-0`}
                                                                 title={`Trạng thái: ${room.status_display}`}
                                                             ></span>
-                                                            <span className="font-mono font-black text-slate-900 text-sm tracking-tight">
+                                                            <span className="font-mono font-black text-slate-900 text-xs tracking-tight">
                                                                 P.{room.room_number}
                                                             </span>
                                                         </div>
-                                                        <span className="text-[10px] text-slate-500 font-bold bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                                                        <span className="text-[9.5px] text-slate-500 font-bold bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200/60">
                                                             T.{room.floor}
                                                         </span>
                                                     </div>
                                                     <span
-                                                        className="text-[11px] text-slate-500 truncate block mt-0.5 font-medium"
+                                                        className="text-[10.5px] text-slate-500 truncate block leading-tight"
                                                         title={room.category_name}
                                                     >
                                                         {room.category_name || 'Hạng tiêu chuẩn'}
@@ -1010,12 +912,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
             {/* 7. MODAL XEM CHI TIẾT NHANH KHI CLICK VÀO THẺ ĐẶT PHÒNG */}
             {/* ========================================================================= */}
             {selectedBookingModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center text-blue-400 shrink-0">
-                                    <FileText className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-blue-400 shrink-0">
+                                    <FileText className="w-4.5 h-4.5" />
                                 </div>
                                 <div>
                                     <h3 className="font-sans font-bold text-base text-white">
@@ -1029,13 +931,13 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             <button
                                 type="button"
                                 onClick={() => setSelectedBookingModal(null)}
-                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer shrink-0"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-4 text-xs">
+                        <div className="p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
                             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
                                 <div>
                                     <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
@@ -1130,7 +1032,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                             )}
                         </div>
 
-                        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                        <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setSelectedBookingModal(null)}

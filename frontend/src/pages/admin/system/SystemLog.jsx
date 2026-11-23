@@ -237,30 +237,25 @@ export default function SystemLog() {
         </div>
       )}
 
-      {/* Bộ Lọc Thông Minh (Smart Filters Bar) */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-          <Filter className="w-3.5 h-3.5" />
-          Bộ Lọc Tra Cứu
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* 1. Thanh tìm kiếm tên nhân viên / mô tả */}
+      {/* Bộ Lọc Thông Minh Compact */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* 1. Thanh tìm kiếm */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Tìm theo tên nhân viên, mô tả..."
+              placeholder="Tìm tên nhân viên, mô tả..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition placeholder:text-slate-400"
+              className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition placeholder:text-slate-400"
             />
           </div>
 
-          {/* 2. Dropdown Lọc Chức vụ (Role) với Logic UI Ẩn Option theo Separation of Duties */}
+          {/* 2. Dropdown Lọc Chức vụ */}
           <div>
             <select
               value={selectedRole}
@@ -268,21 +263,11 @@ export default function SystemLog() {
                 setSelectedRole(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
             >
-              <option value="">-- Tất cả Chức vụ --</option>
-
-              {/* Chỉ ADMIN mới thấy tuỳ chọn lọc ADMIN */}
-              {currentRole === 'ADMIN' && (
-                <option value="admin">Quản trị IT (Admin)</option>
-              )}
-
-              {/* OWNER và ADMIN mới thấy tuỳ chọn lọc OWNER; MANAGER bị ẩn */}
-              {(currentRole === 'ADMIN' || currentRole === 'OWNER') && (
-                <option value="owner">Chủ khách sạn (Owner)</option>
-              )}
-
-              {/* Các cấp dưới trực tiếp: Cả ADMIN, OWNER, MANAGER đều lọc được */}
+              <option value="">Tất cả Chức vụ</option>
+              {currentRole === 'ADMIN' && <option value="admin">Quản trị IT (Admin)</option>}
+              {(currentRole === 'ADMIN' || currentRole === 'OWNER') && <option value="owner">Chủ khách sạn (Owner)</option>}
               <option value="manager">Quản lý (Manager)</option>
               <option value="cashier">Thu ngân / Kế toán</option>
               <option value="receptionist">Lễ tân</option>
@@ -292,7 +277,7 @@ export default function SystemLog() {
             </select>
           </div>
 
-          {/* 3. Dropdown Lọc Phân hệ (Module) */}
+          {/* 3. Dropdown Lọc Phân hệ */}
           <div>
             <select
               value={selectedModule}
@@ -300,9 +285,9 @@ export default function SystemLog() {
                 setSelectedModule(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
             >
-              <option value="">-- Tất cả Phân hệ --</option>
+              <option value="">Tất cả Phân hệ</option>
               <option value="BOOKING">Đặt phòng</option>
               <option value="INVOICE">Hóa đơn & Thu ngân</option>
               <option value="USER">Nhân sự & Người dùng</option>
@@ -313,7 +298,7 @@ export default function SystemLog() {
             </select>
           </div>
 
-          {/* 4. Dropdown Lọc Hành động (Action) */}
+          {/* 4. Dropdown Lọc Hành động */}
           <div>
             <select
               value={selectedAction}
@@ -321,9 +306,9 @@ export default function SystemLog() {
                 setSelectedAction(e.target.value);
                 setPage(1);
               }}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
             >
-              <option value="">-- Tất cả Hành động --</option>
+              <option value="">Tất cả Hành động</option>
               <option value="CREATE">CREATE (Tạo mới)</option>
               <option value="UPDATE">UPDATE (Cập nhật)</option>
               <option value="DELETE">DELETE (Xóa)</option>
@@ -335,33 +320,31 @@ export default function SystemLog() {
         </div>
       </div>
 
-      {/* Bảng Dữ Liệu (Audit Log Table) */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
-        {/* Desktop Table View */}
+      {/* Bảng Dữ Liệu (Compact 5 Cột) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4">Thời Gian</th>
-                <th className="py-3.5 px-4">Người Thực Hiện</th>
-                <th className="py-3.5 px-4">Hành Động</th>
-                <th className="py-3.5 px-4">Phân Hệ</th>
-                <th className="py-3.5 px-4">Chi Tiết Mô Tả</th>
-                <th className="py-3.5 px-4">Địa Chỉ IP</th>
+              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-2.5 px-3 whitespace-nowrap">Thời Gian & IP</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Người Thực Hiện</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Hành Động</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Phân Hệ</th>
+                <th className="py-2.5 px-3">Chi Tiết Mô Tả</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                  <td colSpan="5" className="py-10 text-center text-slate-400">
                     <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
                     Đang nạp nhật ký kiểm toán...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400">
-                    <FileText className="w-10 h-10 mx-auto mb-2 text-slate-300 stroke-1" />
+                  <td colSpan="5" className="py-10 text-center text-slate-400">
+                    <FileText className="w-9 h-9 mx-auto mb-2 text-slate-300 stroke-1" />
                     Không tìm thấy thao tác nào phù hợp.
                   </td>
                 </tr>
@@ -371,51 +354,44 @@ export default function SystemLog() {
                     key={log.id}
                     className="hover:bg-slate-50/60 transition-colors duration-150"
                   >
-                    {/* Cột 1: Thời gian */}
-                    <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-500 font-mono">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {formatDateTime(log.created_at)}
-                      </div>
+                    {/* Cột 1: Thời gian + IP */}
+                    <td className="py-2 px-3 whitespace-nowrap text-[11px] text-slate-600 font-mono tabular-nums">
+                      <div className="font-semibold text-slate-700">{formatDateTime(log.created_at)}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{log.ip_address || '127.0.0.1'}</div>
                     </td>
 
-                    {/* Cột 2: Người thực hiện (Tên in đậm, Chức vụ in nghiêng bên dưới) */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold border border-slate-200">
+                    {/* Cột 2: Người thực hiện */}
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center text-[11px] font-bold border border-slate-200 shrink-0">
                           {log.username ? log.username.charAt(0).toUpperCase() : 'S'}
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 leading-tight">
+                          <p className="font-bold text-slate-800 leading-tight text-xs">
                             {log.user_full_name || log.username || 'Hệ thống'}
                           </p>
-                          <p className="text-xs italic text-slate-400 mt-0.5">
+                          <p className="text-[10.5px] italic text-slate-400">
                             {log.user_role_display || (log.user_role ? log.user_role.toUpperCase() : 'Hệ thống')}
                           </p>
                         </div>
                       </div>
                     </td>
 
-                    {/* Cột 3: Hành động (Badge màu Xanh lá cho CREATE, Vàng cho UPDATE, Đỏ cho DELETE) */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    {/* Cột 3: Hành động */}
+                    <td className="py-2 px-3 whitespace-nowrap">
                       {renderActionBadge(log.action)}
                     </td>
 
                     {/* Cột 4: Module */}
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-2 px-3 whitespace-nowrap">
                       {renderModuleBadge(log.module, log.module_display)}
                     </td>
 
                     {/* Cột 5: Chi tiết mô tả */}
-                    <td className="py-3.5 px-4 text-slate-700 min-w-[280px]">
-                      <p className="text-xs sm:text-sm line-clamp-2" title={log.description}>
+                    <td className="py-2 px-3 text-slate-700 max-w-[420px]">
+                      <p className="text-xs leading-snug line-clamp-2" title={log.description}>
                         {log.description}
                       </p>
-                    </td>
-
-                    {/* Cột 6: Địa chỉ IP */}
-                    <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-400 font-mono">
-                      {log.ip_address || '127.0.0.1'}
                     </td>
                   </tr>
                 ))

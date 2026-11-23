@@ -1146,7 +1146,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 </div>
             ) : groupByFloor ? (
                 /* CHẾ ĐỘ 1: NHÓM THEO TỪNG TẦNG */
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {floors.map((fl) => {
                         const floorRooms = groupedRooms[fl] || [];
                         if (floorRooms.length === 0) return null;
@@ -1157,16 +1157,16 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                         return (
                             <div
                                 key={fl}
-                                className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs space-y-4"
+                                className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-xs space-y-3"
                             >
                                 {/* Header của Tầng */}
-                                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-black text-sm flex items-center justify-center shadow-xs">
+                                <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-lg bg-slate-900 text-white font-black text-xs flex items-center justify-center shadow-xs">
                                             {fl}F
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-slate-900 text-sm tracking-tight">
+                                            <h3 className="font-bold text-slate-900 text-xs sm:text-sm tracking-tight">
                                                 Tầng {fl} • Khu Vực Phòng Nghỉ
                                             </h3>
                                             <p className="text-[11px] text-slate-400">
@@ -1174,13 +1174,13 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                             </p>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
-                                        Khách Sạn TA Đà Nẵng
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200">
+                                        Tầng {fl}
                                     </span>
                                 </div>
 
-                                {/* Grid các Card phòng của Tầng */}
-                                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+                                {/* Grid các Card phòng của Tầng (Cân đối ở 1366/1536/1920px) */}
+                                <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                                     {floorRooms.map((room) => (
                                         <RoomCard
                                             key={room.id}
@@ -1218,8 +1218,8 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                 </div>
             ) : (
                 /* CHẾ ĐỘ 2: TRẢI PHẲNG TẤT CẢ CÁC THẺ PHÒNG */
-                <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs">
-                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+                <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-xs">
+                    <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
                         {rooms.map((room) => (
                             <RoomCard
                                 key={room.id}

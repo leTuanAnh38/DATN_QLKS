@@ -407,35 +407,35 @@ export default function AmenityManagement() {
                 </div>
             </div>
 
-            {/* BẢNG DỮ LIỆU (TABLE): ID, TÊN TIỆN NGHI, MÔ TẢ, ICON, HÀNH ĐỘNG */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
+            {/* BẢNG DỮ LIỆU COMPACT */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="py-4 px-6 w-20 text-center">ID</th>
-                                <th className="py-4 px-6 w-28 text-center">Icon</th>
-                                <th className="py-4 px-6 min-w-[220px]">Tên tiện nghi</th>
-                                <th className="py-4 px-6 min-w-[280px]">Mô tả (Description)</th>
-                                <th className="py-4 px-6 w-36 text-center">Hành động</th>
+                                <th className="py-2.5 px-3 w-16 text-center">ID</th>
+                                <th className="py-2.5 px-3 w-20 text-center">Icon</th>
+                                <th className="py-2.5 px-3">Tên tiện nghi</th>
+                                <th className="py-2.5 px-3">Mô tả (Description)</th>
+                                <th className="py-2.5 px-3 w-28 text-center">Hành động</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm">
+                        <tbody className="divide-y divide-slate-100 text-[13px]">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="py-16 text-center text-slate-400">
-                                        <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                                        <p className="font-semibold text-slate-600 text-sm">Đang tải danh sách tiện nghi...</p>
+                                    <td colSpan={5} className="py-12 text-center text-slate-400">
+                                        <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mx-auto mb-2" />
+                                        <p className="font-semibold text-slate-600 text-xs">Đang tải danh sách tiện nghi...</p>
                                     </td>
                                 </tr>
                             ) : filteredAmenities.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-16 text-center text-slate-400">
-                                        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
-                                            <Search className="w-6 h-6 stroke-[1.5]" />
+                                    <td colSpan={5} className="py-12 text-center text-slate-400">
+                                        <div className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                            <Search className="w-5 h-5 stroke-[1.5]" />
                                         </div>
-                                        <p className="font-semibold text-slate-700 text-sm">Không tìm thấy tiện nghi nào</p>
-                                        <p className="text-xs text-slate-400 mt-1">
+                                        <p className="font-semibold text-slate-700 text-xs">Không tìm thấy tiện nghi nào</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">
                                             {searchTerm ? 'Thử tìm với từ khóa khác' : 'Chưa có tiện nghi nào được tạo. Bấm "+ Thêm tiện nghi" để tạo mới!'}
                                         </p>
                                     </td>
@@ -443,48 +443,43 @@ export default function AmenityManagement() {
                             ) : (
                                 paginatedAmenities.map((item) => (
                                     <tr key={item.id} className="hover:bg-slate-50/60 transition group">
-                                        {/* CỘT 1: ID */}
-                                        <td className="py-4 px-6 text-center">
-                                            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
+                                        <td className="py-2 px-3 text-center">
+                                            <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
                                                 #{item.id}
                                             </span>
                                         </td>
 
-                                        {/* CỘT 2: ICON */}
-                                        <td className="py-4 px-6 text-center">
-                                            <div className="w-10 h-10 mx-auto rounded-xl bg-amber-50/80 border border-amber-200/60 flex items-center justify-center text-xl shadow-2xs group-hover:scale-110 transition-transform">
+                                        <td className="py-2 px-3 text-center">
+                                            <div className="w-8 h-8 mx-auto rounded-lg bg-amber-50/80 border border-amber-200/60 flex items-center justify-center text-base">
                                                 {item.icon || '✨'}
                                             </div>
                                         </td>
 
-                                        {/* CỘT 3: TÊN TIỆN NGHI */}
-                                        <td className="py-4 px-6">
-                                            <strong className="text-slate-900 font-bold block text-sm group-hover:text-blue-600 transition-colors">
+                                        <td className="py-2 px-3">
+                                            <strong className="text-slate-900 font-bold block text-[13px] group-hover:text-blue-600 transition-colors">
                                                 {item.name}
                                             </strong>
                                         </td>
 
-                                        {/* CỘT 4: MÔ TẢ (DESCRIPTION) */}
-                                        <td className="py-4 px-6">
+                                        <td className="py-2 px-3">
                                             {item.description ? (
-                                                <p className="text-xs text-slate-600 leading-relaxed max-w-xl">
+                                                <p className="text-xs text-slate-600 leading-snug max-w-xl line-clamp-2">
                                                     {item.description}
                                                 </p>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-400 text-xs italic">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-400 text-[11px] italic">
                                                     Chưa cập nhật mô tả
                                                 </span>
                                             )}
                                         </td>
 
-                                        {/* CỘT 5: HÀNH ĐỘNG (VECTOR ICONS ĐỒNG BỘ) */}
-                                        <td className="py-4 px-6 text-center">
-                                            <div className="flex items-center justify-center gap-2">
+                                        <td className="py-2 px-3 text-center whitespace-nowrap">
+                                            <div className="flex items-center justify-center gap-1.5">
                                                 {canUpdate && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenEditModal(item)}
-                                                        className="w-8 h-8 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                                        className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition cursor-pointer"
                                                         title="Chỉnh sửa tiện nghi"
                                                     >
                                                         <Edit2 className="w-3.5 h-3.5" />
@@ -495,7 +490,7 @@ export default function AmenityManagement() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenDeleteModal(item)}
-                                                        className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                                                        className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition cursor-pointer"
                                                         title="Xóa tiện nghi"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
@@ -503,7 +498,7 @@ export default function AmenityManagement() {
                                                 )}
 
                                                 {!canUpdate && !canDelete && (
-                                                    <span className="text-xs text-slate-400 italic font-medium">Chỉ xem</span>
+                                                    <span className="text-[11px] text-slate-400 italic">Chỉ xem</span>
                                                 )}
                                             </div>
                                         </td>
@@ -603,7 +598,7 @@ export default function AmenityManagement() {
 
             {/* MODAL FORM: THÊM MỚI HOẶC CẬP NHẬT TIỆN NGHI */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-fadeIn">
                     <div
                         className="fixed inset-0"
                         onClick={handleCloseModal}
@@ -611,20 +606,20 @@ export default function AmenityManagement() {
                     />
 
                     <div
-                        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden z-10 animate-scaleUp"
+                        className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full max-h-[88vh] flex flex-col overflow-hidden z-10 animate-scaleUp"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header Modal */}
-                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-xs">
-                                    {modalMode === 'create' ? <Sparkles className="w-5 h-5 text-blue-600" /> : <Edit2 className="w-5 h-5 text-blue-600" />}
+                        {/* Header Modal cố định */}
+                        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                                    {modalMode === 'create' ? <Sparkles className="w-4 h-4 text-blue-600" /> : <Edit2 className="w-4 h-4 text-blue-600" />}
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-slate-900">
+                                    <h3 className="text-sm sm:text-base font-bold text-slate-900">
                                         {modalMode === 'create' ? 'Thêm Tiện Nghi Mới' : 'Cập Nhật Tiện Nghi'}
                                     </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
+                                    <p className="text-[11px] text-slate-500">
                                         {modalMode === 'create'
                                             ? 'Nhập thông tin trang bị, tiện ích phòng nghỉ mới'
                                             : `Chỉnh sửa tiện nghi #${editingItem?.id}`}
@@ -638,12 +633,13 @@ export default function AmenityManagement() {
                                 disabled={isSubmitting}
                                 className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex items-center justify-center cursor-pointer"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        {/* Form Body */}
-                        <form onSubmit={handleSubmitForm} className="p-6 space-y-4">
+                        {/* Form Body cuộn độc lập */}
+                        <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
+                            <div className="p-5 space-y-4 overflow-y-auto flex-1">
                             {/* Input: Tên tiện nghi */}
                             <div className="space-y-1.5">
                                 <label className="block text-xs font-bold text-slate-800">
@@ -731,20 +727,22 @@ export default function AmenityManagement() {
                                 </div>
                             </div>
 
-                            {/* Nút hành động Modal */}
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                            </div>
+
+                            {/* Nút hành động Modal cố định đáy */}
+                            <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
                                     disabled={isSubmitting}
-                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition cursor-pointer"
+                                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                                 >
                                     {isSubmitting ? (
                                         <>

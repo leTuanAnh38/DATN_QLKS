@@ -858,8 +858,8 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     if (!isOpen || !groupData) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-5 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-2.5 sm:p-3.5 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl border border-slate-200 max-w-5xl w-full shadow-2xl text-left max-h-[88vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 relative">
                 {/* TOAST THÔNG BÁO NỔI */}
                 {modalToast && (
                     <div className="fixed top-6 right-6 z-[99999] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 bg-amber-600 text-white border-amber-500 shadow-amber-600/30">
@@ -1636,7 +1636,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 {/* ========================================================================= */}
                 {isSettlementModalOpen && (
                     <div className="fixed inset-0 z-60 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl border border-slate-200 max-w-2xl w-full p-6 sm:p-7 shadow-2xl text-left max-h-[92vh] overflow-y-auto space-y-5 animate-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full p-5 sm:p-6 shadow-2xl text-left max-h-[88vh] overflow-y-auto space-y-4 animate-in zoom-in-95 duration-200">
                             
                             {/* HEADER */}
                             <div className="flex items-start justify-between pb-4 border-b border-slate-100">

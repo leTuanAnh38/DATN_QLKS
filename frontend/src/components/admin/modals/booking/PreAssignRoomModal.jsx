@@ -164,7 +164,7 @@ export default function PreAssignRoomModal({
 
     return (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-200">
                 {/* ==================== 1. FIXED HEADER ==================== */}
                 <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center justify-between gap-4 shrink-0 bg-white">
                     <div className="flex items-center gap-3">

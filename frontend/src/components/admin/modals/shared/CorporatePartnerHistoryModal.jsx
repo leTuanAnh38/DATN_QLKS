@@ -129,7 +129,7 @@ export default function CorporatePartnerHistoryModal({
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-5xl xl:max-w-6xl max-h-[92vh] flex flex-col overflow-hidden"
+                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl xl:max-w-6xl max-h-[88vh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header: Tone trắng trang nhã, không xuống dòng */}

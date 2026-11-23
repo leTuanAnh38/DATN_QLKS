@@ -377,226 +377,212 @@ export default function PromotionManagement() {
     };
 
     return (
-        <div className="space-y-6 animate-fadeIn pb-12">
-            {/* TOAST THÔNG BÁO NỔI - Luôn nổi trên cùng (z-[99999]) */}
+        <div className="space-y-4 animate-fadeIn pb-8">
+            {/* TOAST THÔNG BÁO NỔI */}
             {toast && (
                 <div
-                    className={`fixed top-5 right-5 z-[99999] max-w-md flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${toast.type === 'success'
+                    className={`fixed top-5 right-5 z-[99999] max-w-md flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-2xl border backdrop-blur-md transition-all duration-300 animate-slideInRight ${toast.type === 'success'
                         ? 'bg-emerald-500/95 text-white border-emerald-400 shadow-emerald-500/20'
                         : 'bg-rose-500/95 text-white border-rose-400 shadow-rose-500/20'
                         }`}
                 >
                     {toast.type === 'success' ? (
-                        <CheckCircle2 className="w-5 h-5 shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
                     ) : (
-                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <AlertCircle className="w-4 h-4 shrink-0" />
                     )}
-                    <span className="text-sm font-medium">{toast.message}</span>
+                    <span className="text-xs font-medium">{toast.message}</span>
                     <button
                         type="button"
                         onClick={() => setToast(null)}
-                        className="ml-2 hover:opacity-75 transition cursor-pointer text-white/80 p-1"
+                        className="ml-2 hover:opacity-75 transition cursor-pointer text-white/80 p-0.5"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
 
-            {/* HEADER: TIÊU ĐỀ "QUẢN LÝ KHUYẾN MÃI" VÀ NÚT "+ THÊM VOUCHER" */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
-                                Quản Lý Khuyến Mãi
-                            </h1>
-                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                                {promotions.length} vouchers
-                            </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                            Quản lý các chương trình ưu đãi, mã giảm giá booking phòng và sự kiện
-                        </p>
+            {/* HEADER COMPACT */}
+            <div className="bg-white rounded-2xl border border-slate-200 px-4 py-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight">
+                            Quản Lý Khuyến Mãi
+                        </h1>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                            {promotions.length} vouchers
+                        </span>
                     </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                        Quản lý các chương trình ưu đãi, mã giảm giá booking phòng và sự kiện
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                    {/* Nút Làm mới */}
                     <button
                         type="button"
                         onClick={fetchPromotions}
                         disabled={isLoading}
-                        className="p-3 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
+                        className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50"
                         title="Tải lại danh sách"
                     >
                         <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                     </button>
 
-                    {/* Nút "+ Thêm Voucher" ở góc phải (Phân quyền: Chỉ Quản lý/Admin) */}
                     {canCreatePromo ? (
                         <button
                             type="button"
                             onClick={handleOpenCreateModal}
-                            className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer"
+                            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-blue-600/20 transition flex items-center gap-1.5 cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Thêm Voucher</span>
                         </button>
                     ) : (
                         <div
-                            title="Tài khoản của bạn chỉ có quyền xem, không có quyền tạo khuyến mãi mới (yêu cầu quyền Quản lý hoặc Admin)."
-                            className="px-4 py-2.5 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs flex items-center gap-1.5 cursor-not-allowed select-none"
+                            title="Tài khoản của bạn chỉ có quyền xem"
+                            className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 font-semibold text-xs flex items-center gap-1.5 cursor-not-allowed select-none"
                         >
-                            <Plus className="w-4 h-4 text-slate-300" />
-                            <span>Thêm Voucher (Chỉ xem)</span>
+                            <Plus className="w-3.5 h-3.5 text-slate-300" />
+                            <span>Chỉ xem</span>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* 4 THẺ KPI THỐNG KÊ OVERVIEW */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tổng voucher</span>
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-                            <Tag className="w-5 h-5" />
-                        </div>
+            {/* 4 THẺ KPI COMPACT */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Tổng voucher</span>
+                        <div className="text-xl font-black text-slate-900 tabular-nums mt-0.5">{stats.total}</div>
+                        <span className="text-[11px] text-slate-400">Chương trình ưu đãi</span>
                     </div>
-                    <div className="text-2xl font-black text-slate-900 tracking-tight">{stats.total}</div>
-                    <span className="text-[11px] text-slate-400 font-medium">Chương trình ưu đãi</span>
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                        <Tag className="w-4 h-4" />
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Đang diễn ra</span>
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-                            <Flame className="w-5 h-5" />
-                        </div>
+                <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Đang diễn ra</span>
+                        <div className="text-xl font-black text-emerald-600 tabular-nums mt-0.5">{stats.active}</div>
+                        <span className="text-[11px] text-emerald-700/80">Đang áp dụng</span>
                     </div>
-                    <div className="text-2xl font-black text-emerald-600 tracking-tight">{stats.active}</div>
-                    <span className="text-[11px] text-emerald-700/80 font-medium">Khách có thể áp dụng</span>
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Flame className="w-4 h-4" />
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sắp diễn ra</span>
-                        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-                            <Clock className="w-5 h-5" />
-                        </div>
+                <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Sắp diễn ra</span>
+                        <div className="text-xl font-black text-amber-600 tabular-nums mt-0.5">{stats.upcoming}</div>
+                        <span className="text-[11px] text-amber-700/80">Đã lên lịch</span>
                     </div>
-                    <div className="text-2xl font-black text-amber-600 tracking-tight">{stats.upcoming}</div>
-                    <span className="text-[11px] text-amber-700/80 font-medium">Đã lên lịch chiến dịch</span>
+                    <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                        <Clock className="w-4 h-4" />
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hết hạn / Dừng</span>
-                        <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
-                            <Timer className="w-5 h-5" />
-                        </div>
+                <div className="bg-white rounded-xl p-3.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+                    <div>
+                        <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider block">Hết hạn / Dừng</span>
+                        <div className="text-xl font-black text-rose-600 tabular-nums mt-0.5">{stats.expiredOrInactive}</div>
+                        <span className="text-[11px] text-rose-700/80">Hết lượt / quá hạn</span>
                     </div>
-                    <div className="text-2xl font-black text-rose-600 tracking-tight">{stats.expiredOrInactive}</div>
-                    <span className="text-[11px] text-rose-700/80 font-medium">Hết lượt hoặc quá hạn</span>
+                    <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                        <Timer className="w-4 h-4" />
+                    </div>
                 </div>
             </div>
 
-            {/* BANNER THÔNG BÁO NẾU TÀI KHOẢN CHỈ CÓ QUYỀN XEM */}
             {!canCreatePromo && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-3.5 rounded-2xl text-xs flex items-center gap-3 shadow-2xs">
-                    <Info className="w-5 h-5 text-amber-600 shrink-0" />
-                    <div>
-                        <span className="font-bold">Chế độ Chỉ Xem (Tra cứu Voucher):</span>{' '}
-                        <span>
-                            Tài khoản của bạn có quyền xem và tra cứu mã khuyến mãi để áp dụng cho khách hàng, nhưng không có quyền tạo mới, sửa hoặc xóa (chỉ Quản lý hoặc Admin mới có quyền thao tác).
-                        </span>
-                    </div>
+                <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2.5 shadow-2xs">
+                    <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                        <strong className="font-bold">Chế độ Chỉ Xem:</strong> Bạn có thể tra cứu mã khuyến mãi để áp dụng cho khách hàng (chỉ Quản lý/Admin mới được tạo/sửa/xóa).
+                    </span>
                 </div>
             )}
 
             {/* THANH TÌM KIẾM & BỘ LỌC */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="relative flex-1 max-w-md">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Tìm kiếm theo mã CODE, tên chương trình hoặc ID..."
-                        className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                        placeholder="Tìm mã CODE, tên chương trình, ID..."
+                        className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
                     />
                     {searchTerm && (
                         <button
                             type="button"
                             onClick={() => setSearchTerm('')}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-semibold text-slate-600">
-                        <button
-                            type="button"
-                            onClick={() => setFilterStatus('all')}
-                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'all' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
-                        >
-                            Tất cả ({stats.total})
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setFilterStatus('active')}
-                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'active' ? 'bg-white text-emerald-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
-                        >
-                            Đang diễn ra ({stats.active})
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setFilterStatus('expired')}
-                            className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${filterStatus === 'expired' ? 'bg-white text-rose-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
-                        >
-                            Hết hạn ({stats.expiredOrInactive})
-                        </button>
-                    </div>
+                <div className="bg-slate-100 p-0.5 rounded-lg flex items-center text-xs font-semibold text-slate-600">
+                    <button
+                        type="button"
+                        onClick={() => setFilterStatus('all')}
+                        className={`px-2.5 py-1 rounded-md transition cursor-pointer ${filterStatus === 'all' ? 'bg-white text-blue-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
+                    >
+                        Tất cả ({stats.total})
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setFilterStatus('active')}
+                        className={`px-2.5 py-1 rounded-md transition cursor-pointer ${filterStatus === 'active' ? 'bg-white text-emerald-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
+                    >
+                        Đang chạy ({stats.active})
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setFilterStatus('expired')}
+                        className={`px-2.5 py-1 rounded-md transition cursor-pointer ${filterStatus === 'expired' ? 'bg-white text-rose-600 font-bold shadow-xs' : 'hover:text-slate-900'}`}
+                    >
+                        Hết hạn ({stats.expiredOrInactive})
+                    </button>
                 </div>
             </div>
 
-            {/* BẢNG DỮ LIỆU: DESKTOP TABLE + MOBILE CARDS */}
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-                {/* A. DESKTOP / TABLET TABLE VIEW (>= md) */}
+            {/* BẢNG DỮ LIỆU COMPACT 6 CỘT (KHÔNG TRÀN NGANG) */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                                <th className="py-4 px-6 w-20 text-center whitespace-nowrap">ID</th>
-                                <th className="py-4 px-6 min-w-[150px] whitespace-nowrap">Mã Code</th>
-                                <th className="py-4 px-6 min-w-[220px]">Tên chương trình</th>
-                                <th className="py-4 px-6 min-w-[150px] whitespace-nowrap">Mức giảm</th>
-                                <th className="py-4 px-6 min-w-[180px] whitespace-nowrap">Thời gian áp dụng</th>
-                                <th className="py-4 px-6 min-w-[140px] text-center whitespace-nowrap">Trạng thái</th>
-                                <th className="py-4 pr-6 pl-4 min-w-[120px] text-right whitespace-nowrap sticky right-0 bg-slate-50/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
-                                    Hành động
-                                </th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Mã Code</th>
+                                <th className="py-2.5 px-3">Chương trình & Lượt dùng</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Mức giảm</th>
+                                <th className="py-2.5 px-3 whitespace-nowrap">Thời gian áp dụng</th>
+                                <th className="py-2.5 px-3 text-center whitespace-nowrap">Trạng thái</th>
+                                <th className="py-2.5 px-3 text-right whitespace-nowrap">Hành động</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm">
+                        <tbody className="divide-y divide-slate-100 text-[13px]">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="py-16 text-center text-slate-400">
-                                        <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                                        <p className="font-semibold text-slate-600 text-sm">Đang tải danh sách khuyến mãi...</p>
+                                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                                        <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mx-auto mb-2" />
+                                        <p className="font-semibold text-slate-600 text-xs">Đang tải danh sách khuyến mãi...</p>
                                     </td>
                                 </tr>
                             ) : filteredPromotions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="py-16 text-center text-slate-400">
-                                        <div className="w-12 h-12 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-center mx-auto mb-3 text-slate-400">
-                                            <Inbox className="w-6 h-6" />
+                                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                                        <div className="w-11 h-11 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+                                            <Inbox className="w-5 h-5" />
                                         </div>
-                                        <p className="font-semibold text-slate-700 text-sm">Không tìm thấy mã khuyến mãi nào</p>
-                                        <p className="text-xs text-slate-400 mt-1">
+                                        <p className="font-semibold text-slate-700 text-xs">Không tìm thấy mã khuyến mãi nào</p>
+                                        <p className="text-[11px] text-slate-400 mt-0.5">
                                             {searchTerm
                                                 ? 'Thử tìm kiếm với từ khóa khác'
                                                 : 'Chưa có voucher nào được tạo. Bấm "+ Thêm Voucher" để bắt đầu!'}
@@ -610,23 +596,16 @@ export default function PromotionManagement() {
 
                                     return (
                                         <tr key={item.id} className="hover:bg-slate-50/60 transition group">
-                                            {/* CỘT 1: ID */}
-                                            <td className="py-4 px-6 text-center">
-                                                <span className="font-mono text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
-                                                    #{item.id}
-                                                </span>
-                                            </td>
-
-                                            {/* CỘT 2: MÃ CODE */}
-                                            <td className="py-4 px-6">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono font-bold text-sm text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg tracking-wider">
+                                            {/* 1. MÃ CODE + #ID */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-md tracking-wider">
                                                         {item.code}
                                                     </span>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleCopyCode(item.code)}
-                                                        className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                                                        className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                                                         title="Copy mã voucher"
                                                     >
                                                         {copiedCode === item.code ? (
@@ -636,52 +615,51 @@ export default function PromotionManagement() {
                                                         )}
                                                     </button>
                                                 </div>
+                                                <span className="font-mono text-[10px] text-slate-400 mt-0.5 block">#{item.id}</span>
                                             </td>
 
-                                            {/* CỘT 3: TÊN CHƯƠNG TRÌNH */}
-                                            <td className="py-4 px-6">
-                                                <strong className="text-slate-900 font-bold block text-sm group-hover:text-blue-600 transition-colors">
+                                            {/* 2. TÊN CHƯƠNG TRÌNH */}
+                                            <td className="py-2.5 px-3 max-w-[260px]">
+                                                <strong className="text-slate-900 font-bold block text-[13px] truncate group-hover:text-blue-600 transition-colors" title={item.name || item.code}>
                                                     {item.name || `Khuyến mãi ${item.code}`}
                                                 </strong>
-                                                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
-                                                    <span>Đã dùng: <strong>{item.used_count || 0}</strong>/{item.usage_limit || 100}</span>
+                                                <div className="text-[11px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2 tabular-nums">
+                                                    <span>Dùng: <strong className="text-slate-600">{item.used_count || 0}</strong>/{item.usage_limit || 100}</span>
                                                     {item.min_order_value > 0 && (
-                                                        <span>• Đơn tối thiểu: <strong>{Number(item.min_order_value).toLocaleString('vi-VN')} đ</strong></span>
+                                                        <span>• Tối thiểu: <strong className="text-slate-600">{Number(item.min_order_value).toLocaleString('vi-VN')}₫</strong></span>
                                                     )}
                                                 </div>
                                             </td>
 
-                                            {/* CỘT 4: MỨC GIẢM */}
-                                            <td className="py-4 px-6">
+                                            {/* 3. MỨC GIẢM */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-base font-bold text-rose-600">
+                                                    <span className="text-sm font-black text-rose-600">
                                                         {isPercentage
                                                             ? `-${item.discount_value}%`
-                                                            : `-${Number(item.discount_value).toLocaleString('vi-VN')} đ`}
+                                                            : `-${Number(item.discount_value).toLocaleString('vi-VN')}₫`}
                                                     </span>
-                                                    <span className="text-[11px] text-slate-400 font-medium">
-                                                        ({isPercentage ? 'Theo %' : 'Cố định'})
+                                                    <span className="text-[10.5px] text-slate-400">
+                                                        ({isPercentage ? '%' : 'Cố định'})
                                                     </span>
                                                 </div>
                                                 {isPercentage && item.max_discount_amount && (
-                                                    <div className="text-[10px] text-slate-400 mt-0.5">
-                                                        Tối đa: {Number(item.max_discount_amount).toLocaleString('vi-VN')} đ
+                                                    <div className="text-[10.5px] text-slate-400 mt-0.5">
+                                                        Max: {Number(item.max_discount_amount).toLocaleString('vi-VN')}₫
                                                     </div>
                                                 )}
                                             </td>
 
-                                            {/* CỘT: THỜI GIAN ÁP DỤNG */}
-                                            <td className="py-4 px-6">
-                                                <div className="text-xs text-slate-600 flex items-center gap-1.5">
-                                                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                                    <span>{formatDate(item.valid_from)} — {formatDate(item.valid_to)}</span>
-                                                </div>
+                                            {/* 4. THỜI GIAN ÁP DỤNG (2 DÒNG GỌN) */}
+                                            <td className="py-2.5 px-3 whitespace-nowrap tabular-nums">
+                                                <div className="text-[11.5px] font-medium text-slate-700">{formatDate(item.valid_from)}</div>
+                                                <div className="text-[11px] text-slate-400">→ {formatDate(item.valid_to)}</div>
                                             </td>
 
-                                            {/* CỘT 5: TRẠNG THÁI */}
-                                            <td className="py-4 px-6 text-center whitespace-nowrap">
+                                            {/* 5. TRẠNG THÁI */}
+                                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
                                                 <span
-                                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${status.color}`}
+                                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap ${status.color}`}
                                                 >
                                                     <span
                                                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.type === 'active'
@@ -691,22 +669,22 @@ export default function PromotionManagement() {
                                                                 : 'bg-rose-500'
                                                             }`}
                                                     />
-                                                    <span className="whitespace-nowrap">{status.label}</span>
+                                                    <span>{status.label}</span>
                                                 </span>
                                             </td>
 
-                                            {/* CỘT 6: HÀNH ĐỘNG (Sticky cố định bên phải tránh che khuất) */}
-                                            <td className="py-4 pr-6 pl-4 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-slate-50/95 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.06)] z-10">
+                                            {/* 6. HÀNH ĐỘNG */}
+                                            <td className="py-2.5 px-3 text-right whitespace-nowrap">
                                                 {canUpdatePromo || canDeletePromo ? (
-                                                    <div className="flex items-center justify-end gap-1.5">
+                                                    <div className="flex items-center justify-end gap-1">
                                                         {canUpdatePromo && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenEditModal(item)}
-                                                                className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/80 transition cursor-pointer shadow-2xs"
+                                                                className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200/80 transition cursor-pointer inline-flex items-center justify-center"
                                                                 title="Chỉnh sửa voucher"
                                                             >
-                                                                <Pencil className="w-4 h-4" />
+                                                                <Pencil className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
 
@@ -714,15 +692,15 @@ export default function PromotionManagement() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleOpenDeleteModal(item)}
-                                                                className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 transition cursor-pointer shadow-2xs"
+                                                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 transition cursor-pointer inline-flex items-center justify-center"
                                                                 title="Xóa voucher"
                                                             >
-                                                                <Trash2 className="w-4 h-4" />
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-slate-400 italic">Chỉ xem</span>
+                                                    <span className="text-[11px] text-slate-400 italic">Chỉ xem</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -873,18 +851,18 @@ export default function PromotionManagement() {
 
             {/* MODAL FORM: THÊM MỚI HOẶC CẬP NHẬT VOUCHER KHUYẾN MÃI */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
                     <div className="fixed inset-0" onClick={handleCloseModal} aria-hidden="true" />
 
                     <div
-                        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden z-10 animate-scaleUp max-h-[90vh] flex flex-col"
+                        className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full overflow-hidden z-10 animate-scaleUp max-h-[88vh] flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header Modal */}
-                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg border border-rose-100 shadow-xs">
-                                    <Tag className="w-5 h-5" />
+                                <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg border border-rose-100 shadow-xs shrink-0">
+                                    <Tag className="w-4.5 h-4.5" />
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-slate-900">
@@ -902,14 +880,15 @@ export default function PromotionManagement() {
                                 type="button"
                                 onClick={handleCloseModal}
                                 disabled={isSubmitting}
-                                className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex items-center justify-center cursor-pointer"
+                                className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition flex items-center justify-center cursor-pointer shrink-0"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         {/* Form Body (Scrollable) */}
-                        <form onSubmit={handleSubmitForm} className="overflow-y-auto p-6 space-y-4">
+                        <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
+                            <div className="overflow-y-auto flex-1 p-5 space-y-3.5">
                             {/* 1. MÃ CODE & LOẠI GIẢM */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
@@ -1063,21 +1042,22 @@ export default function PromotionManagement() {
                                     </label>
                                 </div>
                             </div>
+                            </div>
 
                             {/* FOOTER NÚT LƯU */}
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
                                     disabled={isSubmitting}
-                                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-semibold text-xs transition cursor-pointer"
+                                    className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 font-semibold text-xs transition cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                                 >
                                     {isSubmitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                                     <span>{modalMode === 'create' ? 'Tạo Voucher' : 'Lưu Thay Đổi'}</span>

@@ -35,25 +35,25 @@ export default function ServiceOrderDetailModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]"
+                className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[88vh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
-                <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-                            <BellRing className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                            <BellRing className="w-4.5 h-4.5" />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
                                 <h3 className="font-bold text-slate-900 text-base">
                                     Yêu Cầu Phục Vụ #{item.id}
                                 </h3>
-                                <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold">
+                                <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-bold">
                                     Phòng {item.room_number || 'Chờ xếp'}
                                 </span>
                             </div>
@@ -65,14 +65,14 @@ export default function ServiceOrderDetailModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer"
+                        className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Modal Body */}
-                <div className="p-6 overflow-y-auto space-y-4 text-xs">
+                <div className="p-5 overflow-y-auto flex-1 space-y-3.5 text-xs">
                     {/* SLA Overdue Banner if applicable */}
                     {sla && (
                         <div className={`p-3 rounded-2xl border flex items-center gap-2.5 ${sla.pill}`}>
@@ -178,7 +178,7 @@ export default function ServiceOrderDetailModal({
                 </div>
 
                 {/* Modal Footer Actions */}
-                <div className="p-4 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5">
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
                     <button
                         type="button"
                         onClick={() => onPrintSlip && onPrintSlip(item)}

@@ -155,19 +155,19 @@ export default function CorporatePartnerModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[88vh]">
                 {/* Modal Header */}
-                <div className="px-6 py-5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200">
-                    <div className="flex items-center gap-3.5">
-                        <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
-                            <Building2 className="w-5 h-5" />
+                <div className="px-5 py-3.5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center shadow-xs">
+                            <Building2 className="w-4 h-4" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-base sm:text-lg text-slate-900 tracking-tight">
+                            <h3 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight">
                                 {isEdit ? 'Chỉnh sửa Đối tác Doanh nghiệp' : 'Thêm mới Đối tác Doanh nghiệp (B2B)'}
                             </h3>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-[11px] text-slate-500">
                                 {isEdit ? `Mã: ${partner.corporate_code} • ${partner.company_name}` : 'Thiết lập thông tin pháp lý, mã chiết khấu & hạn mức công nợ'}
                             </p>
                         </div>
@@ -175,15 +175,16 @@ export default function CorporatePartnerModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                        className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                         title="Đóng"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Modal Body / Form */}
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                    <div className="p-5 overflow-y-auto space-y-4 flex-1">
                     {errorMessage && (
                         <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2.5">
                             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -452,20 +453,22 @@ export default function CorporatePartnerModal({
                         </div>
                     </div>
 
-                    {/* Modal Footer */}
-                    <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+                    </div>
+
+                    {/* Modal Footer cố định đáy */}
+                    <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition cursor-pointer"
+                            className="px-4 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
                         >
                             Hủy bỏ
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-md shadow-indigo-600/30 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+                            className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <>

@@ -870,25 +870,25 @@ export default function ServiceManagement() {
                     ))}
                 </div>
             ) : (
-                /* CHẾ ĐỘ XEM TABLE VIEW */
+                /* CHẾ ĐỘ XEM TABLE VIEW COMPACT */
                 <div id="admin-services-list" className="scroll-mt-4 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
+                        <table className="w-full text-left text-[13px] border-collapse">
                             <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
-                                    <th className="py-3.5 px-4">Dịch vụ / Món ăn</th>
-                                    <th className="py-3.5 px-4">Nhóm danh mục</th>
-                                    <th className="py-3.5 px-4">Đơn giá (VND)</th>
-                                    <th className="py-3.5 px-4">Mô tả tóm tắt</th>
-                                    <th className="py-3.5 px-4 text-center">Trạng thái</th>
-                                    <th className="py-3.5 px-4 text-right">Thao tác</th>
+                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10.5px] tracking-wider">
+                                    <th className="py-2.5 px-3">Dịch vụ / Món ăn</th>
+                                    <th className="py-2.5 px-3 whitespace-nowrap">Nhóm danh mục</th>
+                                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Đơn giá</th>
+                                    <th className="py-2.5 px-3">Mô tả tóm tắt</th>
+                                    <th className="py-2.5 px-3 text-center whitespace-nowrap">Trạng thái</th>
+                                    <th className="py-2.5 px-3 text-right whitespace-nowrap">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {paginatedServices.map((service) => (
                                     <tr key={service.id} className="hover:bg-slate-50/70 transition">
-                                        <td className="py-3 px-4">
-                                            <div className="flex items-center gap-3">
+                                        <td className="py-2 px-3">
+                                            <div className="flex items-center gap-2.5">
                                                 <img
                                                     src={
                                                         service.display_image ||
@@ -897,36 +897,36 @@ export default function ServiceManagement() {
                                                         'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&auto=format&fit=crop&q=80'
                                                     }
                                                     alt={service.name}
-                                                    className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-2xs"
+                                                    className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
                                                 />
-                                                <div>
-                                                    <strong className="text-slate-900 font-bold block text-xs">
+                                                <div className="min-w-0">
+                                                    <strong className="text-slate-900 font-bold block text-[13px] truncate max-w-[200px]">
                                                         {service.name}
                                                     </strong>
-                                                    <span className="text-[10px] text-slate-400">ID #{service.id}</span>
+                                                    <span className="text-[10.5px] text-slate-400 font-mono">#{service.id}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3 px-4 whitespace-nowrap">
-                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">
+                                        <td className="py-2 px-3 whitespace-nowrap">
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
                                                 <span>{service.category_icon || '•'}</span>
                                                 <span>{service.category_name}</span>
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 whitespace-nowrap">
-                                            <span className="font-black text-rose-600 text-xs">
-                                                {Number(service.price || 0).toLocaleString('vi-VN')} VND
+                                        <td className="py-2 px-3 text-right whitespace-nowrap tabular-nums">
+                                            <span className="font-black text-rose-600 text-[13px]">
+                                                {Number(service.price || 0).toLocaleString('vi-VN')}₫
                                             </span>
                                         </td>
-                                        <td className="py-3 px-4 max-w-xs text-slate-500 truncate">
+                                        <td className="py-2 px-3 max-w-[260px] text-slate-500 text-xs truncate" title={service.description}>
                                             {service.description || 'Chưa có mô tả'}
                                         </td>
-                                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                                        <td className="py-2 px-3 text-center whitespace-nowrap">
                                             <button
                                                 type="button"
                                                 disabled={!canUpdateService}
                                                 onClick={() => canUpdateService && handleToggleActive(service)}
-                                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border transition ${
+                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border transition ${
                                                     !canUpdateService ? 'cursor-default opacity-85' : 'cursor-pointer'
                                                 } ${
                                                     service.is_active
@@ -934,35 +934,31 @@ export default function ServiceManagement() {
                                                         : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                                                 }`}
                                             >
-                                                <span
-                                                    className={`w-1.5 h-1.5 rounded-full ${
-                                                        service.is_active ? 'bg-emerald-500' : 'bg-amber-500'
-                                                    }`}
-                                                ></span>
-                                                <span>{service.is_active ? 'Đang phục vụ' : 'Tạm ngưng'}</span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${service.is_active ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                                                <span>{service.is_active ? 'Phục vụ' : 'Tạm ngưng'}</span>
                                             </button>
                                         </td>
-                                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                                        <td className="py-2 px-3 text-right whitespace-nowrap">
                                             {(canUpdateService || canDeleteService) ? (
-                                                <div className="flex items-center justify-end gap-1.5">
+                                                <div className="flex items-center justify-end gap-1">
                                                     {canUpdateService && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenEditModal(service)}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white inline-flex items-center justify-center transition cursor-pointer"
+                                                            title="Chỉnh sửa dịch vụ"
                                                         >
-                                                            <Edit2 className="w-3 h-3" />
-                                                            <span>Sửa</span>
+                                                            <Edit2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                     {canDeleteService && (
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenDeleteModal(service)}
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white font-bold text-[11px] transition shadow-2xs cursor-pointer"
+                                                            className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white inline-flex items-center justify-center transition cursor-pointer"
+                                                            title="Xóa dịch vụ"
                                                         >
-                                                            <Trash2 className="w-3 h-3" />
-                                                            <span>Xóa</span>
+                                                            <Trash2 className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>
@@ -1041,16 +1037,16 @@ export default function ServiceManagement() {
 
             {/* MODAL THÊM / SỬA DỊCH VỤ */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-100 animate-scale-up">
-                        {/* Modal Header */}
-                        <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                    {isEditMode ? <Edit2 className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col overflow-hidden shadow-2xl border border-slate-100 animate-scale-up">
+                        {/* Modal Header cố định */}
+                        <div className="bg-white px-5 py-3.5 border-b border-slate-200 flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                    {isEditMode ? <Edit2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-slate-900 text-base">
+                                    <h3 className="font-black text-slate-900 text-sm sm:text-base">
                                         {isEditMode ? 'Chỉnh Sửa Dịch Vụ' : 'Thêm Dịch Vụ Mới'}
                                     </h3>
                                     <p className="text-[11px] text-slate-400">
@@ -1070,7 +1066,8 @@ export default function ServiceManagement() {
                         </div>
 
                         {/* Modal Body */}
-                        <form onSubmit={handleSubmitService} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmitService} className="flex flex-col flex-1 min-h-0">
+                            <div className="p-5 space-y-4 overflow-y-auto flex-1">
                             {formError && (
                                 <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
@@ -1309,19 +1306,21 @@ export default function ServiceManagement() {
                                 )}
                             </div>
 
-                            {/* Modal Footer Buttons */}
-                            <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                            </div>
+
+                            {/* Modal Footer Buttons cố định đáy */}
+                            <div className="px-5 py-3 border-t border-slate-200 bg-slate-50/70 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                                    className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl transition cursor-pointer"
                                 >
                                     Hủy Bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                    className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                                 >
                                     {submitting && (
                                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -751,10 +751,10 @@ export default function LostAndFoundManagement() {
             {/* Modal 2: Bàn giao trả khách */}
             {selectedItemForReturn && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-                        <div className="px-5 py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between">
+                    <div className="bg-white w-full max-w-md max-h-[88vh] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-3.5 bg-white border-b border-slate-200 text-slate-900 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-2xs">
+                                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-2xs shrink-0">
                                     <Handshake className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -765,13 +765,14 @@ export default function LostAndFoundManagement() {
                             <button
                                 type="button"
                                 onClick={() => setSelectedItemForReturn(null)}
-                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
+                                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer shrink-0"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleConfirmReturn} className="p-5 space-y-3.5 text-xs">
+                        <form onSubmit={handleConfirmReturn} className="flex flex-col flex-1 min-h-0 text-xs">
+                            <div className="p-5 space-y-3.5 overflow-y-auto flex-1">
                             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
                                 <div className="font-bold text-slate-800 text-sm">
                                     {selectedItemForReturn.item_name}
@@ -818,8 +819,9 @@ export default function LostAndFoundManagement() {
                                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
+                            </div>
 
-                            <div className="pt-2 flex items-center justify-end gap-2">
+                            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2 shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setSelectedItemForReturn(null)}

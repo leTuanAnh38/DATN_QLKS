@@ -77,79 +77,74 @@ export default function RoomCard({
 
     return (
         <div
-            className={`relative rounded-2xl border-2 p-3.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass} ${isInspectionRequested ? 'ring-3 ring-amber-500 ring-offset-2 border-amber-500 shadow-md' : ''
+            className={`relative rounded-xl border-2 p-2.5 flex flex-col justify-between transition-all duration-200 group ${statusConfig.cardClass} ${isInspectionRequested ? 'ring-2 ring-amber-500 ring-offset-1 border-amber-500 shadow-md' : ''
                 }`}
         >
             {/* Loading Overlay khi đang đổi trạng thái */}
             {isLoading && (
-                <div className="absolute inset-0 bg-white/70 backdrop-blur-xs rounded-2xl flex items-center justify-center z-20">
+                <div className="absolute inset-0 bg-white/70 backdrop-blur-xs rounded-xl flex items-center justify-center z-20">
                     <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
             )}
 
-            {/* Top row: Số phòng to rõ & Badge tầng / thao tác */}
+            {/* Top row: Số phòng gọn sắc nét & Badge tầng / thao tác */}
             <div>
-                <div className="flex items-start justify-between gap-1 mb-1">
-                    {/* Số phòng to rõ */}
-                    <div className="flex items-baseline gap-1">
+                <div className="flex items-start justify-between gap-1 mb-0.5">
+                    <div className="flex items-baseline gap-0.5">
                         <span className="text-[10px] font-bold text-slate-400 uppercase">P.</span>
-                        <span className="text-2xl sm:text-3xl font-black font-mono tabular-nums tracking-tight text-slate-900 leading-none">
+                        <span className="text-xl font-black font-mono tabular-nums tracking-tight text-slate-900 leading-none">
                             {room.room_number}
                         </span>
                     </div>
 
-                    {/* Badge tầng & Menu Sửa / Báo hỏng */}
-                    <div className="flex items-center gap-1">
-                        <span className="px-1.5 py-0.5 rounded-md bg-white/80 border border-slate-200/80 text-[10px] font-bold text-slate-600 shadow-2xs">
+                    <div className="flex items-center gap-0.5">
+                        <span className="px-1.5 py-0.2 rounded bg-white/80 border border-slate-200/80 text-[9.5px] font-bold text-slate-600">
                             {room.floor}F
                         </span>
-                        {/* Nút Báo hỏng thiết bị (khi phòng chưa ở trạng thái bảo trì) */}
                         {room.status !== 'maintenance' && canReportMaintenance && onReportMaintenance && (
                             <button
                                 type="button"
                                 onClick={() => onReportMaintenance(room)}
-                                className="w-8 h-8 sm:w-6 sm:h-6 rounded-md hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                className="w-6 h-6 rounded hover:bg-amber-100 text-slate-400 hover:text-amber-700 flex items-center justify-center transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Báo hỏng thiết bị & Đưa vào bảo trì"
                             >
-                                <Wrench className="w-3.5 h-3.5" />
+                                <Wrench className="w-3 h-3" />
                             </button>
                         )}
                         {isManagerOrAdmin && (
                             <button
                                 type="button"
                                 onClick={() => onEdit(room)}
-                                className="w-8 h-8 sm:w-6 sm:h-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-700 flex items-center justify-center text-xs transition cursor-pointer opacity-80 group-hover:opacity-100"
+                                className="w-6 h-6 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-700 flex items-center justify-center transition cursor-pointer opacity-80 group-hover:opacity-100"
                                 title="Chỉnh sửa thông tin phòng"
                             >
-                                <Edit3 className="w-3.5 h-3.5" />
+                                <Edit3 className="w-3 h-3" />
                             </button>
                         )}
                     </div>
                 </div>
 
                 {/* Tên hạng phòng */}
-                <div className="min-h-[30px]">
+                <div className="min-h-[26px]">
                     <h4
-                        className="font-bold text-xs text-slate-800 line-clamp-1 leading-tight"
-                        title={room.category_name}
+                        className="font-bold text-[11.5px] text-slate-800 line-clamp-1 leading-tight"
+                        title={`${room.category_name} • ${room.category_bed_type || '1 Giường King'}`}
                     >
                         {room.category_name}
                     </h4>
-                    <span className="text-[10px] text-slate-500 font-medium block">
+                    <span className="text-[10px] text-slate-500 font-medium block truncate">
                         {room.category_bed_type || '1 Giường King'}
                     </span>
                 </div>
             </div>
 
             {/* Giá cơ bản & Trạng thái badge */}
-            <div className="mt-1.5 pt-1.5 border-t border-slate-200/60 flex flex-wrap items-center justify-between gap-1">
-                <span className="text-[11px] font-bold text-slate-900">
+            <div className="mt-1 pt-1 border-t border-slate-200/60 flex items-center justify-between gap-1">
+                <span className="text-[11px] font-bold text-slate-900 tabular-nums truncate">
                     {formatCurrency(room.category_base_price)}
-                    <span className="text-[9px] font-normal text-slate-500">/đêm</span>
                 </span>
 
-                {/* Trạng thái hiện tại badge */}
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusConfig.badgeClass} flex items-center gap-1`}>
+                <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] font-bold border ${statusConfig.badgeClass} flex items-center gap-1 shrink-0`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.indicatorColor}`}></span>
                     <span>{statusConfig.shortLabel}</span>
                 </span>
