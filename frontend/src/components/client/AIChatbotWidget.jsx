@@ -861,6 +861,7 @@ export default function AIChatbotWidget() {
     const inputRef = useRef(null);
     const langDropdownRef = useRef(null);
     const recognitionRef = useRef(null);
+    const lastScrolledMsgIdRef = useRef(null);
 
     // Lắng nghe phím Escape để đóng nhanh khung chat
     useEffect(() => {
@@ -1151,6 +1152,7 @@ export default function AIChatbotWidget() {
     useEffect(() => {
         if (isOpen) {
             setHasUnread(false);
+            lastScrolledMsgIdRef.current = messages[messages.length - 1]?.id || null;
             if (messages.length <= 1) {
                 scrollToTop();
                 requestAnimationFrame(() => scrollToTop());
@@ -1176,24 +1178,27 @@ export default function AIChatbotWidget() {
             console.error('Lỗi ghi chat history:', e);
         }
 
-        if (isOpen) {
+        const lastMsg = messages[messages.length - 1];
+        const lastMsgId = lastMsg?.id || null;
+
+        // Chỉ tự động cuộn khi có tin nhắn mới (hoặc vừa reset hội thoại),
+        // tránh kéo trang lên trên khi người dùng bấm Like/Dislike cập nhật trạng thái tin nhắn hiện có.
+        if (isOpen && lastMsgId !== lastScrolledMsgIdRef.current) {
+            lastScrolledMsgIdRef.current = lastMsgId;
             if (messages.length <= 1) {
                 scrollToTop();
                 requestAnimationFrame(() => scrollToTop());
                 setTimeout(() => scrollToTop(), 50);
+            } else if (lastMsg && lastMsg.role === 'model') {
+                // Bot vừa trả lời xong: Cuộn mượt đến đầu câu trả lời / câu hỏi
+                // để người dùng đọc ngay phần giải thích từ dòng đầu tiên, KHÔNG bị tụt xuống đáy các thẻ cards!
+                requestAnimationFrame(() => {
+                    scrollToLastInteraction(true);
+                    setTimeout(() => scrollToLastInteraction(true), 60);
+                });
             } else {
-                const lastMsg = messages[messages.length - 1];
-                if (lastMsg && lastMsg.role === 'model') {
-                    // Bot vừa trả lời xong: Cuộn mượt đến đầu câu trả lời / câu hỏi
-                    // để người dùng đọc ngay phần giải thích từ dòng đầu tiên, KHÔNG bị tụt xuống đáy các thẻ cards!
-                    requestAnimationFrame(() => {
-                        scrollToLastInteraction(true);
-                        setTimeout(() => scrollToLastInteraction(true), 60);
-                    });
-                } else {
-                    // Người dùng vừa gửi câu hỏi -> Cuộn xuống dưới để thấy câu hỏi và chấm typing
-                    scrollToBottom(true);
-                }
+                // Người dùng vừa gửi câu hỏi -> Cuộn xuống dưới để thấy câu hỏi và chấm typing
+                scrollToBottom(true);
             }
         }
     }, [messages, isOpen]);

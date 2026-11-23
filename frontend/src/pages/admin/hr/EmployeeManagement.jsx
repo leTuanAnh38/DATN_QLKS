@@ -9,7 +9,6 @@ import {
     Search,
     RotateCcw,
     Filter,
-    Eye,
     Pencil,
     Lock,
     Unlock,
@@ -1075,7 +1074,12 @@ export default function EmployeeManagement() {
                                     <tr key={emp.id} className="hover:bg-blue-50/30 transition group">
                                         {/* Avatar, Name & Employee Code */}
                                         <td className="py-2 px-3 max-w-[260px]">
-                                            <div className="flex items-center gap-2.5 min-w-0">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenDetail(emp)}
+                                                className="flex items-center gap-2.5 min-w-0 w-full text-left group/emp cursor-pointer"
+                                                title={`Bấm để xem hồ sơ chi tiết của ${emp.full_name || emp.username}`}
+                                            >
                                                 <UserAvatar
                                                     avatar={emp.avatar}
                                                     name={emp.full_name || emp.username}
@@ -1085,22 +1089,18 @@ export default function EmployeeManagement() {
                                                 />
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-1.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenDetail(emp)}
-                                                            className="font-bold text-[13px] text-slate-900 hover:text-blue-600 transition text-left cursor-pointer truncate"
-                                                        >
+                                                        <strong className="font-bold text-[13px] text-blue-600 group-hover/emp:underline transition truncate">
                                                             {emp.full_name || emp.username}
-                                                        </button>
+                                                        </strong>
                                                         <span className="font-mono text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100 shrink-0">
                                                             {emp.employee_profile?.employee_code || `NV-${emp.id}`}
                                                         </span>
                                                     </div>
-                                                    <div className="text-[11px] text-slate-400 truncate">
+                                                    <div className="text-[11px] text-slate-400 group-hover/emp:text-slate-600 truncate">
                                                         {emp.email}{emp.phone_number ? ` • ${emp.phone_number}` : ''}
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </button>
                                         </td>
 
                                         {/* Role Badge */}
@@ -1153,14 +1153,6 @@ export default function EmployeeManagement() {
                                         {/* Actions Compact */}
                                         <td className="py-2 px-3 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleOpenDetail(emp)}
-                                                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition cursor-pointer"
-                                                    title="Xem chi tiết hồ sơ"
-                                                >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                </button>
                                                 {isSelfRow(emp) && isRestrictedForManager(emp) ? (
                                                     <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 inline-flex items-center gap-1">
                                                         <ShieldCheck className="w-3 h-3" />
@@ -1251,7 +1243,12 @@ export default function EmployeeManagement() {
                             <div key={emp.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition">
                                 {/* Hàng 1: Avatar + Tên + Trạng thái */}
                                 <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-center gap-2.5 min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenDetail(emp)}
+                                        className="flex items-center gap-2.5 min-w-0 text-left group/emp cursor-pointer"
+                                        title={`Bấm để xem hồ sơ chi tiết của ${emp.full_name || emp.username}`}
+                                    >
                                         <UserAvatar
                                             avatar={emp.avatar}
                                             name={emp.full_name || emp.username}
@@ -1260,18 +1257,14 @@ export default function EmployeeManagement() {
                                             border={false}
                                         />
                                         <div className="min-w-0">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenDetail(emp)}
-                                                className="font-bold text-slate-900 hover:text-blue-600 text-sm text-left truncate block cursor-pointer"
-                                            >
+                                            <strong className="font-bold text-blue-600 group-hover/emp:underline text-sm truncate block">
                                                 {emp.full_name || emp.username}
-                                            </button>
-                                            <span className="font-mono text-[11px] font-bold text-blue-600 block">
+                                            </strong>
+                                            <span className="font-mono text-[11px] font-bold text-slate-500 block">
                                                 {emp.employee_profile?.employee_code || `NV-${emp.id}`}
                                             </span>
                                         </div>
-                                    </div>
+                                    </button>
 
                                     <div className="shrink-0 flex flex-col items-end gap-1">
                                         {emp.is_active ? (
@@ -1336,15 +1329,6 @@ export default function EmployeeManagement() {
 
                                 {/* Hàng 4: Nút thao tác ngón tay */}
                                 <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleOpenDetail(emp)}
-                                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition flex items-center gap-1 cursor-pointer"
-                                    >
-                                        <Eye className="w-3.5 h-3.5" />
-                                        <span>Xem</span>
-                                    </button>
-
                                     {isSelfRow(emp) && isRestrictedForManager(emp) ? (
                                         <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200 flex items-center gap-1">
                                             <ShieldCheck className="w-3 h-3" />

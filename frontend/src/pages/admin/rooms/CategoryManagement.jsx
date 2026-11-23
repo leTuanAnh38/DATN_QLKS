@@ -628,9 +628,9 @@ export default function CategoryManagement() {
 
             {/* 4. GRID DANH SÁCH HẠNG PHÒNG */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 min-[1680px]:grid-cols-3 gap-5">
                     {[1, 2, 3, 4].map((n) => (
-                        <div key={n} className="bg-white rounded-2xl border border-slate-200 p-6 animate-pulse space-y-4">
+                        <div key={n} className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse space-y-3">
                             <div className="h-48 bg-slate-200 rounded-xl"></div>
                             <div className="h-5 bg-slate-200 rounded w-1/2"></div>
                             <div className="h-4 bg-slate-100 rounded w-3/4"></div>
@@ -649,7 +649,7 @@ export default function CategoryManagement() {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 min-[1680px]:grid-cols-3 gap-5">
                     {sortedCategories.map((cat) => {
                         const featureImg = cat.feature_image || cat.images?.[0]?.image_url || cat.images?.[0]?.image;
                         const hasPromo = cat.promo_price && Number(cat.promo_price) > 0 && Number(cat.promo_price) < Number(cat.base_price);
@@ -662,8 +662,8 @@ export default function CategoryManagement() {
                                 key={cat.id}
                                 className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col group"
                             >
-                                {/* Ảnh bìa chính gọn chuẩn Compact PMS */}
-                                <div className="relative h-44 bg-slate-100 overflow-hidden">
+                                {/* Ảnh bìa chính cân đối trên 2 cột (1366-1536px) & 3 cột (1920px) */}
+                                <div className="relative h-48 bg-slate-100 overflow-hidden">
                                     {featureImg ? (
                                         <img
                                             src={featureImg}
@@ -751,7 +751,7 @@ export default function CategoryManagement() {
                                 </div>
 
                                 {/* Body Card */}
-                                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                                     {/* Thông số kỹ thuật */}
                                     <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-slate-50/80 rounded-xl border border-slate-100 text-xs">
                                         <div className="flex items-center gap-1.5 text-slate-700">

@@ -70,7 +70,6 @@ export default function GuestManagement() {
 
     // Modals
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedGuest, setSelectedGuest] = useState(null);
@@ -172,12 +171,6 @@ export default function GuestManagement() {
             new_password: '',
         });
         setIsEditModalOpen(true);
-    };
-
-    // Mở modal xem chi tiết
-    const handleOpenDetail = (guest) => {
-        setSelectedGuest(guest);
-        setIsDetailModalOpen(true);
     };
 
     // Lưu chỉnh sửa khách hàng
@@ -670,14 +663,6 @@ export default function GuestManagement() {
                                             {/* Thao tác */}
                                             <td className="px-3 py-2.5 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-1.5">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenDetail(g)}
-                                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 shadow-2xs transition cursor-pointer"
-                                                        title="Xem chi tiết hồ sơ"
-                                                    >
-                                                        <Eye className="w-3.5 h-3.5" />
-                                                    </button>
                                                     {canUpdateGuest && (
                                                         <button
                                                             type="button"
@@ -858,14 +843,6 @@ export default function GuestManagement() {
 
                                     {/* Hàng 4: Nút thao tác ngón tay */}
                                     <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5 flex-wrap">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenDetail(g)}
-                                            className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                        >
-                                            <Eye className="w-3.5 h-3.5" />
-                                            <span>Xem hồ sơ</span>
-                                        </button>
                                         {canUpdateGuest && (
                                             <button
                                                 type="button"
@@ -1189,113 +1166,6 @@ export default function GuestManagement() {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
-
-            {/* ========================================================================= */}
-            {/* MODAL 2: XEM CHI TIẾT HỒ SƠ KHÁCH HÀNG */}
-            {/* ========================================================================= */}
-            {isDetailModalOpen && selectedGuest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div
-                        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden max-h-[88vh] flex flex-col"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header: Tone nền trắng thanh lịch, loại bỏ dải banner tối */}
-                        <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white text-slate-900 shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
-                                    <User className="w-4.5 h-4.5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
-                                        Hồ Sơ Chi Tiết Khách Hàng
-                                    </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
-                                        Khách Sạn TA Đà Nẵng • Mã ID #{selectedGuest.id}
-                                    </p>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setIsDetailModalOpen(false)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
-                                title="Đóng cửa sổ"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <div className="p-5 overflow-y-auto flex-1 space-y-3.5 text-xs">
-                            {/* Profile Card Header */}
-                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                <div className="flex items-center gap-3.5">
-                                    <UserAvatar
-                                        avatar={selectedGuest.avatar}
-                                        name={selectedGuest.full_name || selectedGuest.username}
-                                        role="guest"
-                                        size="lg"
-                                        border={true}
-                                    />
-                                    <div>
-                                        <h4 className="font-bold text-base text-slate-900">
-                                            {selectedGuest.full_name || selectedGuest.username}
-                                        </h4>
-                                        <p className="text-xs text-slate-500">
-                                            Username: @{selectedGuest.username} • ID #{selectedGuest.id}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span className="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1.5 shadow-xs">
-                                    <Star className="w-3.5 h-3.5 fill-current" />
-                                    <span>Hạng {selectedGuest.current_tier?.name || selectedGuest.guest_profile?.vip_tier || 'Đồng (Bronze)'}</span>
-                                </span>
-                            </div>
-
-                            {/* Grid 4 thông tin cốt lõi */}
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Số điện thoại</span>
-                                    <strong className="text-slate-800 text-sm mt-0.5 block">{selectedGuest.phone_number || 'Chưa cập nhật'}</strong>
-                                </div>
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">CCCD / Passport</span>
-                                    <strong className="text-slate-800 text-sm font-mono mt-0.5 block">{selectedGuest.guest_profile?.id_card_number || 'Chưa có'}</strong>
-                                </div>
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Email liên hệ</span>
-                                    <strong className="text-slate-800 text-xs truncate mt-0.5 block">{selectedGuest.email || 'Chưa có email'}</strong>
-                                </div>
-                                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Điểm TA Club</span>
-                                    <strong className="text-amber-600 text-sm mt-0.5 block">{selectedGuest.guest_profile?.loyalty_points || 0} điểm</strong>
-                                </div>
-                            </div>
-
-                            {/* Địa chỉ & Sở thích */}
-                            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
-                                <div>
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Địa chỉ thường trú</span>
-                                    <p className="text-slate-700 font-medium">{selectedGuest.address || 'Chưa có thông tin địa chỉ.'}</p>
-                                </div>
-                                <div className="pt-2 border-t border-slate-200/60">
-                                    <span className="text-slate-400 block text-[10px] uppercase font-bold mb-0.5">Sở thích lưu trú / Ghi chú</span>
-                                    <p className="text-slate-700 italic">{selectedGuest.guest_profile?.preferences || 'Chưa có ghi chú sở thích đặc biệt.'}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Footer Modal Actions */}
-                        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => setIsDetailModalOpen(false)}
-                                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                            >
-                                Đóng
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
