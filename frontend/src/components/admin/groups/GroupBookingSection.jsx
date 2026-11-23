@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
     Building2,
     Users,
@@ -84,12 +84,101 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
         setTimeout(() => setCopiedCode(null), 2000);
     };
 
+    const filteredGroupsRef = useRef([]);
+
+    const handleExportGroupsCSV = () => {
+        const list = filteredGroupsRef.current || [];
+        if (list.length === 0) {
+            return { exported: false, count: 0 };
+        }
+
+        const STATUS_LABELS = {
+            tentative: 'Tạm giữ',
+            confirmed: 'Đã xác nhận',
+            checked_in: 'Đang lưu trú',
+            checked_out: 'Đã trả phòng',
+            completed: 'Hoàn tất',
+            cancelled: 'Đã hủy'
+        };
+
+        const escapeCSV = (val) => {
+            const str = String(val ?? '').replace(/\r?\n/g, ' ');
+            return `"${str.replace(/"/g, '""')}"`;
+        };
+
+        const headers = [
+            'STT',
+            'Mã đoàn',
+            'Tên đoàn',
+            'Đối tác B2B',
+            'Trưởng đoàn',
+            'SĐT trưởng đoàn',
+            'Email',
+            'Ngày đến',
+            'Ngày đi',
+            'Số đêm',
+            'Số phòng',
+            'Trạng thái',
+            'Tổng giá trị (VND)',
+            'Đã cọc/TT (VND)',
+            'Công nợ còn lại (VND)'
+        ];
+
+        const rows = list.map((g, idx) => {
+            const totalRooms = g.total_rooms || (g.sub_bookings ? g.sub_bookings.length : 0);
+            const totalAmount = Number(g.total_amount || 0);
+            const isCompleted = ['checked_out', 'completed'].includes(g.status);
+            const paidAmount = isCompleted
+                ? totalAmount
+                : g.is_deposit_paid
+                ? Number(g.deposit_amount || 0)
+                : 0;
+            const remaining = Math.max(0, totalAmount - paidAmount);
+            const partnerName = g.corporate_partner_details?.company_name || g.company_name || 'Đoàn tự túc';
+
+            return [
+                idx + 1,
+                g.group_code || '',
+                g.group_name || '',
+                partnerName,
+                g.leader_name || '',
+                g.leader_phone || '',
+                g.leader_email || '',
+                formatDate(g.check_in_date),
+                formatDate(g.check_out_date),
+                g.nights || 1,
+                totalRooms,
+                STATUS_LABELS[g.status] || g.status || '',
+                totalAmount,
+                paidAmount,
+                remaining
+            ]
+                .map(escapeCSV)
+                .join(',');
+        });
+
+        const csvContent = '\uFEFF' + [headers.map(escapeCSV).join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateTag = new Date().toISOString().split('T')[0];
+        link.href = url;
+        link.setAttribute('download', `Danh_Sach_Dat_Doan_B2B_${dateTag}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        return { exported: true, count: list.length };
+    };
+
     // Expose methods to parent component (BookingManagement)
     useImperativeHandle(ref, () => ({
         openCreateModal: () => setIsCreateModalOpen(true),
         refresh: async () => {
             await fetchGroups();
         },
+        exportCSV: handleExportGroupsCSV,
         isLoading
     }), [isLoading]);
 
@@ -166,6 +255,8 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
 
         return result;
     }, [groups, searchKeyword, dateFilter]);
+
+    filteredGroupsRef.current = filteredGroups;
 
     // Pagination calculations
     const totalCount = filteredGroups.length;

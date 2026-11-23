@@ -377,6 +377,7 @@ function WalkInServicePicker({
 export default function WalkInBookingModal({
     isOpen,
     initialTab = 'walk_in',
+    initialPreset = null,
     canCreateBookings = true,
     onClose,
     onSuccess,
@@ -441,7 +442,12 @@ export default function WalkInBookingModal({
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-        setBookingTab(initialTab);
+        const targetTab = initialPreset?.tab || initialTab;
+        const targetCheckIn = initialPreset?.checkInDate || todayStr;
+        const targetCheckOut = initialPreset?.checkOutDate || tomorrowStr;
+        const targetInternalNote = initialPreset?.internalNote || '';
+
+        setBookingTab(targetTab);
         setWalkInForm({
             customer_type: 'MEMBER',
             company_name: '',
@@ -452,13 +458,13 @@ export default function WalkInBookingModal({
             identity_card: '',
             guest_email: '',
             create_account: false,
-            room_id: '',
-            category_id: '',
-            check_in_date: todayStr,
-            check_out_date: tomorrowStr,
+            room_id: initialPreset?.roomId ? String(initialPreset.roomId) : '',
+            category_id: initialPreset?.categoryId ? String(initialPreset.categoryId) : '',
+            check_in_date: targetCheckIn,
+            check_out_date: targetCheckOut,
             initial_status: 'confirmed',
             note: '',
-            internal_note: '',
+            internal_note: targetInternalNote,
             selected_services: []
         });
         setIsServicesAccordionOpen(false);
@@ -483,15 +489,27 @@ export default function WalkInBookingModal({
                     const rooms = roomsRes.rooms || [];
                     setWalkInAvailableRooms(rooms);
                     if (rooms.length > 0) {
-                        setWalkInForm((prev) => ({ ...prev, room_id: String(rooms[0].id) }));
+                        const presetRoomExists =
+                            initialPreset?.roomId &&
+                            rooms.some((r) => String(r.id) === String(initialPreset.roomId));
+                        setWalkInForm((prev) => ({
+                            ...prev,
+                            room_id: presetRoomExists ? String(initialPreset.roomId) : String(rooms[0].id)
+                        }));
                     }
                 }
                 const cats = catsRes?.categories || (Array.isArray(catsRes) ? catsRes : []);
                 setAdvanceCategories(cats);
                 if (cats.length > 0) {
-                    setWalkInForm((prev) => ({ ...prev, category_id: String(cats[0].id) }));
+                    const presetCatExists =
+                        initialPreset?.categoryId &&
+                        cats.some((c) => String(c.id) === String(initialPreset.categoryId));
+                    setWalkInForm((prev) => ({
+                        ...prev,
+                        category_id: presetCatExists ? String(initialPreset.categoryId) : String(cats[0].id)
+                    }));
                 }
-                fetchCategoryAvailabilities(todayStr, tomorrowStr);
+                fetchCategoryAvailabilities(targetCheckIn, targetCheckOut);
             })
             .catch((error) => {
                 console.error('Lỗi khi tải dữ liệu phòng và hạng phòng:', error);
@@ -501,7 +519,7 @@ export default function WalkInBookingModal({
                 setIsLoadingWalkInRooms(false);
                 setIsLoadingCategories(false);
             });
-    }, [isOpen, initialTab]);
+    }, [isOpen, initialTab, initialPreset]);
 
     useEffect(() => {
         if (isOpen && bookingTab === 'advance' && walkInForm.check_in_date && walkInForm.check_out_date) {

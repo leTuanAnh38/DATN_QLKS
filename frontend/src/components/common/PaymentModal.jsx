@@ -30,6 +30,9 @@ const DEFAULT_BANK_CONFIG = {
     account_name: 'KHACH SAN TA DA NANG',
 };
 
+// Cache cấu hình ngân hàng ở mức module để mở lại modal tức thì không phải đợi API lặp lại
+let cachedBankConfig = null;
+
 // Từ điển tên viết tắt các ngân hàng phổ biến theo BIN
 export const BANK_NAMES_BY_BIN = {
     '970422': { short: 'MB Bank', full: 'Ngân hàng TMCP Quân Đội' },
@@ -76,10 +79,13 @@ export default function PaymentModal({
     const [errorMessage, setErrorMessage] = useState('');
     const [copiedKey, setCopiedKey] = useState(null);
     const [isImageLoading, setIsImageLoading] = useState(true);
+    const [qrLoadError, setQrLoadError] = useState(false);
+    const [qrRetryNonce, setQrRetryNonce] = useState(0);
+    const qrImgRef = useRef(null);
 
-    // State cấu hình ngân hàng VietQR động
-    const [bankConfig, setBankConfig] = useState(DEFAULT_BANK_CONFIG);
-    const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+    // State cấu hình ngân hàng VietQR động (dùng cache ngay nếu đã tải trước đó)
+    const [bankConfig, setBankConfig] = useState(() => cachedBankConfig || DEFAULT_BANK_CONFIG);
+    const [isLoadingConfig, setIsLoadingConfig] = useState(() => !cachedBankConfig);
 
     // Đồng hồ đếm ngược giữ phòng 15 phút (900 giây)
     const [timeLeft, setTimeLeft] = useState(900);
@@ -94,22 +100,45 @@ export default function PaymentModal({
     const code = booking?.booking_code || bookingCode || 'BK-10293';
     const guest = booking?.customer_name || booking?.guest_name || customerName || 'Quý khách';
 
-    // Gọi API lấy cấu hình VietQR động ngay khi Modal mở
+    // Tính URL VietQR động theo bankConfig (đặt trước useEffect để theo dõi cache ảnh chính xác)
+    const bookingCodeValue = booking?.booking_code || code;
+    const bookingAmountValue = booking?.total_amount ?? totalAmount;
+    const transferContent = `Thanh toan phong ${bookingCodeValue}`;
+    const qrUrl = (bankConfig.bank_bin && bankConfig.account_no)
+        ? `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${bookingAmountValue}&addInfo=${encodeURIComponent('Thanh toan phong ' + bookingCodeValue)}&accountName=${encodeURIComponent(bankConfig.account_name || '')}`
+        : '';
+
+    // Gọi API lấy cấu hình VietQR động khi Modal mở (không reset spinner nếu config không đổi)
     useEffect(() => {
         if (!isOpen) return;
         let isMounted = true;
+        setErrorMessage('');
+        setTimeLeft(900);
+
         const fetchBankConfig = async () => {
-            setIsLoadingConfig(true);
+            if (!cachedBankConfig) {
+                setIsLoadingConfig(true);
+            }
             try {
                 const response = await api.get('/payments/config/');
                 const data = response.data?.data || response.data;
                 if (isMounted && data) {
-                    setBankConfig({
+                    const nextConfig = {
                         bank_bin: data.bank_bin || DEFAULT_BANK_CONFIG.bank_bin,
                         account_no: data.account_no || DEFAULT_BANK_CONFIG.account_no,
                         account_name: (data.account_name || DEFAULT_BANK_CONFIG.account_name).toUpperCase()
+                    };
+                    cachedBankConfig = nextConfig;
+                    setBankConfig((prev) => {
+                        if (
+                            prev.bank_bin === nextConfig.bank_bin &&
+                            prev.account_no === nextConfig.account_no &&
+                            prev.account_name === nextConfig.account_name
+                        ) {
+                            return prev;
+                        }
+                        return nextConfig;
                     });
-                    setIsImageLoading(true);
                 }
             } catch (error) {
                 console.error('Không thể lấy cấu hình VietQR từ server, sử dụng cấu hình mặc định:', error);
@@ -122,7 +151,19 @@ export default function PaymentModal({
         return () => {
             isMounted = false;
         };
-    }, [isOpen]);
+    }, [isOpen, bookingId, code]);
+
+    // Đồng bộ trạng thái loading ảnh QR — nếu ảnh đã có sẵn trong cache trình duyệt thì hiển thị tức thì (0ms)
+    useEffect(() => {
+        if (!isOpen || isLoadingConfig || !qrUrl) return;
+        setQrLoadError(false);
+        const imgEl = qrImgRef.current;
+        if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
+            setIsImageLoading(false);
+        } else {
+            setIsImageLoading(true);
+        }
+    }, [isOpen, isLoadingConfig, qrUrl, qrRetryNonce]);
 
     // Đếm ngược thời gian thanh toán
     useEffect(() => {
@@ -217,12 +258,8 @@ export default function PaymentModal({
 
     if (!isOpen) return null;
 
-    // 1. LOGIC TẠO URL VIETQR ĐỘNG THEO STATE bankConfig
-    const bookingCodeValue = booking?.booking_code || code;
-    const bookingAmountValue = booking?.total_amount ?? totalAmount;
-    const transferContent = `Thanh toan phong ${bookingCodeValue}`;
-    const qrUrl = (bankConfig.bank_bin && bankConfig.account_no)
-        ? `https://img.vietqr.io/image/${bankConfig.bank_bin}-${bankConfig.account_no}-compact2.jpg?amount=${bookingAmountValue}&addInfo=${encodeURIComponent('Thanh toan phong ' + bookingCodeValue)}&accountName=${encodeURIComponent(bankConfig.account_name || '')}`
+    const qrDisplayUrl = qrUrl
+        ? (qrRetryNonce > 0 ? `${qrUrl}&_r=${qrRetryNonce}` : qrUrl)
         : '';
 
     // Sao chép nhanh
@@ -552,29 +589,59 @@ export default function PaymentModal({
                                     <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
                                     <span className="text-xs font-semibold text-slate-600">Đang tải cấu hình VietQR...</span>
                                 </div>
-                            ) : isImageLoading ? (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2">
+                            ) : isImageLoading && !qrLoadError ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2 z-10">
                                     <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
                                     <span className="text-xs font-semibold">Đang nạp mã VietQR...</span>
                                 </div>
                             ) : null}
 
-                            {qrUrl ? (
+                            {!isLoadingConfig && qrLoadError ? (
+                                <div className="flex flex-col items-center justify-center text-center px-3 gap-2">
+                                    <AlertCircle className="w-7 h-7 text-amber-500" />
+                                    <span className="text-xs font-bold text-slate-700">
+                                        Không thể tải ảnh mã QR
+                                    </span>
+                                    <span className="text-[11px] text-slate-500">
+                                        Quý khách có thể thử tải lại hoặc sao chép số tài khoản bên cạnh.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setQrLoadError(false);
+                                            setIsImageLoading(true);
+                                            setQrRetryNonce((n) => n + 1);
+                                        }}
+                                        className="mt-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
+                                    >
+                                        <RefreshCw className="w-3.5 h-3.5" />
+                                        Tải lại mã QR
+                                    </button>
+                                </div>
+                            ) : !isLoadingConfig && qrDisplayUrl ? (
                                 <img
-                                    src={qrUrl}
+                                    ref={qrImgRef}
+                                    key={qrDisplayUrl}
+                                    src={qrDisplayUrl}
                                     alt={`VietQR thanh toán ${code}`}
-                                    className={`w-full h-full object-contain rounded-xl transition-all duration-300 ${
-                                        isLoadingConfig || isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                                    className={`w-full h-full object-contain rounded-xl transition-all duration-200 ${
+                                        isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                                     }`}
-                                    onLoad={() => setIsImageLoading(false)}
-                                    onError={() => setIsImageLoading(false)}
+                                    onLoad={() => {
+                                        setIsImageLoading(false);
+                                        setQrLoadError(false);
+                                    }}
+                                    onError={() => {
+                                        setIsImageLoading(false);
+                                        setQrLoadError(true);
+                                    }}
                                 />
-                            ) : (
+                            ) : !isLoadingConfig ? (
                                 <div className="text-xs text-slate-400 flex flex-col items-center gap-1">
                                     <AlertCircle className="w-6 h-6 text-amber-500" />
                                     <span>Chưa có thông tin QR</span>
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         {/* Dòng chữ hướng dẫn */}

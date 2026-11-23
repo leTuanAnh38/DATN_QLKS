@@ -37,7 +37,8 @@ import {
     Moon,
     MessageSquare,
     Wrench,
-    Shirt
+    Shirt,
+    Search
 } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { authService } from '../../services/authService';
@@ -68,6 +69,7 @@ const InvoiceManagement = lazy(() => import('./finance/InvoiceManagement'));
 const SystemSettings = lazy(() => import('./system/SystemSettings'));
 const AmenityManagement = lazy(() => import('./rooms/AmenityManagement'));
 import LogoutConfirmModal from '../../components/common/LogoutConfirmModal';
+import AdminQuickSearchModal from '../../components/admin/AdminQuickSearchModal';
 const PromotionManagement = lazy(() => import('./marketing/PromotionManagement'));
 const SystemLog = lazy(() => import('./system/SystemLog'));
 const CorporatePartnerManagement = lazy(() => import('./customers/CorporatePartnerManagement'));
@@ -199,6 +201,22 @@ export default function HotelAdminDashboard({ initialTab }) {
     // State quản lý Dropdown Avatar Profile trên Topbar
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const profileMenuRef = useRef(null);
+
+    // State Tìm kiếm nhanh toàn hệ thống (Ctrl + K)
+    const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
+    const [bookingQuickSearch, setBookingQuickSearch] = useState('');
+
+    // Phím tắt toàn cục Ctrl + K / Cmd + K để mở Tìm kiếm nhanh
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setIsQuickSearchOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
 
     // Đóng Dropdown Avatar khi click ra ngoài
     useEffect(() => {
@@ -749,7 +767,7 @@ export default function HotelAdminDashboard({ initialTab }) {
             >
                 {/* Top Navbar: Ghim cố định trên cùng gọn chuẩn Compact PMS (h-13 / 52px) */}
                 <header className="h-13 bg-white border-b border-slate-200 px-3.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-xs print:hidden">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
                         {/* Nút Hamburger mở Sidebar trên Mobile */}
                         <button
                             type="button"
@@ -759,6 +777,24 @@ export default function HotelAdminDashboard({ initialTab }) {
                             aria-label="Mở menu quản trị"
                         >
                             <Menu className="w-4 h-4" />
+                        </button>
+
+                        {/* Thanh Tìm kiếm nhanh toàn hệ thống (Ctrl + K) */}
+                        <button
+                            type="button"
+                            onClick={() => setIsQuickSearchOpen(true)}
+                            className="h-9 px-2.5 sm:px-3 sm:w-64 md:w-72 lg:w-80 rounded-xl bg-slate-100/85 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300 text-slate-500 hover:text-slate-700 flex items-center justify-between gap-2 transition cursor-pointer group shrink-0"
+                            title="Tìm kiếm nhanh toàn hệ thống (Ctrl + K)"
+                        >
+                            <span className="flex items-center gap-2 min-w-0">
+                                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition shrink-0" />
+                                <span className="hidden sm:inline text-xs font-medium truncate">
+                                    Tìm phòng, mã đơn, khách...
+                                </span>
+                            </span>
+                            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 rounded-md shadow-2xs shrink-0">
+                                Ctrl K
+                            </kbd>
                         </button>
                     </div>
 
@@ -954,6 +990,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                         canViewBookings ? (
                             <BookingManagement
                                 initialFilter={bookingSubFilter}
+                                initialSearch={bookingQuickSearch}
                                 onBookingChanged={loadRealBookingStats}
                             />
                         ) : renderAccessDenied('Tài khoản của bạn không có quyền xem Quản lý Đặt phòng.')
@@ -2114,6 +2151,42 @@ export default function HotelAdminDashboard({ initialTab }) {
                     </Suspense>
                 </main>
             </div>
+
+            {/* Modal Tìm kiếm nhanh toàn hệ thống (Ctrl + K) */}
+            <AdminQuickSearchModal
+                isOpen={isQuickSearchOpen}
+                onClose={() => setIsQuickSearchOpen(false)}
+                permissions={{
+                    overview: canViewOverview,
+                    guests: canViewGuests,
+                    corporatePartners: canViewCorporatePartners,
+                    employees: canViewEmployees,
+                    rooms: canViewRooms,
+                    categories: canViewCategories,
+                    bookings: canViewBookings,
+                    services: canViewServices,
+                    reviews: canViewReviews,
+                    marketing: canViewMarketing,
+                    contacts: canViewContacts,
+                    invoices: canViewInvoices,
+                    analytics: canViewAnalytics,
+                    settings: canViewSettings,
+                    auditLogs: isHighLevelManager
+                }}
+                onNavigateTab={(tab) => {
+                    if (tab !== 'bookings') setBookingQuickSearch('');
+                    handleSwitchTab(tab);
+                }}
+                onNavigateCustomer={(guestId) => {
+                    navigate(`/admin/customers/${guestId}`);
+                }}
+                onSelectBooking={(booking) => {
+                    setBookingSubFilter('all');
+                    setBookingQuickSearch(booking?.booking_code || booking?.guest_name || '');
+                    setIsBookingMenuOpen(true);
+                    handleSwitchTab('bookings');
+                }}
+            />
 
             {/* Modal Xác Nhận Đăng Xuất Quản Trị */}
             <LogoutConfirmModal

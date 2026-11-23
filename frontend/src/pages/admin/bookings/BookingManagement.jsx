@@ -28,6 +28,7 @@ import {
     WalletCards,
     RotateCw,
     Plus,
+    Download,
     FileSpreadsheet,
     Users,
     User,
@@ -131,7 +132,7 @@ const STATUS_OPTIONS = [
 
 
 
-export default function BookingManagement({ onBookingChanged, initialFilter = 'all' }) {
+export default function BookingManagement({ onBookingChanged, initialFilter = 'all', initialSearch = '' }) {
     // Phân quyền chi tiết theo Ma trận phân quyền RBAC
     const { user: currentUser } = useAuth();
     const currentUserRole = currentUser?.role || '';
@@ -185,6 +186,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             setQuickFilterMode(initialFilter);
         }
     }, [initialFilter]);
+
+    // Đồng bộ từ khóa tìm kiếm khi nhảy từ Tìm kiếm nhanh (Ctrl+K)
+    useEffect(() => {
+        if (initialSearch) {
+            setBookingSegment('individual');
+            setQuickFilterMode('all');
+            setStatusFilter('all');
+            setSearchKeyword(initialSearch);
+        }
+    }, [initialSearch]);
 
     // 3. State Modal Xem Chi tiết Đơn đặt phòng
     const [selectedBooking, setSelectedBooking] = useState(null);
@@ -569,6 +580,100 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         return filteredBookings.slice(start, start + pageSize);
     }, [filteredBookings, currentPage, pageSize]);
 
+    // Xuất danh sách đặt phòng (Khách lẻ hoặc Khách đoàn B2B) đang lọc ra file Excel/CSV chuẩn UTF-8 BOM
+    const handleExportBookingsCSV = () => {
+        if (bookingSegment === 'group') {
+            const res = groupBookingRef.current?.exportCSV?.();
+            if (res?.exported) {
+                showToast('success', `Đã xuất ${res.count} đơn đặt đoàn B2B ra tệp Excel (CSV).`);
+            } else {
+                showToast('error', 'Không có dữ liệu đơn đặt đoàn nào để xuất.');
+            }
+            return;
+        }
+
+        if (filteredBookings.length === 0) {
+            showToast('error', 'Không có dữ liệu đơn đặt phòng nào để xuất.');
+            return;
+        }
+
+        const escapeCSV = (val) => {
+            const str = String(val ?? '').replace(/\r?\n/g, ' ');
+            return `"${str.replace(/"/g, '""')}"`;
+        };
+
+        const headers = [
+            'STT',
+            'Mã đơn',
+            'Khách hàng',
+            'Số điện thoại',
+            'CCCD / Hộ chiếu',
+            'Email',
+            'Số phòng',
+            'Hạng phòng',
+            'Ngày nhận phòng',
+            'Ngày trả phòng',
+            'Số đêm',
+            'Trạng thái',
+            'Tiền phòng (VND)',
+            'Dịch vụ & Phụ phí (VND)',
+            'Tổng cộng (VND)',
+            'Đã thanh toán (VND)',
+            'Còn lại (VND)',
+            'Ngày tạo đơn'
+        ];
+
+        const rows = filteredBookings.map((item, idx) => {
+            const statusOpt = STATUS_OPTIONS.find((s) => s.value === String(item.status || '').toLowerCase());
+            const statusLabel = statusOpt?.label || item.status_display || item.status || '';
+            const roomAmount = Number(item.total_amount || 0);
+            const serviceAmount = Number(item.service_amount || 0);
+            const grandTotal = Number(item.grand_total_amount || roomAmount + serviceAmount);
+            const isPaidDone = Boolean(item.is_paid) || ['checked_out', 'completed'].includes(item.status);
+            const paidAmount = isPaidDone
+                ? grandTotal
+                : Number(item.paid_amount || item.deposit_amount || 0);
+            const remaining = Math.max(0, grandTotal - paidAmount);
+
+            return [
+                idx + 1,
+                item.booking_code || '',
+                item.guest_name || '',
+                item.guest_phone || '',
+                item.identity_card || '',
+                item.guest_email || '',
+                item.room_number ? `P.${item.room_number}` : 'Chưa gán phòng',
+                item.room_name || item.category_name || '',
+                formatDateDisplay(item.check_in_date),
+                formatDateDisplay(item.check_out_date),
+                item.nights || 1,
+                statusLabel,
+                roomAmount,
+                serviceAmount,
+                grandTotal,
+                paidAmount,
+                remaining,
+                formatDateTimeDisplay(item.created_at)
+            ]
+                .map(escapeCSV)
+                .join(',');
+        });
+
+        const csvContent = '\uFEFF' + [headers.map(escapeCSV).join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const dateTag = new Date().toISOString().split('T')[0];
+        link.href = url;
+        link.setAttribute('download', `Danh_Sach_Dat_Phong_${dateTag}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showToast('success', `Đã xuất ${filteredBookings.length} đơn đặt phòng ra tệp Excel (CSV).`);
+    };
+
     return (
         <div className="space-y-4 min-w-0 max-w-full">
             {/* TOAST THÔNG BÁO NỔI - Luôn hiển thị trên cùng (z-[99999]) */}
@@ -628,6 +733,21 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {/* NÚT XUẤT EXCEL / CSV DANH SÁCH ĐẶT PHÒNG ĐANG LỌC */}
+                    <button
+                        type="button"
+                        onClick={handleExportBookingsCSV}
+                        className="px-3 py-2 bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-emerald-300 shadow-2xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        title={
+                            bookingSegment === 'group'
+                                ? 'Xuất danh sách đoàn B2B đang lọc ra file Excel (CSV)'
+                                : 'Xuất danh sách đơn đặt phòng đang lọc ra file Excel (CSV)'
+                        }
+                    >
+                        <Download className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Xuất Excel</span>
+                    </button>
+
                     {/* NÚT XUẤT DS KHAI BÁO LƯU TRÚ */}
                     <button
                         type="button"

@@ -26,10 +26,13 @@ import {
     Check,
     FileText,
     Info,
-    ArrowRight
+    ArrowRight,
+    Plus
 } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
 import roomService from '../../../services/roomService';
+import { useHasPermission } from '../../../utils/permission';
+import WalkInBookingModal from '../../../components/admin/modals/booking/WalkInBookingModal';
 
 // Format ngày tháng DD/MM/YYYY
 const formatDateDisplay = (dateStr) => {
@@ -106,8 +109,17 @@ const STATUS_CONFIG = {
 };
 
 export default function BookingTimeline({ onNavigateToBookings }) {
+    const canCreateBookings = useHasPermission('bookings', 'create');
+
     // 1. Quản lý Thời Gian (Tháng / Năm)
     const today = useMemo(() => new Date(), []);
+    const todayDateStr = useMemo(
+        () =>
+            `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+                today.getDate()
+            ).padStart(2, '0')}`,
+        [today]
+    );
     const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
 
@@ -116,6 +128,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     const [unassignedBookings, setUnassignedBookings] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     // 3. State Bộ lọc & Tìm kiếm
     const [searchRoom, setSearchRoom] = useState('');
@@ -126,8 +144,9 @@ export default function BookingTimeline({ onNavigateToBookings }) {
     const [hoveredBooking, setHoveredBooking] = useState(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
 
-    // 5. State Modal Chi tiết Booking khi bấm vào thẻ
+    // 5. State Modal Chi tiết Booking & Tạo đơn nhanh từ ô trống
     const [selectedBookingModal, setSelectedBookingModal] = useState(null);
+    const [quickCreatePreset, setQuickCreatePreset] = useState(null);
 
     // Ref cho vùng scroll để tự động cuộn đến ngày hôm nay nếu ở tháng hiện tại
     const gridScrollRef = useRef(null);
@@ -321,6 +340,43 @@ export default function BookingTimeline({ onNavigateToBookings }) {
         setHoveredBooking(null);
     };
 
+    // Kiểm tra một ô (Phòng + Ngày) đã có đơn chiếm chỗ hay chưa
+    const isCellOccupied = (room, dateStr) => {
+        return (room.bookings || []).some((b) => {
+            const ci = String(b.check_in_date || '').split('T')[0];
+            const co = String(b.check_out_date || '').split('T')[0];
+            if (!ci || !co) return false;
+            return ci === dateStr || (ci <= dateStr && dateStr < co);
+        });
+    };
+
+    // Bấm vào ô ngày trống trên Timeline để mở Modal tạo đơn đặt phòng điền sẵn Phòng & Ngày
+    const handleEmptyCellClick = (room, dayObj) => {
+        if (!canCreateBookings) return;
+        if (dayObj.dateStr < todayDateStr) {
+            showToast('error', 'Chỉ có thể tạo đơn đặt phòng từ ngày hôm nay trở đi.');
+            return;
+        }
+        const nextDate = new Date(currentYear, currentMonth - 1, dayObj.day + 1);
+        const nextDateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(
+            nextDate.getDate()
+        ).padStart(2, '0')}`;
+        const isToday = dayObj.dateStr === todayDateStr;
+        const canWalkInNow = isToday && room.status === 'available';
+
+        setQuickCreatePreset({
+            tab: canWalkInNow ? 'walk_in' : 'advance',
+            roomId: room.id,
+            roomNumber: room.room_number,
+            categoryId: room.category?.id || room.category_id || '',
+            checkInDate: dayObj.dateStr,
+            checkOutDate: nextDateStr,
+            internalNote: !canWalkInNow
+                ? `Giữ phòng P.${room.room_number} (chọn từ Lịch biểu Timeline ngày ${dayObj.day}/${currentMonth}/${currentYear})`
+                : ''
+        });
+    };
+
     // Hàm tính toán vị trí toạ độ pixel (Left & Width) của thẻ đặt phòng trên hàng ngang
     const calculateBookingBlock = (booking) => {
         const monthStart = new Date(currentYear, currentMonth - 1, 1);
@@ -359,6 +415,24 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
     return (
         <div className="space-y-3 animate-in fade-in duration-200">
+            {/* TOAST THÔNG BÁO NỔI */}
+            {toast && (
+                <div
+                    className={`fixed top-5 right-5 z-[99999] max-w-md px-4 py-3 rounded-xl shadow-2xl border flex items-center gap-2 text-xs font-bold transition animate-in slide-in-from-top duration-300 ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-600/30'
+                            : 'bg-rose-600 text-white border-rose-500 shadow-rose-600/30'
+                    }`}
+                >
+                    {toast.type === 'success' ? (
+                        <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
+                    ) : (
+                        <AlertTriangle className="w-4 h-4 text-white shrink-0" />
+                    )}
+                    <span>{toast.message}</span>
+                </div>
+            )}
+
             {/* 1. HEADER & THANH ĐIỀU HƯỚNG THÁNG COMPACT */}
             <div className="bg-white px-4 py-3 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -383,6 +457,12 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                         <span className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
                             {stats.pending} chờ duyệt
                         </span>
+                        {canCreateBookings && (
+                            <span className="hidden 2xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50/70 text-blue-700 border border-blue-200/80 font-semibold">
+                                <Plus className="w-3 h-3" />
+                                Bấm ô ngày trống để đặt nhanh
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -618,23 +698,52 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
                                                 {/* VÙNG LƯỚI NGANG (CÁC Ô NGÀY & CÁC THẺ CARD ĐẶT PHÒNG) */}
                                                 <div className="flex-1 relative flex">
-                                                    {/* Lớp nền các ô ngày */}
-                                                    {daysArray.map((d) => (
-                                                        <div
-                                                            key={d.day}
-                                                            style={{
-                                                                width: `${CELL_WIDTH}px`,
-                                                                minWidth: `${CELL_WIDTH}px`
-                                                            }}
-                                                            className={`h-full border-r border-slate-100 shrink-0 ${
-                                                                d.isWeekend
-                                                                    ? 'bg-rose-50/40'
-                                                                    : d.isToday
-                                                                    ? 'bg-blue-50/40'
-                                                                    : 'bg-transparent'
-                                                            }`}
-                                                        ></div>
-                                                    ))}
+                                                    {/* Lớp nền các ô ngày (bấm ô trống >= hôm nay để tạo đơn nhanh) */}
+                                                    {daysArray.map((d) => {
+                                                        const occupied = isCellOccupied(room, d.dateStr);
+                                                        const canBookCell =
+                                                            canCreateBookings &&
+                                                            !occupied &&
+                                                            d.dateStr >= todayDateStr;
+                                                        return (
+                                                            <div
+                                                                key={d.day}
+                                                                onClick={
+                                                                    canBookCell
+                                                                        ? () => handleEmptyCellClick(room, d)
+                                                                        : undefined
+                                                                }
+                                                                title={
+                                                                    canBookCell
+                                                                        ? `Bấm để tạo đơn cho P.${room.room_number} ngày ${d.day}/${currentMonth}/${currentYear}`
+                                                                        : undefined
+                                                                }
+                                                                style={{
+                                                                    width: `${CELL_WIDTH}px`,
+                                                                    minWidth: `${CELL_WIDTH}px`
+                                                                }}
+                                                                className={`h-full border-r border-slate-100 shrink-0 relative ${
+                                                                    d.isWeekend
+                                                                        ? 'bg-rose-50/40'
+                                                                        : d.isToday
+                                                                        ? 'bg-blue-50/40'
+                                                                        : 'bg-transparent'
+                                                                } ${
+                                                                    canBookCell
+                                                                        ? 'cursor-pointer hover:bg-blue-100/70 transition-colors group/cell'
+                                                                        : ''
+                                                                }`}
+                                                            >
+                                                                {canBookCell && (
+                                                                    <span className="opacity-0 group-hover/cell:opacity-100 transition-opacity absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                                        <span className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                                                                            <Plus className="w-3 h-3 stroke-[2.5]" />
+                                                                        </span>
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
 
                                                     {/* Lớp hiển thị các Thẻ Đặt Phòng (Booking Cards) Thông Minh */}
                                                     {(room.bookings || []).map((booking) => {
@@ -664,7 +773,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                                                                     left: `${left}px`,
                                                                     width: `${width}px`
                                                                 }}
-                                                                className={`absolute top-2 h-10 rounded-xl ${cfg.bg} ${cfg.hoverBg} ${cfg.border} ${cfg.text} border shadow-xs px-2 flex items-center justify-between cursor-pointer transition-all transform hover:scale-[1.01] hover:shadow-md hover:z-20 overflow-hidden active:scale-95 ring-1 ring-white/20`}
+                                                                className={`absolute top-1 h-9 rounded-lg ${cfg.bg} ${cfg.hoverBg} ${cfg.border} ${cfg.text} border shadow-xs px-2 flex items-center justify-between cursor-pointer transition-all transform hover:scale-[1.01] hover:shadow-md hover:z-20 overflow-hidden active:scale-95 ring-1 ring-white/20`}
                                                             >
                                                                 {/* Mũi tên chỉ báo đơn bắt đầu từ tháng trước */}
                                                                 {startsBeforeMonth && (
@@ -1057,6 +1166,19 @@ export default function BookingTimeline({ onNavigateToBookings }) {
                     </div>
                 </div>
             )}
+
+            {/* 8. MODAL TẠO ĐƠN ĐẶT PHÒNG NHANH KHI BẤM Ô TRỐNG TRÊN TIMELINE */}
+            <WalkInBookingModal
+                isOpen={Boolean(quickCreatePreset)}
+                initialTab={quickCreatePreset?.tab || 'walk_in'}
+                initialPreset={quickCreatePreset}
+                canCreateBookings={canCreateBookings}
+                onClose={() => setQuickCreatePreset(null)}
+                onSuccess={() => {
+                    fetchTimelineData();
+                }}
+                showToast={showToast}
+            />
         </div>
     );
 }
