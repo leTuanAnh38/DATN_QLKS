@@ -783,7 +783,7 @@ export default function EmployeeManagement() {
             {/* Header Banner */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight">
                         Quản Lý Nhân Sự & Phân Quyền Vai Trò
                     </h1>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -843,7 +843,7 @@ export default function EmployeeManagement() {
 
             {/* 4 Thẻ Thống Kê Nhanh */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             TỔNG NHÂN SỰ
@@ -856,7 +856,7 @@ export default function EmployeeManagement() {
                     <span className="text-[11px] text-slate-400 font-medium">Toàn bộ nhân sự các khối</span>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             ĐANG HOẠT ĐỘNG
@@ -869,7 +869,7 @@ export default function EmployeeManagement() {
                     <span className="text-[11px] text-emerald-700/80 font-medium">Tài khoản làm việc</span>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             BAN QUẢN LÝ
@@ -882,7 +882,7 @@ export default function EmployeeManagement() {
                     <span className="text-[11px] text-purple-700/80 font-medium">Admin • Owner • Manager</span>
                 </div>
 
-                <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                             ĐỘI NGŨ VẬN HÀNH

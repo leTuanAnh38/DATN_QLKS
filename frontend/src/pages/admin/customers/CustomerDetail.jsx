@@ -271,17 +271,17 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
     const TierIcon = vipConfig.icon;
 
     return (
-        <div className="space-y-6 max-w-full animate-fadeIn pb-12">
+        <div className="space-y-4 max-w-full animate-fadeIn pb-6">
             {/* Header & Thanh Điều Hướng */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex items-center gap-2.5">
                     <button
                         type="button"
                         onClick={() => navigate('/admin?tab=guests')}
-                        className="px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition flex items-center gap-2 text-xs font-bold cursor-pointer shadow-2xs"
+                        className="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-2xs"
                         title="Quay lại danh sách khách hàng"
                     >
-                        <ArrowLeft className="w-4 h-4 text-slate-500" />
+                        <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
                         <span>Quay lại danh sách</span>
                     </button>
                 </div>
@@ -295,7 +295,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                             else fetchServiceRequests(serviceCurrentPage);
                         }}
                         disabled={isLoadingProfile || isLoadingBookings || isLoadingServices}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-2xs"
+                        className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
                     >
                         <RotateCw className={`w-3.5 h-3.5 text-slate-500 ${isLoadingProfile || isLoadingBookings || isLoadingServices ? 'animate-spin text-blue-600' : ''}`} />
                         <span>Làm mới</span>
@@ -322,35 +322,35 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
             {/* PHẦN 1: THẺ THÔNG TIN CÁ NHÂN (PROFILE CARD) & 2 KHỐI THỐNG KÊ              */}
             {/* ========================================================================= */}
             {isLoadingProfile ? (
-                <div className="bg-white rounded-3xl p-12 border border-slate-200 shadow-xs flex flex-col items-center justify-center gap-3 text-slate-400">
-                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                    <span className="text-sm font-medium text-slate-600">Đang tải hồ sơ khách hàng...</span>
+                <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-xs flex flex-col items-center justify-center gap-2.5 text-slate-400">
+                    <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
+                    <span className="text-xs font-medium text-slate-600">Đang tải hồ sơ khách hàng...</span>
                 </div>
             ) : customer && (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Thẻ Thông Tin Khách Hàng (Avatar to, Tên, Liên hệ, CCCD) */}
-                    <div className="lg:col-span-8 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-500/5 via-indigo-500/5 to-transparent rounded-bl-full pointer-events-none"></div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Thẻ Thông Tin Khách Hàng (Avatar, Tên, Liên hệ, CCCD) */}
+                    <div className="lg:col-span-8 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-xs relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-blue-500/5 via-indigo-500/5 to-transparent rounded-bl-full pointer-events-none"></div>
 
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
-                            {/* Avatar to */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 relative z-10">
+                            {/* Avatar */}
                             <div className="relative shrink-0">
                                 <UserAvatar
                                     avatar={customer.avatar}
                                     name={customer.full_name || customer.username}
                                     role="guest"
                                     size="2xl"
-                                    className="w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl shadow-md ring-4 ring-slate-100 rounded-2xl"
+                                    className="w-16 h-16 sm:w-20 sm:h-20 text-xl sm:text-2xl shadow-md ring-4 ring-slate-100 rounded-2xl"
                                 />
                                 <span className={`absolute -bottom-1 -right-1 p-1.5 rounded-full bg-white shadow-md border border-slate-100 ${vipConfig.iconColor}`} title={vipConfig.label}>
-                                    <TierIcon className="w-4 h-4" />
+                                    <TierIcon className="w-3.5 h-3.5" />
                                 </span>
                             </div>
 
                             {/* Chi tiết liên hệ & CCCD */}
-                            <div className="space-y-2 flex-1 min-w-0">
-                                <div className="flex flex-wrap items-center gap-2.5">
-                                    <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                            <div className="space-y-1.5 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                                         {customer.full_name || customer.username}
                                     </h2>
                                     <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex items-center gap-1.5 shadow-2xs ${vipConfig.badge}`}>
@@ -463,40 +463,40 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
                     </div>
 
                     {/* 2 Khối Thống Kê Nhỏ: Tổng số lần đến & Tổng chi tiêu */}
-                    <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+                    <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
                         {/* Khối 1: Tổng số lần đến */}
-                        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 flex items-center justify-between">
+                        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 flex items-center justify-between">
                             <div>
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 block">
                                     Tổng số lần đến
                                 </span>
-                                <strong className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-1 block">
+                                <strong className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-0.5 block tabular-nums">
                                     {customer.total_bookings ?? bookingTotalCount}
                                 </strong>
-                                <span className="text-[11px] text-blue-600 font-semibold mt-1 block">
+                                <span className="text-[11px] text-blue-600 font-semibold mt-0.5 block">
                                     Lượt đặt phòng tại khách sạn
                                 </span>
                             </div>
-                            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 shadow-inner">
-                                <Building2 className="w-7 h-7" />
+                            <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0 shadow-inner">
+                                <Building2 className="w-5 h-5" />
                             </div>
                         </div>
 
                         {/* Khối 2: Tổng chi tiêu */}
-                        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 flex items-center justify-between">
+                        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs hover:shadow-md transition-all duration-300 flex items-center justify-between">
                             <div>
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
+                                <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400 block">
                                     Tổng chi tiêu tích lũy
                                 </span>
-                                <strong className="text-2xl sm:text-3xl font-black text-amber-600 font-mono tracking-tight mt-1 block">
-                                    {(Number(customer.total_spent) || 0).toLocaleString('vi-VN')} <span className="text-sm font-semibold text-slate-500">VNĐ</span>
+                                <strong className="text-xl sm:text-2xl font-black text-amber-600 font-mono tracking-tight mt-0.5 block tabular-nums">
+                                    {(Number(customer.total_spent) || 0).toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-500">VNĐ</span>
                                 </strong>
-                                <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                                <span className="text-[11px] text-slate-500 font-medium mt-0.5 block">
                                     Giá trị tiêu dùng dịch vụ & phòng
                                 </span>
                             </div>
-                            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-inner">
-                                <Coins className="w-7 h-7" />
+                            <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0 shadow-inner">
+                                <Coins className="w-5 h-5" />
                             </div>
                         </div>
                     </div>
@@ -506,7 +506,7 @@ export default function CustomerDetail({ customerId: propCustomerId }) {
             {/* ========================================================================= */}
             {/* PHẦN 2: KHU VỰC LỊCH SỬ (TABS: ĐẶT PHÒNG & DỊCH VỤ)                       */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
                 {/* Thanh Chuyển Tab */}
                 <div className="p-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 rounded-2xl w-full sm:w-auto">

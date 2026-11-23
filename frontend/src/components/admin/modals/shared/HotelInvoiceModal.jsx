@@ -532,6 +532,7 @@ export default function HotelInvoiceModal({ booking, payment, transaction, payme
         if (!booking) return;
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
+                e.preventDefault();
                 onClose();
             }
         };

@@ -195,6 +195,7 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
                 handlePrint();
             }
             if (e.key === 'Escape') {
+                e.preventDefault();
                 onClose();
             }
         };

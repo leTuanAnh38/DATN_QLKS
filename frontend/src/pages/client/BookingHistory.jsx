@@ -1189,6 +1189,8 @@ export default function BookingHistory() {
                                                             <img
                                                                 src={roomThumbnail}
                                                                 alt={booking.room_name}
+                                                                loading="lazy"
+                                                                decoding="async"
                                                                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                                                                 onError={(e) => {
                                                                     e.target.src =

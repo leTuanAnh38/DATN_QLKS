@@ -191,6 +191,8 @@ export default function GuestTestimonials() {
                                             <img
                                                 src={avatarUrl}
                                                 alt={guestName}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-11 h-11 rounded-full object-cover shrink-0 border border-slate-200/80"
                                             />
                                         ) : (

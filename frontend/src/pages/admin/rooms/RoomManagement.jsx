@@ -916,7 +916,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* Header Banner & Quick Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2">
                         <Building2 className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Sách & Sơ Đồ Phòng</span>
                     </h1>
@@ -1123,12 +1123,12 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* GRID LAYOUT: SƠ ĐỒ PHÒNG THỰC TẾ (ROOM BOARD) */}
             {/* ========================================================================= */}
             {isLoading && rooms.length === 0 ? (
-                <div className="bg-white rounded-3xl p-16 border border-slate-200 text-center shadow-xs">
+                <div className="bg-white rounded-2xl p-16 border border-slate-200 text-center shadow-xs">
                     <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                     <span className="text-xs text-slate-500 font-bold">Đang tải sơ đồ phòng thời gian thực...</span>
                 </div>
             ) : rooms.length === 0 ? (
-                <div className="bg-white rounded-3xl p-16 border border-slate-200 text-center shadow-xs">
+                <div className="bg-white rounded-2xl p-16 border border-slate-200 text-center shadow-xs">
                     <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
                         <Search className="w-8 h-8" />
                     </div>
@@ -1284,7 +1284,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {isDeleteModalOpen && selectedRoom && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
                     <div
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
@@ -1398,7 +1398,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* ========================================================================= */}
             {checkInWarningModal && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3.5">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-xl font-bold ${checkInWarningModal.type === 'early'
                                     ? 'bg-amber-100 text-amber-600'
@@ -1572,34 +1572,40 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* MODAL 10: YÊU CẦU DỌN PHÒNG LƯU TRÚ (MAKE-UP ROOM) */}
             {/* ========================================================================= */}
             {makeUpModalRoom && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+                    onClick={() => !isSubmittingMakeUp && setMakeUpModalRoom(null)}
+                >
                     <div
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col"
+                        className="relative w-full max-w-md max-h-[88vh] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
-                                    <Sparkles className="w-5 h-5" />
+                        <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-900 shrink-0">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs shrink-0">
+                                    <Sparkles className="w-4.5 h-4.5" />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-base text-slate-900 tracking-tight">
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate">
                                         Yêu Cầu Dọn Phòng {makeUpModalRoom.room_number}
                                     </h3>
-                                    <p className="text-xs text-slate-500 mt-0.5">
+                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                                         Dọn dẹp phòng lưu trú (Make-up room) cho khách đang ở
                                     </p>
                                 </div>
                             </div>
                             <button
                                 type="button"
+                                disabled={isSubmittingMakeUp}
                                 onClick={() => setMakeUpModalRoom(null)}
-                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm"
+                                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer font-bold text-sm shrink-0"
+                                title="Đóng"
                             ><X className="w-4 h-4" /></button>
                         </div>
 
-                        <form onSubmit={handleConfirmRequestCleaning} className="p-6 space-y-4 text-xs">
-                            <div className="p-3 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-1.5">
+                        <form onSubmit={handleConfirmRequestCleaning} className="flex-1 flex flex-col min-h-0 overflow-hidden text-xs">
+                            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                            <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 space-y-1.5">
                                 <div className="flex justify-between items-center text-slate-600">
                                     <span>Khách lưu trú:</span>
                                     <span className="font-bold text-slate-900">
@@ -1649,19 +1655,21 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
                                     ))}
                                 </div>
                             </div>
+                            </div>
 
-                            <div className="flex items-center justify-end gap-3 pt-2">
+                            <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">
                                 <button
                                     type="button"
+                                    disabled={isSubmittingMakeUp}
                                     onClick={() => setMakeUpModalRoom(null)}
-                                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                                    className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
                                 >
                                     Hủy bỏ
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmittingMakeUp}
-                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer flex items-center gap-1.5"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/20 transition cursor-pointer flex items-center gap-1.5"
                                 >
                                     {isSubmittingMakeUp ? 'Đang gửi...' : <span className="flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Gửi Yêu Cầu Buồng Phòng</span>}
                                 </button>

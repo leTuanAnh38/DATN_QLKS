@@ -206,17 +206,64 @@ export default function HotelAdminDashboard({ initialTab }) {
     const [isQuickSearchOpen, setIsQuickSearchOpen] = useState(false);
     const [bookingQuickSearch, setBookingQuickSearch] = useState('');
 
-    // Phím tắt toàn cục Ctrl + K / Cmd + K để mở Tìm kiếm nhanh
+    // Phím tắt toàn cục: Ctrl + K / Cmd + K mở Tìm kiếm nhanh & Escape đóng Modal trên cùng
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 setIsQuickSearchOpen((prev) => !prev);
+                return;
+            }
+
+            if (e.key === 'Escape' && !e.defaultPrevented) {
+                if (isQuickSearchOpen) {
+                    setIsQuickSearchOpen(false);
+                    return;
+                }
+                if (isProfileMenuOpen) {
+                    setIsProfileMenuOpen(false);
+                    return;
+                }
+                if (isMobileSidebarOpen) {
+                    setIsMobileSidebarOpen(false);
+                    return;
+                }
+
+                // Tìm lớp phủ modal trên cùng (ưu tiên z-index cao nhất, sau đó thứ tự DOM cuối cùng)
+                const overlays = Array.from(document.querySelectorAll('.fixed.inset-0')).filter((el) => {
+                    if (el.getAttribute('aria-hidden') === 'true') return false;
+                    const style = window.getComputedStyle(el);
+                    return style.display !== 'none' && style.visibility !== 'hidden' && style.pointerEvents !== 'none';
+                });
+                if (overlays.length === 0) return;
+
+                let topOverlay = overlays[0];
+                let topZ = parseInt(window.getComputedStyle(topOverlay).zIndex, 10) || 0;
+                for (let i = 1; i < overlays.length; i++) {
+                    const z = parseInt(window.getComputedStyle(overlays[i]).zIndex, 10) || 0;
+                    if (z >= topZ) {
+                        topZ = z;
+                        topOverlay = overlays[i];
+                    }
+                }
+
+                // Ưu tiên nút đóng [X] không bị disabled bên trong modal trên cùng
+                const buttons = Array.from(topOverlay.querySelectorAll('button:not([disabled])'));
+                const xCloseBtn = buttons.find(
+                    (btn) =>
+                        btn.querySelector('svg.lucide-x') ||
+                        /^(đóng|hủy|hủy bỏ|quay lại)$/i.test((btn.textContent || '').trim()) ||
+                        /đóng/i.test(btn.getAttribute('title') || btn.getAttribute('aria-label') || '')
+                );
+                if (xCloseBtn) {
+                    e.preventDefault();
+                    xCloseBtn.click();
+                }
             }
         };
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-    }, []);
+    }, [isQuickSearchOpen, isProfileMenuOpen, isMobileSidebarOpen]);
 
     // Đóng Dropdown Avatar khi click ra ngoài
     useEffect(() => {
@@ -1066,7 +1113,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                             {/* Welcome & Time Filters Banner */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
-                                    <h1 className="text-2xl font-sans font-extrabold text-slate-900 tracking-tight">
+                                    <h1 className="text-lg sm:text-xl font-sans font-extrabold text-slate-900 tracking-tight">
                                         Xin chào, {user?.full_name || user?.username}
                                     </h1>
                                     <p className="text-xs text-slate-500 mt-0.5">

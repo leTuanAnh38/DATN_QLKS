@@ -753,7 +753,7 @@ export default function ServiceRequestKanban() {
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs">
                 <div>
                     <div className="flex items-center gap-3 flex-wrap">
-                        <h2 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
+                        <h2 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight">
                             Quản Lý Yêu Cầu Dịch Vụ Tại Phòng
                         </h2>
                         <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 flex items-center gap-1.5">

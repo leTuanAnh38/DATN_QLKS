@@ -283,6 +283,8 @@ export default function ServiceHistoryModal({
                                                     <img
                                                         src={item.service_image}
                                                         alt={item.service_name}
+                                                        loading="lazy"
+                                                        decoding="async"
                                                         className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl object-cover border border-slate-200 shrink-0 shadow-2xs"
                                                         onError={(e) => {
                                                             e.target.src =

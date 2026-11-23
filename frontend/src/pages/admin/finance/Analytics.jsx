@@ -335,7 +335,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 print:mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+                    <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                         Báo Cáo & Phân Tích Chuyên Sâu
                     </h1>
                     <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
@@ -470,7 +470,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {/* KPI 1: TỔNG DOANH THU TRONG KỲ */}
                 <div 
-                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition"
+                    className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-blue-400/60 hover:shadow-md transition"
                     title="Doanh thu kế toán ghi nhận từ các hóa đơn đã thanh toán & hoàn tất trả phòng trong kỳ chọn"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
@@ -520,7 +520,7 @@ export default function Analytics({ onNavigateToCustomer }) {
 
                 {/* KPI 2: GIÁ BÁN PHÒNG BÌNH QUÂN (ADR - AVERAGE DAILY RATE) */}
                 <div 
-                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-cyan-400/60 hover:shadow-md transition"
+                    className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-cyan-400/60 hover:shadow-md transition"
                     title="Giá bán phòng bình quân mỗi ngày (ADR = Tổng tiền phòng / Số đêm phòng đã bán)"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
@@ -559,7 +559,7 @@ export default function Analytics({ onNavigateToCustomer }) {
 
                 {/* KPI 3: DOANH THU TRÊN MỖI PHÒNG SẴN CÓ (RevPAR) */}
                 <div 
-                    className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-indigo-400/60 hover:shadow-md transition"
+                    className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-indigo-400/60 hover:shadow-md transition"
                     title="Doanh thu trên mỗi phòng sẵn có (RevPAR = Doanh thu phòng / Tổng số phòng khả dụng)"
                 >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
@@ -597,7 +597,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* KPI 4: TỔNG SỐ LƯỢT ĐẶT PHÒNG (BOOKINGS) */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-amber-400/60 hover:shadow-md transition">
+                <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-amber-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -629,7 +629,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* KPI 5: CÔNG SUẤT PHÒNG HIỆN TẠI (OCCUPANCY RATE) */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-emerald-400/60 hover:shadow-md transition">
+                <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-emerald-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -669,7 +669,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* KPI 6: GIÁ TRỊ ĐƠN TRUNG BÌNH (AOV) */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-purple-400/60 hover:shadow-md transition">
+                <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 shadow-xs relative overflow-hidden group hover:border-purple-400/60 hover:shadow-md transition">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/5 rounded-bl-full pointer-events-none -mr-4 -mt-4 transition group-hover:scale-110"></div>
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -703,7 +703,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             {/* PHẦN 3: BIỂU ĐỒ CHÍNH (MAIN CHART: DOANH THU THEO THỜI GIAN)               */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
+            <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
                     <div>
                         <div className="flex items-center gap-2">
@@ -839,7 +839,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* CỘT 1: BIỂU ĐỒ TRÒN (PIECHART) */}
-                <div className="lg:col-span-6 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                <div className="lg:col-span-6 bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                     <div>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
                             <div>
@@ -932,7 +932,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* CỘT 2: BARCHART TOP PHÒNG ĐƯỢC ĐẶT NHIỀU NHẤT */}
-                <div className="lg:col-span-6 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                <div className="lg:col-span-6 bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                             <div>
@@ -1038,7 +1038,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* CỘT 1: CƠ CẤU KÊNH THANH TOÁN */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
                             <div>
@@ -1138,7 +1138,7 @@ export default function Analytics({ onNavigateToCustomer }) {
                 </div>
 
                 {/* CỘT 2: PHÂN KHÚC KHÁCH HÀNG & CƠ CẤU NGUỒN THU */}
-                <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
                             <div>
@@ -1427,7 +1427,7 @@ export default function Analytics({ onNavigateToCustomer }) {
             {/* ========================================================================= */}
             {/* PHẦN 6: BẢNG XẾP HẠNG TOP DOANH NGHIỆP ĐỐI TÁC (B2B CORPORATE PARTNERS)   */}
             {/* ========================================================================= */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="bg-white rounded-2xl sm:rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                 <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2">

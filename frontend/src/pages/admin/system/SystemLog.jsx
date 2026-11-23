@@ -206,7 +206,7 @@ export default function SystemLog() {
         <div className="flex items-center gap-3">
       
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
               Nhật Ký Thao Tác Hệ Thống
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-0.5">

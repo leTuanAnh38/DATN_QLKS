@@ -819,6 +819,8 @@ export default function ContactPage() {
                             <img
                                 src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80"
                                 alt="Dịch vụ xe đưa đón sân bay khách sạn TA Đà Nẵng"
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                             />
                         </div>

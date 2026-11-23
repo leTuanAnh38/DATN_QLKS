@@ -1699,6 +1699,8 @@ export default function Checkout() {
                                                                 <img
                                                                     src={svcImg}
                                                                     alt={svc.name}
+                                                                    loading="lazy"
+                                                                    decoding="async"
                                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                                     onError={(e) => {
                                                                         e.target.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80';

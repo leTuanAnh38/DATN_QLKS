@@ -616,6 +616,8 @@ export default function TADaNangHotelLanding() {
                                             <img
                                                 src={post.thumbnail_url}
                                                 alt={post.title}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                             />
                                         ) : (

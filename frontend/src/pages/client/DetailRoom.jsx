@@ -1082,6 +1082,8 @@ export default function DetailRoom() {
                                             <img
                                                 src={img.url}
                                                 alt={img.title}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out"
                                                 onError={(e) => {
                                                     e.target.onerror = null;
@@ -1130,6 +1132,8 @@ export default function DetailRoom() {
                                             <img
                                                 src={img.url}
                                                 alt={img.title}
+                                                loading="lazy"
+                                                decoding="async"
                                                 className="w-full h-full object-cover"
                                             />
                                             <div className={`absolute inset-0 transition-opacity ${isSelected ? 'bg-transparent' : 'bg-black/20'}`} />

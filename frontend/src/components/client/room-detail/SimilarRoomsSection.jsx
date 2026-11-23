@@ -47,6 +47,8 @@ export default function SimilarRoomsSection({ similarRooms = [] }) {
                                     <img
                                         src={sImg}
                                         alt={sRoom.name}
+                                        loading="lazy"
+                                        decoding="async"
                                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                                         onError={(e) => {
                                             e.target.onerror = null;

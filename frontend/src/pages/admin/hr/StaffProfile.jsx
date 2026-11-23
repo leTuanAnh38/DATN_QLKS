@@ -296,22 +296,22 @@ export default function StaffProfile() {
     }
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="space-y-4 max-w-6xl mx-auto">
             {/* Header Tiêu đề Trang */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl border border-slate-200/80 px-4 py-3.5 shadow-xs">
                 <div>
-                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-                        <User className="w-6 h-6 text-blue-600" />
+                    <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600 shrink-0" />
                         Hồ sơ Nhân viên & Ban Quản trị
                     </h1>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    <p className="text-[11.5px] text-slate-500 mt-0.5">
                         Xem và cập nhật thông tin cá nhân của bạn trong hệ thống quản lý Khách sạn TA.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Tài khoản đang hoạt động
                     </span>
                 </div>
@@ -345,11 +345,11 @@ export default function StaffProfile() {
             {/* ========================================================================= */}
             {/* GIAO DIỆN 2 CỘT (LAYOUT GRID) THEO YÊU CẦU */}
             {/* ========================================================================= */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5 items-start">
                 {/* --------------------------------------------------------------------- */}
                 {/* CỘT TRÁI (Khu vực Ảnh & Chức vụ - Cột nhỏ lg:col-span-4)              */}
                 {/* --------------------------------------------------------------------- */}
-                <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 flex flex-col items-center text-center lg:sticky lg:top-24">
+                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex flex-col items-center text-center lg:sticky lg:top-20">
                     {/* Input file ẩn, kết nối bằng useRef */}
                     <input
                         ref={fileInputRef}
@@ -360,11 +360,11 @@ export default function StaffProfile() {
                         onChange={handleFileChange}
                     />
 
-                    {/* Vùng ảnh đại diện Avatar tròn to */}
+                    {/* Vùng ảnh đại diện Avatar tròn */}
                     <div className={`relative ${isEditing ? 'group cursor-pointer' : ''}`}>
                         <div
                             onClick={() => isEditing && fileInputRef.current?.click()}
-                            className={`w-40 h-40 sm:w-44 sm:h-44 rounded-full overflow-hidden border-4 border-white shadow-xl shadow-slate-200/80 ring-4 transition-all duration-300 relative bg-slate-100 ${
+                            className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-lg shadow-slate-200/80 ring-4 transition-all duration-300 relative bg-slate-100 ${
                                 isEditing
                                     ? 'ring-blue-200 group-hover:ring-blue-400 cursor-pointer'
                                     : 'ring-slate-100'
@@ -440,7 +440,7 @@ export default function StaffProfile() {
                     </div>
 
                     {/* Thông tin vắn tắt (Mã NV & Phòng ban) */}
-                    <div className="w-full mt-6 pt-6 border-t border-slate-100 space-y-3 text-xs text-left">
+                    <div className="w-full mt-4 pt-4 border-t border-slate-100 space-y-2.5 text-xs text-left">
                         <div className="flex items-center justify-between text-slate-600">
                             <span className="text-slate-400 flex items-center gap-1.5">
                                 <Briefcase className="w-3.5 h-3.5" /> Mã nhân viên:
@@ -486,9 +486,9 @@ export default function StaffProfile() {
                 {/* --------------------------------------------------------------------- */}
                 {/* CỘT PHẢI (Form Thông tin cá nhân - Cột lớn lg:col-span-8)             */}
                 {/* --------------------------------------------------------------------- */}
-                <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="border-b border-slate-100 pb-4">
+                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="border-b border-slate-100 pb-3">
                             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                                 <User className="w-4 h-4 text-blue-600" />
                                 Thông tin cá nhân

@@ -512,9 +512,9 @@ export default function ServiceManagement() {
             )}
 
             {/* BANNER HEADER & QUICK ACTIONS */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                 <div>
-                    <h1 className="text-2xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+                    <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight flex items-center gap-2">
                         <ConciergeBell className="w-6 h-6 text-blue-600" />
                         <span>Quản Lý Danh Mục Dịch Vụ</span>
                     </h1>
@@ -731,13 +731,13 @@ export default function ServiceManagement() {
 
             {/* DANH SÁCH DỊCH VỤ */}
             {isLoading ? (
-                <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs">
+                <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-xs">
                     <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
                     <p className="text-slate-700 font-bold text-sm">Đang tải danh mục dịch vụ PMS...</p>
                     <p className="text-xs text-slate-400 mt-1">Vui lòng chờ trong giây lát.</p>
                 </div>
             ) : filteredServices.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs">
+                <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-xs">
                     <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto mb-3">
                         <Search className="w-7 h-7" />
                     </div>
@@ -1340,7 +1340,7 @@ export default function ServiceManagement() {
                     onClick={() => !submittingCat && !deletingCatSubmitting && setIsCategoryModalOpen(false)}
                 >
                     <div
-                        className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up"
+                        className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
@@ -1618,7 +1618,7 @@ export default function ServiceManagement() {
             {/* MODAL XÁC NHẬN XÓA DỊCH VỤ */}
             {isDeleteModalOpen && serviceToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up text-center">
+                    <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up text-center">
                         <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
                             <Trash2 className="w-7 h-7" />
                         </div>

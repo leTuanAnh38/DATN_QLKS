@@ -217,10 +217,10 @@ export default function ContactManagement() {
             )}
 
             {/* Header & Nút Tải Lại */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2.5">
-                        <h1 className="text-xl sm:text-2xl font-sans font-bold text-slate-900 tracking-tight">
+                        <h1 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight">
                             Quản Lý Liên Hệ
                         </h1>
                         <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
@@ -249,7 +249,7 @@ export default function ContactManagement() {
 
             {/* 4 THẺ KPI THỐNG KÊ OVERVIEW */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tổng liên hệ</span>
                         <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
@@ -260,7 +260,7 @@ export default function ContactManagement() {
                     <span className="text-[11px] text-slate-400 font-medium">Toàn bộ yêu cầu gửi về</span>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Chưa xử lý</span>
                         <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
@@ -276,7 +276,7 @@ export default function ContactManagement() {
                     <span className="text-[11px] text-amber-700/80 font-medium">Cần nhân viên tiếp nhận</span>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Đã xử lý</span>
                         <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
@@ -287,7 +287,7 @@ export default function ContactManagement() {
                     <span className="text-[11px] text-emerald-700/80 font-medium">Đã xem và phản hồi</span>
                 </div>
 
-                <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition group">
                     <div className="flex items-center justify-between mb-3">
                         <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tỷ lệ xử lý</span>
                         <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-inner group-hover:scale-105 transition">
@@ -575,7 +575,7 @@ export default function ContactManagement() {
                     onClick={() => setSelectedContact(null)}
                 >
                     <div
-                        className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-slate-200">
@@ -654,7 +654,7 @@ export default function ContactManagement() {
                     onClick={() => !isDeleting && setDeleteTarget(null)}
                 >
                     <div
-                        className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 text-center"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">

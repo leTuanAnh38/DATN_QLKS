@@ -290,19 +290,19 @@ export default function MaintenanceHistoryModal({
                         </div>
                     ) : (
                         <>
-                            <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 shadow-2xs bg-white">
-                                <table className="w-full min-w-[980px] text-left border-collapse text-xs">
+                            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 shadow-2xs bg-white">
+                                <table className="w-full text-left border-collapse text-xs">
                                     <thead>
                                         <tr className="bg-slate-100/80 text-slate-700 border-b border-slate-200 font-bold uppercase text-[10px] tracking-wider">
-                                            <th className="py-3 px-3 whitespace-nowrap w-[105px]">Mã phiếu</th>
-                                            <th className="py-3 px-2 text-center whitespace-nowrap w-[75px]">Phòng</th>
-                                            <th className="py-3 px-3 min-w-[150px]">Thiết bị & Sự cố</th>
-                                            <th className="py-3 px-3 whitespace-nowrap w-[130px]">Thời gian</th>
-                                            <th className="py-3 px-3 w-[120px]">Vật tư thay thế</th>
-                                            <th className="py-3 px-2 text-center whitespace-nowrap w-[95px]">Ảnh hiện trường</th>
-                                            <th className="py-3 px-3 text-right whitespace-nowrap w-[95px]">Chi phí</th>
-                                            <th className="py-3 px-3 text-center whitespace-nowrap w-[120px]">Nguồn chi phí</th>
-                                            <th className="py-3 pl-3 pr-4 text-center whitespace-nowrap min-w-[125px]">Trạng thái</th>
+                                            <th className="py-2.5 px-2.5 whitespace-nowrap">Mã phiếu</th>
+                                            <th className="py-2.5 px-2 text-center whitespace-nowrap">Phòng</th>
+                                            <th className="py-2.5 px-2.5">Thiết bị & Sự cố</th>
+                                            <th className="py-2.5 px-2.5 whitespace-nowrap">Thời gian</th>
+                                            <th className="py-2.5 px-2.5">Vật tư</th>
+                                            <th className="py-2.5 px-2 text-center whitespace-nowrap">Ảnh</th>
+                                            <th className="py-2.5 px-2.5 text-right whitespace-nowrap">Chi phí</th>
+                                            <th className="py-2.5 px-2 text-center whitespace-nowrap">Nguồn</th>
+                                            <th className="py-2.5 px-2.5 text-center whitespace-nowrap">Trạng thái</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 bg-white">

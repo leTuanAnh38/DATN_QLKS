@@ -1,6 +1,8 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Home from './pages/client/Home';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import NotFound from './pages/common/NotFound';
 import { hotelSettingStore, useHotelSettings, applyDocumentTitle } from './store/hotelSettingStore';
 
 // Lazy-load các trang để tách bundle: chỉ tải code của trang khi người dùng truy cập
@@ -68,11 +70,12 @@ function App() {
   }, [settings]);
 
   return (
-    <BrowserRouter>
-      <ScrollToTop />
-      <CustomerChatbot />
-      <Suspense fallback={<PageLoader />}>
-      <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ScrollToTop />
+        <CustomerChatbot />
+        <Suspense fallback={<PageLoader />}>
+        <Routes>
         {/* Trang chủ */}
         <Route path="/" element={<Home />} />
 
@@ -145,10 +148,14 @@ function App() {
         <Route path="/admin/groups" element={<AdminDashboard initialTab="bookings" />} />
         <Route path="/admin/corporate-partners" element={<AdminDashboard initialTab="corporate-partners" />} />
         <Route path="/admin/b2b" element={<AdminDashboard initialTab="corporate-partners" />} />
+
+        {/* Fallback 404 cho mọi đường dẫn không tồn tại */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
 
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
