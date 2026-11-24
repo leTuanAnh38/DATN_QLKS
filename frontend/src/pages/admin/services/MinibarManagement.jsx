@@ -1131,8 +1131,11 @@ export default function MinibarManagement() {
 
             {/* Modal: Xác Nhận Xóa */}
             {deletingItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-                    <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget) setDeletingItem(null); }}
+                >
+                    <div className="bg-white w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4">
                         <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto border border-rose-100">
                             <Trash2 className="w-6 h-6" />
                         </div>

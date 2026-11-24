@@ -688,8 +688,11 @@ export default function CorporatePartnerManagement() {
 
             {/* MODAL XÁC NHẬN XÓA ĐỐI TÁC */}
             {deletePartner && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 text-center space-y-4">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget && !isDeleting) setDeletePartner(null); }}
+                >
+                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto p-6 text-center space-y-4">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${
                             deletePartner.total_group_bookings > 0
                                 ? 'bg-amber-50 border border-amber-200 text-amber-600'
@@ -769,7 +772,7 @@ export default function CorporatePartnerManagement() {
                     onClick={() => !isUpdatingStatus && setStatusModalPartner(null)}
                 >
                     <div
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {(() => {

@@ -850,8 +850,11 @@ export default function LostAndFoundManagement() {
 
             {/* Modal 3: Xác nhận xóa phiếu đồ thất lạc (Chỉ Quản lý/Admin) */}
             {deletingItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget && !isDeleting) setDeletingItem(null); }}
+                >
+                    <div className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border border-slate-200">
                         <div className="p-6 text-center">
                             <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto mb-4">
                                 <Trash2 className="w-6 h-6" />

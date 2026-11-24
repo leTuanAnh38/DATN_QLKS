@@ -1358,8 +1358,11 @@ export default function CategoryManagement() {
             {/* 6. MODAL XÁC NHẬN XÓA HẠNG PHÒNG */}
             {/* ========================================================================= */}
             {isDeleteModalOpen && categoryToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget) setIsDeleteModalOpen(false); }}
+                >
+                    <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200">
                         {/* Header nền trắng thanh lịch */}
                         <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">

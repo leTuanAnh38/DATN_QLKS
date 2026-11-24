@@ -1076,7 +1076,7 @@ export default function PromotionManagement() {
                         onClick={() => !deleteModal.isDeleting && setDeleteModal({ isOpen: false, item: null, isDeleting: false })}
                     />
                     <div
-                        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 text-center z-10 animate-scaleUp"
+                        className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full p-6 text-center z-10 animate-scaleUp"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center text-2xl mx-auto mb-4">

@@ -284,32 +284,32 @@ export default function BannersTab({
     ];
 
     return (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
             {/* 1. HEADER TAB BANNER + NÚT LƯU */}
-            <div className="px-6 sm:px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-sky-50/70 via-blue-50/40 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/30 shrink-0">
-                        <ImageIcon className="w-5 h-5" />
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-sky-50/70 via-blue-50/40 to-transparent flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shadow-blue-600/25 shrink-0">
+                        <ImageIcon className="w-4.5 h-4.5" />
                     </div>
-                    <div>
-                        <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+                    <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-1.5 flex-wrap">
                             <span>Quản Lý Banner & Hình Ảnh Trang Web</span>
-                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                                 16 vị trí • Phân nhóm theo từng trang
                             </span>
                         </h2>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-[11.5px] text-slate-500 mt-0.5 truncate">
                             Chọn nhóm trang bên dưới hoặc gõ từ khóa để tìm nhanh đúng ảnh cần thay. Nhấn <strong>Lưu thay đổi</strong> sau khi chỉnh sửa.
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={onSaveBanners}
                         disabled={isSavingHotel || !canUpdateSettings}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                     >
                         {isSavingHotel ? (
                             <>
@@ -327,7 +327,7 @@ export default function BannersTab({
             </div>
 
             {/* 2. THANH LỌC NHÓM TRANG & Ô TÌM KIẾM NHANH */}
-            <div className="px-6 sm:px-8 py-4 bg-slate-50/70 border-b border-slate-200/70 flex flex-col xl:flex-row xl:items-center justify-between gap-3.5">
+            <div className="px-4 sm:px-5 py-3 bg-slate-50/70 border-b border-slate-200/70 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
                 {/* Quick Group Filter Pills */}
                 <div className="flex flex-wrap items-center gap-2">
                     {filterTabs.map((tab) => {

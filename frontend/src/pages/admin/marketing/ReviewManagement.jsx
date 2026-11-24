@@ -901,8 +901,11 @@ export default function ReviewManagement() {
 
             {/* CONFIRM DIALOG XÓA ĐÁNH GIÁ (Cột 7) */}
             {deleteConfirmReview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-4">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+                    onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirmReview(null); }}
+                >
+                    <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4">
                         <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner">
                             <Trash2 className="w-6 h-6" />
                         </div>

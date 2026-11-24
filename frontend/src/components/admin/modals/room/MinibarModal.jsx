@@ -172,7 +172,10 @@ export default function MinibarModal({ isOpen, onClose, room, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn"
+            onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onClose?.(); }}
+        >
             <div
                 className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[88vh]"
                 onClick={(e) => e.stopPropagation()}

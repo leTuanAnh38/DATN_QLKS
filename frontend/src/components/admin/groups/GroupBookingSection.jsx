@@ -663,13 +663,13 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
 
             {/* LIST OF GROUPS */}
             {isLoading ? (
-                <div className="py-20 text-center space-y-3 bg-white rounded-3xl border border-slate-200/90 shadow-2xs">
+                <div className="py-20 text-center space-y-3 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
                     <div className="w-9 h-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="text-xs text-slate-500 font-semibold">Đang tải danh sách hợp đồng khách đoàn...</p>
                 </div>
             ) : filteredGroups.length === 0 ? (
-                <div className="py-16 text-center space-y-3 bg-white rounded-3xl border border-slate-200/90 p-8 shadow-2xs">
-                    <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mx-auto shadow-inner">
+                <div className="py-16 text-center space-y-3 bg-white rounded-2xl border border-slate-200/90 p-8 shadow-2xs">
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 mx-auto shadow-inner">
                         <Building2 className="w-8 h-8" />
                     </div>
                     <h4 className="font-bold text-slate-800 text-sm">Chưa có đơn đặt đoàn nào phù hợp</h4>
@@ -840,7 +840,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                             return (
                                 <div
                                     key={group.id}
-                                    className="bg-white p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-lg transition-all duration-200 space-y-4 group"
+                                    className="bg-white p-5 rounded-2xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-lg transition-all duration-200 space-y-4 group"
                                 >
                                     {/* CARD HEADER */}
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1126,7 +1126,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
 
                     {/* Phân trang */}
                     {filteredGroups.length > 0 && (
-                        <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs">
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
                             <Pagination
                                 currentPage={currentPage}
                                 totalPages={totalPages}

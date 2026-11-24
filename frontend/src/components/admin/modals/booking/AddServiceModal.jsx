@@ -192,7 +192,10 @@ export default function AddServiceModal({
     if (!isOpen || !booking) return null;
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[88vh]">
                 {/* Header Modal - Cố định ở trên */}
                 <div className="p-4 sm:p-5 bg-white border-b border-slate-200/90 text-slate-900 flex items-start justify-between shrink-0">

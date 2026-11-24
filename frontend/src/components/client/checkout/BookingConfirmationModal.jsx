@@ -46,6 +46,7 @@ export default function BookingConfirmationModal({
                 }
             }}
             className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onClose?.(); }}
         >
             <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-xl w-full h-[92dvh] sm:h-auto sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}

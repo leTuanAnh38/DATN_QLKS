@@ -55,6 +55,53 @@ function CustomerChatbot() {
   );
 }
 
+// Lắng nghe phím Escape đóng nhanh modal trên cùng cho các trang phía khách hàng & đăng nhập
+function ClientEscapeHandler() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (pathname.startsWith('/admin')) return undefined;
+
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+
+      const overlays = Array.from(document.querySelectorAll('.fixed.inset-0')).filter((el) => {
+        if (el.getAttribute('aria-hidden') === 'true') return false;
+        const style = window.getComputedStyle(el);
+        return style.display !== 'none' && style.visibility !== 'hidden' && style.pointerEvents !== 'none';
+      });
+      if (overlays.length === 0) return;
+
+      let topOverlay = overlays[0];
+      let topZ = parseInt(window.getComputedStyle(topOverlay).zIndex, 10) || 0;
+      for (let i = 1; i < overlays.length; i++) {
+        const z = parseInt(window.getComputedStyle(overlays[i]).zIndex, 10) || 0;
+        if (z >= topZ) {
+          topZ = z;
+          topOverlay = overlays[i];
+        }
+      }
+
+      const buttons = Array.from(topOverlay.querySelectorAll('button:not([disabled])'));
+      const closeBtn = buttons.find(
+        (btn) =>
+          btn.querySelector('svg.lucide-x') ||
+          /^(đóng|hủy|hủy bỏ|quay lại)$/i.test((btn.textContent || '').trim()) ||
+          /đóng/i.test(btn.getAttribute('title') || btn.getAttribute('aria-label') || '')
+      );
+      if (closeBtn) {
+        e.preventDefault();
+        closeBtn.click();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   const { settings } = useHotelSettings();
 
@@ -73,6 +120,7 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <ScrollToTop />
+        <ClientEscapeHandler />
         <CustomerChatbot />
         <Suspense fallback={<PageLoader />}>
         <Routes>

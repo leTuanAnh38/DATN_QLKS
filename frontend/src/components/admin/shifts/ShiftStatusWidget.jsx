@@ -35,7 +35,7 @@ export default function ShiftStatusWidget({
 
     if (isLoading) {
         return (
-            <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between animate-pulse">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between animate-pulse">
                 <div className="h-6 w-48 bg-slate-200 rounded-lg" />
                 <div className="h-8 w-28 bg-slate-200 rounded-xl" />
             </div>

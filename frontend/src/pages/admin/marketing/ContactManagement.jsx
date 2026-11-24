@@ -654,7 +654,7 @@ export default function ContactManagement() {
                     onClick={() => !isDeleting && setDeleteTarget(null)}
                 >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center"
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto p-6 text-center"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">

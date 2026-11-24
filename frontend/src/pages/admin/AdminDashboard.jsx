@@ -656,7 +656,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                 <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
                 <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-                <div className="relative w-full max-w-lg bg-slate-900/90 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl text-center space-y-6">
+                <div className="relative w-full max-w-lg bg-slate-900/90 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl text-center space-y-6">
                     {/* Security Badge */}
                     <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
                         <ShieldAlert className="w-10 h-10 text-amber-400" />
@@ -756,7 +756,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
     // Hàm phụ trợ hiển thị cảnh báo phân quyền khi truy cập tab không được cấp phép
     const renderAccessDenied = (message) => (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
             <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <ShieldAlert className="w-8 h-8 text-rose-600" />
             </div>
@@ -1508,7 +1508,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                 return (
                                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                                         {/* CỘT TRÁI (8 CỘT): TRUNG TÂM CẢNH BÁO KHẨN (LIVE ACTION CENTER) */}
-                                        <div className="lg:col-span-8 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                                        <div className="lg:col-span-8 bg-white rounded-2xl sm:rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                                             <div>
                                                 <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
                                                     <div className="flex items-center gap-2">
@@ -1647,7 +1647,7 @@ export default function HotelAdminDashboard({ initialTab }) {
                                         </div>
 
                                         {/* CỘT PHẢI (4 CỘT): CỤM THAO TÁC NHANH LỄ TÂN (FRONT-DESK FAST ACTIONS) */}
-                                        <div className="lg:col-span-4 bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+                                        <div className="lg:col-span-4 bg-white rounded-2xl sm:rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
                                             <div>
                                                 <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100">
                                                     <div className="flex items-center gap-2">
@@ -2166,7 +2166,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
                     {/* CÁC TAB KHÁC NẾU CHỌN */}
                     {!['overview', 'guests', 'customer-detail', 'corporate-partners', 'employees', 'rooms', 'lost-and-found', 'categories', 'amenities', 'minibar', 'bookings', 'booking-timeline', 'services', 'service-items', 'reviews', 'profile', 'posts', 'promotions', 'contacts', 'invoices', 'analytics', 'reports', 'settings', 'audit-logs'].includes(activeTab) && (
-                        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center shadow-xs">
+                        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
                             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                 <Wrench className="w-8 h-8 text-blue-600" />
                             </div>

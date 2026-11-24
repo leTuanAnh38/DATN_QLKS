@@ -846,7 +846,7 @@ export default function BookingTimeline({ onNavigateToBookings }) {
 
             {/* 5. PHẦN ĐƠN CHỜ GÁN PHÒNG (UNASSIGNED BOOKINGS NẾU CÓ TRONG THÁNG) */}
             {unassignedBookings.length > 0 && (
-                <div className="bg-amber-50/70 border border-amber-200 rounded-3xl p-5 shadow-xs space-y-3">
+                <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 shadow-xs space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />

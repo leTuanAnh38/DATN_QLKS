@@ -288,7 +288,7 @@ export default function StaffProfile() {
 
     if (isFetching) {
         return (
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-12 flex flex-col items-center justify-center min-h-[420px]">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-12 flex flex-col items-center justify-center min-h-[420px]">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
                 <p className="text-slate-600 font-medium text-sm">Đang tải thông tin hồ sơ nhân viên...</p>
             </div>

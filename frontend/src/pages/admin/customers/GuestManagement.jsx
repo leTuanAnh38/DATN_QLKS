@@ -1318,9 +1318,12 @@ export default function GuestManagement() {
             {/* MODAL 4: XÁC NHẬN XÓA KHÁCH HÀNG */}
             {/* ========================================================================= */}
             {isDeleteModalOpen && selectedGuest && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) setIsDeleteModalOpen(false); }}
+                >
                     <div
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
@@ -1390,7 +1393,7 @@ export default function GuestManagement() {
                     onClick={() => !isUpdatingStatus && setStatusModalGuest(null)}
                 >
                     <div
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {(() => {

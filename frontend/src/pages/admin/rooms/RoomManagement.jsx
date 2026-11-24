@@ -1282,9 +1282,12 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* MODAL 3: XÁC NHẬN XÓA PHÒNG AN TOÀN */}
             {/* ========================================================================= */}
             {isDeleteModalOpen && selectedRoom && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) setIsDeleteModalOpen(false); }}
+                >
                     <div
-                        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden"
+                        className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-6 text-center space-y-4">
@@ -1397,8 +1400,11 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
             {/* MODAL CẢNH BÁO NHẬN PHÒNG SỚM / TRỄ (MODERN WHITE MODAL) */}
             {/* ========================================================================= */}
             {checkInWarningModal && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl p-6 sm:p-7 shadow-2xl max-w-md w-full border border-slate-100 space-y-5 animate-in zoom-in-95 duration-200">
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+                    onClick={(e) => { if (e.target === e.currentTarget) setCheckInWarningModal(null); }}
+                >
+                    <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3.5">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 text-xl font-bold ${checkInWarningModal.type === 'early'
                                     ? 'bg-amber-100 text-amber-600'

@@ -155,7 +155,10 @@ export default function CorporatePartnerModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[88vh]">
                 {/* Modal Header */}
                 <div className="px-5 py-3.5 bg-white text-slate-900 flex items-center justify-between border-b border-slate-200 shrink-0">

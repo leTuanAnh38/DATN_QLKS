@@ -203,7 +203,10 @@ export default function CloseShiftModal({ isOpen, onClose, shift, onShiftClosed 
     if (!isOpen || !shift) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fadeIn">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fadeIn"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[88vh]">
                 {/* 1. Header (Fixed non-scrolling) */}
                 <div className="flex items-center justify-between p-4 sm:px-6 sm:py-5 border-b border-slate-100 bg-white shrink-0">

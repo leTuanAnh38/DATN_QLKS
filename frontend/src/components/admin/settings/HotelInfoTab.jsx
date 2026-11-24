@@ -36,47 +36,92 @@ export default function HotelInfoTab({
     onUploadImage,
 }) {
     return (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
-            <div className="px-6 sm:px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-600/30">
-                        <Building2 className="w-5 h-5" />
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-transparent flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm shadow-blue-600/25 shrink-0">
+                        <Building2 className="w-4.5 h-4.5" />
                     </div>
-                    <div>
-                        <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-bold text-slate-900 flex flex-wrap items-center gap-1.5">
                             <span>Hồ Sơ Thương Hiệu Khách Sạn</span>
                             {isEditingHotel ? (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
                                     Đang chỉnh sửa
                                 </span>
                             ) : (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                                     Chế độ xem
                                 </span>
                             )}
                         </h2>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-[11.5px] text-slate-500 mt-0.5 truncate">
                             Thông tin chính thức hiển thị trên Hóa đơn in ấn, Chân trang (Footer) và Email xác nhận
                         </p>
                     </div>
                 </div>
 
-                {hotelLastUpdated && (
-                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5 bg-white/80 px-3 py-1.5 rounded-xl border border-slate-200/80">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Cập nhật gần nhất: <strong className="text-slate-700">{formatDateTime(hotelLastUpdated)}</strong></span>
-                    </div>
-                )}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {hotelLastUpdated && (
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 bg-white/90 px-2.5 py-1.5 rounded-xl border border-slate-200/80">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>Cập nhật: <strong className="text-slate-700">{formatDateTime(hotelLastUpdated)}</strong></span>
+                        </div>
+                    )}
+                    {!isEditingHotel ? (
+                        canUpdateSettings && (
+                            <button
+                                type="button"
+                                onClick={onStartEdit}
+                                disabled={isLoading}
+                                className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Cập nhật thông tin</span>
+                            </button>
+                        )
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onCancelEdit}
+                                disabled={isSavingHotel}
+                                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                            >
+                                <X className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Hủy</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onSubmit}
+                                disabled={isSavingHotel}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                            >
+                                {isSavingHotel ? (
+                                    <>
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        <span>Đang lưu...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="w-3.5 h-3.5" />
+                                        <span>Lưu thay đổi</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="p-6 sm:p-8">
+            <div className="p-4 sm:p-5">
                 {isLoading ? (
-                    <div className="py-16 text-center text-slate-400">
-                        <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                        <p className="text-sm font-semibold text-slate-600">Đang tải cấu hình khách sạn...</p>
+                    <div className="py-12 text-center text-slate-400">
+                        <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mx-auto mb-2" />
+                        <p className="text-xs font-semibold text-slate-600">Đang tải cấu hình khách sạn...</p>
                     </div>
                 ) : (
-                    <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                         {/* CỘT TRÁI: FORM THÔNG TIN (7 CỘT) */}
                         <div className="lg:col-span-7 space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -462,37 +507,37 @@ export default function HotelInfoTab({
                                 </div>
                             </div>
 
-                            {/* NÚT THAO TÁC */}
-                            <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
+                            {/* NÚT THAO TÁC CUỐI FORM */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5">
                                 {!isEditingHotel ? (
                                     canUpdateSettings ? (
                                         <button
                                             type="button"
                                             onClick={onStartEdit}
                                             disabled={isLoading}
-                                            className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-blue-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                                         >
-                                            <Edit3 className="w-4 h-4" />
+                                            <Edit3 className="w-3.5 h-3.5" />
                                             <span>Cập nhật thông tin & Logo</span>
                                         </button>
                                     ) : (
                                         <div className="text-xs text-slate-500">Chế độ xem (Chỉ Admin/Owner có quyền sửa)</div>
                                     )
                                 ) : (
-                                    <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex flex-wrap items-center gap-2">
                                         <button
                                             type="submit"
                                             disabled={isSavingHotel}
-                                            className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                                         >
                                             {isSavingHotel ? (
                                                 <>
-                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                                     <span>Đang lưu...</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Save className="w-4 h-4" />
+                                                    <Save className="w-3.5 h-3.5" />
                                                     <span>Lưu thông tin & Logo</span>
                                                 </>
                                             )}
@@ -501,9 +546,9 @@ export default function HotelInfoTab({
                                             type="button"
                                             onClick={onCancelEdit}
                                             disabled={isSavingHotel}
-                                            className="px-5 py-3.5 rounded-2xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-semibold transition cursor-pointer flex items-center gap-1.5"
+                                            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1"
                                         >
-                                            <X className="w-4 h-4 text-slate-400" />
+                                            <X className="w-3.5 h-3.5 text-slate-400" />
                                             <span>Hủy</span>
                                         </button>
                                     </div>
@@ -513,7 +558,7 @@ export default function HotelInfoTab({
 
                         {/* CỘT PHẢI: LIVE PREVIEW THẺ THƯƠNG HIỆU & MẪU IN HÓA ĐƠN (5 CỘT) */}
                         <div className="lg:col-span-5 space-y-4">
-                            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden border border-slate-800">
+                            <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-5 shadow-xl relative overflow-hidden border border-slate-800">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
                                 <div className="flex items-center justify-between mb-4">

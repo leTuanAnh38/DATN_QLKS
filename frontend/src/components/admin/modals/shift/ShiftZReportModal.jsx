@@ -223,7 +223,10 @@ export default function ShiftZReportModal({ shiftId, shiftData, onClose }) {
     };
 
     return (
-        <div className="z-report-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 print:p-0 print:bg-white print:static">
+        <div
+            className="z-report-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 print:p-0 print:bg-white print:static"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             {/* CSS chuyên dụng cho lệnh in window.print() (khi gọi trực tiếp) */}
             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {

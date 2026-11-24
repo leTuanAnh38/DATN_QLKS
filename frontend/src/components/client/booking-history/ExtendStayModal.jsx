@@ -21,7 +21,10 @@ export default function ExtendStayModal({
     if (!booking) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget && !isSubmittingExtend) onClose?.(); }}
+        >
             <div className="bg-white rounded-3xl max-w-lg w-full p-4 sm:p-7 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 text-left animate-in zoom-in-95 duration-200 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3 sm:pb-4 gap-3">

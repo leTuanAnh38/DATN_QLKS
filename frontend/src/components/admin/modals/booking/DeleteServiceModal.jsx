@@ -11,8 +11,11 @@ export default function DeleteServiceModal({
     if (!isOpen || !serviceToDelete) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="relative bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 shadow-2xl max-w-md w-full border border-slate-200/90 space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget && !serviceToDelete?.isDeleting) onClose?.(); }}
+        >
+            <div className="relative bg-white rounded-2xl p-5 sm:p-6 shadow-2xl max-w-md w-full border border-slate-200/90 space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* Nút đóng góc phải */}
                 <button
                     type="button"

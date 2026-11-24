@@ -1617,8 +1617,11 @@ export default function ServiceManagement() {
 
             {/* MODAL XÁC NHẬN XÓA DỊCH VỤ */}
             {isDeleteModalOpen && serviceToDelete && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 p-6 animate-scale-up text-center">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+                    onClick={(e) => { if (e.target === e.currentTarget) setIsDeleteModalOpen(false); }}
+                >
+                    <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-100 p-6 animate-scale-up text-center">
                         <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3">
                             <Trash2 className="w-7 h-7" />
                         </div>

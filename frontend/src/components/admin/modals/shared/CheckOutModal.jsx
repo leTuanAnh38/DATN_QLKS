@@ -2328,7 +2328,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                             if (e.target === e.currentTarget) closeConfirm();
                         }}
                     >
-                        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
+                        <div className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
                             {/* ICON TRÒN / BO GÓC NỔI BẬT */}
                             <div
                                 className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-xs border"
@@ -2422,7 +2422,7 @@ export default function CheckOutModal({ booking, onClose, onSuccess, onOpenInvoi
                     onClick={() => setDamagePhotoPreview(null)}
                 >
                     <div
-                        className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
+                        className="relative max-w-3xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-white">

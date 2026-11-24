@@ -1096,8 +1096,11 @@ export default function PostManagement() {
             {/* MODAL XÁC NHẬN XÓA BÀI VIẾT */}
             {/* ========================================================================= */}
             {isDeleteModalOpen && selectedPost && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
-                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-100 space-y-4 animate-scaleUp">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn"
+                    onClick={(e) => { if (e.target === e.currentTarget) setIsDeleteModalOpen(false); }}
+                >
+                    <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-100 space-y-4 animate-scaleUp">
                         <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center mx-auto">
                             <Trash2 className="w-7 h-7" />
                         </div>

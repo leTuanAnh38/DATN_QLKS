@@ -750,7 +750,7 @@ export default function ServiceRequestKanban() {
             )}
 
             {/* HEADER CHÍNH: TIÊU ĐỀ + DOANH THU & NÚT THAO TÁC (TINH GỌN, SANG TRỌNG) */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-xs">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
                 <div>
                     <div className="flex items-center gap-3 flex-wrap">
                         <h2 className="text-lg sm:text-xl font-sans font-bold text-slate-900 tracking-tight">
@@ -1998,7 +1998,7 @@ export default function ServiceRequestKanban() {
 
             {/* DANH SÁCH YÊU CẦU ĐÃ HỦY (EXPANDABLE) */}
             {showCancelled && (
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                         <div className="flex items-center gap-2">
                             <XCircle className="w-4 h-4 text-rose-500" />

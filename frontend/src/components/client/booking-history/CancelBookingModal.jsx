@@ -50,7 +50,10 @@ export default function CancelBookingModal({
     const depositAmount = Number(booking.group_deposit_amount || 0);
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget && !isCancelling) onClose?.(); }}
+        >
             <div className="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-7 shadow-2xl text-left animate-in zoom-in-95 duration-200 max-h-[90dvh] overflow-y-auto">
                 {/* Header Modal */}
                 <div className="flex items-center justify-between gap-2.5 sm:gap-3 mb-3 sm:mb-4">

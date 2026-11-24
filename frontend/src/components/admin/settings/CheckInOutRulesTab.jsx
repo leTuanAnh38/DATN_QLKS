@@ -7,6 +7,7 @@ import {
     ArrowUpRight,
     Edit3,
     Save,
+    X,
     Calculator,
     Info
 } from 'lucide-react';
@@ -68,40 +69,77 @@ export default function CheckInOutRulesTab({
     const simResult = calculateSimSurcharge();
 
     return (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
-            <div className="px-6 sm:px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-transparent flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/30">
-                        <Clock className="w-5 h-5" />
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden animate-fadeIn">
+            <div className="px-4 sm:px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-blue-50/60 via-indigo-50/30 to-transparent flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-600/25 shrink-0">
+                        <Clock className="w-4.5 h-4.5" />
                     </div>
-                    <div>
-                        <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-bold text-slate-900 flex flex-wrap items-center gap-1.5">
                             <span>Quy Định Giờ Giấc & Phụ Thu Quá Giờ</span>
                             {isEditingHotel ? (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
                                     Đang chỉnh sửa
                                 </span>
                             ) : (
-                                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                                     Chế độ xem
                                 </span>
                             )}
                         </h2>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-[11.5px] text-slate-500 mt-0.5 truncate">
                             Khung giờ nhận/trả phòng tiêu chuẩn và tỷ lệ % phụ thu khi khách check-in sớm hoặc check-out muộn
                         </p>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                    {!isEditingHotel ? (
+                        canUpdateSettings && (
+                            <button
+                                type="button"
+                                onClick={onStartEdit}
+                                disabled={isLoading}
+                                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-indigo-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                            >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span>Cập nhật quy định</span>
+                            </button>
+                        )
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={onCancelEdit}
+                                disabled={isSavingHotel}
+                                className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+                            >
+                                <X className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Hủy</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onSubmit}
+                                disabled={isSavingHotel}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-emerald-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                            >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>{isSavingHotel ? 'Đang lưu...' : 'Lưu quy định'}</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="p-6 sm:p-8">
+            <div className="p-4 sm:p-5">
                 {isLoading ? (
-                    <div className="py-16 text-center text-slate-400">
-                        <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-                        <p className="text-sm font-semibold text-slate-600">Đang tải cấu hình...</p>
+                    <div className="py-12 text-center text-slate-400">
+                        <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mx-auto mb-2" />
+                        <p className="text-xs font-semibold text-slate-600">Đang tải cấu hình...</p>
                     </div>
                 ) : (
-                    <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <form onSubmit={onSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                         {/* CỘT TRÁI: FORM CẤU HÌNH (7 CỘT) */}
                         <div className="lg:col-span-7 space-y-6">
                             {/* 1. KHUNG GIỜ TIÊU CHUẨN */}
@@ -272,36 +310,36 @@ export default function CheckInOutRulesTab({
                                 </div>
                             </div>
 
-                            {/* NÚT LƯU CẤU HÌNH */}
-                            <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
+                            {/* NÚT LƯU CẤU HÌNH CUỐI FORM */}
+                            <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5">
                                 {!isEditingHotel ? (
                                     canUpdateSettings ? (
                                         <button
                                             type="button"
                                             onClick={onStartEdit}
                                             disabled={isLoading}
-                                            className="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-indigo-600/25 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                                         >
-                                            <Edit3 className="w-4 h-4" />
+                                            <Edit3 className="w-3.5 h-3.5" />
                                             <span>Cập nhật giờ giấc & phụ thu</span>
                                         </button>
                                     ) : (
                                         <div className="text-xs text-slate-500">Chế độ xem</div>
                                     )
                                 ) : (
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                         <button
                                             type="submit"
                                             disabled={isSavingHotel}
-                                            className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-lg transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                                         >
-                                            <Save className="w-4 h-4" />
+                                            <Save className="w-3.5 h-3.5" />
                                             <span>Lưu quy định</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={onCancelEdit}
-                                            className="px-5 py-3.5 rounded-2xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-semibold transition cursor-pointer"
+                                            className="px-3.5 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition cursor-pointer"
                                         >
                                             Hủy
                                         </button>
@@ -311,7 +349,7 @@ export default function CheckInOutRulesTab({
                         </div>
 
                         {/* CỘT PHẢI: LIVE SURCHARGE SIMULATOR (5 CỘT) */}
-                        <div className="lg:col-span-5 bg-gradient-to-b from-indigo-50/70 via-white to-slate-50 rounded-3xl p-6 border border-indigo-100 shadow-sm space-y-5">
+                        <div className="lg:col-span-5 bg-gradient-to-b from-indigo-50/70 via-white to-slate-50 rounded-2xl p-5 border border-indigo-100 shadow-sm space-y-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
                                     <Calculator className="w-4 h-4" />

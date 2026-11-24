@@ -246,7 +246,10 @@ export default function CollectCashModal({ isOpen, onClose, onSuccess, initialBo
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2.5 sm:p-3.5 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2.5 sm:p-3.5 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full shadow-2xl flex flex-col max-h-[88vh] overflow-hidden animate-in zoom-in-95 duration-200 text-left">
                 {/* 1. HEADER MODAL (Fixed Non-Scrolling) */}
                 <div className="shrink-0 px-6 py-5 border-b border-slate-200 bg-white flex items-start justify-between">

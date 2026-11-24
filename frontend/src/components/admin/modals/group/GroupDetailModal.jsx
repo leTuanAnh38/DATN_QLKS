@@ -1943,7 +1943,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 {/* ========================================================================= */}
                 {confirmDialog.isOpen && (
                     <div className="fixed inset-0 z-70 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
+                        <div className="bg-white rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95 duration-200 space-y-4">
                             {/* ICON */}
                             <div
                                 className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center shadow-xs border"
@@ -2022,7 +2022,7 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                 {/* MODAL DÁN NHANH DANH SÁCH KHÁCH ĐOÀN TỪ EXCEL */}
                 {showFastPasteModal && (
                     <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 animate-in zoom-in-95 duration-200">
                             {/* HEADER */}
                             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                                 <div className="flex items-center gap-2.5">

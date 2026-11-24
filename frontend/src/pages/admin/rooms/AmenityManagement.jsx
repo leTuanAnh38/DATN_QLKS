@@ -288,7 +288,7 @@ export default function AmenityManagement() {
             )}
 
             {/* HEADER: TIÊU ĐỀ "QUẢN LÝ TIỆN NGHI" VÀ NÚT "+ THÊM TIỆN NGHI" */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div>
                         <div className="flex items-center gap-2">
@@ -769,7 +769,7 @@ export default function AmenityManagement() {
                     />
 
                     <div
-                        className="relative bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-md w-full p-6 z-10 text-center animate-scaleUp"
+                        className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-md w-full p-6 z-10 text-center animate-scaleUp"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4 border border-rose-100 shadow-xs">

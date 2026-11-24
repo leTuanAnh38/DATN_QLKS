@@ -132,7 +132,10 @@ export default function StayingGuestsModal({ isOpen, onClose }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-50 bg-slate-950/75 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+        >
             <div className="bg-white rounded-2xl border border-slate-200 max-w-5xl w-full p-4 sm:p-5 shadow-2xl text-left max-h-[88vh] overflow-hidden flex flex-col justify-between animate-in zoom-in-95 duration-200 relative">
                 {/* TOAST THÔNG BÁO NỔI */}
                 {modalToast && (

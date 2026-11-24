@@ -717,7 +717,7 @@ export default function MaintenanceHistoryModal({
                     onClick={() => setPreviewPhoto(null)}
                 >
                     <div
-                        className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
+                        className="relative max-w-3xl w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-800 flex flex-col max-h-[90vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="p-4 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-white">
