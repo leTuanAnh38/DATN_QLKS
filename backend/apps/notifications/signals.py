@@ -791,6 +791,10 @@ def notify_on_payment_events(sender, instance, created, **kwargs):
         if not status_just_completed:
             return
 
+        # Không gửi thông báo thanh toán cho các giao dịch 0 VND (tiện ích miễn phí)
+        if not instance.amount or float(instance.amount) <= 0:
+            return
+
         amount_str = f"{instance.amount:,.0f} VND" if instance.amount else "0 VND"
         method_str = format_payment_method(instance.payment_method)
         txn_str = f"Mã GD: {instance.transaction_id}" if instance.transaction_id else ""

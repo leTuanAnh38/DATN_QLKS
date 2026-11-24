@@ -617,6 +617,12 @@ class PaymentListView(APIView):
                             booking_id__in=fully_settled_booking_ids
                         ).delete()
 
+            # Dọn các giao dịch dịch vụ miễn phí 0đ sinh ra trước đây (không phát sinh thu chi thực tế)
+            Payment.objects.filter(
+                transaction_id__startswith='SVC-REQ-',
+                amount__lte=0
+            ).delete()
+
             # Đóng các Payment PENDING của các đơn đã hủy hoặc không đến (tránh hiện nút "Xác nhận thu")
             Payment.objects.filter(
                 payment_status='PENDING'

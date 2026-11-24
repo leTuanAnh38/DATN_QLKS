@@ -655,12 +655,17 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                             is_paid=service_req.is_paid
                         )
 
-                    # Ghi nhận / Cập nhật bản ghi Payment tiền mặt tại phòng nếu đã thu tiền
+                    # Ghi nhận / Cập nhật bản ghi Payment tiền mặt tại phòng nếu đã thu tiền THỰC TẾ (> 0đ)
+                    # Không tạo giao dịch Payment 0đ cho các tiện ích miễn phí (gối, khăn...)
                     from ...payments.models import Payment, CashierShift
                     txn_id = f"SVC-REQ-{service_req.id}"
-                    if service_req.is_paid:
+                    svc_amount = (
+                        Decimal(str(service_req.total_price))
+                        if (service_req.total_price is not None and Decimal(str(service_req.total_price)) > 0)
+                        else (locked_unit_price * qty_safe)
+                    )
+                    if service_req.is_paid and svc_amount > 0:
                         active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
-                        svc_amount = service_req.total_price or (locked_unit_price * qty_safe)
                         pay_method = str(request.data.get('payment_method') or 'CASH').upper()
                         Payment.objects.update_or_create(
                             transaction_id=txn_id,
