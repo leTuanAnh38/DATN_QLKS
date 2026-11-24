@@ -589,30 +589,10 @@ export default function BannersTab({
                     })
                 )}
 
-                {/* Thanh lưu nhanh ở cuối trang (tiện khi cuộn xuống dưới khỏi phải kéo lại lên đầu) */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="text-xs text-slate-500">
-                        Đang hiển thị <strong className="text-slate-800">{totalVisibleCount}/16</strong> vị trí ảnh • Khuyến nghị độ phân giải từ{' '}
-                        <strong className="text-slate-800">1920x800px</strong> cho Hero Banner để hiển thị sắc nét nhất.
-                    </div>
-                    <button
-                        type="button"
-                        onClick={onSaveBanners}
-                        disabled={isSavingHotel || !canUpdateSettings}
-                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
-                    >
-                        {isSavingHotel ? (
-                            <>
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                <span>Đang lưu...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-3.5 h-3.5" />
-                                <span>Lưu thay đổi Banner</span>
-                            </>
-                        )}
-                    </button>
+                {/* Ghi chú độ phân giải cuối danh sách */}
+                <div className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
+                    Đang hiển thị <strong className="text-slate-800">{totalVisibleCount}/16</strong> vị trí ảnh • Khuyến nghị độ phân giải từ{' '}
+                    <strong className="text-slate-800">1920x800px</strong> cho Hero Banner để hiển thị sắc nét nhất.
                 </div>
             </div>
         </div>
