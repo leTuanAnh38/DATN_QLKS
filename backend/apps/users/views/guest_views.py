@@ -7,7 +7,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from core_project.pagination import StandardResultsSetPagination
-from django.db.models import Q
+from django.db.models import Q, Count, Sum, Value, DecimalField
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
@@ -83,6 +84,31 @@ class AdminGuestListCreateView(APIView):
             'diamond_guests': diamond_guests,
             'gold_silver_guests': gold_silver_guests,
         }
+
+        # Annotate tổng đơn & tổng chi tiêu (tránh N+1 serializer và hỗ trợ sắp xếp toàn hệ thống)
+        queryset = queryset.annotate(
+            annotated_total_bookings=Count('bookings', distinct=True),
+            annotated_total_spent=Coalesce(
+                Sum(
+                    'bookings__total_amount',
+                    filter=Q(bookings__status__in=['confirmed', 'checked_in', 'checked_out', 'completed']),
+                ),
+                Value(0, output_field=DecimalField(max_digits=14, decimal_places=0)),
+            ),
+        )
+
+        # Sắp xếp danh sách khách hàng theo tiêu chí vận hành
+        sort_by = (request.query_params.get('sort') or 'newest').strip().lower()
+        if sort_by == 'spent_desc':
+            queryset = queryset.order_by('-annotated_total_spent', '-total_points', '-date_joined')
+        elif sort_by == 'bookings_desc':
+            queryset = queryset.order_by('-annotated_total_bookings', '-annotated_total_spent', '-date_joined')
+        elif sort_by == 'points_desc':
+            queryset = queryset.order_by('-total_points', '-annotated_total_spent', '-date_joined')
+        elif sort_by == 'name_asc':
+            queryset = queryset.order_by('first_name', 'last_name', 'username')
+        else:
+            queryset = queryset.order_by('-date_joined')
 
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, request)

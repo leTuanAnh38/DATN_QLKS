@@ -28,7 +28,8 @@ import {
     Sparkles,
     Waves,
     BedDouble,
-    UtensilsCrossed
+    UtensilsCrossed,
+    ArrowUpDown
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -184,6 +185,7 @@ export default function PromotionsPage() {
     const [copiedCode, setCopiedCode] = useState(null);
     const [activeFaq, setActiveFaq] = useState(null);
     const [activePromoTab, setActivePromoTab] = useState('all'); // 'all' | 'percentage' | 'fixed'
+    const [sortBy, setSortBy] = useState('expiring_soon'); // 'expiring_soon' | 'discount_desc' | 'newest'
     const [nowTs, setNowTs] = useState(() => Date.now());
 
     // 2. TẢI DANH SÁCH VOUCHER THỰC TẾ TỪ BACKEND
@@ -262,9 +264,9 @@ export default function PromotionsPage() {
         return list.length > 0 ? Math.max(...list) : 0;
     }, [livePromotions]);
 
-    // 5. LỌC DANH SÁCH VOUCHER THEO TÌM KIẾM & PHÂN LOẠI
+    // 5. LỌC & SẮP XẾP DANH SÁCH VOUCHER THEO TÌM KIẾM, PHÂN LOẠI & TIÊU CHÍ
     const filteredDbPromotions = useMemo(() => {
-        return livePromotions.filter((item) => {
+        const filtered = livePromotions.filter((item) => {
             const query = searchTerm.toLowerCase().trim();
             const matchSearch =
                 !query ||
@@ -277,7 +279,41 @@ export default function PromotionsPage() {
             if (activePromoTab === 'fixed') return item.discount_type === 'fixed';
             return true;
         });
-    }, [livePromotions, searchTerm, activePromoTab]);
+
+        const getExpiryMs = (item) => {
+            if (!item.valid_to) return Number.MAX_SAFE_INTEGER;
+            const t = new Date(item.valid_to).getTime();
+            return Number.isNaN(t) ? Number.MAX_SAFE_INTEGER : t;
+        };
+        // Quy đổi tương đương trên đơn mẫu 2.000.000đ để so sánh công bằng giữa mã % và mã tiền mặt
+        const getDiscountScore = (item) => {
+            const val = Number(item.discount_value) || 0;
+            if (item.discount_type === 'percentage') {
+                const maxCap = Number(item.max_discount_amount) || 0;
+                const est = 2000000 * (val / 100);
+                return maxCap > 0 ? Math.min(est, maxCap) : est;
+            }
+            return val;
+        };
+        const getCreatedMs = (item) => {
+            if (!item.created_at) return Number(item.id) || 0;
+            const t = new Date(item.created_at).getTime();
+            return Number.isNaN(t) ? (Number(item.id) || 0) : t;
+        };
+
+        return filtered.sort((a, b) => {
+            if (sortBy === 'discount_desc') {
+                const diff = getDiscountScore(b) - getDiscountScore(a);
+                return diff !== 0 ? diff : getExpiryMs(a) - getExpiryMs(b);
+            }
+            if (sortBy === 'newest') {
+                return getCreatedMs(b) - getCreatedMs(a);
+            }
+            // Mặc định: ưu tiên mã sắp hết hạn gần nhất lên đầu (khớp với đồng hồ đếm ngược)
+            const expDiff = getExpiryMs(a) - getExpiryMs(b);
+            return expDiff !== 0 ? expDiff : getDiscountScore(b) - getDiscountScore(a);
+        });
+    }, [livePromotions, searchTerm, activePromoTab, sortBy]);
 
     // 6. SAO CHÉP MÃ VOUCHER 1-CHẠM
     const handleCopyCode = (code) => {
@@ -621,6 +657,20 @@ export default function PromotionsPage() {
                                 >
                                     Giảm tiền mặt
                                 </button>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl px-3 py-2 shadow-xs shrink-0">
+                                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    aria-label="Sắp xếp mã ưu đãi"
+                                    className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
+                                >
+                                    <option value="expiring_soon">Sắp hết hạn trước</option>
+                                    <option value="discount_desc">Giảm nhiều nhất</option>
+                                    <option value="newest">Mới nhất</option>
+                                </select>
                             </div>
                         </div>
                     </div>

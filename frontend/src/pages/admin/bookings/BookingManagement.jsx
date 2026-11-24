@@ -159,6 +159,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     // 2. State Lọc & Tìm kiếm
     const [quickFilterMode, setQuickFilterMode] = useState(initialFilter);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('pms_priority'); // 'pms_priority' | 'newest' | 'check_in_asc' | 'check_out_asc' | 'amount_desc'
     const [searchKeyword, setSearchKeyword] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
     const [bookingSegment, setBookingSegment] = useState('individual'); // 'individual' | 'group'
@@ -169,10 +170,10 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
-    // Reset về trang 1 khi thay đổi điều kiện lọc
+    // Reset về trang 1 khi thay đổi điều kiện lọc hoặc sắp xếp
     useEffect(() => {
         setCurrentPage(1);
-    }, [quickFilterMode, statusFilter, searchKeyword]);
+    }, [quickFilterMode, statusFilter, sortBy, searchKeyword]);
 
     // Ref luôn lưu mode mới nhất để polling/focus không bị stale closure
     const quickFilterModeRef = useRef(quickFilterMode);
@@ -541,12 +542,16 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
             return true;
         });
 
-        // Sắp xếp theo yêu cầu nghiệp vụ:
-        // 1. Chờ duyệt (pending) lên đầu tiên
-        // 2. Đã xác nhận (confirmed) kế tiếp
-        // 3. Đang ở / lưu trú (checked_in) kế tiếp
-        // 4. Các đơn đã hoàn tất / đã trả phòng / no-show / đã hủy
-        // Trong cùng nhóm trạng thái: Đơn mới tạo nhất xếp lên đầu (-created_at)
+        // Helper trích timestamp ngày YYYY-MM-DD an toàn (tránh NaN)
+        const getDateMs = (dateStr, fallback = Number.MAX_SAFE_INTEGER) => {
+            if (!dateStr) return fallback;
+            const ms = new Date(String(dateStr).split('T')[0]).getTime();
+            return Number.isNaN(ms) ? fallback : ms;
+        };
+        const getCreatedMs = (item) => new Date(item.created_at || 0).getTime();
+        const getTotalAmt = (item) => Number(item.grand_total_amount || item.total_amount || 0);
+
+        // Sắp xếp theo lựa chọn của người dùng (mặc định: Ưu tiên nghiệp vụ PMS)
         const STATUS_PRIORITY = {
             pending: 1,
             paid: 1,
@@ -560,6 +565,27 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         };
 
         return [...result].sort((a, b) => {
+            if (sortBy === 'newest') {
+                return getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'check_in_asc') {
+                const diff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'check_out_asc') {
+                const diff = getDateMs(a.check_out_date) - getDateMs(b.check_out_date);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'amount_desc') {
+                const diff = getTotalAmt(b) - getTotalAmt(a);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+
+            // Mặc định: Ưu tiên xử lý PMS
+            // 1. Chờ duyệt (pending/paid) -> Mới đặt nhất lên đầu để duyệt ngay
+            // 2. Đã xác nhận (confirmed) -> Ngày Check-in gần nhất lên đầu (khách sắp tới quầy)
+            // 3. Đang ở (checked_in) -> Ngày Check-out gần nhất/quá hạn lên đầu (sắp trả phòng)
+            // 4. Đã trả phòng / Hoàn tất / No-show / Đã hủy -> Mới nhất lên đầu
             const priorityA = STATUS_PRIORITY[a.status] || 99;
             const priorityB = STATUS_PRIORITY[b.status] || 99;
 
@@ -567,11 +593,17 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                 return priorityA - priorityB;
             }
 
-            const timeA = new Date(a.created_at || 0).getTime();
-            const timeB = new Date(b.created_at || 0).getTime();
-            return timeB - timeA;
+            if (priorityA === 2) {
+                const diff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                if (diff !== 0) return diff;
+            } else if (priorityA === 3) {
+                const diff = getDateMs(a.check_out_date) - getDateMs(b.check_out_date);
+                if (diff !== 0) return diff;
+            }
+
+            return getCreatedMs(b) - getCreatedMs(a);
         });
-    }, [bookings, statusFilter, searchKeyword]);
+    }, [bookings, statusFilter, sortBy, searchKeyword]);
 
     // Phân trang danh sách đơn đặt phòng đã lọc & sắp xếp
     const totalPages = Math.ceil(filteredBookings.length / pageSize) || 1;
@@ -831,6 +863,8 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                     onQuickFilterChange={(mode) => setQuickFilterMode(mode)}
                     statusFilter={statusFilter}
                     onStatusFilterChange={(st) => setStatusFilter(st)}
+                    sortBy={sortBy}
+                    onSortByChange={(sb) => setSortBy(sb)}
                     stats={stats}
                     searchKeyword={searchKeyword}
                     onSearchKeywordChange={(kw) => setSearchKeyword(kw)}

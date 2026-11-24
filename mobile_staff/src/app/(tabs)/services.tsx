@@ -1149,8 +1149,8 @@ export default function ServicesScreen() {
           <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
             {hotelName.toUpperCase()} • {hotelStars} SAO
           </Text>
-          <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
-            Yêu cầu dịch vụ
+          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
+            Dịch Vụ
           </Text>
         </View>
         <View style={styles.headerRightActions}>
@@ -1189,9 +1189,15 @@ export default function ServicesScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            disabled={refreshing}
             activeOpacity={0.7}
+            accessibilityLabel="Làm mới danh sách dịch vụ"
           >
-            <Ionicons name="refresh" size={18} color="#F59E0B" />
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1438,10 +1444,9 @@ export default function ServicesScreen() {
                   setSelectedFloor('all');
                   Haptics.selectionAsync();
                 }}
-                style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}
+                style={{ paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6 }}
               >
-                <Ionicons name="close-circle" size={14} color={isDark ? '#FBBF24' : '#B45309'} style={{ marginRight: 3 }} />
-                <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>Bỏ lọc</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#EF4444' }}>Xóa lọc</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1657,6 +1662,36 @@ export default function ServicesScreen() {
                     ? 'Tất cả yêu cầu phục vụ hiện tại đã được nhân viên tiếp nhận hoặc đã hoàn tất.'
                     : 'Hiện chưa có khách gọi món hoặc yêu cầu tiện ích trong mục này.'}
               </Text>
+              {(activeTab !== 'all' || scopeFilter !== 'all' || orderCategoryFilter !== 'all' || selectedFloor !== 'all' || searchQuery.trim() !== '') && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveTab('all');
+                    setScopeFilter('all');
+                    setOrderCategoryFilter('all');
+                    setSelectedFloor('all');
+                    setSearchQuery('');
+                    Haptics.selectionAsync();
+                  }}
+                  activeOpacity={0.8}
+                  style={{
+                    marginTop: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 12,
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                    borderWidth: 1,
+                    borderColor: '#F59E0B',
+                  }}
+                >
+                  <Ionicons name="refresh" size={14} color={isDark ? '#FBBF24' : '#B45309'} />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                    Đặt lại bộ lọc
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <FlatList

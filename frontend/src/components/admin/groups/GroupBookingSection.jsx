@@ -28,7 +28,9 @@ import {
     LayoutList,
     Receipt,
     Mail,
-    ChevronRight
+    ChevronRight,
+    ChevronDown,
+    ArrowUpDown
 } from 'lucide-react';
 import { bookingService } from '../../../services/bookingService';
 import CreateGroupModal from '../modals/group/CreateGroupModal';
@@ -62,6 +64,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
     const [searchKeyword, setSearchKeyword] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | 'this_week' | 'this_month'
+    const [sortBy, setSortBy] = useState('pms_priority'); // 'pms_priority' | 'newest' | 'check_in_asc' | 'check_out_asc' | 'amount_desc'
     const [viewMode, setViewMode] = useState('card'); // 'card' | 'table'
     const [copiedCode, setCopiedCode] = useState(null);
 
@@ -253,8 +256,58 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
             }
         }
 
-        return result;
-    }, [groups, searchKeyword, dateFilter]);
+        const getDateMs = (dateStr, fallback = Number.MAX_SAFE_INTEGER) => {
+            if (!dateStr) return fallback;
+            const ms = new Date(String(dateStr).split('T')[0]).getTime();
+            return Number.isNaN(ms) ? fallback : ms;
+        };
+        const getCreatedMs = (item) => new Date(item.created_at || 0).getTime();
+
+        const GROUP_STATUS_PRIORITY = {
+            tentative: 1,
+            confirmed: 2,
+            checked_in: 3,
+            checked_out: 4,
+            completed: 4,
+            cancelled: 5
+        };
+
+        return [...result].sort((a, b) => {
+            if (sortBy === 'newest') {
+                return getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'check_in_asc') {
+                const diff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'check_out_asc') {
+                const diff = getDateMs(a.check_out_date) - getDateMs(b.check_out_date);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+            if (sortBy === 'amount_desc') {
+                const diff = (Number(b.total_amount) || 0) - (Number(a.total_amount) || 0);
+                return diff !== 0 ? diff : getCreatedMs(b) - getCreatedMs(a);
+            }
+
+            // Mặc định: Ưu tiên xử lý đoàn PMS
+            // 1. Tạm giữ / Chờ cọc -> Mới tạo lên đầu
+            // 2. Đã xác nhận -> Ngày đến gần nhất lên đầu
+            // 3. Đang lưu trú -> Ngày đi gần nhất lên đầu
+            // 4. Hoàn tất / Đã hủy -> Mới nhất lên đầu
+            const pA = GROUP_STATUS_PRIORITY[a.status] || 99;
+            const pB = GROUP_STATUS_PRIORITY[b.status] || 99;
+            if (pA !== pB) return pA - pB;
+
+            if (pA === 2) {
+                const diff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                if (diff !== 0) return diff;
+            } else if (pA === 3) {
+                const diff = getDateMs(a.check_out_date) - getDateMs(b.check_out_date);
+                if (diff !== 0) return diff;
+            }
+            return getCreatedMs(b) - getCreatedMs(a);
+        });
+    }, [groups, searchKeyword, dateFilter, sortBy]);
 
     filteredGroupsRef.current = filteredGroups;
 
@@ -270,7 +323,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
     // Reset current page when filters or search change
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchKeyword, statusFilter, dateFilter]);
+    }, [searchKeyword, statusFilter, dateFilter, sortBy]);
 
     // Ensure currentPage is valid if totalPages shrinks
     useEffect(() => {
@@ -624,6 +677,23 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
                                 {tab.label}
                             </button>
                         ))}
+                    </div>
+
+                    {/* Sort Selector */}
+                    <div className="relative" title="Chọn thứ tự sắp xếp danh sách đoàn">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="pl-7 pr-6 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 shadow-2xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 cursor-pointer hover:border-slate-300 transition appearance-none"
+                        >
+                            <option value="pms_priority">Ưu tiên xử lý (PMS)</option>
+                            <option value="newest">Mới tạo nhất</option>
+                            <option value="check_in_asc">Ngày đến gần nhất</option>
+                            <option value="check_out_asc">Ngày đi gần nhất</option>
+                            <option value="amount_desc">Giá trị cao nhất</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
 
                     {/* Counter */}

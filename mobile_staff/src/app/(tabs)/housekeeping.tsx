@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
   Alert,
   TextInput,
   ScrollView,
@@ -223,11 +224,18 @@ export default function HousekeepingScreen() {
       return matchStatus && matchFloor && matchSearch;
     });
 
-    // Tự động ưu tiên đưa các phòng Lễ tân đang đợi kiểm tra check-out và khách yêu cầu dọn lên ĐẦU danh sách
+    // Tự động ưu tiên đưa các phòng Lễ tân đang đợi kiểm tra check-out, khách yêu cầu dọn (Make-up) và phòng đang chờ dọn lên ĐẦU,
+    // cùng mức ưu tiên xếp theo số phòng tăng dần để buồng phòng đi dọn thuận theo hành lang
     return list.sort((a, b) => {
-      const aWeight = a.latest_minibar_check?.status === 'requested' ? 2 : (a.is_cleaning_requested ? 1 : 0);
-      const bWeight = b.latest_minibar_check?.status === 'requested' ? 2 : (b.is_cleaning_requested ? 1 : 0);
-      return bWeight - aWeight;
+      const getWeight = (r: RoomItem) => {
+        if (r.latest_minibar_check?.status === 'requested') return 3;
+        if (r.is_cleaning_requested) return 2;
+        if (r.status === 'cleaning') return 1;
+        return 0;
+      };
+      const diff = getWeight(b) - getWeight(a);
+      if (diff !== 0) return diff;
+      return String(a.room_number || '').localeCompare(String(b.room_number || ''), undefined, { numeric: true });
     });
   }, [rooms, filterStatus, filterFloor, searchQuery]);
 
@@ -529,9 +537,15 @@ export default function HousekeepingScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            disabled={refreshing}
+            activeOpacity={0.7}
             accessibilityLabel="Làm mới sơ đồ phòng"
           >
-            <Ionicons name="refresh" size={16} color="#F59E0B" />
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -839,6 +853,34 @@ export default function HousekeepingScreen() {
           <Ionicons name="bed-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Không tìm thấy phòng phù hợp</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>Hãy thử chọn bộ lọc khác hoặc xóa từ khóa tìm kiếm.</Text>
+          {(filterStatus !== 'all' || filterFloor !== 'all' || searchQuery.trim() !== '') && (
+            <TouchableOpacity
+              onPress={() => {
+                setFilterStatus('all');
+                setFilterFloor('all');
+                setSearchQuery('');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.8}
+              style={{
+                marginTop: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: '#F59E0B',
+              }}
+            >
+              <Ionicons name="refresh" size={14} color={isDark ? '#FBBF24' : '#B45309'} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                Đặt lại bộ lọc
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList

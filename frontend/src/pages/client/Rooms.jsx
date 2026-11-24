@@ -129,6 +129,13 @@ export default function RoomsAndSuitesPage() {
         }
     }, [guestsParam]);
 
+    // Giá hiển thị thực tế của hạng phòng (ưu tiên promo_price nếu đang giảm giá)
+    const getEffectivePrice = (room) => (
+        room.promo_price && Number(room.promo_price) > 0 && Number(room.promo_price) < Number(room.base_price)
+            ? Number(room.promo_price)
+            : Number(room.base_price || 0)
+    );
+
     // Lọc theo từ khóa tìm kiếm, tab/ID danh mục, sức chứa, khoảng giá và hướng nhìn
     const filteredCategories = categories.filter((room) => {
         const matchesSearch =
@@ -162,10 +169,7 @@ export default function RoomsAndSuitesPage() {
             matchesCapacity = Number(room.capacity || 2) >= requiredCapacity;
         }
 
-        const effectivePrice =
-            room.promo_price && Number(room.promo_price) > 0 && Number(room.promo_price) < Number(room.base_price)
-                ? Number(room.promo_price)
-                : Number(room.base_price || 0);
+        const effectivePrice = getEffectivePrice(room);
         let matchesPrice = true;
         if (priceRange === 'under-2m') matchesPrice = effectivePrice < 2000000;
         else if (priceRange === '2m-4m') matchesPrice = effectivePrice >= 2000000 && effectivePrice <= 4000000;
@@ -188,10 +192,10 @@ export default function RoomsAndSuitesPage() {
         categories.find((c) => String(c.id) === String(selectedTab) || (c.slug && String(c.slug) === String(selectedTab)))?.name ||
         selectedTab;
 
-    // Sắp xếp danh sách
+    // Sắp xếp danh sách (so sánh theo giá thực tế sau khuyến mãi để khớp với giá hiển thị)
     const sortedCategories = [...filteredCategories].sort((a, b) => {
-        if (sortBy === 'price-asc') return Number(a.base_price) - Number(b.base_price);
-        if (sortBy === 'price-desc') return Number(b.base_price) - Number(a.base_price);
+        if (sortBy === 'price-asc') return getEffectivePrice(a) - getEffectivePrice(b);
+        if (sortBy === 'price-desc') return getEffectivePrice(b) - getEffectivePrice(a);
         if (sortBy === 'size-desc') return Number(b.size) - Number(a.size);
         if (sortBy === 'capacity-desc') return Number(b.capacity) - Number(a.capacity);
         return 0;

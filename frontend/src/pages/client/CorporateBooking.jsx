@@ -954,7 +954,7 @@ export default function CorporateBooking() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-sky-600 selection:text-white">
+        <div className={`min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-sky-600 selection:text-white ${totalRoomsCount > 0 && !createdGroup ? 'pb-24' : ''}`}>
             <Navbar />
 
             {/* BREADCRUMB ĐỒNG BỘ 100% VỚI CÁC TRANG KHÁC */}
@@ -2302,7 +2302,7 @@ export default function CorporateBooking() {
 
             {/* Toast Thông báo sang trọng */}
             {toastNotice && (
-                <div className="fixed top-24 right-4 sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
+                <div className="fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-8 z-50 p-4 rounded-2xl shadow-2xl border flex items-center gap-3 text-xs sm:text-sm font-semibold animate-in fade-in slide-in-from-top-4 duration-300 max-w-md bg-white border-slate-200 text-slate-800 shadow-slate-900/10">
                     <AlertCircle className={`w-5 h-5 shrink-0 ${toastNotice.type === 'warning' ? 'text-amber-500' : toastNotice.type === 'error' ? 'text-rose-500' : 'text-emerald-500'}`} />
                     <span className="flex-1">{toastNotice.text}</span>
                     <button

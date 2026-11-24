@@ -90,9 +90,10 @@ export default function TransportScreen() {
     return { total, pending, active, completed, cancelled, myTasks };
   }, [requests, user?.id]);
 
-  // Bộ lọc dữ liệu
+  // Bộ lọc & sắp xếp vận hành đội xe:
+  // Đang đón/chở -> Chờ nhận (FIFO theo giờ hẹn đón gần nhất) -> Hoàn thành (mới nhất trước) -> Đã hủy
   const filteredRequests = useMemo(() => {
-    return requests.filter((item) => {
+    const filtered = requests.filter((item) => {
       let matchFilter = true;
       if (filterType === 'pending') {
         matchFilter = item.status === 'pending';
@@ -119,6 +120,36 @@ export default function TransportScreen() {
         (item.booking_code && item.booking_code.toLowerCase().includes(q));
 
       return matchFilter && matchSearch;
+    });
+
+    const getPriority = (status: string) => {
+      if (status === 'delivering') return 1;
+      if (status === 'in_progress') return 2;
+      if (status === 'pending') return 3;
+      if (status === 'completed') return 4;
+      return 5;
+    };
+    const getTimeMs = (val?: string | null) => {
+      if (!val) return 0;
+      const t = new Date(val).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+
+    return filtered.sort((a, b) => {
+      const pA = getPriority(a.status);
+      const pB = getPriority(b.status);
+      if (pA !== pB) return pA - pB;
+
+      // Nhóm đang vận hành: FIFO theo giờ hẹn đón (request_time) hoặc giờ đặt sớm nhất lên đầu
+      if (pA <= 3) {
+        const tA = getTimeMs((a as any).request_time || a.created_at);
+        const tB = getTimeMs((b as any).request_time || b.created_at);
+        return tA - tB;
+      }
+      // Nhóm đã hoàn thành / hủy: LIFO mới nhất lên đầu
+      const tA = getTimeMs((a as any).updated_at || a.created_at);
+      const tB = getTimeMs((b as any).updated_at || b.created_at);
+      return tB - tA;
     });
   }, [requests, filterType, searchQuery, user?.id]);
 
@@ -356,7 +387,7 @@ export default function TransportScreen() {
           <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
             {hotelName.toUpperCase()} • {hotelStars} SAO
           </Text>
-          <Text style={[styles.greetingTitle, { color: colors.text, fontSize: 18 }]} numberOfLines={1}>
+          <Text style={[styles.greetingTitle, { color: colors.text }]} numberOfLines={1}>
             Đội Xe & Vận Chuyển
           </Text>
         </View>
@@ -382,9 +413,15 @@ export default function TransportScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            disabled={refreshing}
             activeOpacity={0.7}
+            accessibilityLabel="Làm mới danh sách đội xe"
           >
-            <Ionicons name="refresh" size={17} color="#F59E0B" />
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -440,7 +477,7 @@ export default function TransportScreen() {
       </View>
 
       {/* 3. Ô Tìm Kiếm Nhanh & Nút xem cuốc đã hủy nếu có */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginBottom: 8, gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
         <View
           style={[
             styles.searchWrapper,
@@ -517,6 +554,33 @@ export default function TransportScreen() {
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
             Hiện chưa có yêu cầu đưa đón nào trong danh mục này.
           </Text>
+          {(filterType !== 'all' || searchQuery.trim() !== '') && (
+            <TouchableOpacity
+              onPress={() => {
+                setFilterType('all');
+                setSearchQuery('');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.8}
+              style={{
+                marginTop: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: '#F59E0B',
+              }}
+            >
+              <Ionicons name="refresh" size={14} color={isDark ? '#FBBF24' : '#B45309'} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                Đặt lại bộ lọc
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -567,7 +631,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 10,
   },
@@ -619,15 +683,15 @@ const styles = StyleSheet.create({
   },
   fixedFilterBar: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 6,
-    marginBottom: 10,
+    paddingHorizontal: 14,
+    gap: 5,
+    marginBottom: 8,
   },
   fixedFilterCard: {
     flex: 1,
     backgroundColor: '#111827',
-    borderRadius: 14,
-    paddingVertical: 9,
+    borderRadius: 12,
+    paddingVertical: 7,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#1F2937',
@@ -637,11 +701,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
   },
   fixedFilterNumber: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 2,
@@ -668,8 +732,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingHorizontal: 14,
+    paddingBottom: 56,
   },
   centerContainer: {
     flex: 1,

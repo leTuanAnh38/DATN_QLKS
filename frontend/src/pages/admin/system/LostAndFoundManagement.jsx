@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     Package,
     Archive,
@@ -24,7 +24,8 @@ import {
     Luggage,
     Clock,
     FileCheck,
-    PackageSearch
+    PackageSearch,
+    ArrowUpDown
 } from 'lucide-react';
 import roomService from '../../../services/roomService';
 import ReportLostItemModal from '../../../components/admin/modals/shared/ReportLostItemModal';
@@ -49,6 +50,7 @@ export default function LostAndFoundManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('priority'); // 'priority' | 'newest' | 'oldest'
 
     // Phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -105,7 +107,7 @@ export default function LostAndFoundManagement() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [statusFilter, categoryFilter, searchTerm]);
+    }, [statusFilter, categoryFilter, searchTerm, sortBy]);
 
     const handleOpenReturnModal = (item) => {
         setSelectedItemForReturn(item);
@@ -264,11 +266,27 @@ export default function LostAndFoundManagement() {
         });
     };
 
-    const totalItems = items.length;
+    // Sắp xếp vận hành: ưu tiên đồ đang lưu kho -> đã liên hệ -> đã trao trả -> đã thanh lý
+    const sortedItems = useMemo(() => {
+        const statusPriority = { stored: 1, contacted: 2, returned: 3, disposed: 4 };
+        const getTime = (item) => new Date(item.found_date || item.created_at || 0).getTime();
+
+        return [...items].sort((a, b) => {
+            if (sortBy === 'newest') return getTime(b) - getTime(a);
+            if (sortBy === 'oldest') return getTime(a) - getTime(b);
+
+            const pA = statusPriority[a.status] || 99;
+            const pB = statusPriority[b.status] || 99;
+            if (pA !== pB) return pA - pB;
+            return getTime(b) - getTime(a);
+        });
+    }, [items, sortBy]);
+
+    const totalItems = sortedItems.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, totalItems);
-    const paginatedItems = items.slice(startIndex, endIndex);
+    const paginatedItems = sortedItems.slice(startIndex, endIndex);
 
     return (
         <div className="space-y-6 animate-fadeIn pb-12">
@@ -400,8 +418,8 @@ export default function LostAndFoundManagement() {
                         )}
                     </div>
 
-                    {/* Category Filter */}
-                    <div className="flex items-center gap-2">
+                    {/* Category Filter & Sort */}
+                    <div className="flex flex-wrap items-center gap-2">
                         <select
                             value={categoryFilter}
                             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -415,6 +433,20 @@ export default function LostAndFoundManagement() {
                             <option value="accessories">Phụ kiện / Mỹ phẩm</option>
                             <option value="other">Khác</option>
                         </select>
+
+                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2">
+                            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                aria-label="Sắp xếp đồ thất lạc"
+                                className="bg-transparent text-xs sm:text-sm font-medium text-slate-700 focus:outline-none cursor-pointer"
+                            >
+                                <option value="priority">Ưu tiên chưa trả trước</option>
+                                <option value="newest">Mới nhặt gần nhất</option>
+                                <option value="oldest">Cũ nhất trước</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 

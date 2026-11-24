@@ -13,7 +13,8 @@ import {
     AlertTriangle,
     Loader2,
     Building2,
-    Inbox
+    Inbox,
+    ArrowUpDown
 } from 'lucide-react';
 import { reviewService } from '../../../services/reviewService';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -40,6 +41,7 @@ export default function ReviewManagement() {
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'visible' | 'hidden'
     const [ratingFilter, setRatingFilter] = useState('all'); // 'all' | '5' | '4' | '3' | 'under3'
     const [roomCategoryFilter, setRoomCategoryFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('unreplied_first'); // 'unreplied_first' | 'newest' | 'rating_asc' | 'rating_desc'
 
     // Phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -48,7 +50,7 @@ export default function ReviewManagement() {
     // Reset về trang 1 khi thay đổi điều kiện lọc hoặc tìm kiếm
     useEffect(() => {
         setCurrentPage(1);
-    }, [statusFilter, ratingFilter, roomCategoryFilter, searchTerm]);
+    }, [statusFilter, ratingFilter, roomCategoryFilter, searchTerm, sortBy]);
 
     // State Toast Alert
     const [alertMessage, setAlertMessage] = useState(null);
@@ -115,9 +117,9 @@ export default function ReviewManagement() {
         };
     }, [reviews]);
 
-    // Bộ lọc danh sách
+    // Bộ lọc & sắp xếp danh sách
     const filteredReviews = useMemo(() => {
-        return reviews.filter((r) => {
+        const filtered = reviews.filter((r) => {
             // Lọc theo trạng thái hiển thị
             if (statusFilter === 'visible' && !r.is_visible) return false;
             if (statusFilter === 'hidden' && r.is_visible) return false;
@@ -148,7 +150,29 @@ export default function ReviewManagement() {
 
             return true;
         });
-    }, [reviews, statusFilter, ratingFilter, roomCategoryFilter, searchTerm]);
+
+        const getTime = (item) => new Date(item.created_at || 0).getTime();
+        const getRating = (item) => Number(item.overall_rating) || 0;
+        const isReplied = (item) => Boolean(item.admin_reply && item.admin_reply.trim());
+
+        return filtered.sort((a, b) => {
+            if (sortBy === 'unreplied_first') {
+                const repA = isReplied(a) ? 1 : 0;
+                const repB = isReplied(b) ? 1 : 0;
+                if (repA !== repB) return repA - repB;
+                return getTime(b) - getTime(a);
+            }
+            if (sortBy === 'rating_asc') {
+                const diff = getRating(a) - getRating(b);
+                return diff !== 0 ? diff : getTime(b) - getTime(a);
+            }
+            if (sortBy === 'rating_desc') {
+                const diff = getRating(b) - getRating(a);
+                return diff !== 0 ? diff : getTime(b) - getTime(a);
+            }
+            return getTime(b) - getTime(a);
+        });
+    }, [reviews, statusFilter, ratingFilter, roomCategoryFilter, searchTerm, sortBy]);
 
     // Phân trang danh sách đánh giá sau khi đã lọc & tìm kiếm
     const totalPages = Math.ceil(filteredReviews.length / pageSize) || 1;
@@ -422,6 +446,21 @@ export default function ReviewManagement() {
                             ))}
                         </select>
                     )}
+
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            aria-label="Sắp xếp đánh giá"
+                            className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer"
+                        >
+                            <option value="unreplied_first">Ưu tiên chưa phản hồi</option>
+                            <option value="newest">Mới nhất trước</option>
+                            <option value="rating_asc">Sao thấp → cao</option>
+                            <option value="rating_desc">Sao cao → thấp</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="relative w-full md:w-64">

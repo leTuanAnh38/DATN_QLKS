@@ -682,7 +682,7 @@ export default function DetailRoom() {
                                 <div className="h-5 w-24 bg-slate-200 rounded-full animate-pulse"></div>
                                 <div className="h-5 w-32 bg-slate-200 rounded-full animate-pulse"></div>
                             </div>
-                            <div className="h-10 w-80 sm:w-96 bg-slate-200 rounded-xl animate-pulse"></div>
+                            <div className="h-10 w-full max-w-80 sm:w-96 bg-slate-200 rounded-xl animate-pulse"></div>
                         </div>
                         <div className="h-14 w-44 bg-slate-200 rounded-2xl animate-pulse"></div>
                     </div>

@@ -23,11 +23,26 @@ export default function GuestListView({
 }: GuestListViewProps) {
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'spent_desc' | 'name_asc'>('newest');
   const [visibleCount, setVisibleCount] = useState(15);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  const cycleSort = () => {
+    Haptics.selectionAsync();
+    setSortBy((prev) =>
+      prev === 'newest' ? 'spent_desc' : prev === 'spent_desc' ? 'name_asc' : 'newest'
+    );
+  };
+
+  const sortLabel =
+    sortBy === 'spent_desc'
+      ? 'Chi tiêu VIP'
+      : sortBy === 'name_asc'
+      ? 'Tên A–Z'
+      : 'Mới nhất';
+
   const filteredGuests = useMemo(() => {
-    return guests.filter((g) => {
+    const filtered = guests.filter((g) => {
       // 1. VIP Tier / Walk-in filter
       if (tierFilter !== 'all') {
         if (tierFilter === 'walkin') {
@@ -49,11 +64,31 @@ export default function GuestListView({
       }
       return true;
     });
-  }, [guests, tierFilter, searchQuery]);
+
+    const getDateMs = (val?: string) => {
+      if (!val) return 0;
+      const t = new Date(val).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+
+    return filtered.sort((a, b) => {
+      if (sortBy === 'spent_desc') {
+        const diff = (Number(b.total_spent) || 0) - (Number(a.total_spent) || 0);
+        if (diff !== 0) return diff;
+        return (Number(b.total_points) || 0) - (Number(a.total_points) || 0);
+      }
+      if (sortBy === 'name_asc') {
+        const nameA = (a.full_name || a.username || '').trim();
+        const nameB = (b.full_name || b.username || '').trim();
+        return nameA.localeCompare(nameB, 'vi');
+      }
+      return getDateMs(b.date_joined) - getDateMs(a.date_joined);
+    });
+  }, [guests, tierFilter, searchQuery, sortBy]);
 
   useEffect(() => {
     setVisibleCount(15);
-  }, [tierFilter, searchQuery]);
+  }, [tierFilter, searchQuery, sortBy]);
 
   const displayedGuests = useMemo(() => {
     return filteredGuests.slice(0, visibleCount);
@@ -169,12 +204,35 @@ export default function GuestListView({
         ) : null}
       </View>
 
-      {/* Dòng tóm tắt số lượng kết quả tìm thấy */}
-      <View style={styles.listCounterRow}>
-        <Ionicons name="people-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 5 }} />
-        <Text style={[styles.listCounterText, !isDark && { color: '#64748B' }]}>
-          Hiển thị <Text style={{ fontWeight: '800', color: isDark ? '#F59E0B' : '#D97706' }}>{filteredGuests.length}</Text> hồ sơ khách hàng
-        </Text>
+      {/* Dòng tóm tắt số lượng & nút chuyển nhanh chế độ sắp xếp */}
+      <View style={[styles.listCounterRow, { justifyContent: 'space-between' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="people-outline" size={13} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 5 }} />
+          <Text style={[styles.listCounterText, !isDark && { color: '#64748B' }]}>
+            Hiển thị <Text style={{ fontWeight: '800', color: isDark ? '#F59E0B' : '#D97706' }}>{filteredGuests.length}</Text> hồ sơ
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={cycleSort}
+          activeOpacity={0.7}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            borderWidth: 1,
+            backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : '#FFFBEB',
+            borderColor: isDark ? 'rgba(245,158,11,0.35)' : '#FDE68A',
+          }}
+        >
+          <Ionicons name="swap-vertical" size={12} color={isDark ? '#F59E0B' : '#D97706'} />
+          <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#FBBF24' : '#B45309' }}>
+            {sortLabel}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Guests List */}

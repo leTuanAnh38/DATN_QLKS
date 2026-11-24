@@ -38,7 +38,8 @@ import {
     X,
     CalendarPlus,
     Layers,
-    MessageSquareQuote
+    MessageSquareQuote,
+    ArrowUpDown
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -156,10 +157,11 @@ export default function BookingHistory() {
     const [errorMessage, setErrorMessage] = useState('');
     const [toastMessage, setToastMessage] = useState(null); // { type: 'success' | 'error' | 'info', text: '' }
 
-    // 2. State Lọc & Tìm kiếm
+    // 2. State Lọc, Tìm kiếm & Sắp xếp
     const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled'
     const [bookingTypeFilter, setBookingTypeFilter] = useState('all'); // 'all' | 'individual' | 'group'
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [sortBy, setSortBy] = useState('upcoming_first'); // 'upcoming_first' | 'newest' | 'check_in_asc'
 
     // Phân trang danh sách đơn đặt phòng
     const [currentPage, setCurrentPage] = useState(1);
@@ -541,9 +543,9 @@ export default function BookingHistory() {
         return { total, pending, confirmed, checkedIn, completed, cancelled, groupCount, individualCount };
     }, [bookings]);
 
-    // Lọc danh sách theo Tab trạng thái, loại đơn và từ khóa tìm kiếm
+    // Lọc & sắp xếp danh sách theo Tab trạng thái, loại đơn, từ khóa và chế độ sắp xếp
     const filteredBookings = useMemo(() => {
-        return bookings.filter((item) => {
+        const filtered = bookings.filter((item) => {
             const groupInfo = getGroupBookingInfo(item);
 
             // Lọc theo loại đơn: Tất cả | Khách lẻ | Đoàn B2B
@@ -575,12 +577,46 @@ export default function BookingHistory() {
             }
             return true;
         });
-    }, [bookings, statusFilter, bookingTypeFilter, searchKeyword]);
 
-    // Reset về trang 1 khi đổi bộ lọc hoặc số đơn trên mỗi trang
+        const getPriority = (status) => {
+            if (status === 'checked_in') return 1;
+            if (status === 'pending') return 2;
+            if (['confirmed', 'paid', 'PAID'].includes(status)) return 3;
+            if (status === 'checked_out' || status === 'completed') return 4;
+            return 5;
+        };
+        const getDateMs = (str, fallback = Number.MAX_SAFE_INTEGER) => {
+            if (!str) return fallback;
+            const t = new Date(str).getTime();
+            return Number.isNaN(t) ? fallback : t;
+        };
+
+        return filtered.sort((a, b) => {
+            if (sortBy === 'newest') {
+                return getDateMs(b.created_at, 0) - getDateMs(a.created_at, 0);
+            }
+            if (sortBy === 'check_in_asc') {
+                const diff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                return diff !== 0 ? diff : getDateMs(b.created_at, 0) - getDateMs(a.created_at, 0);
+            }
+
+            // Mặc định: ưu tiên chuyến đang ở -> chờ duyệt -> sắp nhận phòng (check-in gần nhất) -> hoàn thành -> đã hủy
+            const pA = getPriority(a.status);
+            const pB = getPriority(b.status);
+            if (pA !== pB) return pA - pB;
+
+            if (pA === 3) {
+                const ciDiff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+                if (ciDiff !== 0) return ciDiff;
+            }
+            return getDateMs(b.created_at, 0) - getDateMs(a.created_at, 0);
+        });
+    }, [bookings, statusFilter, bookingTypeFilter, searchKeyword, sortBy]);
+
+    // Reset về trang 1 khi đổi bộ lọc, sắp xếp hoặc số đơn trên mỗi trang
     useEffect(() => {
         setCurrentPage(1);
-    }, [statusFilter, bookingTypeFilter, searchKeyword, pageSize]);
+    }, [statusFilter, bookingTypeFilter, searchKeyword, pageSize, sortBy]);
 
     // Tính toán phân trang
     const totalPages = Math.ceil(filteredBookings.length / pageSize) || 1;
@@ -798,26 +834,42 @@ export default function BookingHistory() {
                                     </div>
                                 </div>
 
-                                {/* Ô tìm kiếm nhanh */}
-                                <div className="relative w-full sm:w-80">
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm theo Mã đơn (BK-...), Mã đoàn (GRP-...), phòng..."
-                                        value={searchKeyword}
-                                        onChange={(e) => setSearchKeyword(e.target.value)}
-                                        className="w-full pl-9 pr-10 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
-                                    />
-                                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                                    {searchKeyword && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSearchKeyword('')}
-                                            className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer rounded-lg"
-                                            title="Xóa từ khóa"
+                                {/* Ô tìm kiếm nhanh & Bộ chọn sắp xếp */}
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 shrink-0">
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => setSortBy(e.target.value)}
+                                            aria-label="Sắp xếp đơn đặt phòng"
+                                            className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
                                         >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
+                                            <option value="upcoming_first">Ưu tiên chuyến sắp tới</option>
+                                            <option value="newest">Mới đặt gần nhất</option>
+                                            <option value="check_in_asc">Ngày nhận phòng gần nhất</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="relative w-full sm:w-72">
+                                        <input
+                                            type="text"
+                                            placeholder="Tìm Mã đơn (BK-...), Mã đoàn, phòng..."
+                                            value={searchKeyword}
+                                            onChange={(e) => setSearchKeyword(e.target.value)}
+                                            className="w-full pl-9 pr-10 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                        />
+                                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                        {searchKeyword && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearchKeyword('')}
+                                                className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer rounded-lg"
+                                                title="Xóa từ khóa"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

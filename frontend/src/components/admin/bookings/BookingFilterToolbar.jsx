@@ -6,7 +6,8 @@ import {
     Bell,
     ChevronDown,
     Search,
-    X
+    X,
+    ArrowUpDown
 } from 'lucide-react';
 
 /**
@@ -17,6 +18,8 @@ export default function BookingFilterToolbar({
     onQuickFilterChange,
     statusFilter = 'all',
     onStatusFilterChange,
+    sortBy = 'pms_priority',
+    onSortByChange,
     stats = {},
     searchKeyword = '',
     onSearchKeywordChange,
@@ -102,10 +105,32 @@ export default function BookingFilterToolbar({
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
-                {statusFilter !== 'all' && (
+                {/* 1.5 Dropdown Sắp xếp thông minh */}
+                {onSortByChange && (
+                    <div className="relative" title="Chọn thứ tự sắp xếp danh sách đơn đặt phòng">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => onSortByChange(e.target.value)}
+                            className="pl-7 pr-7 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-600/30 focus:border-blue-600 cursor-pointer hover:border-slate-300 transition appearance-none"
+                        >
+                            <option value="pms_priority">Ưu tiên xử lý (PMS)</option>
+                            <option value="newest">Mới đặt nhất</option>
+                            <option value="check_in_asc">Check-in gần nhất</option>
+                            <option value="check_out_asc">Check-out gần nhất</option>
+                            <option value="amount_desc">Giá trị cao nhất</option>
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                )}
+
+                {(statusFilter !== 'all' || sortBy !== 'pms_priority') && (
                     <button
                         type="button"
-                        onClick={() => onStatusFilterChange && onStatusFilterChange('all')}
+                        onClick={() => {
+                            onStatusFilterChange && onStatusFilterChange('all');
+                            onSortByChange && onSortByChange('pms_priority');
+                        }}
                         className="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold rounded-lg cursor-pointer shrink-0 transition"
                     >
                         Đặt lại

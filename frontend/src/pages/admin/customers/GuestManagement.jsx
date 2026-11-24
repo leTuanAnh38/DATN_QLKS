@@ -22,7 +22,8 @@ import {
     AlertTriangle,
     Loader2,
     User,
-    Sparkles
+    Sparkles,
+    ArrowUpDown
 } from 'lucide-react';
 import adminUserService from '../../../services/adminUserService';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -52,6 +53,7 @@ export default function GuestManagement() {
     const [searchTerm, setSearchTerm] = useState('');
     const [vipFilter, setVipFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'spent_desc' | 'bookings_desc' | 'points_desc' | 'name_asc'
 
     // Phân trang & Thống kê toàn hệ thống
     const [currentPage, setCurrentPage] = useState(1);
@@ -113,6 +115,7 @@ export default function GuestManagement() {
         if (searchTerm) params.q = searchTerm;
         if (vipFilter !== 'all') params.vip_tier = vipFilter;
         if (statusFilter !== 'all') params.is_active = statusFilter;
+        if (sortBy && sortBy !== 'newest') params.sort = sortBy;
 
         const res = await adminUserService.getGuests(params);
         if (res.success) {
@@ -131,11 +134,11 @@ export default function GuestManagement() {
         if (!silent) setIsLoading(false);
     };
 
-    // Khi đổi bộ lọc -> reset về trang 1
+    // Khi đổi bộ lọc hoặc sắp xếp -> reset về trang 1
     useEffect(() => {
         setCurrentPage(1);
         fetchGuests(1);
-    }, [vipFilter, statusFilter]);
+    }, [vipFilter, statusFilter, sortBy]);
 
     // Chuyển trang
     const handlePageChange = (newPage) => {
@@ -505,6 +508,23 @@ export default function GuestManagement() {
                             <option value="true">Thành viên đang hoạt động</option>
                             <option value="walkin">Khách vãng lai (Tại quầy)</option>
                             <option value="false">Tài khoản bị tạm khóa</option>
+                        </select>
+                    </div>
+
+                    {/* Sắp xếp */}
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2">
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            aria-label="Sắp xếp khách hàng"
+                            className="bg-transparent text-slate-700 font-medium focus:outline-none cursor-pointer"
+                        >
+                            <option value="newest">Mới đăng ký nhất</option>
+                            <option value="spent_desc">Chi tiêu cao nhất (VIP)</option>
+                            <option value="bookings_desc">Lưu trú nhiều nhất</option>
+                            <option value="points_desc">Điểm tích lũy cao nhất</option>
+                            <option value="name_asc">Tên A → Z</option>
                         </select>
                     </div>
                 </div>

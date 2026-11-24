@@ -34,9 +34,9 @@ export default function BookingListView({
     return { total, checkedIn, confirmed, completed };
   }, [bookings]);
 
-  // Filtered List
+  // Filtered & PMS-prioritized List
   const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
+    const filtered = bookings.filter((b) => {
       // 1. Status Filter
       if (statusFilter !== 'all') {
         if (statusFilter === 'completed') {
@@ -59,6 +59,35 @@ export default function BookingListView({
       }
 
       return true;
+    });
+
+    const getPriority = (status: string) => {
+      if (status === 'pending' || status === 'paid' || status === 'PAID') return 1;
+      if (status === 'confirmed') return 2;
+      if (status === 'checked_in') return 3;
+      if (status === 'checked_out' || status === 'completed') return 4;
+      return 5;
+    };
+    const getDateMs = (str?: string, fallback = Number.MAX_SAFE_INTEGER) => {
+      if (!str) return fallback;
+      const t = new Date(str).getTime();
+      return Number.isNaN(t) ? fallback : t;
+    };
+
+    // Đồng bộ luồng PMS với Web Admin: Chờ duyệt -> Sắp nhận (+check_in) -> Đang ở (+check_out) -> Đã trả -> Đã hủy
+    return filtered.sort((a, b) => {
+      const pA = getPriority(a.status);
+      const pB = getPriority(b.status);
+      if (pA !== pB) return pA - pB;
+
+      if (pA === 2) {
+        const ciDiff = getDateMs(a.check_in_date) - getDateMs(b.check_in_date);
+        if (ciDiff !== 0) return ciDiff;
+      } else if (pA === 3) {
+        const coDiff = getDateMs(a.check_out_date) - getDateMs(b.check_out_date);
+        if (coDiff !== 0) return coDiff;
+      }
+      return getDateMs(b.created_at, 0) - getDateMs(a.created_at, 0);
     });
   }, [bookings, statusFilter, searchQuery]);
 

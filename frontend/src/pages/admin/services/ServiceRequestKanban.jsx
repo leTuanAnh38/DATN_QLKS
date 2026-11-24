@@ -600,27 +600,35 @@ export default function ServiceRequestKanban() {
         setActiveDropZone(null);
     };
 
-    // Lọc danh sách thẻ trong từng cột theo từ khóa tìm kiếm
-    const filterColumnItems = (items = []) => {
-        if (!searchKeyword.trim() && selectedCategoryFilter === 'all') {
-            return items;
-        }
+    // Lọc và sắp xếp thẻ trong từng cột:
+    // - Trạng thái đang vận hành (pending / in_progress / delivering): FIFO (đơn đặt trước lên đầu để tránh khách chờ lâu)
+    // - Trạng thái đã xong (completed / cancelled): LIFO (mới nhất lên đầu để dễ đối chiếu)
+    const filterColumnItems = (items = [], columnKey = null) => {
+        const filtered = (!searchKeyword.trim() && selectedCategoryFilter === 'all')
+            ? items.slice()
+            : items.filter((item) => {
+                const q = searchKeyword.trim().toLowerCase();
+                const matchSearch =
+                    !q ||
+                    String(item.room_number).toLowerCase().includes(q) ||
+                    item.service_name?.toLowerCase().includes(q) ||
+                    item.guest_name?.toLowerCase().includes(q) ||
+                    item.booking_code?.toLowerCase().includes(q) ||
+                    item.note?.toLowerCase().includes(q);
 
-        return items.filter((item) => {
-            const q = searchKeyword.trim().toLowerCase();
-            const matchSearch =
-                !q ||
-                String(item.room_number).toLowerCase().includes(q) ||
-                item.service_name?.toLowerCase().includes(q) ||
-                item.guest_name?.toLowerCase().includes(q) ||
-                item.booking_code?.toLowerCase().includes(q) ||
-                item.note?.toLowerCase().includes(q);
+                const matchCat =
+                    selectedCategoryFilter === 'all' ||
+                    item.category_name?.toLowerCase().includes(selectedCategoryFilter.toLowerCase());
 
-            const matchCat =
-                selectedCategoryFilter === 'all' ||
-                item.category_name?.toLowerCase().includes(selectedCategoryFilter.toLowerCase());
+                return matchSearch && matchCat;
+            });
 
-            return matchSearch && matchCat;
+        if (!columnKey) return filtered;
+        const isActiveQueue = columnKey === 'pending' || columnKey === 'in_progress' || columnKey === 'delivering';
+        return filtered.sort((a, b) => {
+            const timeA = new Date(a.created_at || 0).getTime();
+            const timeB = new Date(b.created_at || 0).getTime();
+            return isActiveQueue ? timeA - timeB : timeB - timeA;
         });
     };
 
@@ -674,7 +682,7 @@ export default function ServiceRequestKanban() {
     // CHẾ ĐỘ XEM DANH SÁCH (1 HÀNG / YÊU CẦU) + PHÂN TRANG
     // =========================================================================
     const allListItems = STATUS_ORDER.flatMap((key) =>
-        filterColumnItems(kanbanData[key] || []).map((item) => ({ ...item, status: key }))
+        filterColumnItems(kanbanData[key] || [], key).map((item) => ({ ...item, status: key }))
     );
 
     const statusTabs = [
@@ -687,14 +695,17 @@ export default function ServiceRequestKanban() {
         }))
     ];
 
-    // Đơn chờ xử lý lên đầu, trong cùng trạng thái thì mới nhất trước
+    // Đơn chờ xử lý lên đầu; nhóm đang phục vụ xếp FIFO (khách chờ lâu trước), nhóm đã hoàn tất/hủy xếp mới nhất trước
     const listItems = (statusTab === 'all' ? allListItems : allListItems.filter((i) => i.status === statusTab))
         .slice()
         .sort((a, b) => {
             if (statusTab === 'all' && a.status !== b.status) {
                 return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
             }
-            return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            const isActiveQueue = a.status === 'pending' || a.status === 'in_progress' || a.status === 'delivering';
+            const timeA = new Date(a.created_at || 0).getTime();
+            const timeB = new Date(b.created_at || 0).getTime();
+            return isActiveQueue ? timeA - timeB : timeB - timeA;
         });
 
     const listTotalPages = Math.max(1, Math.ceil(listItems.length / LIST_PAGE_SIZE));
@@ -1627,7 +1638,7 @@ export default function ServiceRequestKanban() {
             <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
                 {columns.map((col) => {
-                    const columnItems = filterColumnItems(kanbanData[col.key] || []);
+                    const columnItems = filterColumnItems(kanbanData[col.key] || [], col.key);
                     const isDropTarget = activeDropZone === col.key;
                     const isCompletedCol = col.key === 'completed';
                     const displayedItems = isCompletedCol ? columnItems.slice(0, completedDisplayCount) : columnItems;

@@ -117,9 +117,10 @@ export default function MaintenanceScreen() {
     });
   }, [tickets]);
 
-  // Bộ lọc
+  // Bộ lọc & sắp xếp vận hành kỹ thuật:
+  // Đang sửa (chưa có người nhận lên trước + FIFO báo trước sửa trước) -> Hoàn thành (mới nhất) -> Đã hủy
   const filteredTickets = useMemo(() => {
-    return tickets.filter((t) => {
+    const filtered = tickets.filter((t) => {
       if (scopeFilter === 'my_tasks') {
         if (!user?.id || t.technician !== user.id) return false;
       } else if (scopeFilter === 'unassigned') {
@@ -158,6 +159,47 @@ export default function MaintenanceScreen() {
         (t.guest_name && t.guest_name.toLowerCase().includes(q));
 
       return matchFilter && matchSearch;
+    });
+
+    const getStatusPriority = (status: string) => {
+      if (status === 'fixing') return 1;
+      if (status === 'completed') return 2;
+      return 3;
+    };
+    const getUrgencyRank = (priority?: string) => {
+      if (priority === 'urgent') return 1;
+      if (priority === 'high') return 2;
+      if (priority === 'normal') return 3;
+      if (priority === 'low') return 4;
+      return 3;
+    };
+    const getTimeMs = (val?: string | null) => {
+      if (!val) return 0;
+      const t = new Date(val).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+
+    return filtered.sort((a, b) => {
+      const pA = getStatusPriority(a.status);
+      const pB = getStatusPriority(b.status);
+      if (pA !== pB) return pA - pB;
+
+      if (pA === 1) {
+        const urgDiff = getUrgencyRank(a.priority) - getUrgencyRank(b.priority);
+        if (urgDiff !== 0) return urgDiff;
+
+        const unassignedA = !a.technician && !a.technician_name ? 0 : 1;
+        const unassignedB = !b.technician && !b.technician_name ? 0 : 1;
+        if (unassignedA !== unassignedB) return unassignedA - unassignedB;
+
+        const tA = getTimeMs(a.start_date);
+        const tB = getTimeMs(b.start_date);
+        return tA - tB; // FIFO: sự cố báo trước xử lý trước
+      }
+
+      const tA = getTimeMs(a.start_date);
+      const tB = getTimeMs(b.start_date);
+      return tB - tA; // LIFO cho phiếu đã hoàn thành / hủy
     });
   }, [tickets, scopeFilter, user?.id, filterStatus, selectedIssueType, selectedFloor, searchQuery]);
 
@@ -314,9 +356,15 @@ export default function MaintenanceScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            disabled={refreshing}
             activeOpacity={0.7}
+            accessibilityLabel="Làm mới danh sách bảo trì"
           >
-            <Ionicons name="refresh" size={17} color="#F59E0B" />
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -726,10 +774,40 @@ export default function MaintenanceScreen() {
             Không có phiếu bảo trì nào
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            {searchQuery || scopeFilter !== 'all' || selectedIssueType !== 'all' || selectedFloor !== 'all'
+            {searchQuery || scopeFilter !== 'all' || selectedIssueType !== 'all' || selectedFloor !== 'all' || filterStatus !== 'all'
               ? 'Thử thay đổi từ khóa hoặc bộ lọc để xem kết quả khác.'
               : 'Hiện tại toàn bộ trang thiết bị đang vận hành ổn định.'}
           </Text>
+          {(filterStatus !== 'all' || scopeFilter !== 'all' || selectedIssueType !== 'all' || selectedFloor !== 'all' || searchQuery.trim() !== '') && (
+            <TouchableOpacity
+              onPress={() => {
+                setFilterStatus('all');
+                setScopeFilter('all');
+                setSelectedIssueType('all');
+                setSelectedFloor('all');
+                setSearchQuery('');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.8}
+              style={{
+                marginTop: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: '#F59E0B',
+              }}
+            >
+              <Ionicons name="refresh" size={14} color={isDark ? '#FBBF24' : '#B45309'} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                Đặt lại bộ lọc
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -785,7 +863,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 10,
   },
@@ -947,7 +1025,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingHorizontal: 14,
-    paddingBottom: 28,
+    paddingBottom: 56,
   },
   centerContainer: {
     flex: 1,

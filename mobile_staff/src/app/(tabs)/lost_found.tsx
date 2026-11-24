@@ -93,9 +93,9 @@ export default function LostFoundScreen() {
     return { total, stored, contacted, returned, returnRate };
   }, [items]);
 
-  // Bộ lọc
+  // Bộ lọc & sắp xếp ưu tiên đồ chưa trao trả (đồng bộ với Web Admin)
   const filteredItems = useMemo(() => {
-    return items.filter((it) => {
+    const filtered = items.filter((it) => {
       let matchStatus = true;
       if (filterStatus === 'stored') {
         matchStatus = it.status === 'stored';
@@ -119,6 +119,24 @@ export default function LostFoundScreen() {
         (it.guest_name && it.guest_name.toLowerCase().includes(q));
 
       return matchStatus && matchCategory && matchSearch;
+    });
+
+    const statusPriority: Record<string, number> = {
+      stored: 1,
+      contacted: 2,
+      returned: 3,
+      disposed: 4,
+    };
+    const getTimeMs = (it: LostFoundItem) => {
+      const t = new Date(it.found_date || it.returned_date || 0).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+
+    return filtered.sort((a, b) => {
+      const pA = statusPriority[a.status] || 99;
+      const pB = statusPriority[b.status] || 99;
+      if (pA !== pB) return pA - pB;
+      return getTimeMs(b) - getTimeMs(a);
     });
   }, [items, filterStatus, selectedCategory, searchQuery]);
 
@@ -239,9 +257,15 @@ export default function LostFoundScreen() {
               !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
             ]}
             onPress={onRefresh}
+            disabled={refreshing}
             activeOpacity={0.7}
+            accessibilityLabel="Làm mới danh sách đồ thất lạc"
           >
-            <Ionicons name="refresh" size={17} color="#F59E0B" />
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#F59E0B" />
+            ) : (
+              <Ionicons name="refresh" size={17} color="#F59E0B" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -296,7 +320,7 @@ export default function LostFoundScreen() {
       </View>
 
       {/* 3. Ô Tìm Kiếm Kết Hợp Nút [Danh mục ▾] */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 12, marginBottom: 8, gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 14, marginBottom: 8, gap: 8 }}>
         <View
           style={[
             styles.searchWrapper,
@@ -378,7 +402,7 @@ export default function LostFoundScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginHorizontal: 12,
+            marginHorizontal: 14,
             marginBottom: 8,
             paddingHorizontal: 10,
             paddingVertical: 5,
@@ -490,10 +514,38 @@ export default function LostFoundScreen() {
           <Ionicons name="archive-outline" size={56} color={isDark ? '#334155' : '#CBD5E1'} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Không có vật phẩm nào</Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            {searchQuery || selectedCategory !== 'all'
+            {searchQuery || selectedCategory !== 'all' || filterStatus !== 'all'
               ? 'Thử thay đổi từ khóa hoặc bộ lọc để xem kết quả khác.'
               : 'Hiện chưa có báo cáo đồ khách để quên trong kho.'}
           </Text>
+          {(filterStatus !== 'all' || selectedCategory !== 'all' || searchQuery.trim() !== '') && (
+            <TouchableOpacity
+              onPress={() => {
+                setFilterStatus('all');
+                setSelectedCategory('all');
+                setSearchQuery('');
+                Haptics.selectionAsync();
+              }}
+              activeOpacity={0.8}
+              style={{
+                marginTop: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.16)' : '#FEF3C7',
+                borderWidth: 1,
+                borderColor: '#F59E0B',
+              }}
+            >
+              <Ionicons name="refresh" size={14} color={isDark ? '#FBBF24' : '#B45309'} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#FBBF24' : '#B45309' }}>
+                Đặt lại bộ lọc
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
@@ -549,7 +601,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 10,
   },
@@ -600,7 +652,7 @@ const styles = StyleSheet.create({
   },
   fixedFilterBar: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     gap: 6,
     marginBottom: 8,
   },
@@ -622,7 +674,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   fixedFilterLabel: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     color: '#94A3B8',
     marginTop: 1,
@@ -647,12 +699,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   categoriesContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     marginBottom: 8,
   },
   categoryScroll: {
     gap: 6,
-    paddingRight: 12,
+    paddingRight: 14,
   },
   categoryFilterChip: {
     flexDirection: 'row',
@@ -678,8 +730,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   listContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 28,
+    paddingHorizontal: 14,
+    paddingBottom: 56,
   },
   centerContainer: {
     flex: 1,

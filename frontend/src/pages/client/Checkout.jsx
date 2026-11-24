@@ -862,7 +862,7 @@ export default function Checkout() {
         'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white">
+        <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white ${!loadingRoom && room && !createdBooking ? 'pb-20 lg:pb-0' : ''}`}>
             <Navbar />
 
             {/* BREADCRUMB LIÊN KẾT */}

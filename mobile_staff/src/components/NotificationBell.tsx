@@ -316,7 +316,7 @@ export default function NotificationBell() {
       >
         <Ionicons
           name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-          size={20}
+          size={18}
           color="#F59E0B"
         />
         {unreadCount > 0 && (
@@ -539,14 +539,14 @@ export default function NotificationBell() {
 
 const styles = StyleSheet.create({
   bellButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1E293B',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#111827',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#1F2937',
     position: 'relative',
   },
   badgeContainer: {

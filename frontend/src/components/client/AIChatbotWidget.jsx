@@ -1445,9 +1445,9 @@ export default function AIChatbotWidget() {
             <div
                 className={`fixed z-[90] select-none flex flex-col items-end ${
                     isCorporatePage
-                        ? 'bottom-24 right-4 sm:bottom-6 sm:right-6'
+                        ? 'bottom-24 right-4 xl:bottom-6 xl:right-6'
                         : hasMobileStickyBar
-                            ? 'bottom-20 right-4 sm:bottom-6 sm:right-6'
+                            ? 'bottom-20 right-4 lg:bottom-6 lg:right-6'
                             : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
                 }`}
             >
