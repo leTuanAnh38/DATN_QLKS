@@ -141,10 +141,15 @@ class AdminGuestListCreateView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             # Cập nhật thêm nếu có CCCD, VIP tier từ form admin
+            # Chỉ Quản lý / Chủ KS / Admin mới được cấp hạng VIP hoặc điểm tích lũy thủ công
+            can_manage_loyalty = bool(
+                request.user.is_superuser or
+                getattr(request.user, 'role', '') in ['admin', 'owner', 'manager']
+            )
             profile = getattr(user, 'guest_profile', None)
             if profile:
                 user_updated_fields = []
-                if 'vip_tier' in request.data:
+                if 'vip_tier' in request.data and can_manage_loyalty:
                     clean_tier = str(request.data['vip_tier']).strip()
                     tier_obj = MembershipTier.objects.filter(
                         Q(code__iexact=clean_tier) | Q(name__icontains=clean_tier)
@@ -157,7 +162,7 @@ class AdminGuestListCreateView(APIView):
                     user_updated_fields.append('current_tier')
                 if 'id_card_number' in request.data:
                     profile.id_card_number = request.data['id_card_number']
-                if 'loyalty_points' in request.data:
+                if 'loyalty_points' in request.data and can_manage_loyalty:
                     pts = int(request.data.get('loyalty_points', 0))
                     profile.loyalty_points = pts
                     user.total_points = pts

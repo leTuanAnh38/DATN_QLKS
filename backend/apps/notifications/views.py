@@ -226,6 +226,14 @@ class NotificationViewSet(viewsets.ModelViewSet):
             'unread_count': count
         })
 
+    @staticmethod
+    def _can_dispatch_reminders(user):
+        return bool(
+            user
+            and user.is_authenticated
+            and (user.is_superuser or getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist'])
+        )
+
     @action(detail=False, methods=['post'], url_path='trigger-reminders')
     def trigger_reminders(self, request):
         """
@@ -233,6 +241,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
         Cho phép Admin / Lễ tân chủ động kích hoạt quét và gửi nhắc nhở Check-in/Check-out hôm nay
         Body: { "force": false }
         """
+        if not self._can_dispatch_reminders(request.user):
+            return Response(
+                {'success': False, 'message': 'Chỉ Lễ tân hoặc Quản lý mới có quyền kích hoạt gửi thông báo nhắc nhở.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         force = bool(request.data.get('force', False))
         result = send_checkin_checkout_reminders(force=force)
         return Response({
@@ -248,6 +261,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
         Gửi thông báo nhắc nhở tức thì cho một đơn đặt phòng cụ thể
         Body: { "booking_id": 123, "reminder_type": "check_in" | "check_out" | "auto" }
         """
+        if not self._can_dispatch_reminders(request.user):
+            return Response(
+                {'success': False, 'message': 'Chỉ Lễ tân hoặc Quản lý mới có quyền gửi nhắc nhở cho đơn đặt phòng.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         booking_id = request.data.get('booking_id')
         if not booking_id:
             return Response({'success': False, 'message': 'Thiếu tham số booking_id'}, status=status.HTTP_400_BAD_REQUEST)

@@ -190,12 +190,17 @@ export default function Checkout() {
             .then(res => {
                 const data = res.data?.data || res.data;
                 if (isMounted && data) {
+                    const toNumOrDefault = (val, fallback) => {
+                        if (val === undefined || val === null || val === '') return fallback;
+                        const num = Number(val);
+                        return Number.isNaN(num) ? fallback : num;
+                    };
                     setHotelSettings({
                         check_in_time: data.check_in_time || '14:00',
                         check_out_time: data.check_out_time || '12:00',
-                        vat_percent: Number(data.vat_percent) || 8,
-                        service_charge_percent: Number(data.service_charge_percent) || 5,
-                        cancellation_free_hours: Number(data.cancellation_free_hours) || 24,
+                        vat_percent: toNumOrDefault(data.vat_percent, 8),
+                        service_charge_percent: toNumOrDefault(data.service_charge_percent, 5),
+                        cancellation_free_hours: toNumOrDefault(data.cancellation_free_hours, 24),
                         hotline: data.hotline || '1900 8899',
                         hotel_name: data.hotel_name || 'Khách Sạn TA Đà Nẵng'
                     });

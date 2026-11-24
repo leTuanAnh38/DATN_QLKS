@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from ...bookings.models import Booking, GroupBooking
 from ...users.models import log_action
+from ...users.views import check_role_permission
 from ..models import CashierShift, CashOutVoucher
 from ..serializers import CashOutVoucherSerializer
 
@@ -140,6 +141,18 @@ class CashOutListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        user = request.user
+        can_view_cash_outs = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier'] or
+            check_role_permission(user, 'finance', 'read')
+        )
+        if not can_view_cash_outs:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xem danh sách phiếu chi và hoàn tiền.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         queryset = CashOutVoucher.objects.select_related('shift', 'booking', 'group_booking', 'user').all().order_by('-created_at')
 
         shift_id = request.query_params.get('shift_id')

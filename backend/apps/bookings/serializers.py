@@ -521,7 +521,14 @@ class BookingSerializer(serializers.ModelSerializer):
             return float(max(0.0, service_charge - direct_paid))
 
         if obj.status in ['completed', 'checked_out']:
-            return 0.0
+            # Nếu vẫn còn khoản phát sinh/hậu kiểm minibar chưa thanh toán (is_paid=False),
+            # phải hiển thị đúng số nợ thay vì ẩn thành 0đ
+            unpaid_extra = sum(
+                float(es.price or 0) * int(es.quantity or 1)
+                for es in obj.extra_services.all()
+                if not es.is_paid
+            )
+            return float(max(0.0, unpaid_extra))
 
         total = self.get_total_amount(obj)
         paid = self.get_paid_amount(obj)
@@ -692,6 +699,18 @@ class BookingSerializer(serializers.ModelSerializer):
             pass
         return None
 
+    def _is_fully_paid_by_payments(self, obj, all_payments):
+        from decimal import Decimal
+        total_paid = sum(
+            Decimal(str(p.amount or 0))
+            for p in all_payments
+            if p.payment_status == 'COMPLETED'
+        )
+        expected_total = Decimal(str(obj.total_amount or 0))
+        return total_paid > Decimal('0') and (
+            expected_total <= Decimal('0') or total_paid >= (expected_total - Decimal('1000'))
+        )
+
     def get_is_paid(self, obj):
         # Đơn đã hủy hoặc không đến không được coi là đã thanh toán
         if obj.status in ['cancelled', 'no_show']:
@@ -705,7 +724,8 @@ class BookingSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         try:
-            if any(p.payment_status == 'COMPLETED' for p in obj.payments.all()):
+            all_payments = list(obj.payments.all())
+            if self._is_fully_paid_by_payments(obj, all_payments):
                 return True
         except Exception:
             pass
@@ -720,12 +740,14 @@ class BookingSerializer(serializers.ModelSerializer):
             return 'CANCELLED'
         if obj.status == 'no_show':
             return 'NO_SHOW'
-        # 1. Kiểm tra trực tiếp bảng Payment
+        # 1. Kiểm tra trực tiếp bảng Payment (phải đủ tổng tiền đơn mới coi là COMPLETED)
         try:
             all_payments = list(obj.payments.all())
-            if any(p.payment_status == 'COMPLETED' for p in all_payments):
+            if self._is_fully_paid_by_payments(obj, all_payments):
                 return 'COMPLETED'
             if any(p.payment_status == 'PENDING' for p in all_payments):
+                return 'PENDING'
+            if any(p.payment_status == 'COMPLETED' for p in all_payments):
                 return 'PENDING'
         except Exception:
             pass
@@ -1027,7 +1049,10 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             'total_rooms', 'sub_bookings', 'rooms_summary',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'group_code', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'group_code', 'total_amount', 'deposit_amount',
+            'is_deposit_paid', 'status', 'created_at', 'updated_at'
+        ]
 
     def _get_free_hours(self):
         if not hasattr(self, '_cached_free_hours'):

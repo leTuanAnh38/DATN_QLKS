@@ -222,13 +222,22 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         check_id = request.data.get('check_id')
 
         booking = None
+        is_post_checkout_booking = False
         if booking_id and str(booking_id) not in ['', 'null', 'undefined', 'None']:
             booking = Booking.objects.filter(pk=booking_id).first()
+            if booking and booking.status in ['completed', 'checked_out']:
+                is_post_checkout_booking = True
         if not booking:
-            # Tự động tìm booking: ưu tiên checked_in, nếu không có lấy booking vừa completed gần nhất (trong vòng 24h)
+            # Ưu tiên đơn đang lưu trú (checked_in); nếu khách vừa trả phòng trong vòng 24h gần nhất thì chỉ gắn tham chiếu hậu kiểm
             booking = room.bookings.filter(status='checked_in').first()
             if not booking:
-                booking = room.bookings.filter(status='completed').order_by('-actual_check_out', '-id').first()
+                recent_cutoff = timezone.now() - timezone.timedelta(hours=24)
+                booking = room.bookings.filter(
+                    status__in=['completed', 'checked_out'],
+                    actual_check_out__gte=recent_cutoff
+                ).order_by('-actual_check_out', '-id').first()
+                if booking:
+                    is_post_checkout_booking = True
 
         # Tính tổng tiền và lọc các món có tiêu thụ
         valid_consumed = []
@@ -314,7 +323,15 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
         extra_services_created = 0
         maintenance_ticket_created = None
         room_prefix = f"[P.{room.room_number}]"
-        if booking:
+        # Chỉ tự động ghi phụ phí vào Folio khi đơn đang checked_in (hoặc hậu kiểm có phát sinh cần truy thu rõ ràng)
+        # Không âm thầm ghi đè/gắn nợ vào đơn lịch sử cũ ngoài 24h
+        should_bill_to_booking = bool(
+            booking and (
+                not is_post_checkout_booking or
+                (valid_consumed or (has_damage and damage_amt > 0))
+            )
+        )
+        if should_bill_to_booking:
             # Xóa các khoản Minibar / Đền bù hư hại CHƯA THANH TOÁN của lần kiểm kê trước (tránh nhân đôi công nợ khi gửi lại phiếu)
             BookingExtraService.objects.filter(
                 booking=booking,
@@ -331,12 +348,14 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 Q(service_name__startswith=f'{room_prefix} [Đền bù hư hại]')
             ).delete()
 
+            post_tag = " [Hậu kiểm sau trả phòng]" if is_post_checkout_booking else ""
+
             # 1. Tự động đồng bộ các món Minibar vào BookingExtraService (Gắn rõ số phòng cho Hóa đơn đoàn)
             if valid_consumed:
                 for it in valid_consumed:
                     BookingExtraService.objects.create(
                         booking=booking,
-                        service_name=f"{room_prefix} [Minibar] {it['name']}",
+                        service_name=f"{room_prefix} [Minibar] {it['name']}{post_tag}",
                         quantity=it['quantity'],
                         price=it['price'],
                         is_paid=False
@@ -354,7 +373,7 @@ class MinibarCheckViewSet(viewsets.ModelViewSet):
                 if not already_billed_by_ticket:
                     BookingExtraService.objects.create(
                         booking=booking,
-                        service_name=f"{room_prefix} [Đền bù hư hại] {damage_label}",
+                        service_name=f"{room_prefix} [Đền bù hư hại] {damage_label}{post_tag}",
                         quantity=1,
                         price=damage_amt,
                         is_paid=False

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { getLocalDateString } from '../../../utils/formatters';
 import { useAuth } from '../../../store/authStore';
 import { bookingService } from '../../../services/bookingService';
 import { hotelService } from '../../../services/hotelService';
@@ -695,7 +696,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const dateTag = new Date().toISOString().split('T')[0];
+        const dateTag = getLocalDateString();
         link.href = url;
         link.setAttribute('download', `Danh_Sach_Dat_Phong_${dateTag}.csv`);
         document.body.appendChild(link);
@@ -1056,7 +1057,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                                         if (booking.status !== 'confirmed') return null;
                                                         const bCheckIn = booking.check_in_date ? String(booking.check_in_date).split('T')[0] : '';
                                                         const bCheckOut = booking.check_out_date ? String(booking.check_out_date).split('T')[0] : '';
-                                                        const todayStr = new Date().toISOString().split('T')[0];
+                                                        const todayStr = getLocalDateString();
                                                         const currentHour = new Date().getHours();
 
                                                         if (bCheckOut && bCheckOut <= todayStr) {
@@ -1488,7 +1489,7 @@ export default function BookingManagement({ onBookingChanged, initialFilter = 'a
                                             if (booking.status !== 'confirmed') return null;
                                             const bCheckIn = booking.check_in_date ? String(booking.check_in_date).split('T')[0] : '';
                                             const bCheckOut = booking.check_out_date ? String(booking.check_out_date).split('T')[0] : '';
-                                            const todayStr = new Date().toISOString().split('T')[0];
+                                            const todayStr = getLocalDateString();
                                             const currentHour = new Date().getHours();
 
                                             if (bCheckOut && bCheckOut <= todayStr) {

@@ -44,7 +44,7 @@ import MinibarModal from '../../../components/admin/modals/room/MinibarModal';
 import ReportLostItemModal from '../../../components/admin/modals/shared/ReportLostItemModal';
 import { useAuth } from '../../../store/authStore';
 import { useHasPermission } from '../../../utils/permission';
-import { formatDate, formatDateTime } from '../../../utils/formatters';
+import { formatDate, formatDateTime, getLocalDateString } from '../../../utils/formatters';
 import { ROOM_STATUSES, ISSUE_TYPE_MAP } from '../../../utils/constants';
 import {
     RoomCard,
@@ -471,7 +471,7 @@ export default function RoomManagement({ onNavigateToBookings, onNavigateToCusto
         }
         if (!assignModalRoom || isSubmittingAssignCheckIn) return;
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
         const isExpired = booking.check_out_date && String(booking.check_out_date).split('T')[0] <= todayStr;
         if (isExpired) {
             setAlertMessage({

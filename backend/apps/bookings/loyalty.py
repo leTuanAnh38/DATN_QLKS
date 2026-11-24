@@ -58,11 +58,10 @@ def upgrade_user_membership_tier(user):
 
 def award_booking_loyalty_points(booking):
     """
-    Logic tích điểm khi đơn đặt phòng chuyển sang COMPLETED (lúc check-out):
-    - Cứ 100.000 VNĐ thanh toán thành công -> cộng 1 điểm.
-    - Cập nhật total_points của User.
-    - Tự động nâng hạng thẻ nếu đủ điểm.
-    - Gửi thông báo chúc mừng & tạo Audit Log.
+    Logic tích điểm khi đơn đặt phòng chuyển sang COMPLETED và ĐÃ THANH TOÁN THỰC TẾ:
+    - Đoàn B2B trả sau (master_invoice chưa 'paid'): KHÔNG cộng điểm cho tới khi quyết toán xong hóa đơn tổng.
+    - Đơn lẻ: chỉ cộng điểm khi hóa đơn đã 'paid' hoặc có giao dịch Payment COMPLETED.
+    - Số tiền tính điểm bao gồm tiền phòng + dịch vụ phát sinh đã thanh toán (100.000 VNĐ = 1 điểm).
     """
     if not booking or not booking.guest:
         return 0, False
@@ -74,14 +73,46 @@ def award_booking_loyalty_points(booking):
     if booking.is_points_awarded:
         return 0, False
 
+    from ..payments.models import Invoice
+
     with transaction.atomic():
-        user = booking.guest
-        points_to_award = calculate_points_from_amount(booking.total_amount)
+        locked_booking = Booking.objects.select_for_update().select_related(
+            'guest', 'group_booking', 'invoice'
+        ).filter(pk=booking.pk).first()
+        if not locked_booking or locked_booking.status != 'completed' or locked_booking.is_points_awarded or not locked_booking.guest:
+            return 0, False
+
+        # Kiểm tra điều kiện đã thanh toán thực tế trước khi cộng điểm
+        if locked_booking.group_booking_id:
+            master_inv = Invoice.objects.filter(group_booking_id=locked_booking.group_booking_id).first()
+            if not master_inv or master_inv.status != 'paid':
+                return 0, False
+            incidental_paid = sum(
+                Decimal(str(es.price or 0)) * int(es.quantity or 1)
+                for es in locked_booking.extra_services.filter(is_paid=True).exclude(service_name__endswith='[Đặt kèm]')
+            )
+            eligible_amount = Decimal(str(locked_booking.total_amount or 0)) + incidental_paid
+        else:
+            inv = getattr(locked_booking, 'invoice', None)
+            has_paid_invoice = bool(inv and inv.status == 'paid')
+            has_completed_payment = locked_booking.payments.filter(payment_status='COMPLETED').exists()
+            if not (has_paid_invoice or has_completed_payment):
+                return 0, False
+            if has_paid_invoice and inv.total_amount:
+                eligible_amount = Decimal(str(inv.total_amount))
+            else:
+                incidental_paid = sum(
+                    Decimal(str(es.price or 0)) * int(es.quantity or 1)
+                    for es in locked_booking.extra_services.filter(is_paid=True).exclude(service_name__endswith='[Đặt kèm]')
+                )
+                eligible_amount = Decimal(str(locked_booking.total_amount or 0)) + incidental_paid
+
+        user = locked_booking.guest
+        points_to_award = calculate_points_from_amount(eligible_amount)
 
         if points_to_award <= 0:
-            # Vẫn đánh dấu để tránh tính lại
             booking.is_points_awarded = True
-            Booking.objects.filter(pk=booking.pk).update(is_points_awarded=True)
+            Booking.objects.filter(pk=locked_booking.pk).update(is_points_awarded=True)
             return 0, False
 
         # 1. Cộng điểm tích lũy
@@ -93,12 +124,12 @@ def award_booking_loyalty_points(booking):
 
         # 3. Đánh dấu booking đã cộng điểm (dùng update để không kích hoạt đệ quy signal post_save)
         booking.is_points_awarded = True
-        Booking.objects.filter(pk=booking.pk).update(is_points_awarded=True)
+        Booking.objects.filter(pk=locked_booking.pk).update(is_points_awarded=True)
 
         # 4. Gửi thông báo đến người dùng
         try:
             from ..notifications.models import Notification
-            notify_content = f"Quý khách vừa được cộng +{points_to_award} điểm tích lũy từ đơn đặt phòng #{booking.booking_code}."
+            notify_content = f"Quý khách vừa được cộng +{points_to_award} điểm tích lũy từ đơn đặt phòng #{locked_booking.booking_code}."
             if is_upgraded and new_tier:
                 notify_content += f" Chúc mừng quý khách đã thăng hạng thành viên: {new_tier.name} (Hưởng giảm giá {new_tier.discount_percent}% cho các lần đặt phòng tiếp theo)!"
 
@@ -119,7 +150,7 @@ def award_booking_loyalty_points(booking):
                 user=user,
                 action='UPDATE',
                 module='LOYALTY',
-                description=f"Cộng {points_to_award} điểm thưởng từ đơn {booking.booking_code}. Tổng điểm hiện tại: {user.total_points}."
+                description=f"Cộng {points_to_award} điểm thưởng từ đơn {locked_booking.booking_code} (giá trị tính điểm: {eligible_amount:,.0f} đ). Tổng điểm hiện tại: {user.total_points}."
             )
         except Exception:
             pass

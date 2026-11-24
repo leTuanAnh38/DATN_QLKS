@@ -67,12 +67,22 @@ class Invoice(models.Model):
             (self.booking and getattr(self.booking, 'customer_type', '') == 'CORPORATE') or
             self.group_booking_id
         )
-        if is_corp and self.total_amount and Decimal(str(self.total_amount)) > 0 and (not self.pk or not self.tax):
+        # Tự động bóc tách Phí dịch vụ + Thuế VAT cho hóa đơn doanh nghiệp / đoàn
+        # Tính lại khi tạo mới, chưa có thuế, hoặc khi hóa đơn chưa thanh toán (tránh sai lệch khi tổng tiền thay đổi)
+        should_recalc_tax = bool(
+            is_corp
+            and self.total_amount
+            and Decimal(str(self.total_amount)) > 0
+            and (not self.pk or self.status != 'paid' or not self.tax)
+        )
+        if should_recalc_tax:
             try:
                 from ..bookings.models import HotelSetting
                 hs = HotelSetting.get_solo()
-                svc_rate = Decimal(str(hs.service_charge_percent or 5)) / Decimal('100')
-                vat_rate = Decimal(str(hs.vat_percent or 8)) / Decimal('100')
+                svc_val = hs.service_charge_percent if hs.service_charge_percent is not None else 5
+                vat_val = hs.vat_percent if hs.vat_percent is not None else 8
+                svc_rate = Decimal(str(svc_val)) / Decimal('100')
+                vat_rate = Decimal(str(vat_val)) / Decimal('100')
             except Exception:
                 svc_rate = Decimal('0.05')
                 vat_rate = Decimal('0.08')
@@ -80,6 +90,9 @@ class Invoice(models.Model):
             total_dec = Decimal(str(self.total_amount))
             base_pre_tax = (total_dec / multiplier).quantize(Decimal('1'))
             self.tax = max(Decimal('0'), total_dec - base_pre_tax)
+            update_fields = kwargs.get('update_fields')
+            if update_fields is not None and 'total_amount' in update_fields and 'tax' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['tax']
         super().save(*args, **kwargs)
 
     class Meta:

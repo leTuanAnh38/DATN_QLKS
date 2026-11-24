@@ -162,7 +162,9 @@ class ReportsAnalyticsView(APIView):
                     sold_room_nights += diff_n
 
         days_in_period = max(1, (period_end_d - period_start_d).days + 1)
-        available_room_nights = total_rooms_count * days_in_period
+        # Chỉ tính quỹ phòng khả dụng (loại trừ phòng đang bảo trì) khi tính Công suất phòng & RevPAR
+        sellable_rooms_count = max(0, total_rooms_count - maintenance_rooms_count)
+        available_room_nights = sellable_rooms_count * days_in_period
         occupancy_rate = 0.0
         if available_room_nights > 0:
             occupancy_rate = min(100.0, round((sold_room_nights / available_room_nights) * 100, 1))
@@ -173,14 +175,20 @@ class ReportsAnalyticsView(APIView):
             average_order_value = round(period_revenue / period_bookings_count, 0)
 
         # =====================================================================
-        # =====================================================================
-        # PHẦN 2: BIỂU ĐỒ DOANH THU THEO THỜI GIAN (Xử lý Python an toàn với múi giờ DB)
+        # PHẦN 2: BIỂU ĐỒ DOANH THU THUẦN THEO THỜI GIAN (Đã trừ phiếu chi hoàn tiền)
         # =====================================================================
         revenue_chart_data = []
 
-        # Lấy dữ liệu các hóa đơn đã thanh toán trong kỳ
+        # Lấy dữ liệu các hóa đơn đã thanh toán & phiếu chi hoàn tiền trong kỳ
         chart_invoices_data = list(
             period_invoices.values('paid_at', 'created_at', 'total_amount')
+        )
+        chart_refunds_data = list(
+            CashOutVoucher.objects.filter(
+                category__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
+                created_at__gte=start_date,
+                created_at__lte=end_date,
+            ).values('created_at', 'amount')
         )
 
         if filter_type == 'day':
@@ -203,6 +211,13 @@ class ReportsAnalyticsView(APIView):
                 slot = hour_dict.setdefault(h, {'slot_revenue': 0.0, 'slot_count': 0})
                 slot['slot_revenue'] += float(inv['total_amount'] or 0)
                 slot['slot_count'] += 1
+            for ref in chart_refunds_data:
+                ts = ref['created_at']
+                if not ts:
+                    continue
+                h = timezone.localtime(ts).hour
+                slot = hour_dict.setdefault(h, {'slot_revenue': 0.0, 'slot_count': 0})
+                slot['slot_revenue'] -= float(ref['amount'] or 0)
 
             for label, start_h, end_h in time_slots:
                 slot_rev = 0.0
@@ -214,7 +229,7 @@ class ReportsAnalyticsView(APIView):
                 revenue_chart_data.append({
                     'date': label,
                     'full_date': f"{today.strftime('%d/%m/%Y')} {label}",
-                    'revenue': int(slot_rev),
+                    'revenue': int(max(0.0, slot_rev)),
                     'booking_count': slot_cnt,
                 })
 
@@ -230,6 +245,13 @@ class ReportsAnalyticsView(APIView):
                 day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
                 day_info['day_revenue'] += float(inv['total_amount'] or 0)
                 day_info['day_count'] += 1
+            for ref in chart_refunds_data:
+                ts = ref['created_at']
+                if not ts:
+                    continue
+                d = timezone.localtime(ts).date()
+                day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
+                day_info['day_revenue'] -= float(ref['amount'] or 0)
 
             weekday_names = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
             for i in range(7):
@@ -240,7 +262,7 @@ class ReportsAnalyticsView(APIView):
                 revenue_chart_data.append({
                     'date': f"{weekday_names[curr_date.weekday()]} ({curr_date.strftime('%d/%m')})",
                     'full_date': curr_date.strftime('%Y-%m-%d'),
-                    'revenue': int(rev),
+                    'revenue': int(max(0.0, rev)),
                     'booking_count': cnt,
                 })
 
@@ -256,6 +278,13 @@ class ReportsAnalyticsView(APIView):
                 m_info = monthly_dict.setdefault(m, {'month_revenue': 0.0, 'month_count': 0})
                 m_info['month_revenue'] += float(inv['total_amount'] or 0)
                 m_info['month_count'] += 1
+            for ref in chart_refunds_data:
+                ts = ref['created_at']
+                if not ts:
+                    continue
+                m = timezone.localtime(ts).month
+                m_info = monthly_dict.setdefault(m, {'month_revenue': 0.0, 'month_count': 0})
+                m_info['month_revenue'] -= float(ref['amount'] or 0)
 
             for m in range(1, 13):
                 match = monthly_dict.get(m)
@@ -264,7 +293,7 @@ class ReportsAnalyticsView(APIView):
                 revenue_chart_data.append({
                     'date': f"Tháng {m}",
                     'full_date': f"{today.year}-{m:02d}",
-                    'revenue': int(rev),
+                    'revenue': int(max(0.0, rev)),
                     'booking_count': cnt,
                 })
 
@@ -280,6 +309,13 @@ class ReportsAnalyticsView(APIView):
                 day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
                 day_info['day_revenue'] += float(inv['total_amount'] or 0)
                 day_info['day_count'] += 1
+            for ref in chart_refunds_data:
+                ts = ref['created_at']
+                if not ts:
+                    continue
+                d = timezone.localtime(ts).date()
+                day_info = daily_dict.setdefault(d, {'day_revenue': 0.0, 'day_count': 0})
+                day_info['day_revenue'] -= float(ref['amount'] or 0)
 
             _, days_in_month = calendar.monthrange(today.year, today.month)
             for d in range(1, days_in_month + 1):
@@ -290,7 +326,7 @@ class ReportsAnalyticsView(APIView):
                 revenue_chart_data.append({
                     'date': f"{d:02d}/{today.month:02d}",
                     'full_date': curr_date.strftime('%Y-%m-%d'),
-                    'revenue': int(rev),
+                    'revenue': int(max(0.0, rev)),
                     'booking_count': cnt,
                 })
 
@@ -327,7 +363,7 @@ class ReportsAnalyticsView(APIView):
             })
 
         # =====================================================================
-        # PHẦN 4: THỐNG KÊ DOANH THU THEO LOẠI PHÒNG (Revenue by Room Category)
+        # PHẦN 4: THỐNG KÊ DOANH THU THEO LOẠI PHÒNG (Gồm cả hóa đơn lẻ và phân bổ hóa đơn đoàn)
         # =====================================================================
         category_palette = [
             '#2563eb',  # Blue 600
@@ -338,32 +374,73 @@ class ReportsAnalyticsView(APIView):
             '#0891b2',  # Cyan 600
         ]
 
-        # Thống kê doanh thu theo loại phòng từ hóa đơn đã thanh toán trong kỳ
-        cat_rev_qs = (
-            Invoice.objects.filter(
-                status='paid',
-                paid_at__gte=start_date,
-                paid_at__lte=end_date,
-                booking__category__isnull=False
-            )
+        # 4.1 Hóa đơn khách lẻ trong kỳ
+        cat_rev_map = {}
+        indiv_cat_qs = (
+            period_invoices.filter(booking__category__isnull=False)
             .values('booking__category__id', 'booking__category__name')
             .annotate(
                 total_rev=Coalesce(Sum('total_amount'), Decimal(0)),
                 booking_count=Count('id')
             )
-            .order_by('-total_rev')
         )
+        for item in indiv_cat_qs:
+            cid = item['booking__category__id']
+            cat_rev_map[cid] = {
+                'category_id': cid,
+                'category_name': item['booking__category__name'],
+                'revenue': float(item['total_rev'] or 0),
+                'booking_count': int(item['booking_count'] or 0),
+            }
 
-        total_cat_rev = sum([float(item['total_rev']) for item in cat_rev_qs]) or 1.0
+        # 4.2 Phân bổ hóa đơn đoàn đã thanh toán trong kỳ (theo tỷ trọng từng phòng con)
+        period_group_invoices = list(
+            period_invoices.filter(group_booking__isnull=False)
+            .select_related('group_booking')
+            .prefetch_related(
+                'group_booking__sub_bookings__category',
+                'group_booking__sub_bookings__room__category',
+                'group_booking__sub_bookings__guest',
+            )
+        )
+        group_spent_by_user = {}
+        for ginv in period_group_invoices:
+            inv_total = float(ginv.total_amount or 0)
+            if inv_total <= 0 or not ginv.group_booking:
+                continue
+            active_subs = [
+                b for b in ginv.group_booking.sub_bookings.all()
+                if b.status not in ('cancelled', 'no_show')
+            ]
+            if not active_subs:
+                continue
+            sub_sum = sum(float(b.total_amount or 0) for b in active_subs)
+            for sub in active_subs:
+                share = (inv_total * (float(sub.total_amount or 0) / sub_sum)) if sub_sum > 0 else (inv_total / len(active_subs))
+                cat_obj = sub.category or (sub.room.category if sub.room else None)
+                if cat_obj:
+                    entry = cat_rev_map.setdefault(cat_obj.id, {
+                        'category_id': cat_obj.id,
+                        'category_name': cat_obj.name,
+                        'revenue': 0.0,
+                        'booking_count': 0,
+                    })
+                    entry['revenue'] += share
+                    entry['booking_count'] += 1
+                if sub.guest_id:
+                    group_spent_by_user[sub.guest_id] = group_spent_by_user.get(sub.guest_id, 0.0) + share
+
+        sorted_cats = sorted(cat_rev_map.values(), key=lambda x: x['revenue'], reverse=True)
+        total_cat_rev = sum(item['revenue'] for item in sorted_cats) or 1.0
 
         revenue_by_category_data = []
-        for idx, item in enumerate(cat_rev_qs):
-            rev_val = float(item['total_rev'])
+        for idx, item in enumerate(sorted_cats):
+            rev_val = float(item['revenue'])
             pct = round((rev_val / total_cat_rev) * 100, 1)
             revenue_by_category_data.append({
-                'category_id': item['booking__category__id'],
-                'category_name': item['booking__category__name'],
-                'name': item['booking__category__name'],
+                'category_id': item['category_id'],
+                'category_name': item['category_name'],
+                'name': item['category_name'],
                 'revenue': int(rev_val),
                 'booking_count': item['booking_count'],
                 'percentage': pct,
@@ -371,9 +448,9 @@ class ReportsAnalyticsView(APIView):
             })
 
         # =====================================================================
-        # PHẦN 5: TOP PHÒNG (Top 5 phòng được đặt nhiều nhất trong kỳ)
+        # PHẦN 5: TOP PHÒNG (Top 5 phòng được đặt nhiều nhất trong kỳ - Gồm cả doanh thu đoàn)
         # =====================================================================
-        top_rooms_qs = (
+        top_rooms_raw = list(
             Booking.objects.filter(
                 room__isnull=False,
                 check_in_date__lte=period_end_d,
@@ -393,27 +470,67 @@ class ReportsAnalyticsView(APIView):
                     Decimal(0)
                 )
             )
-            .order_by('-booking_count', '-total_rev')[:5]
         )
-
-        top_rooms_data = []
-        for item in top_rooms_qs:
-            top_rooms_data.append({
+        room_rev_map = {
+            item['room__id']: {
                 'room_id': item['room__id'],
                 'room_number': f"P.{item['room__room_number']}",
                 'name': f"Phòng {item['room__room_number']}",
                 'category_name': item['room__category__name'] or 'Tiêu chuẩn',
                 'floor': item['room__floor'] or 1,
-                'booking_count': item['booking_count'],
-                'total_revenue': int(float(item['total_rev'])),
-            })
+                'booking_count': int(item['booking_count'] or 0),
+                'total_revenue': float(item['total_rev'] or 0),
+            }
+            for item in top_rooms_raw
+        }
+
+        # Cộng phần doanh thu từ master_invoice(paid) của các đoàn có phòng lưu trú trong kỳ
+        period_group_ids_for_rooms = set(
+            Booking.objects.filter(
+                room__isnull=False,
+                group_booking__isnull=False,
+                check_in_date__lte=period_end_d,
+                check_out_date__gte=period_start_d
+            ).exclude(status__in=['cancelled', 'no_show']).values_list('group_booking_id', flat=True)
+        )
+        if period_group_ids_for_rooms:
+            paid_group_invs_for_rooms = (
+                Invoice.objects.filter(group_booking_id__in=period_group_ids_for_rooms, status='paid')
+                .select_related('group_booking')
+                .prefetch_related('group_booking__sub_bookings')
+            )
+            for ginv in paid_group_invs_for_rooms:
+                inv_total = float(ginv.total_amount or 0)
+                if inv_total <= 0 or not ginv.group_booking:
+                    continue
+                active_subs = [
+                    b for b in ginv.group_booking.sub_bookings.all()
+                    if b.status not in ('cancelled', 'no_show')
+                ]
+                if not active_subs:
+                    continue
+                sub_sum = sum(float(b.total_amount or 0) for b in active_subs)
+                for sub in active_subs:
+                    if sub.room_id in room_rev_map:
+                        share = (inv_total * (float(sub.total_amount or 0) / sub_sum)) if sub_sum > 0 else (inv_total / len(active_subs))
+                        room_rev_map[sub.room_id]['total_revenue'] += share
+
+        top_rooms_sorted = sorted(
+            room_rev_map.values(),
+            key=lambda r: (r['booking_count'], r['total_revenue']),
+            reverse=True
+        )[:5]
+        top_rooms_data = [
+            {**item, 'total_revenue': int(item['total_revenue'])}
+            for item in top_rooms_sorted
+        ]
 
         # =====================================================================
-        # PHẦN 6: TOP KHÁCH HÀNG VIP (Top 5 khách có chi tiêu cao nhất trong kỳ)
+        # PHẦN 6: TOP KHÁCH HÀNG VIP (Top 5 khách có chi tiêu cao nhất trong kỳ - Gồm cả khách đoàn)
         # =====================================================================
-        top_vip_qs = (
-            User.objects.annotate(
-                total_spent=Coalesce(
+        top_vip_candidates = list(
+            User.objects.select_related('guest_profile').annotate(
+                indiv_spent=Coalesce(
                     Sum(
                         'bookings__invoice__total_amount',
                         filter=Q(
@@ -432,12 +549,18 @@ class ReportsAnalyticsView(APIView):
                     )
                 )
             )
-            .filter(Q(total_spent__gt=0) | Q(booking_count__gt=0))
-            .order_by('-total_spent', '-booking_count')[:5]
+            .filter(Q(indiv_spent__gt=0) | Q(booking_count__gt=0) | Q(id__in=group_spent_by_user.keys()))
         )
 
+        ranked_vips = []
+        for u in top_vip_candidates:
+            combined_spent = float(u.indiv_spent or 0) + float(group_spent_by_user.get(u.id, 0.0))
+            if combined_spent > 0 or u.booking_count > 0:
+                ranked_vips.append((u, combined_spent))
+        ranked_vips.sort(key=lambda pair: (pair[1], pair[0].booking_count), reverse=True)
+
         top_vip_data = []
-        for rank, u in enumerate(top_vip_qs, start=1):
+        for rank, (u, combined_spent) in enumerate(ranked_vips[:5], start=1):
             full_name = u.get_full_name() or u.username
             avatar_url = None
             if u.avatar:
@@ -449,11 +572,11 @@ class ReportsAnalyticsView(APIView):
             vip_tier = 'Silver'
             if hasattr(u, 'guest_profile') and u.guest_profile:
                 vip_tier = u.guest_profile.vip_tier or 'Silver'
-            elif float(u.total_spent) >= 20000000:
+            elif combined_spent >= 20000000:
                 vip_tier = 'Diamond'
-            elif float(u.total_spent) >= 10000000:
+            elif combined_spent >= 10000000:
                 vip_tier = 'Platinum'
-            elif float(u.total_spent) >= 5000000:
+            elif combined_spent >= 5000000:
                 vip_tier = 'Gold'
 
             top_vip_data.append({
@@ -465,7 +588,7 @@ class ReportsAnalyticsView(APIView):
                 'phone_number': u.phone_number or '—',
                 'avatar': avatar_url,
                 'vip_tier': vip_tier,
-                'total_spent': int(float(u.total_spent)),
+                'total_spent': int(combined_spent),
                 'booking_count': u.booking_count,
             })
 

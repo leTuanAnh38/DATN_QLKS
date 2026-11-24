@@ -148,18 +148,30 @@ class SepayWebhookView(APIView):
                 )
                 deposit_required = Decimal(str(group_booking.deposit_amount or 0))
                 full_required = Decimal(str(group_booking.total_amount or 0))
+                is_deposit_met = deposit_required <= Decimal('0') or total_group_paid >= (deposit_required - Decimal('1000'))
+                is_full_met = full_required > Decimal('0') and total_group_paid >= (full_required - Decimal('1000'))
 
-                if deposit_required <= Decimal('0') or total_group_paid >= (deposit_required - Decimal('1000')):
+                if is_deposit_met:
                     group_booking.is_deposit_paid = True
                     if group_booking.status == 'tentative':
                         group_booking.status = 'confirmed'
+                elif deposit_required > total_group_paid:
+                    # Chuyển khoản thiếu tiền cọc: tạo lại khoản PENDING cho phần cọc còn thiếu để theo dõi thu tiếp
+                    remaining_deposit = deposit_required - total_group_paid
+                    Payment.objects.create(
+                        group_booking=group_booking,
+                        amount=remaining_deposit,
+                        payment_method='TRANSFER',
+                        payment_status='PENDING',
+                        transaction_id=f"TXN-{group_booking.group_code}-REM"
+                    )
                 grp_note = (group_booking.note or '').strip()
                 pay_note = f"SePay VietQR Auto ({transfer_amount:,.0f} VND)"
                 if pay_note not in grp_note:
                     group_booking.note = f"{grp_note} | {pay_note}" if grp_note else pay_note
                 group_booking.save(update_fields=['is_deposit_paid', 'status', 'note'])
 
-                if total_group_paid >= (full_required - Decimal('1000')) and full_required > Decimal('0'):
+                if is_full_met:
                     if hasattr(group_booking, 'master_invoice') and group_booking.master_invoice:
                         inv = group_booking.master_invoice
                         inv.status = 'paid'
@@ -183,23 +195,34 @@ class SepayWebhookView(APIView):
                 user=None,
                 action='CREATE',
                 module='INVOICE',
-                description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho Đơn Đoàn #{group_booking.group_code}",
+                description=f"SePay Webhook tự động ghi nhận thanh toán {transfer_amount:,.0f} VND cho Đơn Đoàn #{group_booking.group_code} (Tổng đã thu: {total_group_paid:,.0f} VND)",
                 request=request
             )
 
-            # Gửi email HTML 5 sao xác nhận thanh toán/đặt cọc thành công cho toàn đoàn
-            try:
-                send_group_booking_email_async(
-                    group_booking=group_booking,
-                    email_type='payment_success'
-                )
-            except Exception:
-                pass
+            # Chỉ gửi email xác nhận thanh toán/đặt cọc thành công khi đã chuyển đủ tối thiểu mức cọc
+            if is_deposit_met or is_full_met:
+                try:
+                    send_group_booking_email_async(
+                        group_booking=group_booking,
+                        email_type='payment_success'
+                    )
+                except Exception:
+                    pass
 
             return Response({
                 "success": True,
-                "message": f"Webhook SePay: Thanh toán cho Đơn Đoàn {group_booking.group_code} thành công!",
-                "data": {"group_code": group_booking.group_code, "amount": float(transfer_amount)}
+                "message": (
+                    f"Webhook SePay: Thanh toán cho Đơn Đoàn {group_booking.group_code} thành công!"
+                    if (is_deposit_met or is_full_met)
+                    else f"Webhook SePay: Đã ghi nhận thanh toán một phần ({transfer_amount:,.0f} VND) cho Đơn Đoàn {group_booking.group_code}, vẫn còn thiếu cọc."
+                ),
+                "data": {
+                    "group_code": group_booking.group_code,
+                    "amount": float(transfer_amount),
+                    "total_paid": float(total_group_paid),
+                    "is_deposit_paid": bool(group_booking.is_deposit_paid),
+                    "is_fully_paid": bool(is_full_met),
+                }
             }, status=status.HTTP_200_OK)
 
         # 4. Cập nhật thanh toán và trạng thái Booking đơn lẻ trong Database
@@ -264,6 +287,16 @@ class SepayWebhookView(APIView):
 
                 booking.service_requests.filter(is_paid=False).update(is_paid=True)
                 booking.extra_services.filter(is_paid=False).update(is_paid=True)
+            elif expected_total > total_paid:
+                # Khách chuyển khoản thiếu: tạo lại khoản PENDING đúng bằng số tiền còn thiếu để không bị xóa mất công nợ
+                remaining_due = expected_total - total_paid
+                Payment.objects.create(
+                    booking=booking,
+                    amount=remaining_due,
+                    payment_method='TRANSFER',
+                    payment_status='PENDING',
+                    transaction_id=f"TXN-{booking.booking_code}-REM"
+                )
 
             note_str = (booking.note or '').strip()
             pay_note = f"SePay VietQR Auto ({transfer_amount:,.0f} VND)"
@@ -275,27 +308,33 @@ class SepayWebhookView(APIView):
             user=getattr(booking, 'guest', None),
             action='UPDATE',
             module='PAYMENT',
-            description=f"SePay Webhook tự động xác nhận thanh toán {transfer_amount:,.0f} VND cho đơn {booking.booking_code}",
+            description=f"SePay Webhook ghi nhận thanh toán {transfer_amount:,.0f} VND cho đơn {booking.booking_code} (Tổng đã thu: {total_paid:,.0f}/{expected_total:,.0f} VND)",
             request=request
         )
 
-        # TRIGGER 2 - Khi khách quét mã VietQR và Webhook SePay báo tiền về thành công:
-        # Ngay sau khi cập nhật trạng thái đơn sang đã thanh toán, tự động gọi lại hàm gửi email chạy ngầm
-        recipient_target = None
-        if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.invoice_recipient_email:
-            recipient_target = booking.invoice.invoice_recipient_email.strip()
-        elif booking.guest and booking.guest.email:
-            recipient_target = booking.guest.email.strip()
+        # TRIGGER 2 - Chỉ gửi email xác nhận ĐÃ THANH TOÁN THÀNH CÔNG khi khách đã chuyển đủ số tiền đơn
+        if is_fully_paid:
+            recipient_target = None
+            if hasattr(booking, 'invoice') and booking.invoice and booking.invoice.invoice_recipient_email:
+                recipient_target = booking.invoice.invoice_recipient_email.strip()
+            elif booking.guest and booking.guest.email:
+                recipient_target = booking.guest.email.strip()
 
-        send_booking_email_async(
-            booking=booking,
-            email_type='payment_success',
-            custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}",
-            recipient_email=recipient_target
-        )
+            send_booking_email_async(
+                booking=booking,
+                email_type='payment_success',
+                custom_subject=f"[Khách Sạn TA Đà Nẵng] Xác nhận ĐÃ THANH TOÁN THÀNH CÔNG - Đơn #{booking.booking_code}",
+                recipient_email=recipient_target
+            )
 
         return Response({
             "success": True,
-            "message": f"Đã cập nhật trạng thái COMPLETED cho đơn {booking.booking_code} thành công!",
-            "booking_code": booking.booking_code
+            "message": (
+                f"Đã cập nhật trạng thái COMPLETED cho đơn {booking.booking_code} thành công!"
+                if is_fully_paid
+                else f"Đã ghi nhận thanh toán một phần ({transfer_amount:,.0f} VND) cho đơn {booking.booking_code}, còn thiếu {(expected_total - total_paid):,.0f} VND."
+            ),
+            "booking_code": booking.booking_code,
+            "is_fully_paid": bool(is_fully_paid),
+            "total_paid": float(total_paid),
         }, status=status.HTTP_200_OK)

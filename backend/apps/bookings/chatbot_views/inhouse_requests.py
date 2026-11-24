@@ -450,9 +450,15 @@ def handle_lost_and_found_inquiry(message, request, history=None):
         }
 
     room_obj = active_bk.room
+    # Chỉ trả về đồ thất lạc gắn đúng booking của khách hiện tại (hoặc đồ chưa gắn booking nhặt trong thời gian lưu trú của khách)
+    # Tuyệt đối không lộ tài sản bỏ quên của khách ở lượt trước trong cùng phòng
     q_filter = Q(booking=active_bk)
-    if room_obj:
-        q_filter |= Q(room=room_obj)
+    if room_obj and active_bk.check_in_date:
+        q_filter |= Q(
+            room=room_obj,
+            booking__isnull=True,
+            found_date__date__gte=active_bk.check_in_date,
+        )
 
     stored_items = list(
         LostAndFoundItem.objects.filter(q_filter, status__in=['stored', 'contacted'])

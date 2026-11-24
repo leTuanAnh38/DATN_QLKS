@@ -196,6 +196,11 @@ class BookingRoomAssignmentMixin:
 
         def get_category_availability(cat, c_in, c_out):
             pending_timeout = timezone.now() - timedelta(minutes=15)
+            active_inventory_q = (
+                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                Q(status='pending', created_at__gte=pending_timeout) |
+                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
+            )
             # Nếu khoảng ngày bao gồm ngày hôm nay: tính cả các phòng vật lý đang bận (occupied, maintenance)
             if c_in <= now < c_out:
                 busy_physical_ids = set(cat.rooms.filter(status__in=['occupied', 'maintenance']).values_list('id', flat=True))
@@ -203,10 +208,7 @@ class BookingRoomAssignmentMixin:
                     category=cat,
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
-                ).filter(
-                    Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                    Q(status='pending', created_at__gte=pending_timeout)
-                )
+                ).filter(active_inventory_q)
                 unassigned_or_clean_bookings = active_bookings.filter(
                     Q(room__isnull=True) | ~Q(room_id__in=busy_physical_ids)
                 ).count()
@@ -219,10 +221,7 @@ class BookingRoomAssignmentMixin:
                     category=cat,
                     check_in_date__lt=c_out,
                     check_out_date__gt=c_in
-                ).filter(
-                    Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                    Q(status='pending', created_at__gte=pending_timeout)
-                ).count()
+                ).filter(active_inventory_q).count()
                 avail = max(0, total - booked)
                 return total, booked, avail
 

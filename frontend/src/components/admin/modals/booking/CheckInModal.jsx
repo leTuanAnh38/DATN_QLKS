@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getLocalDateString } from '../../../../utils/formatters';
 import {
     X,
     KeyRound,
@@ -437,7 +438,7 @@ export default function CheckInModal({ booking: initialBooking, isOpen = true, o
         return true;
     };
 
-    const todayDateStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+    const todayDateStr = useMemo(() => getLocalDateString(), []);
 
     // 2. TÍNH TOÁN ĐẾN SỚM (EARLY) / ĐẾN TRỄ (LATE) / QUÁ HẠN LƯU TRÚ
     const isExpiredCheckIn = useMemo(() => {

@@ -561,49 +561,59 @@ class ResetPasswordConfirmView(APIView):
                 'message': 'Tài khoản không tồn tại hoặc đã bị khóa.'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # Lấy OTP gần nhất chưa dùng của user này
-        otp_entry = PasswordResetOTP.objects.filter(
-            user=user,
-            is_used=False
-        ).order_by('-created_at').first()
+        from django.db import transaction
 
-        if not otp_entry:
-            return Response({
-                'success': False,
-                'message': 'Không tìm thấy yêu cầu đặt lại mật khẩu. Vui lòng gửi yêu cầu lấy mã mới.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Khóa hàng OTP trong transaction.atomic để chống tấn công brute-force song song vượt giới hạn 5 lần thử
+        with transaction.atomic():
+            otp_entry = PasswordResetOTP.objects.select_for_update().filter(
+                user=user,
+                is_used=False
+            ).order_by('-created_at').first()
 
-        if otp_entry.is_expired():
-            return Response({
-                'success': False,
-                'message': 'Mã xác thực OTP đã hết hạn (chỉ có hiệu lực 5 phút). Vui lòng gửi lại mã mới.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            if not otp_entry:
+                return Response({
+                    'success': False,
+                    'message': 'Không tìm thấy yêu cầu đặt lại mật khẩu. Vui lòng gửi yêu cầu lấy mã mới.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        if otp_entry.attempts >= 5:
+            if otp_entry.is_expired():
+                return Response({
+                    'success': False,
+                    'message': 'Mã xác thực OTP đã hết hạn (chỉ có hiệu lực 5 phút). Vui lòng gửi lại mã mới.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if otp_entry.attempts >= 5:
+                otp_entry.is_used = True
+                otp_entry.save(update_fields=['is_used'])
+                return Response({
+                    'success': False,
+                    'message': 'Quý khách đã nhập sai mã xác thực quá 5 lần. Mã OTP này đã bị hủy vì lý do an toàn.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # So khớp mã OTP
+            if otp_entry.otp_code != otp_code:
+                otp_entry.attempts += 1
+                update_cols = ['attempts']
+                if otp_entry.attempts >= 5:
+                    otp_entry.is_used = True
+                    update_cols.append('is_used')
+                otp_entry.save(update_fields=update_cols)
+                remaining = max(0, 5 - otp_entry.attempts)
+                if remaining == 0:
+                    return Response({
+                        'success': False,
+                        'message': 'Quý khách đã nhập sai mã xác thực quá 5 lần. Mã OTP này đã bị hủy vì lý do an toàn.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'success': False,
+                    'message': f'Mã xác thực OTP không chính xác. Quý khách còn {remaining} lần thử lại.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Hợp lệ -> Cập nhật mật khẩu mới & đánh dấu OTP đã sử dụng nguyên tử
+            user.set_password(new_password)
+            user.save()
             otp_entry.is_used = True
             otp_entry.save(update_fields=['is_used'])
-            return Response({
-                'success': False,
-                'message': 'Quý khách đã nhập sai mã xác thực quá 5 lần. Mã OTP này đã bị hủy vì lý do an toàn.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # So khớp mã OTP
-        if otp_entry.otp_code != otp_code:
-            otp_entry.attempts += 1
-            otp_entry.save(update_fields=['attempts'])
-            remaining = 5 - otp_entry.attempts
-            return Response({
-                'success': False,
-                'message': f'Mã xác thực OTP không chính xác. Quý khách còn {remaining} lần thử lại.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Hợp lệ -> Cập nhật mật khẩu mới
-        user.set_password(new_password)
-        user.save()
-
-        # Đánh dấu OTP đã sử dụng
-        otp_entry.is_used = True
-        otp_entry.save(update_fields=['is_used'])
 
         # Ghi log thao tác hệ thống AuditLog
         log_action(

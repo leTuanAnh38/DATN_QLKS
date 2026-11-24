@@ -62,6 +62,20 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
             'payments'
         ).all().order_by('-created_at')
 
+        # Phân quyền theo vai trò: chỉ nhân viên mới xem được toàn bộ đoàn; khách chỉ xem đoàn của chính mình
+        is_staff_or_admin = bool(
+            user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest']
+        )
+        if not is_staff_or_admin:
+            owner_q = Q(sub_bookings__guest=user)
+            user_email = (user.email or '').strip()
+            if user_email and not user_email.lower().endswith('.local'):
+                owner_q |= Q(leader_email__iexact=user_email)
+            user_phone = (getattr(user, 'phone_number', None) or '').strip()
+            if user_phone:
+                owner_q |= Q(leader_phone=user_phone)
+            qs = qs.filter(owner_q).distinct()
+
         search = self.request.query_params.get('search', '').strip()
         if search:
             qs = qs.filter(
@@ -84,6 +98,46 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
             qs = qs.filter(corporate_partner_id=corporate_partner_id)
 
         return qs
+
+
+    def update(self, request, *args, **kwargs):
+        user = request.user
+        is_staff = bool(user and user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest']))
+        if not (is_staff and (user.is_superuser or check_role_permission(user, 'bookings', 'update'))):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên có quyền quản lý đặt phòng mới được chỉnh sửa thông tin đơn đặt đoàn.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+
+    def partial_update(self, request, *args, **kwargs):
+        user = request.user
+        is_staff = bool(user and user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest']))
+        if not (is_staff and (user.is_superuser or check_role_permission(user, 'bookings', 'update'))):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên có quyền quản lý đặt phòng mới được chỉnh sửa thông tin đơn đặt đoàn.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+
+    def destroy(self, request, *args, **kwargs):
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        can_delete = bool(
+            user and user.is_authenticated and (
+                user.is_superuser
+                or user_role in ['admin', 'owner', 'manager']
+                or (user_role not in ['', 'guest'] and check_role_permission(user, 'bookings', 'delete'))
+            )
+        )
+        if not can_delete:
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Quản trị viên có quyền mới được xóa đơn đặt đoàn.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
 
     def create(self, request, *args, **kwargs):
@@ -195,39 +249,53 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
             leader_user = request.user
         else:
             clean_phone = ''.join(c for c in str(leader_phone) if c.isdigit())
-            # Tìm user hiện có theo SĐT hoặc Email
+            normalized_phone = clean_phone[:15] if clean_phone else ''
+            # Chỉ tìm trong nhóm tài khoản khách hàng (tuyệt đối không gắn vào tài khoản nhân sự/Admin)
+            guest_qs = User.objects.filter(role='guest', is_staff=False, is_superuser=False)
             matched_user = None
             if leader_phone:
-                matched_user = User.objects.filter(phone_number=leader_phone).first()
-            if not matched_user and clean_phone:
-                matched_user = User.objects.filter(phone_number=clean_phone).first()
+                matched_user = guest_qs.filter(phone_number=leader_phone).first()
+            if not matched_user and normalized_phone:
+                matched_user = guest_qs.filter(phone_number=normalized_phone).first()
             if not matched_user and leader_email:
-                matched_user = User.objects.filter(email__iexact=leader_email).first()
+                matched_user = guest_qs.filter(email__iexact=leader_email).first()
 
-            # Tránh gán nhầm sang tài khoản của người khác khi trùng SĐT
+            # Bảo mật chống chiếm quyền tài khoản (Account Takeover):
+            # - Request công khai chưa đăng nhập KHÔNG được gắn đơn hoặc sửa đổi tài khoản thành viên đã có mật khẩu.
+            # - Tránh khớp lỏng chuỗi con 1 ký tự như 'a' trong 'nguyen van a'.
             is_same_person = False
             if matched_user:
-                matched_name = matched_user.get_full_name().strip().lower()
-                current_name = leader_name.strip().lower()
-                if not matched_name:
-                    is_same_person = True
-                elif matched_name == current_name or matched_name in current_name or current_name in matched_name:
-                    is_same_person = True
+                if not is_internal_staff and matched_user.has_usable_password():
+                    matched_user = None
+                else:
+                    matched_name = ' '.join(matched_user.get_full_name().strip().lower().split())
+                    current_name = ' '.join(leader_name.strip().lower().split())
+                    if not matched_name:
+                        is_same_person = True
+                    elif matched_name == current_name:
+                        is_same_person = True
+                    elif is_internal_staff and len(current_name) >= 4 and len(matched_name) >= 4 and (matched_name in current_name or current_name in matched_name):
+                        is_same_person = True
 
             if matched_user and is_same_person:
                 leader_user = matched_user
                 if create_account and not leader_user.is_active:
                     leader_user.is_active = True
                     leader_user.save(update_fields=['is_active'])
+                # Tuyệt đối KHÔNG ghi đè email thật của tài khoản đã đăng ký; chỉ bổ sung email cho tài khoản vãng lai (.local) không có mật khẩu
                 if leader_email:
                     curr_email = (leader_user.email or '').strip().lower()
-                    if not curr_email or curr_email.endswith('.local') or curr_email != leader_email.lower():
+                    is_placeholder_email = (not curr_email) or curr_email.endswith('.local')
+                    if is_placeholder_email and not leader_user.has_usable_password():
                         conflict = User.objects.filter(email__iexact=leader_email).exclude(pk=leader_user.pk).exists()
                         if not conflict:
                             leader_user.email = leader_email
                             leader_user.save(update_fields=['email'])
             else:
-                phone_already_used = User.objects.filter(phone_number=leader_phone).exists() if leader_phone else False
+                phone_already_used = bool(
+                    (leader_phone and User.objects.filter(phone_number=leader_phone).exists()) or
+                    (normalized_phone and User.objects.filter(phone_number=normalized_phone).exists())
+                )
                 email_conflict = User.objects.filter(email__iexact=leader_email).exists() if leader_email else False
 
                 name_parts = leader_name.split()
@@ -244,7 +312,7 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                         counter += 1
 
                     email_to_use = leader_email if (leader_email and not email_conflict) else f"{username}@group.hotel.local"
-                    phone_to_save = None if phone_already_used else (leader_phone or None)
+                    phone_to_save = None if phone_already_used else (normalized_phone or None)
 
                     leader_user = User.objects.create_user(
                         username=username,
@@ -260,7 +328,7 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                     unique_tag = uuid.uuid4().hex[:6]
                     username = f"walkin_group_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"walkin_group_{unique_tag}"
                     email_to_use = leader_email if (leader_email and not email_conflict) else f"{username}@walkin.hotel.local"
-                    phone_to_save = None if phone_already_used else (leader_phone or None)
+                    phone_to_save = None if phone_already_used else (normalized_phone or None)
 
                     leader_user = User.objects.create(
                         username=username,
@@ -305,6 +373,15 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
             total_rooms_net_amount = Decimal('0')
             total_services_amount = Decimal('0')
             total_corp_discount = Decimal('0')
+            pending_timeout = timezone.now() - timezone.timedelta(minutes=15)
+            active_inventory_q = (
+                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                Q(status='pending', created_at__gte=pending_timeout) |
+                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
+            )
+            today = timezone.localdate()
+            allocated_by_cat = {}
+            used_room_ids = set()
 
             for r_item in rooms_data:
                 cat_id = r_item.get('category_id') or r_item.get('id')
@@ -319,23 +396,22 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                         'message': f'Không tìm thấy hạng phòng có mã ID #{cat_id}.'
                     }, status=status.HTTP_404_NOT_FOUND)
 
-                # Kiểm tra quỹ phòng trống
+                # Kiểm tra quỹ phòng trống (gồm cả đơn đoàn tentative đang giữ chỗ và số phòng đã cấp trong cùng request)
                 total_cat_rooms = category_obj.rooms.exclude(status='maintenance').count()
                 booked_cat_rooms = Booking.objects.filter(
                     category=category_obj,
                     check_in_date__lt=check_out,
                     check_out_date__gt=check_in
-                ).filter(
-                    Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                    Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
-                ).count()
+                ).filter(active_inventory_q).count()
 
-                available_cat_rooms = max(0, total_cat_rooms - booked_cat_rooms)
+                already_allocated = allocated_by_cat.get(category_obj.id, 0)
+                available_cat_rooms = max(0, total_cat_rooms - booked_cat_rooms - already_allocated)
                 if available_cat_rooms < qty:
                     return Response({
                         'success': False,
                         'message': f'Hạng phòng "{category_obj.name}" chỉ còn {available_cat_rooms} phòng trống, không đủ đáp ứng số lượng {qty} phòng theo yêu cầu của đoàn.'
                     }, status=status.HTTP_400_BAD_REQUEST)
+                allocated_by_cat[category_obj.id] = already_allocated + qty
 
                 # Đơn giá 1 phòng 1 đêm
                 base_price = category_obj.promo_price or category_obj.base_price
@@ -348,11 +424,25 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
 
                 net_price_per_room = max(Decimal('0'), subtotal_per_room - corp_discount_per_room)
 
-                # Lấy danh sách các phòng vật lý có sẵn để gán trước (nếu có)
-                available_physical_rooms = list(category_obj.rooms.filter(status='available'))
+                # Chỉ lấy các phòng vật lý KHÔNG trùng ngày với bất kỳ đơn hoạt động nào trong [check_in, check_out)
+                # và chưa được cấp cho dòng phòng trước đó trong cùng đoàn
+                busy_room_ids = set(
+                    Booking.objects.filter(
+                        category=category_obj,
+                        room__isnull=False,
+                        check_in_date__lt=check_out,
+                        check_out_date__gt=check_in
+                    ).filter(active_inventory_q).values_list('room_id', flat=True)
+                ) | used_room_ids
+                candidate_qs = category_obj.rooms.exclude(status='maintenance').exclude(id__in=busy_room_ids)
+                if check_in <= today < check_out:
+                    candidate_qs = candidate_qs.exclude(status='occupied')
+                available_physical_rooms = list(candidate_qs.order_by('room_number'))
 
                 for idx in range(qty):
                     assigned_room = available_physical_rooms[idx] if idx < len(available_physical_rooms) else None
+                    if assigned_room:
+                        used_room_ids.add(assigned_room.id)
                     
                     # Lấy thông tin phòng (khách + dịch vụ) đã khai báo trước cho phòng này (nếu có)
                     declared_item = {}

@@ -17,6 +17,12 @@ class ServiceRequestWorkflowMixin:
         API chuyên biệt cung cấp dữ liệu định dạng sẵn cho Kanban Board (3 cột chính)
         GET /api/services/requests/kanban/
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_staff or user.is_superuser or getattr(user, 'role', '') != 'guest')):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền truy cập bảng điều phối Kanban dịch vụ.'
+            }, status=status.HTTP_403_FORBIDDEN)
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         all_items = serializer.data

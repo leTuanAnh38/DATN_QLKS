@@ -106,6 +106,26 @@ export const formatDateToInput = (date) => {
 };
 
 /**
+ * Lấy chuỗi ngày địa phương YYYY-MM-DD (tránh lỗi lệch lùi 1 ngày trước 07:00 sáng theo UTC+7 khi dùng toISOString)
+ * @param {string|Date} [date=new Date()]
+ * @returns {string} YYYY-MM-DD
+ */
+export const getLocalDateString = (date = new Date()) => formatDateToInput(date);
+
+/**
+ * Cộng/trừ số ngày trên ngày địa phương và trả về YYYY-MM-DD
+ * @param {string|Date} date
+ * @param {number} [days=1]
+ * @returns {string} YYYY-MM-DD
+ */
+export const addDaysToLocalDate = (date = new Date(), days = 1) => {
+    const d = parseLocalDate(date);
+    if (!d) return '';
+    d.setDate(d.getDate() + Number(days || 0));
+    return formatDateToInput(d);
+};
+
+/**
  * Định dạng ngày giờ địa phương YYYY-MM-DDTHH:mm cho thẻ <input type="datetime-local" />
  * @param {string|Date} date Đối tượng Date hoặc chuỗi ngày giờ
  * @returns {string} YYYY-MM-DDTHH:mm

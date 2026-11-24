@@ -40,10 +40,10 @@ class BookingExtraServicesMixin:
                 'message': 'Bạn không có quyền thêm dịch vụ vào đơn đặt phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
-        if booking.status == 'cancelled':
+        if booking.status in ['cancelled', 'no_show', 'checked_out', 'completed']:
             return Response({
                 'success': False,
-                'message': f'Đơn đặt phòng {booking.booking_code} đã bị hủy. Không thể thêm dịch vụ phát sinh.'
+                'message': f'Đơn đặt phòng {booking.booking_code} đang ở trạng thái "{booking.get_status_display()}". Không thể thêm dịch vụ phát sinh.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         service_id = request.data.get('service_id')
@@ -208,6 +208,12 @@ class BookingExtraServicesMixin:
                 'message': 'Bạn không có quyền xóa phụ phí dịch vụ của đơn đặt phòng.'
             }, status=status.HTTP_403_FORBIDDEN)
 
+        if booking.status in ['cancelled', 'no_show', 'checked_out', 'completed']:
+            return Response({
+                'success': False,
+                'message': f'Đơn đặt phòng {booking.booking_code} đang ở trạng thái "{booking.get_status_display()}". Không thể xóa dịch vụ / phụ phí sau khi đã đóng đơn.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         item_id = str(request.data.get('item_id', '')).strip()
         if not item_id:
             return Response({
@@ -219,14 +225,50 @@ class BookingExtraServicesMixin:
             if item_id.startswith('req_'):
                 try:
                     req_id = int(item_id.replace('req_', ''))
-                    ServiceRequest.objects.filter(pk=req_id, booking=booking).delete()
-                    BookingExtraService.objects.filter(booking=booking, service_name__contains=f"[Yêu cầu #{req_id}]").delete()
+                    target_req = ServiceRequest.objects.select_related('service').filter(pk=req_id, booking=booking).first()
+                    if target_req:
+                        if target_req.is_paid:
+                            return Response({
+                                'success': False,
+                                'message': 'Dịch vụ này đã được thanh toán, không thể xóa trực tiếp khỏi hóa đơn.'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                        clean_name = target_req.service.name.strip() if target_req.service else ''
+                        req_qty = target_req.quantity
+                        target_req.delete()
+                        deleted_cnt, _ = BookingExtraService.objects.filter(
+                            booking=booking,
+                            is_paid=False,
+                            service_name__contains=f"[Yêu cầu #{req_id}]"
+                        ).delete()
+                        if deleted_cnt == 0 and clean_name:
+                            addon_bes = BookingExtraService.objects.filter(
+                                booking=booking,
+                                is_paid=False,
+                                service_name=f"{clean_name} [Đặt kèm]",
+                                quantity=req_qty
+                            ).first()
+                            if addon_bes:
+                                addon_bes.delete()
                 except (ValueError, TypeError):
                     pass
             elif item_id.isdigit():
-                BookingExtraService.objects.filter(pk=int(item_id), booking=booking).delete()
+                target_bes = BookingExtraService.objects.filter(pk=int(item_id), booking=booking).first()
+                if target_bes and target_bes.is_paid:
+                    return Response({
+                        'success': False,
+                        'message': 'Khoản dịch vụ / phụ phí này đã thanh toán, không thể xóa khỏi hóa đơn.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                if target_bes:
+                    target_bes.delete()
             else:
-                BookingExtraService.objects.filter(pk=item_id, booking=booking).delete()
+                target_bes = BookingExtraService.objects.filter(pk=item_id, booking=booking).first()
+                if target_bes and target_bes.is_paid:
+                    return Response({
+                        'success': False,
+                        'message': 'Khoản dịch vụ / phụ phí này đã thanh toán, không thể xóa khỏi hóa đơn.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                if target_bes:
+                    target_bes.delete()
 
         booking.refresh_from_db()
 

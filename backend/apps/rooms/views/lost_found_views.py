@@ -244,6 +244,45 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
             'return_rate': round((returned / total * 100), 1) if total > 0 else 0
         }, status=status.HTTP_200_OK)
 
+    def _check_status_update_permission(self, request, item):
+        new_status = str(request.data.get('status') or '').strip().lower()
+        if not new_status or new_status == item.status:
+            return None
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        if new_status == 'disposed':
+            if not (user.is_superuser or user_role in ['manager', 'admin', 'owner']):
+                return Response({
+                    'success': False,
+                    'message': 'Chỉ Quản lý hoặc Quản trị viên mới có quyền thanh lý / hủy bỏ đồ thất lạc.'
+                }, status=status.HTTP_403_FORBIDDEN)
+        elif new_status in ['returned', 'contacted']:
+            if not (user.is_superuser or user_role in ['receptionist', 'manager', 'admin', 'owner']):
+                return Response({
+                    'success': False,
+                    'message': 'Chỉ Lễ tân hoặc Quản lý mới có quyền cập nhật trạng thái trao trả / liên hệ đồ thất lạc.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            if new_status == 'returned' and not str(request.data.get('returned_to') or item.returned_to or '').strip():
+                return Response({
+                    'success': False,
+                    'message': 'Vui lòng cung cấp thông tin người nhận (returned_to) hoặc dùng chức năng Bàn giao trả khách.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        return None
+
+    def update(self, request, *args, **kwargs):
+        item = self.get_object()
+        perm_err = self._check_status_update_permission(request, item)
+        if perm_err:
+            return perm_err
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        item = self.get_object()
+        perm_err = self._check_status_update_permission(request, item)
+        if perm_err:
+            return perm_err
+        return super().partial_update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         if not (request.user.is_superuser or check_role_permission(request.user, 'rooms', 'delete')):
             return Response(

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { getLocalDateString } from '../../../utils/formatters';
 import {
     Users,
     UserCheck,
@@ -147,7 +148,7 @@ export default function EmployeeManagement() {
         position: 'Nhân Viên Lễ Tân (Receptionist)',
         shift: 'Ca Sáng (06:00 - 14:00)',
         salary_base: '11000000',
-        hire_date: new Date().toISOString().split('T')[0],
+        hire_date: getLocalDateString(),
         customPosition: false,
     });
 
@@ -226,7 +227,7 @@ export default function EmployeeManagement() {
             position: positions[0] || 'Nhân Viên Lễ Tân (Receptionist)',
             shift: 'Ca Sáng (06:00 - 14:00)',
             salary_base: '11000000',
-            hire_date: new Date().toISOString().split('T')[0],
+            hire_date: getLocalDateString(),
             customPosition: false,
         });
         setIsCreateModalOpen(true);

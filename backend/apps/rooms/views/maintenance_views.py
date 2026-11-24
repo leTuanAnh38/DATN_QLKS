@@ -310,8 +310,9 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
                 Q(service_name__icontains=f"[Đền bù hư hại] {ticket.equipment_name}")
             ).delete()
 
-        # 4. QUY TRÌNH BÀN GIAO:
-        # Chỉ chuyển phòng từ 'maintenance' sang 'cleaning' khi phòng KHÔNG còn phiếu bảo trì nào khác đang 'fixing'
+        # 4. QUY TRÌNH BÀN GIAO (occupied -> maintenance -> cleaning -> occupied):
+        # Chỉ chuyển phòng từ 'maintenance' sang 'cleaning' khi phòng KHÔNG còn phiếu bảo trì nào khác đang 'fixing'.
+        # Sau khi Buồng phòng dọn xong, room_views.py sẽ tự động trả phòng có khách (checked_in) về 'occupied'.
         room = ticket.room
         remaining_fixing = room.maintenance_tickets.filter(status='fixing').exclude(pk=ticket.pk).exists()
         if not remaining_fixing:

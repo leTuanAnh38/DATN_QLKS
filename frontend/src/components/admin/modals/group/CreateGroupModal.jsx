@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getLocalDateString, addDaysToLocalDate } from '../../../../utils/formatters';
 import {
     Building2,
     X,
@@ -90,8 +91,8 @@ export default function CreateGroupModal({ isOpen, onClose, onSuccess }) {
     const [fastPasteError, setFastPasteError] = useState('');
 
     // Dates
-    const todayStr = new Date().toISOString().split('T')[0];
-    const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const todayStr = getLocalDateString();
+    const tomorrowStr = addDaysToLocalDate(new Date(), 1);
     const [checkInDate, setCheckInDate] = useState(todayStr);
     const [checkOutDate, setCheckOutDate] = useState(tomorrowStr);
 

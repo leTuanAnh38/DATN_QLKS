@@ -3,7 +3,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import ServiceItem, ServiceRequest
@@ -28,8 +28,11 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
 
 
     def get_permissions(self):
-        # Cho phép gửi yêu cầu, xem menu và cập nhật kanban linh hoạt
-        return [AllowAny()]
+        # Cho phép khách vãng lai xem/đặt/hủy bằng mã booking_code (BK-...) in trên thẻ phòng;
+        # mọi thao tác điều phối/quản trị (kanban, claim, assign, put, delete...) bắt buộc đăng nhập.
+        if self.action in ['list', 'retrieve', 'create', 'partial_update']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
 
     def get_queryset(self):
@@ -43,16 +46,25 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
             Q(service__name__icontains='Make-up') | Q(service__name__icontains='dọn dẹp phòng lưu trú')
         ).order_by('-created_at')
 
-        # Lọc theo guest_id nếu có trong query params (phục vụ CRM / Chi tiết khách hàng)
+        is_staff_or_admin = bool(
+            user.is_authenticated and (
+                user.is_staff or
+                user.is_superuser or
+                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
+                getattr(user, 'role', '') != 'guest'
+            )
+        )
+
+        # Lọc theo guest_id chỉ áp dụng cho nhân viên/quản trị (tránh khách tra cứu guest_id của người khác)
         guest_id = self.request.query_params.get('guest_id') or self.request.query_params.get('guest')
-        if guest_id:
+        if guest_id and is_staff_or_admin:
             if str(guest_id).isdigit():
                 base_qs = base_qs.filter(booking__guest_id=int(guest_id))
             else:
                 base_qs = base_qs.filter(Q(booking__guest__username=guest_id) | Q(booking__guest__email=guest_id))
 
         booking_id = self.request.query_params.get('booking_id') or self.request.query_params.get('booking')
-        if booking_id:
+        if booking_id and user.is_authenticated:
             if str(booking_id).isdigit():
                 base_qs = base_qs.filter(booking_id=int(booking_id))
             else:
@@ -123,20 +135,23 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
             base_qs = base_qs.filter(assigned_staff__isnull=True)
 
         if not user.is_authenticated:
-            # Khách chưa đăng nhập (khách đoàn/vãng lai): chỉ cho phép tra cứu nếu truyền đúng mã booking cụ thể
-            booking_param = self.request.query_params.get('booking_id') or self.request.query_params.get('booking')
-            if booking_param:
-                if str(booking_param).isdigit():
-                    return base_qs.filter(booking_id=int(booking_param))
-                return base_qs.filter(booking__booking_code=str(booking_param).strip().upper())
-            return base_qs.none()
-
-        is_staff_or_admin = (
-            user.is_staff or 
-            user.is_superuser or 
-            getattr(user, 'role', '') in ['admin', 'manager', 'receptionist', 'owner', 'staff', 'cashier', 'housekeeper', 'service_staff', 'technician'] or
-            getattr(user, 'role', '') != 'guest'
-        )
+            # Khách chưa đăng nhập (khách đoàn/vãng lai): BẮT BUỘC truyền mã đặt phòng booking_code (VD: BK-02DE4E),
+            # tuyệt đối không cho quét theo số ID tuần tự (1, 2, 3...)
+            raw_code = (
+                self.request.query_params.get('booking_code')
+                or self.request.query_params.get('booking')
+                or self.request.query_params.get('booking_id')
+                or ''
+            )
+            if not raw_code and self.action == 'partial_update':
+                try:
+                    raw_code = self.request.data.get('booking_code') or ''
+                except Exception:
+                    raw_code = ''
+            code_clean = str(raw_code).strip().upper()
+            if not code_clean or code_clean.isdigit():
+                return base_qs.none()
+            return base_qs.filter(booking__booking_code=code_clean)
 
         if is_staff_or_admin:
             return base_qs
@@ -209,10 +224,21 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                 'message': 'Vui lòng nhập Mã Đặt phòng (VD: BK-02DE4E) in trên thẻ phòng hoặc phiếu nhận phòng của bạn.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 2. Tìm Booking theo ID hoặc booking_code
-        booking = Booking.objects.filter(pk=booking_id).select_related('room', 'guest', 'group_booking').first() if str(booking_id).isdigit() else None
+        # 2. Tìm Booking theo ID (chỉ khi đã đăng nhập) hoặc theo booking_code (BK-...)
+        booking_key_str = str(booking_id).strip()
+        if not user.is_authenticated and booking_key_str.isdigit():
+            return Response({
+                'success': False,
+                'message': 'Vui lòng nhập chính xác Mã Đặt phòng (VD: BK-02DE4E) in trên thẻ phòng hoặc đăng nhập tài khoản để gọi dịch vụ.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        booking = (
+            Booking.objects.filter(pk=int(booking_key_str)).select_related('room', 'guest', 'group_booking').first()
+            if (user.is_authenticated and booking_key_str.isdigit())
+            else None
+        )
         if not booking:
-            booking = Booking.objects.filter(booking_code=str(booking_id).strip().upper()).select_related('room', 'guest', 'group_booking').first()
+            booking = Booking.objects.filter(booking_code=booking_key_str.upper()).select_related('room', 'guest', 'group_booking').first()
 
         if not booking:
             return Response({
@@ -466,10 +492,10 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                         'message': 'Dịch vụ này đã thanh toán trước. Quý khách vui lòng liên hệ Lễ tân để được hỗ trợ hủy và hoàn tiền.'
                     }, status=status.HTTP_400_BAD_REQUEST)
                 req_booking_code = str(request.data.get('booking_code') or request.query_params.get('booking_code') or '').strip()
-                if req_booking_code and service_req.booking and service_req.booking.booking_code.upper() != req_booking_code.upper():
+                if not req_booking_code or not service_req.booking or service_req.booking.booking_code.upper() != req_booking_code.upper():
                     return Response({
                         'success': False,
-                        'message': 'Mã đặt phòng xác thực không khớp với đơn dịch vụ.'
+                        'message': 'Vui lòng cung cấp đúng Mã đặt phòng (VD: BK-...) để xác thực quyền hủy đơn dịch vụ.'
                     }, status=status.HTTP_403_FORBIDDEN)
                 service_req.status = 'cancelled'
                 service_req.save(update_fields=['status', 'updated_at'])
@@ -596,12 +622,26 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
             effective_status = new_status or service_req.status
             if effective_status == 'completed':
                 try:
-                    clean_name = service_req.service.name if service_req.service else "Dịch vụ phòng"
+                    from decimal import Decimal
+                    clean_name = (service_req.service.name if service_req.service else "Dịch vụ phòng").strip()
                     service_name_bill = f"{clean_name} [Yêu cầu #{service_req.id}]"
                     existing_bes = BookingExtraService.objects.filter(
                         booking=service_req.booking,
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
+                    ).first() or BookingExtraService.objects.filter(
+                        booking=service_req.booking,
+                        service_name=f"{clean_name} [Đặt kèm]",
+                        quantity=service_req.quantity
                     ).first()
+
+                    # Giữ nguyên đơn giá tại thời điểm khách đặt (tính từ total_price / quantity), tránh lấy giá menu mới bị đổi
+                    qty_safe = max(1, int(service_req.quantity or 1))
+                    if service_req.total_price is not None and Decimal(str(service_req.total_price)) > 0:
+                        locked_unit_price = (Decimal(str(service_req.total_price)) / Decimal(str(qty_safe))).quantize(Decimal('1'))
+                    elif getattr(service_req, 'unit_price', None):
+                        locked_unit_price = Decimal(str(service_req.unit_price))
+                    else:
+                        locked_unit_price = Decimal(str(service_req.service.price)) if service_req.service else Decimal('0')
 
                     if existing_bes:
                         existing_bes.is_paid = service_req.is_paid
@@ -611,7 +651,7 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                             booking=service_req.booking,
                             service_name=service_name_bill,
                             quantity=service_req.quantity,
-                            price=service_req.service.price if service_req.service else service_req.unit_price,
+                            price=locked_unit_price,
                             is_paid=service_req.is_paid
                         )
 
@@ -620,7 +660,7 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
                     txn_id = f"SVC-REQ-{service_req.id}"
                     if service_req.is_paid:
                         active_shift = CashierShift.objects.filter(status='OPEN').order_by('-opened_at').first()
-                        svc_amount = service_req.total_price or ((service_req.service.price if service_req.service else 0) * service_req.quantity)
+                        svc_amount = service_req.total_price or (locked_unit_price * qty_safe)
                         pay_method = str(request.data.get('payment_method') or 'CASH').upper()
                         Payment.objects.update_or_create(
                             transaction_id=txn_id,
@@ -640,11 +680,21 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
             # Nếu chuyển sang "cancelled" hoặc lùi từ "completed" sang trạng thái khác: gỡ phụ phí chưa thanh toán khỏi Folio
             elif new_status == 'cancelled' or (old_status == 'completed' and new_status != 'completed'):
                 try:
-                    BookingExtraService.objects.filter(
+                    deleted_cnt, _ = BookingExtraService.objects.filter(
                         booking=service_req.booking,
                         is_paid=False,
                         service_name__contains=f"[Yêu cầu #{service_req.id}]"
                     ).delete()
+                    if deleted_cnt == 0 and service_req.service:
+                        clean_name = service_req.service.name.strip()
+                        addon_bes = BookingExtraService.objects.filter(
+                            booking=service_req.booking,
+                            is_paid=False,
+                            service_name=f"{clean_name} [Đặt kèm]",
+                            quantity=service_req.quantity
+                        ).first()
+                        if addon_bes:
+                            addon_bes.delete()
                     from ...payments.models import Payment
                     if not service_req.is_paid:
                         Payment.objects.filter(transaction_id=f"SVC-REQ-{service_req.id}").delete()
@@ -714,6 +764,10 @@ class ServiceRequestViewSet(ServiceRequestWorkflowMixin, viewsets.ModelViewSet):
             'message': f'Đã cập nhật yêu cầu #{service_req.id} sang "{service_req.get_status_display()}".',
             'data': serializer.data
         }, status=status.HTTP_200_OK)
+
+
+    def update(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
 
 
     def destroy(self, request, *args, **kwargs):

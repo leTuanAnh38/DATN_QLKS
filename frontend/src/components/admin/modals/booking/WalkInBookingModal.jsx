@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { getLocalDateString, addDaysToLocalDate } from '../../../../utils/formatters';
 import {
     X,
     User,
@@ -407,8 +408,8 @@ export default function WalkInBookingModal({
         create_account: false,
         room_id: '',
         category_id: '',
-        check_in_date: new Date().toISOString().split('T')[0],
-        check_out_date: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        check_in_date: getLocalDateString(),
+        check_out_date: addDaysToLocalDate(new Date(), 1),
         initial_status: 'confirmed',
         note: '',
         internal_note: '',
@@ -437,10 +438,8 @@ export default function WalkInBookingModal({
     useEffect(() => {
         if (!isOpen) return;
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
+        const tomorrowStr = addDaysToLocalDate(new Date(), 1);
 
         const targetTab = initialPreset?.tab || initialTab;
         const targetCheckIn = initialPreset?.checkInDate || todayStr;
@@ -717,7 +716,7 @@ export default function WalkInBookingModal({
                             type="button"
                             onClick={() => {
                                 setBookingTab('walk_in');
-                                const todayStr = new Date().toISOString().split('T')[0];
+                                const todayStr = getLocalDateString();
                                 setWalkInForm((prev) => ({ ...prev, check_in_date: todayStr }));
                             }}
                             className={`py-2 px-3 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-2.5 cursor-pointer ${
@@ -1257,16 +1256,14 @@ export default function WalkInBookingModal({
                                             <input
                                                 type="date"
                                                 required
-                                                min={new Date().toISOString().split('T')[0]}
+                                                min={getLocalDateString()}
                                                 value={walkInForm.check_in_date}
                                                 onChange={(e) => {
                                                     const inDate = e.target.value;
                                                     setWalkInForm((prev) => {
                                                         let outDate = prev.check_out_date;
                                                         if (outDate <= inDate) {
-                                                            const d = new Date(inDate);
-                                                            d.setDate(d.getDate() + 1);
-                                                            outDate = d.toISOString().split('T')[0];
+                                                            outDate = addDaysToLocalDate(inDate, 1);
                                                         }
                                                         return {
                                                             ...prev,
@@ -1292,7 +1289,7 @@ export default function WalkInBookingModal({
                                             <input
                                                 type="date"
                                                 required
-                                                min={walkInForm.check_in_date || new Date().toISOString().split('T')[0]}
+                                                min={walkInForm.check_in_date || getLocalDateString()}
                                                 value={walkInForm.check_out_date}
                                                 onChange={(e) =>
                                                     setWalkInForm((prev) => ({

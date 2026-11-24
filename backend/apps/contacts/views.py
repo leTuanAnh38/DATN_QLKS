@@ -18,9 +18,9 @@ class IsHotelStaffOrAdmin(BasePermission):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        if user.is_staff or user.is_superuser:
+        if user.is_superuser:
             return True
-        return getattr(user, 'role', '') in ['admin', 'manager', 'receptionist']
+        return getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
 
 
 class ContactCreateThrottle(AnonRateThrottle):

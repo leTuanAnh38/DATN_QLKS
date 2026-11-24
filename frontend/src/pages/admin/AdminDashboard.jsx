@@ -73,7 +73,7 @@ import AdminQuickSearchModal from '../../components/admin/AdminQuickSearchModal'
 const PromotionManagement = lazy(() => import('./marketing/PromotionManagement'));
 const SystemLog = lazy(() => import('./system/SystemLog'));
 const CorporatePartnerManagement = lazy(() => import('./customers/CorporatePartnerManagement'));
-import { formatDateDisplay, formatDateTimeDisplay } from '../../utils/formatters';
+import { formatDateDisplay, formatDateTimeDisplay, getLocalDateString } from '../../utils/formatters';
 import { BOOKING_STATUSES as STATUS_CONFIGS } from '../../utils/constants';
 
 // Helper biểu tượng dịch vụ phòng (Concierge)
@@ -496,7 +496,7 @@ export default function HotelAdminDashboard({ initialTab }) {
 
     // Tính toán số lượng Check-in và Check-out hôm nay để hiển thị badge ở Sidebar
     useEffect(() => {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString();
         const ci = realBookings.filter(
             (b) => b.check_in_date === todayStr && ['pending', 'paid', 'PAID', 'confirmed'].includes(b.status)
         ).length;

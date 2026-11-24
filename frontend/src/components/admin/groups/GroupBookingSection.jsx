@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { getLocalDateString } from '../../../utils/formatters';
 import {
     Building2,
     Users,
@@ -164,7 +165,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        const dateTag = new Date().toISOString().split('T')[0];
+        const dateTag = getLocalDateString();
         link.href = url;
         link.setAttribute('download', `Danh_Sach_Dat_Doan_B2B_${dateTag}.csv`);
         document.body.appendChild(link);
@@ -224,7 +225,7 @@ const GroupBookingSection = forwardRef(function GroupBookingSection({ onOpenCrea
 
         if (dateFilter !== 'all') {
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            const todayStr = getLocalDateString(now);
 
             if (dateFilter === 'today') {
                 result = result.filter((g) => {

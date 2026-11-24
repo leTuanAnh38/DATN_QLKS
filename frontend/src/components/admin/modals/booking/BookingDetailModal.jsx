@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { addDaysToLocalDate } from '../../../../utils/formatters';
 import { 
     X, 
     User, 
@@ -71,9 +72,7 @@ export default function BookingDetailModal({
         if (booking.status === 'checked_in' && booking.check_out_date) {
             setAdminExtendConflictError(null);
             try {
-                const cur = new Date(booking.check_out_date);
-                cur.setDate(cur.getDate() + 1);
-                setAdminExtendNewDate(cur.toISOString().split('T')[0]);
+                setAdminExtendNewDate(addDaysToLocalDate(booking.check_out_date, 1));
             } catch {
                 setAdminExtendNewDate('');
             }
@@ -86,9 +85,7 @@ export default function BookingDetailModal({
     const adminExtendMinDate = useMemo(() => {
         if (!booking?.check_out_date) return '';
         try {
-            const cur = new Date(booking.check_out_date);
-            cur.setDate(cur.getDate() + 1);
-            return cur.toISOString().split('T')[0];
+            return addDaysToLocalDate(booking.check_out_date, 1);
         } catch {
             return '';
         }

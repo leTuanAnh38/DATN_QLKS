@@ -12,12 +12,12 @@ from .serializers import PostSerializer, PostListSerializer
 
 class IsHotelStaffOrAdmin(BasePermission):
     """
-    Quyền chỉnh sửa/thêm/xóa bài viết: Chỉ dành cho nhân viên khách sạn hoặc Admin.
+    Quyền chỉnh sửa/thêm/xóa bài viết: Chỉ dành cho Quản trị viên, Quản lý, Chủ KS hoặc Lễ tân.
     """
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
-        if request.user.is_staff or request.user.is_superuser:
+        if request.user.is_superuser:
             return True
         return getattr(request.user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
 
@@ -46,9 +46,8 @@ class PostViewSet(viewsets.ModelViewSet):
         user = self.request.user
         is_staff_user = (
             user.is_authenticated and (
-                user.is_staff or
                 user.is_superuser or
-                getattr(user, 'role', '') in ['admin', 'manager', 'receptionist']
+                getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
             )
         )
         show_all = self.request.query_params.get('all', '').lower() in ['1', 'true', 'yes']

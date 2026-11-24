@@ -1,4 +1,6 @@
 """BookingViewSet: CRUD cơ bản; các nhóm action được ghép từ các mixin."""
+import re
+import uuid
 from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -15,6 +17,7 @@ from ...users.views import check_role_permission
 from ...services.models import ServiceItem, ServiceRequest
 from ...payments.models import Invoice, Payment
 from ..serializers import BookingSerializer, optimize_booking_queryset
+from ..cancel_policy import get_booking_cancel_eligibility
 from ..email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 from .room_assignment_mixin import BookingRoomAssignmentMixin
@@ -153,36 +156,6 @@ class BookingViewSet(
         return base_qs.filter(guest=user)
 
 
-    def perform_update(self, serializer):
-        instance = serializer.instance
-        old_status = instance.status
-        pending_status = serializer.validated_data.get('status', old_status)
-        if pending_status == 'no_show' and old_status != 'no_show':
-            today = timezone.localdate()
-            if instance.check_in_date and today < instance.check_in_date:
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError({
-                    'status': f"Chưa tới ngày nhận phòng ({instance.check_in_date.strftime('%d/%m/%Y')}). Không thể chuyển sang trạng thái No-show."
-                })
-        updated_booking = serializer.save()
-        new_status = updated_booking.status
-
-        # 1. Nếu chuyển sang checked_out hoặc completed: Tự động ghi nhận actual_check_out và chuyển phòng sang cleaning (đang dọn dẹp)
-        if old_status not in ['checked_out', 'completed'] and new_status in ['checked_out', 'completed']:
-            if not updated_booking.actual_check_out:
-                updated_booking.actual_check_out = timezone.now()
-                updated_booking.save(update_fields=['actual_check_out'])
-            if updated_booking.room:
-                updated_booking.room.status = 'cleaning'
-                updated_booking.room.save(update_fields=['status'])
-
-        # 2. Nếu hủy đơn (cancelled) hoặc No-show: Nếu phòng thực tế đang bị giữ -> giải phóng về available (sẵn sàng)
-        elif new_status in ['cancelled', 'no_show']:
-            if updated_booking.room and updated_booking.room.status != 'available':
-                updated_booking.room.status = 'available'
-                updated_booking.room.save(update_fields=['status'])
-
-
     def create(self, request, *args, **kwargs):
         data = request.data
         room_identifier = data.get('room') or data.get('room_id') or data.get('category_id')
@@ -306,17 +279,19 @@ class BookingViewSet(
             # Khóa bi quan hạng phòng để chống overbooking khi nhiều khách cùng đặt tại một thời điểm
             category_instance = RoomCategory.objects.select_for_update().get(pk=category_instance.pk)
 
-            # Chỉ tính các đơn pending được tạo trong vòng 15 phút gần nhất (chờ thanh toán QR)
+            # Tính cả đơn pending chưa quá 15 phút VÀ phòng con đang giữ chỗ thuộc đơn đoàn (tentative/confirmed/checked_in)
             pending_timeout = timezone.now() - timedelta(minutes=15)
+            active_inventory_q = (
+                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
+                Q(status='pending', created_at__gte=pending_timeout) |
+                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
+            )
             total_rooms = category_instance.rooms.exclude(status='maintenance').count()
             booked_rooms = Booking.objects.filter(
                 category=category_instance,
                 check_in_date__lt=check_out,
                 check_out_date__gt=check_in
-            ).filter(
-                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=pending_timeout)
-            ).count()
+            ).filter(active_inventory_q).count()
             available_rooms = max(0, total_rooms - booked_rooms)
 
             if available_rooms <= 0:
@@ -327,10 +302,7 @@ class BookingViewSet(
                         category=other_cat,
                         check_in_date__lt=check_out,
                         check_out_date__gt=check_in
-                    ).filter(
-                        Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                        Q(status='pending', created_at__gte=pending_timeout)
-                    ).count()
+                    ).filter(active_inventory_q).count()
                     other_avail = max(0, other_total - other_booked)
                     if other_avail > 0:
                         feat_img = other_cat.images.filter(is_feature=True).first() or other_cat.images.first()
@@ -357,45 +329,85 @@ class BookingViewSet(
                     'suggested_categories': suggested
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Nếu chưa có room_instance cụ thể, gán phòng trống thuộc hạng phòng đó
+            # Nếu chưa có room_instance cụ thể, gán phòng vật lý không bị trùng lịch trong [check_in, check_out)
             if not room_instance and category_instance:
-                available_room = category_instance.rooms.filter(status='available').first()
-                room_instance = available_room or category_instance.rooms.first()
+                busy_room_ids = set(
+                    Booking.objects.filter(
+                        category=category_instance,
+                        room__isnull=False,
+                        check_in_date__lt=check_out,
+                        check_out_date__gt=check_in
+                    ).filter(active_inventory_q).values_list('room_id', flat=True)
+                )
+                today = timezone.localdate()
+                candidate_rooms = category_instance.rooms.exclude(status='maintenance').exclude(id__in=busy_room_ids)
+                if check_in <= today < check_out:
+                    candidate_rooms = candidate_rooms.exclude(status='occupied')
+                room_instance = (
+                    candidate_rooms.filter(status='available').order_by('room_number').first()
+                    or candidate_rooms.order_by('room_number').first()
+                )
 
             # 3. Tính toán tiền phòng
             price_per_night = category_instance.promo_price or category_instance.base_price
             subtotal = Decimal(str(price_per_night * nights))
 
-            # 4. Xác định User đặt phòng (Nếu đã đăng nhập hoặc tìm/tạo tài khoản khách riêng biệt)
-            if request.user and request.user.is_authenticated:
+            # 4. Xác định User đặt phòng (Chỉ dùng tài khoản thành viên khi đã đăng nhập;
+            # khách chưa đăng nhập luôn dùng hồ sơ khách vãng lai an toàn, tránh lỗi UNIQUE SĐT/Email & chống lợi dụng chiết khấu VIP)
+            is_auth_user = bool(request.user and request.user.is_authenticated)
+            if is_auth_user:
                 guest_user = request.user
             else:
+                clean_email = (guest_email or '').strip().lower()
+                clean_phone = re.sub(r'[\s\-\.\(\)]+', '', str(guest_phone or '')).strip()[:15] or None
+
+                # Chỉ tái sử dụng hồ sơ vãng lai (role='guest', is_active=False), không gắn vào tài khoản thành viên/nhân sự đang hoạt động
                 guest_user = None
-                if guest_email:
-                    guest_user = User.objects.filter(email=guest_email).first()
+                if clean_email:
+                    guest_user = User.objects.filter(email__iexact=clean_email, role='guest', is_active=False).first()
+                if not guest_user and clean_phone:
+                    guest_user = User.objects.filter(phone_number=clean_phone, role='guest', is_active=False).first()
+
                 if not guest_user:
-                    import uuid as _uuid
-                    raw_suffix = _uuid.uuid4().hex[:10]
+                    raw_suffix = uuid.uuid4().hex[:10]
                     name_parts = guest_name.split() if guest_name else []
                     last_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else ''
                     first_name = name_parts[-1] if name_parts else 'Khách vãng lai'
+
+                    phone_taken = bool(clean_phone and User.objects.filter(phone_number=clean_phone).exists())
+                    email_taken = bool(clean_email and User.objects.filter(email__iexact=clean_email).exists())
+
+                    phone_to_save = None if (not clean_phone or phone_taken) else clean_phone
+                    email_to_save = f"guest_{raw_suffix}@guest.local" if (not clean_email or email_taken) else clean_email
+
                     guest_user = User.objects.create(
                         username=f"guest_{raw_suffix}",
-                        email=guest_email or f"guest_{raw_suffix}@guest.local",
+                        email=email_to_save,
                         first_name=first_name[:150],
                         last_name=last_name[:150],
-                        phone_number=guest_phone[:20] if guest_phone else '',
+                        phone_number=phone_to_save,
                         role='guest',
                         is_active=False,
                     )
                     guest_user.set_unusable_password()
                     guest_user.save(update_fields=['password'])
 
+                    # Nếu SĐT hoặc Email đã thuộc tài khoản khác nên không lưu vào cột UNIQUE, ghi chú vào đơn để Lễ tân vẫn liên hệ được
+                    contact_hints = []
+                    if phone_taken and clean_phone:
+                        contact_hints.append(f"SĐT: {clean_phone}")
+                    if email_taken and clean_email:
+                        contact_hints.append(f"Email: {clean_email}")
+                    if contact_hints:
+                        hint_str = f"[Liên hệ khách đặt chưa đăng nhập: {' | '.join(contact_hints)}]"
+                        note = f"{hint_str}\n{note}".strip() if note else hint_str
+
             # 5. Xử lý Giảm giá Hạng thành viên (Loyalty & Membership Program)
+            # Chỉ áp dụng ưu đãi hạng thẻ khi khách đã đăng nhập xác thực chính chủ
             membership_discount = Decimal('0')
             tier_percent = Decimal('0')
             tier_name = None
-            if guest_user and getattr(guest_user, 'current_tier', None):
+            if is_auth_user and guest_user and getattr(guest_user, 'current_tier', None):
                 tier = guest_user.current_tier
                 tier_percent = Decimal(str(tier.discount_percent or 0))
                 if tier_percent > 0:
@@ -748,9 +760,9 @@ class BookingViewSet(
 
 
     def _check_group_subbooking_cancel_forbidden(self, booking):
-        """Chặn khách tự hủy lẻ phòng con thuộc đơn đặt đoàn đã xác nhận/đặt cọc."""
+        """Chặn khách tự hủy lẻ phòng con thuộc đơn đặt đoàn đã xác nhận/đặt cọc/đã nhận phòng."""
         grp = getattr(booking, 'group_booking', None)
-        if grp and (grp.is_deposit_paid or grp.status == 'confirmed'):
+        if grp and (grp.is_deposit_paid or grp.status in ['confirmed', 'checked_in']):
             return Response({
                 'success': False,
                 'message': (
@@ -760,6 +772,24 @@ class BookingViewSet(
             }, status=status.HTTP_403_FORBIDDEN)
         return None
 
+    def _enforce_guest_cancel_policy(self, booking):
+        """Áp dụng chính sách hủy miễn phí (cancellation_free_hours) khi khách tự hủy đơn confirmed/paid."""
+        if str(booking.status or '').lower() not in ['confirmed', 'paid']:
+            return None, None
+        eligibility = get_booking_cancel_eligibility(booking)
+        if eligibility and not eligibility.get('is_free_cancel_eligible'):
+            free_h = eligibility.get('free_hours', 48)
+            return None, Response({
+                'success': False,
+                'code': 'CANCELLATION_POLICY_VIOLATED',
+                'cancel_eligibility': eligibility,
+                'message': (
+                    f'Đơn đặt phòng đã quá thời hạn hủy miễn phí ({free_h} giờ trước 14:00 ngày nhận phòng). '
+                    f'Quý khách vui lòng liên hệ trực tiếp Lễ tân để được hỗ trợ xử lý theo chính sách khách sạn.'
+                )
+            }, status=status.HTTP_400_BAD_REQUEST)
+        return eligibility, None
+
     @action(detail=False, methods=['post'], url_path='cancel-booking', permission_classes=[AllowAny])
     def cancel_booking(self, request):
         """
@@ -767,7 +797,7 @@ class BookingViewSet(
         Hủy đơn đặt phòng linh hoạt theo booking_id hoặc booking_code.
         Bảo mật chống BOLA / IDOR:
         - Quản trị viên / Lễ tân: Có quyền hủy mọi đơn.
-        - Khách hàng đã đăng nhập: CHỈ được phép hủy đơn của chính mình.
+        - Khách hàng đã đăng nhập: CHỈ được phép hủy đơn của chính mình (áp dụng chính sách hủy miễn phí với đơn confirmed/paid).
         - Khách chưa đăng nhập: CHỈ được hủy đơn đang ở trạng thái 'pending' (chưa thanh toán) và phải xác thực thông tin.
         """
         booking_identifier = request.data.get('booking_id') or request.data.get('id') or request.data.get('booking_code')
@@ -790,6 +820,7 @@ class BookingViewSet(
         is_staff_or_admin = is_authenticated and (user.is_superuser or check_role_permission(user, 'bookings', 'update'))
 
         # Phân quyền bảo mật chống IDOR:
+        cancel_eligibility = None
         if not is_staff_or_admin:
             if is_authenticated:
                 if booking.guest != user:
@@ -823,10 +854,27 @@ class BookingViewSet(
         if booking.status not in ['pending', 'confirmed', 'paid', 'PAID']:
             return Response({'success': False, 'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Kiểm tra chính sách hủy (trước khi đổi status)
+        if not is_staff_or_admin:
+            cancel_eligibility, policy_err = self._enforce_guest_cancel_policy(booking)
+            if policy_err:
+                return policy_err
+        else:
+            cancel_eligibility = get_booking_cancel_eligibility(booking)
+
+        inv_before = getattr(booking, 'invoice', None)
+        was_paid = str(booking.status or '').lower() == 'paid' or (inv_before and inv_before.status == 'paid')
+
         booking.status = 'cancelled'
         now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
         acting_name = user.get_full_name() or user.username if is_authenticated else "Khách vãng lai"
-        booking.note = f"{booking.note or ''}\n[Hủy bởi {acting_name} lúc {now_str}]: {reason}".strip()
+        refund_tag = ''
+        if was_paid:
+            if cancel_eligibility and cancel_eligibility.get('is_free_cancel_eligible'):
+                refund_tag = '\n[Đủ điều kiện hoàn tiền - Chờ thu ngân lập phiếu chi]'
+            else:
+                refund_tag = '\n[Hủy quá hạn miễn phí - Cần đối soát chính sách hoàn tiền trước khi lập phiếu chi]'
+        booking.note = f"{booking.note or ''}\n[Hủy bởi {acting_name} lúc {now_str}]: {reason}{refund_tag}".strip()
         booking.save(update_fields=['status', 'note', 'updated_at'])
 
         if booking.room and booking.room.status == 'occupied':
@@ -844,7 +892,9 @@ class BookingViewSet(
         except Exception:
             pass
 
-        # Hủy các Payment PENDING và Invoice chưa thanh toán của đơn đã hủy
+        # Hủy các Payment PENDING và Invoice chưa thanh toán của đơn đã hủy.
+        # LƯU Ý KẾ TOÁN: Không đổi Invoice(status='paid') sang 'cancelled' vì báo cáo doanh thu thuần (revenue.py)
+        # tính bằng Tổng Invoice(paid) - Tổng CashOutVoucher(REFUND_CANCEL/REFUND_DEPOSIT); thu ngân sẽ lập phiếu chi hoàn tiền để khấu trừ chính xác.
         try:
             booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
             inv = getattr(booking, 'invoice', None)
@@ -880,14 +930,15 @@ class BookingViewSet(
             'success': True,
             'message': f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.',
             'booking_code': booking.booking_code,
-            'status': 'cancelled'
+            'status': 'cancelled',
+            'refund_pending': bool(was_paid)
         }, status=status.HTTP_200_OK)
 
 
     def partial_update(self, request, *args, **kwargs):
         """
         API cập nhật đơn đặt phòng (PATCH /api/bookings/<id>/):
-        - Khách hàng: Cho phép hủy đơn (chuyển status='cancelled') nếu đơn đang ở trạng thái 'pending'.
+        - Khách hàng: Cho phép hủy đơn (chuyển status='cancelled') nếu đang pending hoặc trong thời hạn hủy miễn phí.
         - Nhân viên / Quản trị: Có quyền cập nhật trạng thái (status), ghi chú nội bộ (internal_note) và thông tin nghiệp vụ.
         """
         booking = self.get_object()
@@ -912,17 +963,25 @@ class BookingViewSet(
                 if grp_err:
                     return grp_err
 
-                if booking.status not in ['pending', 'paid', 'PAID']:
+                if booking.status not in ['pending', 'confirmed', 'paid', 'PAID']:
                     return Response({
                         'success': False,
-                        'message': 'Đơn đặt phòng chỉ có thể hủy khi đang ở trạng thái Chờ duyệt (Pending).'
+                        'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể hủy.'
                     }, status=status.HTTP_400_BAD_REQUEST)
+
+                cancel_eligibility, policy_err = self._enforce_guest_cancel_policy(booking)
+                if policy_err:
+                    return policy_err
+
+                inv_before = getattr(booking, 'invoice', None)
+                was_paid = str(booking.status or '').lower() == 'paid' or (inv_before and inv_before.status == 'paid')
 
                 booking.status = 'cancelled'
                 cancel_reason = request.data.get('cancel_reason', 'Khách hàng yêu cầu hủy đặt phòng').strip()
-                if cancel_reason:
-                    now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
-                    booking.note = f"{booking.note or ''}\n[Khách hủy {now_str}]: {cancel_reason}".strip()
+                now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
+                refund_tag = '\n[Đủ điều kiện hoàn tiền - Chờ thu ngân lập phiếu chi]' if was_paid else ''
+                if cancel_reason or refund_tag:
+                    booking.note = f"{booking.note or ''}\n[Khách hủy {now_str}]: {cancel_reason or 'Khách hàng yêu cầu hủy'}{refund_tag}".strip()
                 booking.save(update_fields=['status', 'note', 'updated_at'])
 
                 if booking.room and booking.room.status == 'occupied':
@@ -938,6 +997,7 @@ class BookingViewSet(
                 except Exception:
                     pass
 
+                # Giữ nguyên Invoice(status='paid') để thu ngân lập CashOutVoucher hoàn tiền (tránh trừ kép doanh thu)
                 try:
                     booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
                     inv = getattr(booking, 'invoice', None)
@@ -961,16 +1021,18 @@ class BookingViewSet(
                 return Response({
                     'success': True,
                     'message': f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.',
+                    'refund_pending': bool(was_paid),
                     'booking': serializer.data,
                     **serializer.data
                 }, status=status.HTTP_200_OK)
             else:
                 return Response({
                     'success': False,
-                    'message': 'Khách hàng chỉ có quyền thực hiện thao tác hủy đơn đặt phòng đang chờ duyệt.'
+                    'message': 'Khách hàng chỉ có quyền thực hiện thao tác hủy đơn đặt phòng theo chính sách.'
                 }, status=status.HTTP_403_FORBIDDEN)
 
         # Quản trị viên / Lễ tân / Nhân viên thực hiện cập nhật nghiệp vụ
+        old_status = booking.status
         update_fields = ['updated_at']
 
         if new_status:
@@ -980,6 +1042,61 @@ class BookingViewSet(
                     'success': False,
                     'message': f'Trạng thái "{new_status}" không hợp lệ. Cho phép: {", ".join(valid_statuses)}'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            if new_status != old_status:
+                today = timezone.localdate()
+
+                # Chốt chặn No-show: chỉ được đánh dấu từ ngày nhận phòng trở đi và đơn chưa check-in/hoàn tất
+                if new_status == 'no_show':
+                    if old_status in ['checked_in', 'checked_out', 'completed']:
+                        return Response({
+                            'success': False,
+                            'message': f'Đơn đặt phòng đang ở trạng thái "{booking.get_status_display()}", không thể chuyển sang No-show.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    if booking.check_in_date and today < booking.check_in_date:
+                        return Response({
+                            'success': False,
+                            'message': f"Chưa tới ngày nhận phòng ({booking.check_in_date.strftime('%d/%m/%Y')}). Không thể chuyển sang trạng thái No-show."
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Chốt chặn Hoàn tất / Trả phòng qua PATCH: không cho nhảy cóc trước ngày nhận phòng hoặc khi còn công nợ
+                elif new_status in ['checked_out', 'completed']:
+                    if old_status in ['cancelled', 'no_show']:
+                        return Response({
+                            'success': False,
+                            'message': f'Không thể chuyển đơn đã "{booking.get_status_display()}" sang hoàn tất/trả phòng.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    if old_status != 'checked_in' and booking.check_in_date and today < booking.check_in_date:
+                        return Response({
+                            'success': False,
+                            'message': f"Chưa tới ngày nhận phòng ({booking.check_in_date.strftime('%d/%m/%Y')}), không thể đánh dấu trả phòng/hoàn tất."
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    # Kiểm tra công nợ còn lại (trừ đoàn B2B có hạn mức công nợ trả sau)
+                    has_b2b_credit = bool(
+                        booking.group_booking
+                        and booking.group_booking.corporate_partner
+                        and getattr(booking.group_booking.corporate_partner, 'payment_terms_days', 0) > 0
+                    )
+                    if not has_b2b_credit:
+                        rem = BookingSerializer(booking, context={'request': request}).get_remaining_balance(booking)
+                        if rem > 1000:
+                            return Response({
+                                'success': False,
+                                'code': 'UNPAID_BALANCE',
+                                'remaining_balance': rem,
+                                'message': f'Đơn đặt phòng còn công nợ chưa thanh toán ({rem:,.0f} VNĐ). Vui lòng quyết toán qua quy trình Check-out trước khi hoàn tất!'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                    if not booking.actual_check_out:
+                        booking.actual_check_out = timezone.now()
+                        update_fields.append('actual_check_out')
+
+                # Chốt chặn Hủy đơn đã trả phòng / hoàn tất
+                elif new_status == 'cancelled' and old_status in ['checked_out', 'completed']:
+                    return Response({
+                        'success': False,
+                        'message': 'Đơn đặt phòng đã hoàn tất trả phòng, không thể chuyển sang trạng thái Đã hủy.'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
             booking.status = new_status
             update_fields.append('status')
 
@@ -999,13 +1116,51 @@ class BookingViewSet(
         booking.save(update_fields=list(set(update_fields)))
         booking.refresh_from_db()
 
+        # Xử lý hậu kiểm khi chuyển sang cancelled / no_show (hoàn mã khuyến mãi, hủy dịch vụ chờ, đóng Payment/Invoice pending, đồng bộ đoàn)
+        if new_status and new_status != old_status:
+            if booking.status == 'cancelled':
+                if booking.applied_promotion_id:
+                    Promotion.objects.filter(id=booking.applied_promotion_id, used_count__gt=0).update(used_count=F('used_count') - 1)
+                try:
+                    ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')
+                except Exception:
+                    pass
+                try:
+                    booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
+                    inv = getattr(booking, 'invoice', None)
+                    if inv and inv.status == 'pending':
+                        inv.status = 'cancelled'
+                        inv.save(update_fields=['status'])
+                except Exception:
+                    pass
+                if booking.group_booking:
+                    group = booking.group_booking
+                    active_subs = group.sub_bookings.exclude(status='cancelled')
+                    if not active_subs.exists():
+                        group.status = 'cancelled'
+                        group.save(update_fields=['status', 'updated_at'])
+                    else:
+                        group.total_amount = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
+                        group.save(update_fields=['total_amount', 'updated_at'])
+            elif booking.status == 'no_show':
+                try:
+                    ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')
+                    booking.payments.filter(payment_status='PENDING').update(payment_status='FAILED')
+                    inv = getattr(booking, 'invoice', None)
+                    if inv and inv.status == 'pending':
+                        inv.status = 'cancelled'
+                        inv.save(update_fields=['status'])
+                except Exception:
+                    pass
+
         # Đồng bộ trạng thái phòng thực tế (Room Board PMS)
         if booking.room:
             if booking.status == 'checked_in' and booking.room.status != 'occupied':
                 booking.room.status = 'occupied'
                 booking.room.save(update_fields=['status'])
-            elif booking.status == 'checked_out' and booking.room.status == 'occupied':
-                booking.room.status = 'cleaning'
+            elif booking.status in ['checked_out', 'completed'] and booking.room.status == 'occupied':
+                has_fixing = booking.room.maintenance_tickets.filter(status='fixing').exists()
+                booking.room.status = 'maintenance' if has_fixing else 'cleaning'
                 booking.room.save(update_fields=['status'])
             elif booking.status in ['cancelled', 'no_show'] and booking.room.status == 'occupied':
                 booking.room.status = 'available'

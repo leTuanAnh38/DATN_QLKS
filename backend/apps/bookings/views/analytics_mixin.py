@@ -309,6 +309,13 @@ class BookingAnalyticsMixin:
         Trả về danh sách tất cả các Phòng (Rooms), và bên trong mỗi Phòng lồng ghép
         danh sách các Đơn đặt phòng (Bookings) diễn ra trong tháng đó để Frontend dễ dàng vẽ biểu đồ.
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền xem lịch lưu trú (Timeline).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         import calendar
         import datetime
         from collections import defaultdict
@@ -494,6 +501,13 @@ class BookingAnalyticsMixin:
         - Thống kê đơn đặt phòng & cơ cấu đặt phòng / nguồn đặt phòng
         - Thống kê yêu cầu dịch vụ phòng & danh sách dịch vụ nóng (Concierge)
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền xem thống kê tổng quan.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         import calendar
         from datetime import datetime, timedelta
         from django.db.models import Sum, Count, Q, Case, When, Value, IntegerField

@@ -12,7 +12,7 @@ import {
     Calendar,
     ClipboardList
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../../utils/formatters';
+import { formatCurrency, formatDate, getLocalDateString } from '../../../utils/formatters';
 
 export default function AssignRoomModal({
     room,
@@ -170,7 +170,7 @@ export default function AssignRoomModal({
                                 String(room.category?.id || room.category_id) ||
                                 (b.category_name || b.room_type || '').toLowerCase() === (room.category_name || '').toLowerCase();
 
-                            const todayStr = new Date().toISOString().split('T')[0];
+                            const todayStr = getLocalDateString();
                             const bookingCheckInStr = b.check_in_date ? String(b.check_in_date).split('T')[0] : '';
                             const bookingCheckOutStr = b.check_out_date ? String(b.check_out_date).split('T')[0] : '';
                             const isExpired = Boolean(bookingCheckOutStr && bookingCheckOutStr <= todayStr);

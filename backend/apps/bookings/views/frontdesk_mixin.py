@@ -422,7 +422,7 @@ class BookingFrontDeskMixin:
         """
         user = request.user
         user_role = getattr(user, 'role', '')
-        if not (user.is_superuser or user.is_staff or user_role in ['admin', 'owner', 'manager', 'receptionist', 'staff', 'cashier']):
+        if not (user.is_authenticated and (user.is_superuser or user_role in ['admin', 'owner', 'manager', 'receptionist', 'cashier'])):
             return Response({
                 'success': False,
                 'message': 'Chỉ nhân viên lễ tân hoặc cấp quản lý mới có quyền xem và xuất danh sách khách lưu trú.'
@@ -1267,11 +1267,11 @@ class BookingFrontDeskMixin:
         booking = self.get_object()
         user = request.user
 
-        # 1. Kiểm tra phân quyền truy cập
+        # 1. Kiểm tra phân quyền truy cập (không dựa vào user.is_staff quá rộng)
         is_staff_or_admin = bool(
             user.is_authenticated and (
-                user.is_superuser or 
-                user.is_staff or
+                user.is_superuser or
+                getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist'] or
                 check_role_permission(user, 'bookings', 'update')
             )
         )
@@ -1323,7 +1323,7 @@ class BookingFrontDeskMixin:
 
         room = booking.room
 
-        # 5. Tính số đêm phát sinh & số tiền phát sinh, đồng thời khóa & kiểm tra xung đột trong transaction
+        # 5. Tính số đêm phát sinh & số tiền phát sinh (áp dụng chiết khấu doanh nghiệp hoặc hạng thẻ thành viên)
         extra_nights = (new_check_out_date - old_check_out_date).days
         cat = booking.category or room.category
         if cat:
@@ -1332,7 +1332,15 @@ class BookingFrontDeskMixin:
             old_nights = max((old_check_out_date - booking.check_in_date).days, 1)
             nightly_rate = Decimal(booking.total_amount) / Decimal(old_nights) if booking.total_amount else Decimal(0)
 
-        extra_amount = Decimal(extra_nights) * Decimal(nightly_rate)
+        extra_subtotal = Decimal(extra_nights) * Decimal(nightly_rate)
+        discount_pct = Decimal('0')
+        if booking.group_booking_id and booking.group_booking and booking.group_booking.corporate_partner:
+            discount_pct = Decimal(str(getattr(booking.group_booking.corporate_partner, 'discount_percent', 0) or 0))
+        elif booking.guest and getattr(booking.guest, 'current_tier', None):
+            discount_pct = Decimal(str(getattr(booking.guest.current_tier, 'discount_percent', 0) or 0))
+
+        extra_discount = ((extra_subtotal * discount_pct) / Decimal('100')).quantize(Decimal('1')) if discount_pct > 0 else Decimal('0')
+        extra_amount = max(Decimal('0'), extra_subtotal - extra_discount)
 
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
@@ -1341,7 +1349,8 @@ class BookingFrontDeskMixin:
                 room=room
             ).exclude(id=booking.id).filter(
                 Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=hold_cutoff)
+                Q(status='pending', created_at__gte=hold_cutoff) |
+                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
             ).filter(
                 check_in_date__lt=new_check_out_date,
                 check_out_date__gt=old_check_out_date
@@ -1360,26 +1369,40 @@ class BookingFrontDeskMixin:
             # Cập nhật booking
             booking.check_out_date = new_check_out_date
             booking.total_amount = Decimal(booking.total_amount) + extra_amount
+            if extra_discount > 0:
+                booking.membership_discount = Decimal(str(booking.membership_discount or 0)) + extra_discount
 
             if booking.group_booking_id:
                 group = booking.group_booking
                 group.total_amount = Decimal(group.total_amount or 0) + extra_amount
                 group.save(update_fields=['total_amount', 'updated_at'])
+
+                # Đồng bộ hóa đơn tổng của đoàn (master_invoice) nếu đã tồn tại
+                master_inv = getattr(group, 'master_invoice', None) or Invoice.objects.filter(group_booking=group).first()
+                if master_inv:
+                    master_inv.room_charge = Decimal(str(master_inv.room_charge or 0)) + extra_amount
+                    master_inv.total_amount = Decimal(str(master_inv.total_amount or 0)) + extra_amount
+                    if master_inv.status == 'paid' and extra_amount > 0:
+                        master_inv.status = 'pending'
+                    master_inv.save(update_fields=['room_charge', 'total_amount', 'status'])
             
             actor_name = user.get_full_name() or user.username
             actor_role_label = "Lễ tân/Quản lý" if is_staff_or_admin else "Khách hàng"
+            disc_note = f" (đã giảm {discount_pct:g}%: -{extra_discount:,.0f} VND)" if extra_discount > 0 else ""
             log_note = (
                 f"\n[{timezone.now().strftime('%d/%m/%Y %H:%M')}] Gia hạn lưu trú thêm {extra_nights} đêm "
-                f"đến {new_check_out_date.strftime('%d/%m/%Y')} (+{extra_amount:,.0f} VND) bởi {actor_role_label}: {actor_name}."
+                f"đến {new_check_out_date.strftime('%d/%m/%Y')} (+{extra_amount:,.0f} VND{disc_note}) bởi {actor_role_label}: {actor_name}."
             )
             booking.internal_note = (booking.internal_note or '') + log_note
             booking.save()
 
-            # Đồng bộ hóa đơn (Invoice) nếu đã có
+            # Đồng bộ hóa đơn lẻ (Invoice) nếu đã có
             if hasattr(booking, 'invoice') and booking.invoice:
                 inv = booking.invoice
                 inv.room_charge = Decimal(inv.room_charge or 0) + extra_amount
                 inv.total_amount = Decimal(inv.total_amount or 0) + extra_amount
+                if inv.status == 'paid' and extra_amount > 0:
+                    inv.status = 'pending'
                 inv.save()
 
             # 7. Sinh thông báo Notification
@@ -1466,6 +1489,13 @@ class BookingFrontDeskMixin:
         - check_in_date == timezone.localdate()
         - status chưa check-in (pending, confirmed)
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền xem danh sách nhận phòng hôm nay.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         today = timezone.localdate()
         qs = optimize_booking_queryset(Booking.objects.all()).filter(
             check_in_date=today,
@@ -1490,6 +1520,13 @@ class BookingFrontDeskMixin:
         - check_out_date == timezone.localdate()
         - status == 'checked_in'
         """
+        user = request.user
+        if not (user.is_authenticated and (user.is_superuser or user.is_staff or getattr(user, 'role', '') not in ['', 'guest'])):
+            return Response({
+                'success': False,
+                'message': 'Chỉ nhân viên khách sạn mới có quyền xem danh sách trả phòng hôm nay.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         today = timezone.localdate()
         qs = optimize_booking_queryset(Booking.objects.all()).filter(
             check_out_date=today,

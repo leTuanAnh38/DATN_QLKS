@@ -839,6 +839,16 @@ class AdminGuestSerializer(serializers.ModelSerializer):
             return 0.0
 
     def update(self, instance, validated_data):
+        from rest_framework.exceptions import PermissionDenied
+
+        request = self.context.get('request')
+        actor = getattr(request, 'user', None) if request else None
+        can_manage_sensitive = bool(
+            actor and actor.is_authenticated and (
+                actor.is_superuser or getattr(actor, 'role', '') in ['admin', 'owner', 'manager']
+            )
+        )
+
         id_type = validated_data.pop('id_type', None)
         id_card = validated_data.pop('id_card_number', None)
         dob = validated_data.pop('date_of_birth', None)
@@ -848,6 +858,33 @@ class AdminGuestSerializer(serializers.ModelSerializer):
         points = validated_data.pop('loyalty_points', None)
         prefs = validated_data.pop('preferences', None)
         new_pwd = validated_data.pop('new_password', None) or validated_data.pop('password', None)
+
+        # Chặn nhân viên không đủ quyền (như Lễ tân) tự cấp điểm thưởng, đổi hạng VIP hoặc đặt lại mật khẩu khách
+        if not can_manage_sensitive:
+            if new_pwd and str(new_pwd).strip():
+                raise PermissionDenied('Chỉ Quản lý hoặc Quản trị viên mới có quyền đặt lại mật khẩu của khách hàng.')
+
+            current_pts = int(getattr(instance, 'total_points', 0) or 0)
+            req_total_pts = validated_data.pop('total_points', None)
+            if (points is not None and int(points) != current_pts) or (
+                req_total_pts is not None and int(req_total_pts) != current_pts
+            ):
+                raise PermissionDenied('Chỉ Quản lý hoặc Quản trị viên mới có quyền điều chỉnh điểm tích lũy của khách hàng.')
+            points = None
+
+            validated_data.pop('current_tier', None)
+            if vip_tier is not None:
+                clean_req_tier = str(vip_tier).strip().lower()
+                existing_profile = getattr(instance, 'guest_profile', None)
+                existing_tier_names = {
+                    str(getattr(existing_profile, 'vip_tier', '') or '').strip().lower(),
+                    str(getattr(getattr(instance, 'current_tier', None), 'name', '') or '').strip().lower(),
+                    str(getattr(getattr(instance, 'current_tier', None), 'code', '') or '').strip().lower(),
+                }
+                existing_tier_names.discard('')
+                if clean_req_tier and clean_req_tier not in existing_tier_names:
+                    raise PermissionDenied('Chỉ Quản lý hoặc Quản trị viên mới có quyền thay đổi hạng thành viên VIP của khách hàng.')
+                vip_tier = None
 
         full_name = validated_data.pop('full_name', None)
         if full_name:

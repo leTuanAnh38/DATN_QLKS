@@ -11,16 +11,16 @@ from ..notifications.models import Notification
 
 class IsStaffOrAdminUser(permissions.BasePermission):
     """
-    Cho phép nhân viên quản lý, lễ tân hoặc admin truy cập các thao tác quản trị đánh giá.
+    Cho phép nhân viên quản lý, lễ tân hoặc admin truy cập các thao tác quản trị đánh giá
+    (không dựa vào user.is_staff để tránh kỹ thuật viên/buồng phòng xóa đánh giá).
     """
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         user = request.user
         return bool(
-            user.is_staff or
             user.is_superuser or
-            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'staff']
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
         )
 
 
@@ -55,9 +55,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
         user = self.request.user
         instance = serializer.instance
         is_staff = (
-            user.is_staff or
             user.is_superuser or
-            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'staff']
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
         )
         if not is_staff and instance.guest != user:
             raise PermissionDenied("Bạn chỉ có quyền chỉnh sửa đánh giá do chính mình viết.")
@@ -75,9 +74,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
 
         is_staff_user = user.is_authenticated and (
-            user.is_staff or
             user.is_superuser or
-            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'staff']
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist']
         )
 
         # Lọc theo Hạng phòng nếu có query param ?room_category=ID hoặc ?category=ID
@@ -114,24 +112,25 @@ class ReviewViewSet(viewsets.ModelViewSet):
         try:
             from django.contrib.auth import get_user_model
             UserModel = get_user_model()
-            is_negative = bool(review.rating and review.rating <= 3)
-            rating_stars = "⭐" * int(review.rating or 5)
+            rating_val = float(getattr(review, 'overall_rating', None) or 5.0)
+            is_negative = rating_val <= 3.0
+            rating_stars = "⭐" * max(1, min(5, int(round(rating_val))))
+            rating_display = f"{rating_val:g}"
             guest_name = review.guest.get_full_name() or review.guest.username if review.guest else "Khách hàng"
             booking_code = review.booking.booking_code if review.booking else "N/A"
             cat_name = review.room_category.name if review.room_category else ""
 
             if is_negative:
-                notif_title = f"[CẢNH BÁO ĐÁNH GIÁ THẤP] {guest_name} ({review.rating}⭐)"
-                notif_priority = 'urgent' if review.rating <= 2 else 'high'
+                notif_title = f"[CẢNH BÁO ĐÁNH GIÁ THẤP] {guest_name} ({rating_display}⭐)"
+                notif_priority = 'urgent' if rating_val <= 2.0 else 'high'
             else:
-                notif_title = f"[ĐÁNH GIÁ MỚI] {guest_name} ({review.rating}⭐)"
+                notif_title = f"[ĐÁNH GIÁ MỚI] {guest_name} ({rating_display}⭐)"
                 notif_priority = 'normal'
 
             notif_msg = (
-                f"Khách hàng {guest_name} vừa gửi đánh giá {review.rating} sao {rating_stars} "
+                f"Khách hàng {guest_name} vừa gửi đánh giá {rating_display} sao {rating_stars} "
                 f"cho đơn đặt phòng #{booking_code}{f' ({cat_name})' if cat_name else ''}.\n"
-                f"• Tiêu đề: \"{review.title or 'Đánh giá kỳ nghỉ'}\"\n"
-                f"• Nội dung: \"{(review.comment or 'Không có lời nhắn')[:120]}\"\n"
+                f"• Nội dung: \"{(review.comment or 'Không có lời nhắn')[:160]}\"\n"
                 f"Vui lòng xem chi tiết và phản hồi khách hàng."
             )
 

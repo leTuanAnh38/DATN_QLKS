@@ -6,7 +6,7 @@ import {
     getPositionsByDepartment,
     generateEmployeeCode
 } from './employeeConstants';
-import { formatCurrency } from '../../../utils/formatters';
+import { formatCurrency, getLocalDateString } from '../../../utils/formatters';
 
 export default function EmployeeCreateModal({
     isOpen,
@@ -26,7 +26,7 @@ export default function EmployeeCreateModal({
         position: 'Nhân Viên Lễ Tân (Receptionist)',
         shift: 'Ca Sáng (06:00 - 14:00)',
         salary_base: '11000000',
-        hire_date: new Date().toISOString().split('T')[0],
+        hire_date: getLocalDateString(),
         customPosition: false,
     });
 
@@ -46,7 +46,7 @@ export default function EmployeeCreateModal({
                 position: defaultPos,
                 shift: 'Ca Sáng (06:00 - 14:00)',
                 salary_base: '11000000',
-                hire_date: new Date().toISOString().split('T')[0],
+                hire_date: getLocalDateString(),
                 customPosition: false,
             });
         }

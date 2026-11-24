@@ -17,23 +17,26 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
     first_name = ' '.join(name_parts[:-1]) if len(name_parts) > 1 else guest_name
     last_name = name_parts[-1] if len(name_parts) > 1 else ''
 
-    # Tìm user hiện có theo SĐT hoặc Email
+    # Chỉ tìm trong nhóm tài khoản khách hàng (tuyệt đối không gắn nhầm sang tài khoản nhân sự/Admin)
+    guest_qs = User.objects.filter(role='guest', is_staff=False, is_superuser=False)
     matched_user = None
     if guest_phone:
-        matched_user = User.objects.filter(phone_number=guest_phone).first()
+        matched_user = guest_qs.filter(phone_number=guest_phone).first()
     if not matched_user and clean_phone:
-        matched_user = User.objects.filter(phone_number=clean_phone).first()
+        matched_user = guest_qs.filter(phone_number=clean_phone[:15]).first()
     if not matched_user and guest_email:
-        matched_user = User.objects.filter(email__iexact=guest_email).first()
+        matched_user = guest_qs.filter(email__iexact=guest_email).first()
 
-    # Kiểm tra xem có đúng là cùng một người hay không (tránh gán nhầm sang tài khoản của người khác khi trùng SĐT)
+    # Kiểm tra xem có đúng là cùng một người hay không (tránh khớp chuỗi con 1 ký tự như 'a' trong 'nguyen van a')
     is_same_person = False
     if matched_user:
-        matched_name = matched_user.get_full_name().strip().lower()
-        current_name = guest_name.strip().lower()
+        matched_name = ' '.join(matched_user.get_full_name().strip().lower().split())
+        current_name = ' '.join(guest_name.strip().lower().split())
         if not matched_name:
             is_same_person = True
-        elif matched_name == current_name or matched_name in current_name or current_name in matched_name:
+        elif matched_name == current_name:
+            is_same_person = True
+        elif len(current_name) >= 4 and len(matched_name) >= 4 and (matched_name in current_name or current_name in matched_name):
             is_same_person = True
 
     if matched_user and is_same_person:
@@ -46,11 +49,13 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
             guest_user.last_name = last_name
             guest_user.save(update_fields=['first_name', 'last_name'])
 
-        # Cập nhật email nếu khách cung cấp email mới
+        # Bảo mật chống chiếm tài khoản (Account Takeover):
+        # CHỈ bổ sung email thật cho tài khoản vãng lai chưa có mật khẩu web và đang dùng email rỗng/tạm (.local).
+        # Tuyệt đối KHÔNG ghi đè email thật của tài khoản thành viên đã đăng ký.
         if guest_email:
             curr_email = (guest_user.email or '').strip().lower()
-            if not curr_email or curr_email.endswith('.local') or curr_email != guest_email.lower():
-                # Kiểm tra email có bị người khác sử dụng không
+            is_placeholder_email = (not curr_email) or curr_email.endswith('.local')
+            if is_placeholder_email and not guest_user.has_usable_password():
                 email_conflict = User.objects.filter(email__iexact=guest_email).exclude(pk=guest_user.pk).exists()
                 if email_conflict:
                     raise ValueError(f"Địa chỉ email '{guest_email}' đã được liên kết với một tài khoản khách hàng khác. Vui lòng kiểm tra lại hoặc để trống nếu khách không có email riêng.")
@@ -58,8 +63,12 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
                 guest_user.save(update_fields=['email'])
     else:
         # Nếu không tìm thấy, hoặc SĐT bị trùng với người khác trong DB
+        normalized_phone = clean_phone[:15] if clean_phone else ''
         email_conflict = User.objects.filter(email__iexact=guest_email).exists() if guest_email else False
-        phone_already_used = User.objects.filter(phone_number=guest_phone).exists() if guest_phone else False
+        phone_already_used = bool(
+            (guest_phone and User.objects.filter(phone_number=guest_phone).exists()) or
+            (normalized_phone and User.objects.filter(phone_number=normalized_phone).exists())
+        )
 
         if guest_email and email_conflict:
             raise ValueError(f"Địa chỉ email '{guest_email}' đã được đăng ký bởi một tài khoản khác trong hệ thống. Vui lòng kiểm tra lại hoặc để trống nếu khách không dùng email.")
@@ -74,7 +83,7 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
                 counter += 1
 
             email_to_use = guest_email or f"{username}@guest.hotel.local"
-            phone_to_save = None if phone_already_used else (guest_phone or None)
+            phone_to_save = None if phone_already_used else (normalized_phone or None)
 
             guest_user = User.objects.create_user(
                 username=username,
@@ -91,7 +100,7 @@ def _resolve_or_create_booking_guest_user(guest_name, guest_phone, guest_email, 
             prefix = "walkin" if is_walkin else "phone"
             username = f"{prefix}_{clean_phone[-6:]}_{unique_tag}" if len(clean_phone) >= 6 else f"{prefix}_{unique_tag}"
             email_to_use = guest_email if guest_email else f"{username}@walkin.hotel.local"
-            phone_to_save = None if phone_already_used else (guest_phone or None)
+            phone_to_save = None if phone_already_used else (normalized_phone or None)
 
             guest_user = User.objects.create(
                 username=username,

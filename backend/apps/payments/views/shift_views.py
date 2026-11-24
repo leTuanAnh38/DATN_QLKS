@@ -338,6 +338,18 @@ class ShiftSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        user = request.user
+        can_view_shift = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier'] or
+            check_role_permission(user, 'finance', 'read')
+        )
+        if not can_view_shift:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xem báo cáo tài chính ca làm việc.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         shift = CashierShift.objects.filter(pk=pk).first()
         if not shift:
             return Response({
@@ -438,6 +450,18 @@ class ShiftReportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        user = request.user
+        can_view_shift = (
+            user.is_superuser or
+            getattr(user, 'role', '') in ['admin', 'owner', 'manager', 'receptionist', 'cashier'] or
+            check_role_permission(user, 'finance', 'read')
+        )
+        if not can_view_shift:
+            return Response({
+                'success': False,
+                'message': 'Bạn không có quyền xem hoặc in báo cáo kết ca (Z-Report).'
+            }, status=status.HTTP_403_FORBIDDEN)
+
         shift = CashierShift.objects.select_related('user', 'handover_user').filter(pk=pk).first()
         if not shift:
             return Response({
