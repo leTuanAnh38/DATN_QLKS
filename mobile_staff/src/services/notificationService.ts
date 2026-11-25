@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import apiClient from '../api/client';
+import { savePushToken } from './authStorage';
 
 // Cấu hình hiển thị notification khi app đang mở (Foreground)
 Notifications.setNotificationHandler({
@@ -55,6 +56,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       token = tokenData.data;
 
       if (token) {
+        await savePushToken(token);
         // Gửi token lên Backend Django
         await apiClient.post('/notifications/register-device/', {
           expo_push_token: token,

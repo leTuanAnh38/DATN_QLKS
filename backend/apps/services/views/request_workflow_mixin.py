@@ -399,12 +399,19 @@ class ServiceRequestWorkflowMixin:
             }, status=status.HTTP_400_BAD_REQUEST)
 
         from ...users.models import User
-        target_staff = User.objects.filter(pk=staff_id).first()
+        target_staff = User.objects.filter(pk=staff_id, is_active=True).first()
         if not target_staff:
             return Response({
                 'success': False,
                 'message': 'Không tìm thấy nhân viên được chỉ định.'
             }, status=status.HTTP_404_NOT_FOUND)
+
+        assignable_roles = ['service_staff', 'housekeeper', 'technician']
+        if target_staff.id == request.user.id or getattr(target_staff, 'role', '') not in assignable_roles:
+            return Response({
+                'success': False,
+                'message': 'Chỉ được phân công cho nhân sự hiện trường (Phục vụ, Buồng phòng, Kỹ thuật) đang hoạt động.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         service_req.assigned_staff = target_staff
         update_fields = ['assigned_staff', 'updated_at']
@@ -417,6 +424,12 @@ class ServiceRequestWorkflowMixin:
 
         staff_name = target_staff.get_full_name() or target_staff.username
         service_name = service_req.service.name if service_req.service else "Dịch vụ"
+        assigner_name = (request.user.get_full_name() or request.user.username) if request.user.is_authenticated else "Điều phối"
+        room_label = (
+            service_req.booking.room.room_number
+            if service_req.booking and service_req.booking.room
+            else "Sảnh / Chưa gán phòng"
+        )
         log_action(
             user=request.user if request.user.is_authenticated else None,
             action='UPDATE',
@@ -424,6 +437,21 @@ class ServiceRequestWorkflowMixin:
             description=f"Phân công yêu cầu #{service_req.id} ({service_name}) cho nhân viên {staff_name}",
             request=request
         )
+
+        # Gửi thông báo trực tiếp (kèm Push Notification) tới nhân viên được phân công
+        if target_staff.id != request.user.id:
+            try:
+                from ...notifications.models import Notification
+                Notification.objects.create(
+                    recipient=target_staff,
+                    title=f"Được phân công: {service_name} (Phòng {room_label})",
+                    message=f"{assigner_name} đã giao yêu cầu #{service_req.id} ({service_name}, SL: {service_req.quantity}) tại Phòng {room_label} cho bạn phụ trách.",
+                    notification_type='service',
+                    priority='high',
+                    action_url='/admin/services',
+                )
+            except Exception as e:
+                print(f"Lỗi tạo thông báo phân công dịch vụ: {e}")
 
         serializer = self.get_serializer(service_req, context={'request': request})
         return Response({

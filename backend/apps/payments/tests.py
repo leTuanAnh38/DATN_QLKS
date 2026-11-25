@@ -14,6 +14,7 @@ from .models import Invoice, CashOutVoucher, Payment, CashierShift
 User = get_user_model()
 
 
+# Kiểm thử bảo mật Webhook thanh toán tự động SePay (VietQR)
 class SepayWebhookSecurityTests(APITestCase):
     def setUp(self):
         self.guest = User.objects.create_user(
@@ -40,6 +41,7 @@ class SepayWebhookSecurityTests(APITestCase):
             status='pending',
         )
 
+    # Kiểm tra Webhook SePay từ chối xử lý (503) khi máy chủ chưa cấu hình SEPAY_WEBHOOK_SECRET
     def test_webhook_rejects_when_secret_not_configured(self):
         with patch.dict(os.environ, {'SEPAY_WEBHOOK_SECRET': ''}):
             res = self.client.post('/api/payments/webhook/sepay/', {
@@ -50,6 +52,7 @@ class SepayWebhookSecurityTests(APITestCase):
             }, format='json')
         self.assertEqual(res.status_code, 503)
 
+    # Kiểm tra Webhook SePay từ chối request gửi sai mã API Key (trả 401)
     def test_webhook_rejects_wrong_api_key(self):
         with patch.dict(os.environ, {'SEPAY_WEBHOOK_SECRET': 'super-secret-123'}):
             res = self.client.post(
@@ -65,6 +68,7 @@ class SepayWebhookSecurityTests(APITestCase):
             )
         self.assertEqual(res.status_code, 401)
 
+    # Kiểm tra Webhook SePay không tự khớp nhầm nội dung chuyển khoản chỉ chứa số ID đơn ngẫu nhiên
     def test_webhook_does_not_match_arbitrary_numeric_id(self):
         with patch.dict(os.environ, {'SEPAY_WEBHOOK_SECRET': 'super-secret-123'}):
             res = self.client.post(
@@ -84,6 +88,7 @@ class SepayWebhookSecurityTests(APITestCase):
         self.assertEqual(self.booking.status, 'pending')
 
 
+# Kiểm thử tính nhất quán số liệu doanh thu thuần giữa Dashboard và Báo cáo
 class RevenueConsistencyTests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -152,6 +157,7 @@ class RevenueConsistencyTests(APITestCase):
             reason='Buy ice',
         )
 
+    # Kiểm tra doanh thu thuần (đã trừ hoàn cọc, không trừ chi vặt) khớp tuyệt đối giữa Dashboard và Báo cáo
     def test_dashboard_and_reports_net_revenue_match_exactly(self):
         self.client.force_authenticate(user=self.admin)
         dash_res = self.client.get('/api/bookings/dashboard-stats/?time_filter=year')
@@ -175,6 +181,7 @@ class RevenueConsistencyTests(APITestCase):
         )
 
 
+# Kiểm thử thanh toán quẹt thẻ POS và thanh toán hỗn hợp khi Check-out
 class PosCardCheckoutTests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -221,6 +228,7 @@ class PosCardCheckoutTests(APITestCase):
             status='checked_in',
         )
 
+    # Kiểm tra check-out bằng thẻ POS ghi nhận đúng kênh CREDIT_CARD vào Payment, Hóa đơn và Ca thu ngân
     def test_checkout_credit_card_records_card_in_payment_invoice_and_shift(self):
         self.client.force_authenticate(user=self.admin)
 
@@ -249,6 +257,7 @@ class PosCardCheckoutTests(APITestCase):
         self.assertEqual(shift_summary['transfer_in'], 0.0)
         self.assertEqual(shift_summary['cash_in'], 0.0)
 
+    # Kiểm tra thanh toán hỗn hợp (Tiền mặt check-in + POS check-out) hiển thị MIXED và báo cáo đúng từng kênh
     def test_mixed_cash_checkin_and_pos_checkout_displays_and_reports_accurately(self):
         # Reset booking to have CASH payment at check-in (1.5M) + extra service paid by POS (300k)
         mixed_booking = Booking.objects.create(

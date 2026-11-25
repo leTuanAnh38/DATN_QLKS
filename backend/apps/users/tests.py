@@ -11,6 +11,7 @@ from .views.role_matrix import check_role_permission
 User = get_user_model()
 
 
+# Kiểm thử phân quyền theo vai trò (RBAC)
 class RBACPermissionTests(APITestCase):
     def setUp(self):
         self.guest = User.objects.create_user(
@@ -38,6 +39,7 @@ class RBACPermissionTests(APITestCase):
             role='manager',
         )
 
+    # Kiểm tra ma trận quyền mặc định theo từng vai trò (khách, lễ tân, thu ngân, quản lý)
     def test_role_matrix_defaults(self):
         with patch('apps.users.views.role_matrix.load_role_matrix', return_value={}):
             self.assertFalse(check_role_permission(self.guest, 'bookings', 'read'))
@@ -47,6 +49,7 @@ class RBACPermissionTests(APITestCase):
             self.assertFalse(check_role_permission(self.cashier, 'bookings', 'update'))
             self.assertTrue(check_role_permission(self.manager, 'bookings', 'update'))
 
+    # Kiểm tra API báo cáo doanh thu chặn khách hàng (403) và cho phép quản lý truy cập (200)
     def test_reports_analytics_requires_staff_or_manager(self):
         with patch('apps.users.views.role_matrix.load_role_matrix', return_value={}):
             self.client.force_authenticate(user=self.guest)
@@ -57,6 +60,7 @@ class RBACPermissionTests(APITestCase):
             res_mgr = self.client.get('/api/reports/')
             self.assertEqual(res_mgr.status_code, 200)
 
+    # Kiểm tra tạo mã khuyến mãi chỉ cho phép quản lý/admin, chặn lễ tân (403)
     def test_promotions_create_restricted_to_manager_or_admin(self):
         now = timezone.now()
         payload = {
@@ -77,6 +81,7 @@ class RBACPermissionTests(APITestCase):
         self.assertIn(res_mgr.status_code, [200, 201])
 
 
+# Kiểm thử đăng nhập bằng Google OAuth2
 class GoogleLoginTests(APITestCase):
     CLIENT_ID = 'test-client-id.apps.googleusercontent.com'
 
@@ -86,6 +91,7 @@ class GoogleLoginTests(APITestCase):
         resp.json.return_value = payload
         return resp
 
+    # Kiểm tra đăng nhập Google lần đầu tự tạo tài khoản khách mới, GuestProfile và trả JWT token
     @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
     def test_google_login_creates_new_guest_and_returns_tokens(self):
         tokeninfo_resp = self._mock_response(200, {'aud': self.CLIENT_ID})
@@ -108,6 +114,7 @@ class GoogleLoginTests(APITestCase):
         self.assertFalse(user.has_usable_password())
         self.assertTrue(GuestProfile.objects.filter(user=user).exists())
 
+    # Kiểm tra chặn tài khoản nhân viên khách sạn đăng nhập bằng Google (trả 403)
     @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
     def test_google_login_blocks_staff_account(self):
         User.objects.create_user(
@@ -128,6 +135,7 @@ class GoogleLoginTests(APITestCase):
         self.assertEqual(res.status_code, 403)
         self.assertFalse(res.data['success'])
 
+    # Kiểm tra từ chối Google ID token có audience (Client ID) không khớp ứng dụng (trả 400)
     @override_settings(GOOGLE_CLIENT_ID=CLIENT_ID)
     def test_google_login_rejects_mismatched_audience(self):
         id_token_resp = self._mock_response(200, {
@@ -143,6 +151,7 @@ class GoogleLoginTests(APITestCase):
         self.assertFalse(res.data['success'])
 
 
+# Kiểm thử sắp xếp cấp bậc nhân sự, ẩn lương và bảo vệ tài khoản Admin
 class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
     def setUp(self):
         from decimal import Decimal
@@ -208,6 +217,7 @@ class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
             base_salary=Decimal('12000000'),
         )
 
+    # Kiểm tra sắp xếp nhân sự theo cấp bậc, ẩn lương Chủ KS với Quản lý và lọc đúng theo ca trực
     def test_hierarchy_sorting_and_manager_salary_masking(self):
         self.client.force_authenticate(user=self.manager)
         res = self.client.get('/api/users/admin/employees/')
@@ -235,6 +245,7 @@ class EmployeeDirectoryHierarchyAndMaskingTests(APITestCase):
         self.assertEqual(len(shift_rows), 1)
         self.assertEqual(shift_rows[0]['role'], 'cashier')
 
+    # Kiểm tra Chủ khách sạn không được sửa, xóa, tạo mới hoặc nâng quyền nhân viên lên vai trò Admin
     def test_owner_cannot_modify_or_assign_admin_role(self):
         self.client.force_authenticate(user=self.owner)
 

@@ -1,6 +1,9 @@
 import apiClient from '../../api/client';
-import { DEFAULT_API_URL } from '../../api/config';
+import { getCachedApiBaseUrl } from '../../api/config';
+import { resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 import { ServiceOrder, ServiceLockReason, SlaStatus, StatusBadgeConfig } from './types';
+
+const TRANSPORT_XE_REGEX = /(?:^|[\s\-\/(\[])xe(?=$|[\s\-\/)\],.!?])/i;
 
 // Helper lọc bỏ các dịch vụ xe / vận chuyển (đã có tab riêng của đội lái xe)
 export const isTransportService = (item: any): boolean => {
@@ -8,7 +11,7 @@ export const isTransportService = (item: any): boolean => {
   if (item.category_type === 'transport') return true;
   const text = `${item.name || item.service_name || ''} ${item.category_name || ''} ${item.description || ''}`.toLowerCase();
   return (
-    text.includes('xe') ||
+    TRANSPORT_XE_REGEX.test(text) ||
     text.includes('sân bay') ||
     text.includes('đưa đón') ||
     text.includes('transfer') ||
@@ -39,11 +42,7 @@ export const getServiceItemImage = (item: any): string => {
   if (!raw || typeof raw !== 'string') {
     return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80';
   }
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
-  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return resolveMobileMediaUrl(raw, apiClient.defaults.baseURL || getCachedApiBaseUrl());
 };
 
 // Helper định dạng ngày giờ đặt đơn & giờ hẹn giao
@@ -384,22 +383,29 @@ export const detectAllergyWarning = (note?: string | null): AllergyWarningInfo |
 
   const allergyKeywords = [
     'dị ứng', 'di ung', 'allergy', 'allergic', 'allergies',
-    'hải sản', 'hai san', 'seafood', 'tôm', 'cua', 'mực', 'shrimp', 'crab', 'squid',
-    'đậu phộng', 'dau phong', 'đậu phụng', 'dau phung', 'lạc', 'peanut', 'peanuts', 'nuts',
-    'ăn chay', 'an chay', 'chay', 'vegetarian', 'vegan', 'halal', 'kosher',
+    'không hải sản', 'khong hai san', 'no seafood', 'không tôm', 'không cua', 'không mực', 'no shrimp',
+    'không đậu phộng', 'khong dau phong', 'không đậu phụng', 'khong dau phung', 'không lạc', 'khong lac',
+    'peanut free', 'peanut-free', 'nut free', 'nut-free', 'no peanut', 'no nuts',
+    'ăn chay', 'an chay', 'đồ chay', 'món chay', 'vegetarian', 'vegan', 'halal', 'kosher',
     'không cay', 'khong cay', 'không ớt', 'khong ot', 'no spicy', 'ít cay', 'it cay',
-    'không hành', 'khong hanh', 'không tỏi', 'khong toi', 'no onion', 'no garlic',
-    'không sữa', 'khong sua', 'lactose', 'dairy', 'gluten', 'trứng', 'egg', 'kiêng'
+    'không hành', 'khong hanh', 'không tỏi', 'khong toi', 'bỏ hành', 'bỏ tỏi', 'no onion', 'no garlic',
+    'không sữa', 'khong sua', 'lactose', 'dairy free', 'dairy-free', 'gluten',
+    'không trứng', 'khong trung', 'no egg', 'kiêng', 'không ăn', 'khong an',
   ];
 
   const matched = allergyKeywords.filter((kw) => clean.includes(kw));
+  if (/(?:^|[\s,(\[])chay(?=$|[\s,)\].!?])/i.test(clean) && !matched.some((k) => k.includes('chay'))) {
+    matched.push('chay');
+  }
   if (matched.length === 0) return null;
 
-  const isDietary = matched.some((k) => k.includes('chay') || k.includes('vegan') || k.includes('halal') || k.includes('kiêng'));
+  const isDietary = matched.some(
+    (k) => k.includes('chay') || k.includes('vegan') || k.includes('vegetarian') || k.includes('halal') || k.includes('kosher') || k.includes('kiêng')
+  );
 
   return {
     hasAllergy: true,
-    title: isDietary ? 'YÊU CẦU ĂN KIÊNG / CHAY' : 'CẢNH BÁO DỊ ỨNG THỰC PHẨM',
+    title: isDietary ? 'YÊU CẦU ĂN KIÊNG / CHAY' : 'CẢNH BÁO DỊ ỨNG / LƯU Ý MÓN',
     matchedKeywords: matched,
   };
 };

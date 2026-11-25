@@ -185,7 +185,7 @@ class ReportsAnalyticsView(APIView):
         )
         chart_refunds_data = list(
             CashOutVoucher.objects.filter(
-                category__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
+                voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
                 created_at__gte=start_date,
                 created_at__lte=end_date,
             ).values('created_at', 'amount')

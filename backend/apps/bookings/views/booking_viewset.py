@@ -189,7 +189,6 @@ class BookingViewSet(
                     'success': False,
                     'message': 'Vui lòng nhập Địa chỉ xuất hóa đơn GTGT của công ty.'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            import re
             if not re.match(r'^(\d{10}|\d{13}|\d{10}-\d{3})$', company_tax_code):
                 return Response({
                     'success': False,
@@ -713,7 +712,6 @@ class BookingViewSet(
                 'message': 'Đơn đặt phòng này chưa có địa chỉ email nhận thư. Vui lòng nhập địa chỉ email vào ô thông tin để gửi lại.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        import re
         if not re.match(r"[^@]+@[^@]+\.[^@]+", target_email):
             return Response({
                 'success': False,

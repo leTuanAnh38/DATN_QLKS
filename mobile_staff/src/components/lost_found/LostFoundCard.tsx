@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Palette } from '../../constants/theme';
-import { useAppTheme } from '../../contexts/ThemeContext';
+import { useAppTheme, resolveMobileMediaUrl } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 
 export interface LostFoundItem {
@@ -56,9 +57,11 @@ export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
   onOpenReturn,
 }) => {
   const { isDark } = useAppTheme();
+  const { apiUrl } = useAuth();
+  const resolvedImageUrl = resolveMobileMediaUrl(item.image_url || item.image, apiUrl);
   const isStored = item.status === 'stored';
   const isContacted = item.status === 'contacted';
-  const isReturned = item.status === 'returned';
+  const isDisposed = item.status === 'disposed';
 
   const getStatusStyle = () => {
     if (isStored) {
@@ -77,6 +80,15 @@ export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
         text: isDark ? Palette.sky.main : '#0284C7',
         label: 'Đã báo khách',
         icon: 'call' as const,
+      };
+    }
+    if (isDisposed) {
+      return {
+        bg: isDark ? 'rgba(148, 163, 184, 0.14)' : '#F1F5F9',
+        border: isDark ? 'rgba(148, 163, 184, 0.35)' : '#CBD5E1',
+        text: isDark ? '#94A3B8' : '#64748B',
+        label: 'Đã thanh lý',
+        icon: 'trash-outline' as const,
       };
     }
     return {
@@ -143,14 +155,14 @@ export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
 
       {/* Tên đồ vật & Mã & Ảnh chụp hiện vật */}
       <View style={styles.itemTitleRow}>
-        {item.image_url || item.image ? (
+        {resolvedImageUrl ? (
           <TouchableOpacity
-            onPress={() => onPreviewImage(item.image_url || item.image || null)}
+            onPress={() => onPreviewImage(resolvedImageUrl)}
             activeOpacity={0.8}
             style={styles.itemThumbWrapper}
           >
             <Image
-              source={{ uri: item.image_url || item.image || '' }}
+              source={{ uri: resolvedImageUrl }}
               style={styles.itemThumbnail}
               resizeMode="cover"
             />
@@ -267,6 +279,21 @@ export const LostFoundCard: React.FC<LostFoundCardProps> = React.memo(({
             </Text>
           </View>
         )
+      ) : isDisposed ? (
+        <View
+          style={[
+            styles.returnedInfoBox,
+            {
+              backgroundColor: isDark ? 'rgba(148, 163, 184, 0.12)' : '#F1F5F9',
+              borderColor: isDark ? 'rgba(148, 163, 184, 0.3)' : '#CBD5E1',
+            },
+          ]}
+        >
+          <Ionicons name="trash-outline" size={14} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 6 }} />
+          <Text style={[styles.returnedInfoText, { color: isDark ? '#94A3B8' : '#475569' }]}>
+            Vật phẩm đã thanh lý / hủy bỏ theo quy định lưu kho
+          </Text>
+        </View>
       ) : (
         <View
           style={[

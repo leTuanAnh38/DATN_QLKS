@@ -8,10 +8,12 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
@@ -31,7 +33,8 @@ import {
   StaffDirectoryModal,
   createProfileStyles,
 } from '../../components/profile';
-import { useOfflineQueueCount } from '../../services/offlineQueue';
+import { useOfflineQueueCount, clearOfflineQueue } from '../../services/offlineQueue';
+import { hasStaffPermission } from '../../utils/permissions';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, updateServerUrl, refreshProfile } = useAuth();
@@ -43,10 +46,9 @@ export default function ProfileScreen() {
   const canViewStaffDirectory = Boolean(
     user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(userRole)
   );
-  const canAccessCrmAndBookings = Boolean(
-    user?.is_superuser ||
-      ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(userRole)
-  );
+  // Tách riêng quyền CRM (guests.read) và Lịch lưu trú (bookings.read) đồng bộ trực tiếp theo role_matrix.json
+  const canAccessCrm = hasStaffPermission(user, 'guests', 'read');
+  const canAccessBookings = hasStaffPermission(user, 'bookings', 'read');
   const offlineQueueCount = useOfflineQueueCount();
   const [offlineModalVisible, setOfflineModalVisible] = useState(false);
   const [executiveModalVisible, setExecutiveModalVisible] = useState(false);
@@ -202,7 +204,12 @@ export default function ProfileScreen() {
 
   const loadHandoverNote = async () => {
     try {
-      const saved = await SecureStore.getItemAsync('staff_shift_handover_note');
+      const saved =
+        Platform.OS === 'web'
+          ? typeof window !== 'undefined' && window.localStorage
+            ? window.localStorage.getItem('staff_shift_handover_note')
+            : null
+          : await SecureStore.getItemAsync('staff_shift_handover_note');
       if (saved) setHandoverNote(saved);
     } catch {}
   };
@@ -326,6 +333,27 @@ export default function ProfileScreen() {
 
   // Đăng xuất
   const handleLogout = () => {
+    if (offlineQueueCount > 0) {
+      Alert.alert(
+        'Còn tác vụ ngoại tuyến chưa đồng bộ',
+        `Hiện có ${offlineQueueCount} tác vụ đang nằm trong hàng đợi ngoại tuyến. Nếu đăng xuất ngay, nhân viên ca sau đăng nhập trên máy này có thể bị đồng bộ nhầm tác vụ của bạn.`,
+        [
+          { text: 'Ở lại để đồng bộ', style: 'cancel' },
+          {
+            text: 'Xóa hàng đợi & Đăng xuất',
+            style: 'destructive',
+            onPress: async () => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              await clearOfflineQueue();
+              await logout();
+              router.replace('/login');
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert('Xác nhận kết thúc ca', 'Bạn có chắc chắn muốn kết thúc ca trực và đăng xuất khỏi hệ thống?', [
       { text: 'Hủy', style: 'cancel' },
       {
@@ -649,7 +677,7 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
           </TouchableOpacity>
 
-          {canAccessCrmAndBookings && (
+          {canAccessCrm && (
             <>
               <View style={styles.detailDivider} />
 
@@ -672,7 +700,11 @@ export default function ProfileScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
               </TouchableOpacity>
+            </>
+          )}
 
+          {canAccessBookings && (
+            <>
               <View style={styles.detailDivider} />
 
               {/* Quản lý đặt phòng & Lịch lưu trú */}
@@ -811,7 +843,7 @@ export default function ProfileScreen() {
 
         {/* Thông tin phiên bản */}
         <Text style={styles.versionText}>
-          {hotelName || 'TA Luxury'} PMS Mobile Staff • v2.4.0 (Build 2026)
+          {hotelName || 'TA Luxury'} PMS Mobile Staff • v{Constants.expoConfig?.version || '1.0.0'}
         </Text>
       </ScrollView>
 
@@ -867,11 +899,15 @@ export default function ProfileScreen() {
       <BookingManagementModal
         visible={bookingModalVisible}
         onClose={() => setBookingModalVisible(false)}
-        onSelectGuest={(guestId) => {
-          setCrmGuestId(guestId);
-          setBookingModalVisible(false);
-          setCrmModalVisible(true);
-        }}
+        onSelectGuest={
+          canAccessCrm
+            ? (guestId) => {
+                setCrmGuestId(guestId);
+                setBookingModalVisible(false);
+                setCrmModalVisible(true);
+              }
+            : undefined
+        }
       />
 
       {/* Modal Bảng Điều Hành & Doanh Thu + Điểm Nóng Hiện Trường */}

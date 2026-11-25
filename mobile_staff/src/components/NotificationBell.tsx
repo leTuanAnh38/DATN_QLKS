@@ -181,7 +181,9 @@ export default function NotificationBell() {
     if (
       t.includes('thất lạc') ||
       t.includes('bỏ quên') ||
-      t.includes('đồ') ||
+      t.includes('đồ thất lạc') ||
+      t.includes('đồ bỏ quên') ||
+      t.includes('tài sản') ||
       type === 'lost_found' ||
       t.includes('lost-found')
     ) {
@@ -191,7 +193,7 @@ export default function NotificationBell() {
 
     // 3. Đội xe / Đưa đón sân bay
     if (
-      t.includes('xe') ||
+      /(?:^|[\s\-\/(\[])xe(?=$|[\s\-\/)\],.!?])/i.test(t) ||
       t.includes('đưa đón') ||
       t.includes('transfer') ||
       t.includes('sân bay') ||
@@ -275,13 +277,25 @@ export default function NotificationBell() {
     if (t.includes('bảo trì') || t.includes('hỏng') || t.includes('sửa') || type === 'maintenance') {
       return { icon: 'construct', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' };
     }
-    if (t.includes('thất lạc') || t.includes('bỏ quên') || t.includes('đồ') || type === 'lost_found') {
+    if (
+      t.includes('thất lạc') ||
+      t.includes('bỏ quên') ||
+      t.includes('đồ thất lạc') ||
+      t.includes('đồ bỏ quên') ||
+      t.includes('tài sản') ||
+      type === 'lost_found'
+    ) {
       return { icon: 'briefcase', color: '#A78BFA', bg: 'rgba(167, 139, 250, 0.15)' };
     }
     if (t.includes('minibar') || t.includes('kiểm phòng') || t.includes('hóa đơn')) {
       return { icon: 'wine', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)' };
     }
-    if (t.includes('xe') || t.includes('đón') || t.includes('sân bay') || type === 'transport') {
+    if (
+      /(?:^|[\s\-\/(\[])xe(?=$|[\s\-\/)\],.!?])/i.test(t) ||
+      t.includes('đưa đón') ||
+      t.includes('sân bay') ||
+      type === 'transport'
+    ) {
       return { icon: 'car-sport', color: '#38BDF8', bg: 'rgba(56, 189, 248, 0.15)' };
     }
     if (t.includes('món') || t.includes('phục vụ') || t.includes('dịch vụ') || type === 'service') {

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import apiClient from '../api/client';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import apiClient, { subscribeAuthExpired } from '../api/client';
 import {
   UserInfo,
   saveAuthTokens,
@@ -7,8 +7,10 @@ import {
   getUserInfo,
   clearAuthData,
   getAccessToken,
+  getPushToken,
+  clearPushToken,
 } from '../services/authStorage';
-import { registerForPushNotifications } from '../services/notificationService';
+import { registerForPushNotifications, unregisterPushNotification } from '../services/notificationService';
 import { getApiBaseUrl, setApiBaseUrl } from '../api/config';
 
 interface AuthContextType {
@@ -33,12 +35,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     initAuth();
+    // Tự động đăng xuất trên UI khi token hết hạn hoàn toàn trong quá trình chạy
+    const unsubscribe = subscribeAuthExpired(() => {
+      setUser(null);
+      setToken(null);
+    });
+    return unsubscribe;
   }, []);
 
   const initAuth = async () => {
     try {
       const currentUrl = await getApiBaseUrl();
       setApiUrlState(currentUrl);
+      apiClient.defaults.baseURL = currentUrl;
 
       const savedToken = await getAccessToken();
       const savedUser = await getUserInfo();
@@ -49,8 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setToken(savedToken);
           setUser(savedUser);
-          // Kích hoạt lại push token cho thiết bị
+          // Kích hoạt lại push token & âm thầm đồng bộ hồ sơ/quyền mới nhất từ server
           registerForPushNotifications().catch(() => {});
+          refreshProfile().catch(() => {});
         }
       }
     } catch (e) {
@@ -106,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           shift: u.shift,
           hire_date: u.hire_date,
           address: u.address,
+          permissions: u.permissions ?? null,
         };
 
         await saveUserInfo(userData);
@@ -125,15 +136,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
+    try {
+      const pushToken = await getPushToken();
+      if (pushToken) {
+        await unregisterPushNotification(pushToken);
+        await clearPushToken();
+      }
+    } catch {}
     await clearAuthData();
     setUser(null);
     setToken(null);
-  };
+  }, []);
 
   const updateServerUrl = async (newUrl: string) => {
-    await setApiBaseUrl(newUrl);
-    setApiUrlState(newUrl);
+    const cleanUrl = newUrl.trim().replace(/\/+$/, '');
+    await setApiBaseUrl(cleanUrl);
+    apiClient.defaults.baseURL = cleanUrl;
+    setApiUrlState(cleanUrl);
   };
 
   const refreshProfile = async () => {
@@ -162,6 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           shift: u.shift,
           hire_date: u.hire_date,
           address: u.address,
+          permissions: u.permissions ?? null,
         };
         await saveUserInfo(updated);
         setUser(updated);

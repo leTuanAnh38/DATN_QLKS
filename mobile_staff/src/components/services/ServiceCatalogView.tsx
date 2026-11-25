@@ -242,7 +242,7 @@ export const ServiceCatalogView: React.FC<ServiceCatalogViewProps> = ({
           </TouchableOpacity>
 
           {catalogCategories
-            .filter((c: any) => c.type !== 'transport' && !c.name.toLowerCase().includes('xe'))
+            .filter((c: any) => c.type !== 'transport' && !isTransportService({ name: c.name, category_type: c.type }))
             .map((cat: any) => {
               const isSelected = catalogCategoryFilter === cat.id;
               const count = catalogItems.filter(

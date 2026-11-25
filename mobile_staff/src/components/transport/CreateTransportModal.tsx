@@ -10,16 +10,28 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useAppTheme } from '../../contexts/ThemeContext';
+import { isTransportService } from '../services/serviceHelpers';
 import { getVehicleImage } from './TransportCard';
+
+interface SelectableBooking {
+  bookingId: number;
+  bookingCode: string;
+  guestName: string;
+  roomLabel: string;
+  statusTag: 'occupied' | 'confirmed';
+}
 
 export interface CreateTransportModalProps {
   visible: boolean;
   isDark?: boolean;
+  initialBookingId?: number | null;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -27,25 +39,18 @@ export interface CreateTransportModalProps {
 export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
   visible,
   isDark = true,
+  initialBookingId = null,
   onClose,
   onSuccess,
 }) => {
   const { hotelName } = useAppTheme();
   const defaultLobby = `Sảnh ${hotelName || 'TA Luxury Hotel'}`;
-  const [occupiedRooms, setOccupiedRooms] = useState<any[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<any | null>(null);
+  const [selectableBookings, setSelectableBookings] = useState<SelectableBooking[]>([]);
+  const [selectedBooking, setSelectedBooking] = useState<SelectableBooking | null>(null);
   const [transportServices, setTransportServices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<any | null>(null);
   const [pickupLocation, setPickupLocation] = useState('Sân bay quốc tế Đà Nẵng');
   const [dropoffLocation, setDropoffLocation] = useState(defaultLobby);
-
-  useEffect(() => {
-    if (visible) {
-      setDropoffLocation((prev) =>
-        !prev || prev.startsWith('Sảnh ') ? defaultLobby : prev
-      );
-    }
-  }, [visible, defaultLobby]);
   const [flightCode, setFlightCode] = useState('');
   const [pickupTime, setPickupTime] = useState('14:30');
   const [passengerCount, setPassengerCount] = useState(2);
@@ -56,43 +61,64 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
   const fetchModalData = async () => {
     setLoadingModalData(true);
     try {
-      const [resRooms, resServices] = await Promise.all([
+      const [resRooms, resConfirmed, resServices] = await Promise.all([
         apiClient.get('/rooms/admin/rooms/'),
+        apiClient.get('/bookings/?status=confirmed&no_page=true').catch(() => ({ data: [] })),
         apiClient.get('/services/items/?all=true'),
       ]);
 
       const rList = resRooms.data.results || resRooms.data.rooms || resRooms.data.data || resRooms.data || [];
-      const occ = (Array.isArray(rList) ? rList : []).filter(
-        (r: any) => r.status === 'occupied' && r.current_booking
-      );
-      setOccupiedRooms(occ);
-      if (occ.length > 0) {
-        setSelectedRoom(occ[0]);
-      }
+      const bMap = new Map<number, SelectableBooking>();
+
+      (Array.isArray(rList) ? rList : [])
+        .filter((r: any) => r.status === 'occupied' && r.current_booking?.id)
+        .forEach((r: any) => {
+          bMap.set(r.current_booking.id, {
+            bookingId: r.current_booking.id,
+            bookingCode: r.current_booking.booking_code || '',
+            guestName: r.current_booking.guest_name || 'Khách lưu trú',
+            roomLabel: `P.${r.room_number}`,
+            statusTag: 'occupied',
+          });
+        });
+
+      const cList =
+        resConfirmed.data?.results ||
+        resConfirmed.data?.bookings ||
+        resConfirmed.data?.data ||
+        resConfirmed.data ||
+        [];
+      (Array.isArray(cList) ? cList : [])
+        .filter((b: any) => b?.id && b.status === 'confirmed' && !bMap.has(b.id))
+        .forEach((b: any) => {
+          bMap.set(b.id, {
+            bookingId: b.id,
+            bookingCode: b.booking_code || '',
+            guestName: b.guest_name || b.guest_full_name || 'Khách sắp đến',
+            roomLabel: b.room_number ? `P.${b.room_number}` : 'Sắp đến',
+            statusTag: 'confirmed',
+          });
+        });
+
+      const combined = Array.from(bMap.values());
+      setSelectableBookings(combined);
+      const preselected = initialBookingId
+        ? combined.find((b) => Number(b.bookingId) === Number(initialBookingId))
+        : null;
+      setSelectedBooking(preselected || (combined.length > 0 ? combined[0] : null));
 
       const sList = resServices.data.results || resServices.data.items || resServices.data.data || resServices.data || [];
-      const trans = (Array.isArray(sList) ? sList : []).filter((s: any) => {
-        const t = `${s.name || ''} ${s.category_name || ''}`.toLowerCase();
-        return (
-          t.includes('xe') ||
-          t.includes('sân bay') ||
-          t.includes('đưa đón') ||
-          t.includes('transfer') ||
-          t.includes('limousine') ||
-          t.includes('maybach') ||
-          t.includes('shuttle') ||
-          t.includes('taxi')
-        );
-      });
-      setTransportServices(trans.length > 0 ? trans : sList.slice(0, 3));
+      const activeList = (Array.isArray(sList) ? sList : []).filter((s: any) => s.is_active !== false);
+      const trans = activeList.filter((s: any) => isTransportService(s));
+      setTransportServices(trans.length > 0 ? trans : activeList.slice(0, 3));
       if (trans.length > 0) {
         setSelectedService(trans[0]);
-      } else if (sList.length > 0) {
-        setSelectedService(sList[0]);
+      } else if (activeList.length > 0) {
+        setSelectedService(activeList[0]);
       }
     } catch (e) {
       console.warn('Lỗi tải dữ liệu đặt xe:', e);
-      Alert.alert('Lỗi', 'Không thể tải danh sách phòng hoặc dịch vụ xe.');
+      Alert.alert('Lỗi', 'Không thể tải danh sách khách hoặc dịch vụ xe.');
     } finally {
       setLoadingModalData(false);
     }
@@ -100,13 +126,19 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
 
   useEffect(() => {
     if (visible) {
+      setPickupLocation('Sân bay quốc tế Đà Nẵng');
+      setDropoffLocation(defaultLobby);
+      setFlightCode('');
+      setPickupTime('14:30');
+      setPassengerCount(2);
+      setNote('');
       fetchModalData();
     }
-  }, [visible]);
+  }, [visible, defaultLobby, initialBookingId]);
 
   const submitTransportBooking = async () => {
-    if (!selectedRoom || !selectedRoom.current_booking) {
-      Alert.alert('Chưa chọn phòng', 'Vui lòng chọn phòng có khách đang ở để đặt xe.');
+    if (!selectedBooking) {
+      Alert.alert('Chưa chọn khách', 'Vui lòng chọn đơn đặt phòng của khách đang ở hoặc sắp đến để điều xe.');
       return;
     }
     if (!selectedService) {
@@ -125,7 +157,7 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
     setSubmittingBooking(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    const bookingId = selectedRoom.current_booking.id;
+    const bookingId = selectedBooking.bookingId;
     const fullNote = [
       pickupLocation ? `Đón: ${pickupLocation}` : '',
       dropoffLocation ? `Đến: ${dropoffLocation}` : '',
@@ -168,7 +200,7 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           'Đặt xe thành công',
-          `Đã tạo cuốc xe đưa đón cho Phòng ${selectedRoom.room_number} (${selectedRoom.current_booking.guest_name})!\nTài xế sẽ nhận được thông báo ngay lập tức.`
+          `Đã tạo cuốc xe đưa đón cho ${selectedBooking.roomLabel} (${selectedBooking.guestName})!\nTài xế sẽ nhận được thông báo ngay lập tức.`
         );
         onClose();
         onSuccess();
@@ -183,7 +215,10 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.modalOverlay}
+      >
         <View
           style={[
             styles.modalContent,
@@ -215,19 +250,23 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
             <View style={styles.modalLoadingBox}>
               <ActivityIndicator size="large" color="#F59E0B" />
               <Text style={[styles.modalLoadingText, !isDark && { color: '#64748B' }]}>
-                Đang tải danh sách phòng & dịch vụ xe...
+                Đang tải danh sách khách & dịch vụ xe...
               </Text>
             </View>
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-              {/* BƯỚC 1: CHỌN PHÒNG & KHÁCH HÀNG */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
+              {/* BƯỚC 1: CHỌN KHÁCH ĐANG Ở HOẶC SẮP ĐẾN */}
               <Text style={[styles.formSectionLabel, !isDark && { color: '#B45309' }]}>
-                1. CHỌN PHÒNG KHÁCH ĐANG Ở (*)
+                1. CHỌN KHÁCH ĐANG Ở / SẮP ĐẾN (*)
               </Text>
-              {occupiedRooms.length === 0 ? (
+              {selectableBookings.length === 0 ? (
                 <View style={styles.warningBox}>
                   <Ionicons name="alert-circle" size={16} color="#F59E0B" style={{ marginRight: 6 }} />
-                  <Text style={styles.warningText}>Hiện không có phòng nào đang có khách check-in.</Text>
+                  <Text style={styles.warningText}>Hiện không có đơn đặt phòng đang ở hoặc sắp đến.</Text>
                 </View>
               ) : (
                 <ScrollView
@@ -236,19 +275,18 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
                   contentContainerStyle={styles.roomSelectScroll}
                   style={{ flexGrow: 0, marginBottom: 14 }}
                 >
-                  {occupiedRooms.map((r) => {
-                    const isSel = selectedRoom?.id === r.id;
-                    const bk = r.current_booking;
+                  {selectableBookings.map((bk) => {
+                    const isSel = selectedBooking?.bookingId === bk.bookingId;
                     return (
                       <TouchableOpacity
-                        key={r.id}
+                        key={bk.bookingId}
                         style={[
                           styles.roomSelectCard,
                           !isDark && !isSel && { backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' },
                           isSel && styles.roomSelectCardActive,
                         ]}
                         onPress={() => {
-                          setSelectedRoom(r);
+                          setSelectedBooking(bk);
                           Haptics.selectionAsync();
                         }}
                         activeOpacity={0.7}
@@ -261,18 +299,18 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
                               isSel && { color: '#0A0F1D' },
                             ]}
                           >
-                            P.{r.room_number}
+                            {bk.roomLabel}
                           </Text>
-                          {bk?.booking_code && (
+                          {bk.bookingCode ? (
                             <Text
                               style={[
                                 styles.roomSelectCode,
                                 isSel && { color: '#0A0F1D', backgroundColor: 'rgba(0,0,0,0.15)' },
                               ]}
                             >
-                              #{bk.booking_code}
+                              #{bk.bookingCode}
                             </Text>
-                          )}
+                          ) : null}
                         </View>
                         <Text
                           style={[
@@ -282,7 +320,8 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
                           ]}
                           numberOfLines={1}
                         >
-                          {bk?.guest_name || 'Khách lưu trú'}
+                          {bk.statusTag === 'confirmed' ? '✈ ' : ''}
+                          {bk.guestName}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -524,7 +563,7 @@ export const CreateTransportModal: React.FC<CreateTransportModalProps> = ({
             </ScrollView>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

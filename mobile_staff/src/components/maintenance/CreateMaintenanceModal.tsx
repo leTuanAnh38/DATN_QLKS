@@ -64,12 +64,12 @@ export const CreateMaintenanceModal: React.FC<CreateMaintenanceModalProps> = ({
       const list = res.data.results || res.data.rooms || res.data.data || res.data || [];
       const roomsArr = Array.isArray(list) ? list : [];
       setRoomsList(roomsArr);
-      if (roomsArr.length > 0 && !selectedRoomId) {
-        setSelectedRoomId(roomsArr[0].id);
-        if (roomsArr[0].status === 'occupied') {
-          setCreateIsGuestFault(true);
-          setCreatePriority('urgent');
-        }
+      if (roomsArr.length > 0) {
+        const currentStillExists = roomsArr.find((r: any) => r.id === selectedRoomId);
+        const nextRoom = currentStillExists || roomsArr[0];
+        setSelectedRoomId(nextRoom.id);
+        setCreateIsGuestFault(false);
+        setCreatePriority(nextRoom.status === 'occupied' ? 'urgent' : 'normal');
       }
     } catch (e) {
       console.warn('Lỗi lấy danh sách phòng:', e);
@@ -85,23 +85,17 @@ export const CreateMaintenanceModal: React.FC<CreateMaintenanceModalProps> = ({
       setBreakdownDesc('');
       setCreatePartsReplaced('');
       setCreateCost('');
+      setCreateIsGuestFault(false);
       setRoomFilterText('');
       setCreateEvidenceImage(null);
       setSubmittingCreate(false);
-
-      if (roomsList.length === 0) {
-        fetchRoomsList();
-      } else {
-        const cur = roomsList.find((r) => r.id === selectedRoomId);
-        setCreateIsGuestFault(cur?.status === 'occupied');
-        setCreatePriority(cur?.status === 'occupied' ? 'urgent' : 'normal');
-      }
+      fetchRoomsList();
     }
   }, [visible]);
 
   const handleSelectRoom = (room: any) => {
     setSelectedRoomId(room.id);
-    setCreateIsGuestFault(room.status === 'occupied');
+    setCreateIsGuestFault(false);
     setCreatePriority(room.status === 'occupied' ? 'urgent' : 'normal');
     Haptics.selectionAsync();
   };
@@ -255,11 +249,12 @@ export const CreateMaintenanceModal: React.FC<CreateMaintenanceModalProps> = ({
                 <>
                   <TextInput
                     style={[styles.modalInput, { height: 38, fontSize: 12, marginBottom: 8 }, !isDark && { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1', color: '#0F172A' }]}
-                    placeholder="Lọc số phòng (VD: 101, 202...)"
+                    placeholder="Lọc số phòng (VD: 101, 202, VIP1...)"
                     placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
                     value={roomFilterText}
                     onChangeText={setRoomFilterText}
-                    keyboardType="numeric"
+                    keyboardType="default"
+                    autoCapitalize="characters"
                   />
                   <ScrollView
                     horizontal
@@ -269,9 +264,8 @@ export const CreateMaintenanceModal: React.FC<CreateMaintenanceModalProps> = ({
                     {roomsList
                       .filter((r) =>
                         !roomFilterText ||
-                        r.room_number.toLowerCase().includes(roomFilterText.toLowerCase())
+                        r.room_number.toLowerCase().includes(roomFilterText.trim().toLowerCase())
                       )
-                      .slice(0, 30)
                       .map((r) => {
                         const isSelected = selectedRoomId === r.id;
                         const statusColor = getRoomStatusColor(r.status);

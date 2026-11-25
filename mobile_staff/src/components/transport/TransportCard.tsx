@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../../api/client';
-import { DEFAULT_API_URL } from '../../api/config';
+import { getCachedApiBaseUrl } from '../../api/config';
 import { Palette } from '../../constants/theme';
-import { useAppTheme } from '../../contexts/ThemeContext';
+import { useAppTheme, resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 
 
 export interface ServiceRequestItem {
@@ -45,11 +45,7 @@ export const getVehicleImage = (item: any): string => {
   if (!raw || typeof raw !== 'string') {
     return 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80';
   }
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
-  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return resolveMobileMediaUrl(raw, apiClient.defaults.baseURL || getCachedApiBaseUrl());
 };
 
 // Helper định dạng ngày giờ
@@ -124,7 +120,9 @@ export interface TransportCardProps {
   isMyTask: boolean;
   isActionLoading: boolean;
   canOperate?: boolean;
+  canAssign?: boolean;
   onClaim: (item: ServiceRequestItem) => void;
+  onOpenAssign?: (item: ServiceRequestItem) => void;
   onUpdateStatus: (item: ServiceRequestItem, newStatus: string, label: string) => void;
   onOpenCancel?: (item: ServiceRequestItem) => void;
   onCallGuest: (phone: string) => void;
@@ -137,7 +135,9 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
   isMyTask,
   isActionLoading,
   canOperate = true,
+  canAssign = false,
   onClaim,
+  onOpenAssign,
   onUpdateStatus,
   onOpenCancel,
   onCallGuest,
@@ -255,11 +255,51 @@ export const TransportCard: React.FC<TransportCardProps> = React.memo(({
 
       {/* Tài xế phụ trách */}
       <View style={styles.driverInfoRow}>
-        <Text style={[styles.driverLabel, !isDark && { color: '#64748B' }]}>Tài xế nhận:</Text>
-        <Text style={[styles.driverValue, !isDark && { color: '#334155' }, isMyTask && { color: '#F59E0B', fontWeight: '800' }]}>
-          {item.assigned_staff_name ? item.assigned_staff_name : 'Chưa có ai nhận'}
-          {isMyTask ? ' (Bạn)' : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+          <Text style={[styles.driverLabel, !isDark && { color: '#64748B' }]}>Tài xế nhận: </Text>
+          <Text
+            style={[
+              styles.driverValue,
+              { flexShrink: 1 },
+              !isDark && { color: '#334155' },
+              isMyTask && { color: '#F59E0B', fontWeight: '800' },
+            ]}
+            numberOfLines={1}
+          >
+            {item.assigned_staff_name ? item.assigned_staff_name : 'Chưa có ai nhận'}
+            {isMyTask ? ' (Bạn)' : ''}
+          </Text>
+        </View>
+        {canAssign &&
+          onOpenAssign &&
+          item.status !== 'completed' &&
+          item.status !== 'cancelled' && (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+                borderRadius: 8,
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.14)' : '#EFF6FF',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#93C5FD',
+              }}
+              onPress={() => onOpenAssign(item)}
+              disabled={isActionLoading}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={12}
+                color={isDark ? '#38BDF8' : '#0284C7'}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#38BDF8' : '#0284C7' }}>
+                {item.assigned_staff_name ? 'Đổi tài xế' : 'Phân công'}
+              </Text>
+            </TouchableOpacity>
+          )}
       </View>
 
       {/* Nút hành động 2 tầng thoáng, không bị chèn ép trên màn hình nhỏ */}

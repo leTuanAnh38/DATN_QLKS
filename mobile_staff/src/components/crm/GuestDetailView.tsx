@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { safeOpenUrl } from '../../utils/linking';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../contexts/AuthContext';
+import { resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 import { styles } from './styles';
 import { GuestDetailViewProps } from './types';
 import {
@@ -32,6 +34,7 @@ export default function GuestDetailView({
   loadingHistory,
   isDark,
 }: GuestDetailViewProps) {
+  const { apiUrl } = useAuth();
   const [activeTab, setActiveTab] = useState<'bookings' | 'services'>('bookings');
   const [visibleHistoryBookingsCount, setVisibleHistoryBookingsCount] = useState(10);
   const [visibleHistoryServicesCount, setVisibleHistoryServicesCount] = useState(10);
@@ -170,8 +173,11 @@ export default function GuestDetailView({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={[styles.avatarCircle, { width: 58, height: 58, borderRadius: 29 }, !isDark && { backgroundColor: '#E2E8F0' }]}>
-            {guest.avatar ? (
-              <Image source={{ uri: guest.avatar }} style={{ width: 58, height: 58, borderRadius: 29 }} />
+            {resolveMobileMediaUrl(guest.avatar, apiUrl) ? (
+              <Image
+                source={{ uri: resolveMobileMediaUrl(guest.avatar, apiUrl) }}
+                style={{ width: 58, height: 58, borderRadius: 29 }}
+              />
             ) : (
               <Text style={[styles.avatarInitial, { fontSize: 24 }, !isDark && { color: '#D97706' }]}>
                 {(guest.full_name || guest.username || 'K').charAt(0).toUpperCase()}

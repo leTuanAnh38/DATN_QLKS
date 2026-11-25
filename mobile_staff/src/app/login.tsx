@@ -31,7 +31,6 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   { label: 'Hoa (Buồng phòng)', role: 'Dọn phòng', username: 'buongphong_hoa', icon: 'bed' },
   { label: 'An (Đội xe & Phục vụ)', role: 'Tài xế / F&B', username: 'phucvu_an', icon: 'car-sport' },
   { label: 'Dũng (Kỹ thuật)', role: 'Bảo trì', username: 'kythuat_dung', icon: 'construct' },
-  { label: 'Huy (Quản lý PMS)', role: 'Toàn quyền 6 tab', username: 'quanly1', icon: 'shield-checkmark' },
 ];
 
 export default function LoginScreen() {

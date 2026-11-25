@@ -11,6 +11,7 @@ from ..rooms.models import Room, RoomCategory
 User = get_user_model()
 
 
+# Kiểm thử tạo và xử lý phiếu yêu cầu dịch vụ phòng
 class ServiceRequestTests(APITestCase):
     def setUp(self):
         self.guest_a = User.objects.create_user(
@@ -63,6 +64,7 @@ class ServiceRequestTests(APITestCase):
             is_active=True,
         )
 
+    # Kiểm tra chỉ chủ đơn đặt phòng mới được gọi dịch vụ cho phòng mình, chặn khách khác đặt hộ (chống IDOR)
     def test_owner_can_create_service_request_and_other_guest_blocked(self):
         payload = {
             'booking': self.booking.id,
@@ -78,6 +80,7 @@ class ServiceRequestTests(APITestCase):
         self.assertEqual(res_a.status_code, 201)
         self.assertEqual(ServiceRequest.objects.filter(booking=self.booking).count(), 1)
 
+    # Kiểm tra nhân viên phục vụ cập nhật được trạng thái xử lý yêu cầu dịch vụ (pending -> in_progress)
     def test_service_staff_can_update_service_request_status(self):
         sr = ServiceRequest.objects.create(
             booking=self.booking,
@@ -97,6 +100,7 @@ class ServiceRequestTests(APITestCase):
         self.assertEqual(sr.status, 'in_progress')
 
 
+# Kiểm thử quản lý danh mục dịch vụ và cơ chế bảo vệ xóa an toàn (Safe Delete)
 class ServiceCategoryManagementTests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -116,6 +120,7 @@ class ServiceCategoryManagementTests(APITestCase):
             is_active=True,
         )
 
+    # Kiểm tra Admin cập nhật tên, mô tả nhóm dịch vụ và trả về đúng số lượng dịch vụ trực thuộc
     def test_admin_can_update_service_category(self):
         self.client.force_authenticate(user=self.admin)
         res = self.client.patch(
@@ -128,6 +133,7 @@ class ServiceCategoryManagementTests(APITestCase):
         self.assertEqual(self.cat_food.name, 'Ẩm thực tại phòng')
         self.assertEqual(res.data['category']['total_services_count'], 1)
 
+    # Kiểm tra xóa nhóm dịch vụ còn món bên trong bắt buộc chuyển sang nhóm đích trước khi xóa
     def test_delete_non_empty_category_requires_reassign_then_moves_items(self):
         self.client.force_authenticate(user=self.admin)
 
@@ -148,12 +154,14 @@ class ServiceCategoryManagementTests(APITestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.category_id, self.cat_drink.id)
 
+    # Kiểm tra xóa trực tiếp nhóm dịch vụ trống thành công
     def test_delete_empty_category_succeeds_directly(self):
         self.client.force_authenticate(user=self.admin)
         res = self.client.delete(f'/api/services/categories/{self.cat_empty.id}/')
         self.assertEqual(res.status_code, 200)
         self.assertFalse(ServiceCategory.objects.filter(pk=self.cat_empty.id).exists())
 
+    # Kiểm tra cơ chế chống xóa vĩnh viễn khi dịch vụ/khách/nhân viên/phòng đang có dữ liệu lịch sử ràng buộc
     def test_safe_delete_guards_for_service_guest_employee_and_room(self):
         from django.urls import reverse
         from ..payments.models import CashierShift

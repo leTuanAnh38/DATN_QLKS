@@ -22,6 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
 import { LostFoundListSkeleton } from '../../components/SkeletonLoader';
+import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
   LostFoundCard,
   LostFoundItem,
@@ -199,8 +200,25 @@ export default function LostFoundScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Đã cập nhật', `Đã đánh dấu đã liên hệ báo khách cho đồ #${item.tracking_code}!`);
       fetchLostItems();
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+    } catch (err: any) {
+      if (!err?.response) {
+        await enqueueOfflineAction({
+          description: `Đồ thất lạc #${item.tracking_code}: Đánh dấu đã liên hệ khách`,
+          url: `/rooms/lost-and-found/${item.id}/`,
+          method: 'PATCH',
+          data: { status: 'contacted' },
+        });
+        setItems((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, status: 'contacted' } : it))
+        );
+        Alert.alert(
+          'Đã lưu ngoại tuyến',
+          `Mất kết nối máy chủ! Thao tác cập nhật đồ #${item.tracking_code} đã được lưu vào hàng đợi ngoại tuyến.`
+        );
+      } else {
+        const msg = err.response?.data?.message || 'Không thể cập nhật trạng thái.';
+        Alert.alert('Lỗi', msg);
+      }
     } finally {
       setActionLoadingId(null);
     }

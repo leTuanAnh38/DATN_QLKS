@@ -57,7 +57,7 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
       setBreakdownDesc('');
       setBreakdownPartsReplaced('');
       setBreakdownCost('');
-      setIsGuestFault(room.status === 'occupied');
+      setIsGuestFault(false);
       setEvidenceImage(null);
     }
   }, [visible, room?.id]);
@@ -540,9 +540,9 @@ export const BreakdownModal: React.FC<BreakdownModalProps> = ({
               )}
             </View>
 
-            {/* 7. Ảnh hiện trường hư hại (Before) */}
+            {/* 5. Ảnh hiện trường hư hại (Before) */}
             <Text style={[styles.modalSectionLabel, { marginTop: 14 }, !isDark && { color: '#B45309' }]}>
-              7. Ảnh hiện trường hư hại (Bằng chứng đối soát):
+              5. Ảnh hiện trường hư hại (Bằng chứng đối soát):
             </Text>
             {evidenceImage ? (
               <View style={styles.imagePreviewContainer}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,9 +9,15 @@ import { useAppTheme } from '../../contexts/ThemeContext';
 import ConnectionBanner from '../../components/ConnectionBanner';
 
 export default function TabLayout() {
-  const { user } = useAuth();
+  const { user, token, isLoading } = useAuth();
   const { colors, isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
+
+  // Auth Guard: Nếu phiên đăng nhập hết hạn hoặc chưa đăng nhập -> tự động điều hướng về màn hình Login
+  if (!isLoading && (!token || !user)) {
+    return <Redirect href="/login" />;
+  }
+
   const role = user?.role || '';
   const isFullOpsRole =
     Boolean(user?.is_superuser) ||

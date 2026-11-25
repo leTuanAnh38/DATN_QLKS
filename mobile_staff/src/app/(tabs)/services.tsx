@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { safeOpenUrl } from '../../utils/linking';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
+import { hasStaffPermission } from '../../utils/permissions';
 import NotificationBell from '../../components/NotificationBell';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
+import AssignStaffModal, { AssignableStaff, getStaffDisplayName } from '../../components/AssignStaffModal';
 import { ServiceListSkeleton } from '../../components/SkeletonLoader';
 import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
@@ -47,6 +50,8 @@ import {
 export default function ServicesScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const routeParams = useLocalSearchParams<{ openCreate?: string; roomId?: string; reqTs?: string }>();
+  const lastHandledReqTsRef = useRef<string | null>(null);
   const userRole = user?.role || '';
   const canToggleCatalog = Boolean(
     user?.is_superuser ||
@@ -54,11 +59,14 @@ export default function ServicesScreen() {
   );
   // Thu ngân (cashier) chỉ đối chiếu đơn dịch vụ & thanh toán, không thao tác bếp/phục vụ
   const canOperateServices = Boolean(user?.is_superuser || userRole !== 'cashier');
-  // Chỉ Lễ tân, Thu ngân, Quản lý, Chủ, Admin & Phục vụ (xem dị ứng/sở thích) được mở CRM
-  const canAccessCrm = Boolean(
-    user?.is_superuser ||
-      ['admin', 'owner', 'manager', 'receptionist', 'cashier', 'service_staff'].includes(userRole)
+  // Buồng phòng chỉ xử lý Tiện ích phòng & Giặt ủi, không xử lý mâm F&B
+  const canOperateFnbBatch = Boolean(canOperateServices && userRole !== 'housekeeper');
+  // Quản lý / Lễ tân / Chủ / Admin được phân công đích danh nhân viên (khớp backend POST /services/requests/<id>/assign/)
+  const canAssignStaff = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(userRole)
   );
+  // Mở tra cứu CRM khách hàng (đọc động từ role_matrix.json: guests.read)
+  const canAccessCrm = hasStaffPermission(user, 'guests', 'read');
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,6 +104,10 @@ export default function ServicesScreen() {
   const [cancelReasonOption, setCancelReasonOption] = useState<string>('Khách yêu cầu hủy / đổi món khác');
   const [customCancelReason, setCustomCancelReason] = useState<string>('');
   const [cancellingOrder, setCancellingOrder] = useState<boolean>(false);
+
+  // Modal Phân Công Nhân Viên (Assign Staff)
+  const [assignTarget, setAssignTarget] = useState<ServiceOrder | null>(null);
+  const [assigningStaff, setAssigningStaff] = useState(false);
 
   // Modal Tạo đơn gọi món / dịch vụ mới (Hỗ trợ Giỏ hàng chọn nhiều món - Multi-item Cart)
   const [createOrderModalVisible, setCreateOrderModalVisible] = useState(false);
@@ -158,13 +170,15 @@ export default function ServicesScreen() {
       if (!o) return false;
       const myUserId = user?.id;
       if (Boolean(myUserId) && o.assigned_staff === myUserId) return true;
+      if (o.assigned_staff && Boolean(myUserId) && o.assigned_staff !== myUserId) return false;
 
-      const myFirstName = (user?.first_name || '').trim();
-      const myUsername = (user?.username || '').trim();
-      const staffName = (o.assigned_staff_name || '').trim();
+      const myFullName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim().toLowerCase();
+      const myUsername = (user?.username || '').trim().toLowerCase();
+      const staffName = (o.assigned_staff_name || '').trim().toLowerCase();
+      if (!staffName) return false;
 
       if (Boolean(myUsername) && staffName === myUsername) return true;
-      if (Boolean(myFirstName) && staffName.includes(myFirstName)) return true;
+      if (Boolean(myFullName) && staffName === myFullName) return true;
       return false;
     },
     [user]
@@ -427,7 +441,7 @@ export default function ServicesScreen() {
 
   useEffect(() => {
     setVisibleOrdersCount(15);
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, orderCategoryFilter, selectedFloor, scopeFilter]);
 
   const displayedOrders = useMemo(() => {
     return filteredOrders.slice(0, visibleOrdersCount);
@@ -940,7 +954,7 @@ export default function ServicesScreen() {
     }
   };
 
-  const openCreateOrderModal = async (defaultServiceId?: number) => {
+  const openCreateOrderModal = useCallback(async (defaultServiceId?: number, preselectRoomId?: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCreateOrderModalVisible(true);
     setOrderNote('');
@@ -963,9 +977,14 @@ export default function ServicesScreen() {
         (r: any) => r.status === 'occupied' && r.current_booking
       );
       setOccupiedRooms(occ);
-      if (occ.length > 0 && !selectedRoom) {
-        setSelectedRoom(occ[0]);
-      }
+      setSelectedRoom((prev: any) => {
+        if (preselectRoomId) {
+          const target = occ.find((r: any) => Number(r.id) === Number(preselectRoomId));
+          if (target) return target;
+        }
+        if (prev && occ.some((r: any) => r.id === prev.id)) return prev;
+        return occ.length > 0 ? occ[0] : null;
+      });
 
       const sList = resServices.data.results || resServices.data.items || resServices.data.data || resServices.data || [];
       const nonTransport = (Array.isArray(sList) ? sList : []).filter(
@@ -990,7 +1009,20 @@ export default function ServicesScreen() {
     } finally {
       setLoadingModalData(false);
     }
-  };
+  }, []);
+
+  // Tự động mở modal Gọi món kèm chọn sẵn phòng khi điều hướng từ Chi tiết phòng (Sơ đồ phòng)
+  useEffect(() => {
+    if (!canOperateServices) return;
+    if (routeParams.openCreate === '1') {
+      const triggerKey = routeParams.reqTs || `${routeParams.roomId || 'default'}`;
+      if (lastHandledReqTsRef.current === triggerKey) return;
+      lastHandledReqTsRef.current = triggerKey;
+      const preRoomId = routeParams.roomId ? Number(routeParams.roomId) : undefined;
+      setMainViewMode('orders');
+      openCreateOrderModal(undefined, preRoomId && !isNaN(preRoomId) ? preRoomId : undefined);
+    }
+  }, [routeParams.openCreate, routeParams.roomId, routeParams.reqTs, canOperateServices, openCreateOrderModal]);
 
 
 
@@ -1100,9 +1132,43 @@ export default function ServicesScreen() {
     }
   };
 
+  const handleOpenAssignModal = useCallback((item: ServiceOrder) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAssignTarget(item);
+  }, []);
+
+  const handleAssignStaff = async (staff: AssignableStaff) => {
+    if (!assignTarget) return;
+    setAssigningStaff(true);
+    try {
+      const res = await apiClient.post(`/services/requests/${assignTarget.id}/assign/`, {
+        staff_id: staff.id,
+      });
+      if (res.data?.success || res.data?.data) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          'Phân công thành công',
+          res.data?.message || `Đã giao yêu cầu cho ${getStaffDisplayName(staff)}!`
+        );
+        setAssignTarget(null);
+        fetchOrders();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể phân công nhân viên.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setAssigningStaff(false);
+    }
+  };
+
   const renderOrderItem = useCallback(
     ({ item }: { item: ServiceOrder }) => {
       const isMyTask = checkIsMyTask(item);
+      const itemCategory = getServiceCategoryType(item);
+      const canOperateItem = Boolean(
+        canOperateServices &&
+          (userRole !== 'housekeeper' || itemCategory === 'amenities' || itemCategory === 'laundry')
+      );
       const lockReason = ['pending', 'in_progress', 'delivering'].includes(item.status)
         ? getServiceLockReason(item)
         : null;
@@ -1112,12 +1178,14 @@ export default function ServicesScreen() {
           isDark={isDark}
           isMyTask={isMyTask}
           isActionLoading={actionLoadingId === item.id}
-          canOperate={canOperateServices}
+          canOperate={canOperateItem}
+          canAssign={canAssignStaff}
           badge={getStatusBadgeConfig(item.status, item)}
           actionConfig={getServiceActionConfig(item)}
           lockReason={lockReason}
           sla={getSlaStatus(item)}
           onClaim={handleClaim}
+          onOpenAssign={handleOpenAssignModal}
           onUpdateStatus={handleUpdateStatus}
           onPromptComplete={handlePromptComplete}
           onOpenCancelModal={handleOpenCancelModal}
@@ -1129,14 +1197,14 @@ export default function ServicesScreen() {
           }}
           onCallGuest={handleCallGuest}
           sameRoomCount={
-            getServiceCategoryType(item) === 'fnb' && item.room_number
+            itemCategory === 'fnb' && item.room_number
               ? (orderCountByRoom[item.room_number] || 1)
               : 0
           }
         />
       );
     },
-    [isDark, checkIsMyTask, actionLoadingId, canOperateServices, canAccessCrm, handleClaim, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
+    [isDark, checkIsMyTask, actionLoadingId, canOperateServices, canAssignStaff, userRole, canAccessCrm, handleClaim, handleOpenAssignModal, handleUpdateStatus, handlePromptComplete, handleOpenCancelModal, handleCallGuest, orderCountByRoom]
   );
 
 
@@ -1706,7 +1774,7 @@ export default function ServicesScreen() {
               onEndReached={handleLoadMoreOrders}
               onEndReachedThreshold={0.2}
               ListHeaderComponent={
-                canOperateServices && roomBatches.length > 0 && activeTab !== 'completed' ? (
+                canOperateFnbBatch && roomBatches.length > 0 && activeTab !== 'completed' ? (
                   <View style={{ marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 2 }}>
                       <Ionicons name="cart" size={15} color="#F59E0B" style={{ marginRight: 6 }} />
@@ -1799,6 +1867,32 @@ export default function ServicesScreen() {
         visible={crmModalVisible}
         onClose={() => setCrmModalVisible(false)}
         initialGuestId={crmGuestId}
+      />
+
+      {/* Modal Phân Công Nhân Viên Phục Vụ */}
+      <AssignStaffModal
+        visible={Boolean(assignTarget)}
+        title="Phân Công Nhân Viên"
+        subtitle={
+          assignTarget
+            ? `${assignTarget.room_number ? `Phòng ${assignTarget.room_number}` : 'Khách sạn'} • ${assignTarget.service_name} (SL: ${assignTarget.quantity})`
+            : undefined
+        }
+        recommendedRoles={
+          assignTarget && ['amenities', 'laundry'].includes(getServiceCategoryType(assignTarget))
+            ? ['housekeeper', 'service_staff']
+            : ['service_staff']
+        }
+        recommendedLabel={
+          assignTarget && ['amenities', 'laundry'].includes(getServiceCategoryType(assignTarget))
+            ? 'Buồng phòng / Phục vụ'
+            : 'Bộ phận Phục vụ'
+        }
+        currentAssigneeId={assignTarget?.assigned_staff}
+        currentAssigneeName={assignTarget?.assigned_staff_name}
+        submitting={assigningStaff}
+        onClose={() => setAssignTarget(null)}
+        onAssign={handleAssignStaff}
       />
     </SafeAreaView>
   );

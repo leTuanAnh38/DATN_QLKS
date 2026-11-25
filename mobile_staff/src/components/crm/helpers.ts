@@ -1,5 +1,6 @@
 import apiClient from '../../api/client';
-import { DEFAULT_API_URL } from '../../api/config';
+import { getCachedApiBaseUrl } from '../../api/config';
+import { resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 
 // Helper lấy URL ảnh dịch vụ / món ăn
 export const getServiceItemImage = (item: any): string => {
@@ -13,11 +14,7 @@ export const getServiceItemImage = (item: any): string => {
   if (!raw || typeof raw !== 'string') {
     return 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=700&q=80';
   }
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-  const base = (apiClient.defaults.baseURL || DEFAULT_API_URL || '').replace(/\/api\/?$/, '');
-  return `${base}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return resolveMobileMediaUrl(raw, apiClient.defaults.baseURL || getCachedApiBaseUrl());
 };
 
 // Helper format ngày DD/MM/YYYY

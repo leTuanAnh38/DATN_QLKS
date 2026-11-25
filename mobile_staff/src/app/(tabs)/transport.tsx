@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,12 +14,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
+import AssignStaffModal, { AssignableStaff, getStaffDisplayName } from '../../components/AssignStaffModal';
 import { TransportListSkeleton } from '../../components/SkeletonLoader';
 import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
@@ -32,9 +34,14 @@ import {
 export default function TransportScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const routeParams = useLocalSearchParams<{ openCreate?: string; bookingId?: string; reqTs?: string }>();
+  const lastHandledReqTsRef = useRef<string | null>(null);
   const canOperateTransport = Boolean(
     user?.is_superuser ||
       ['service_staff', 'receptionist', 'manager', 'owner', 'admin'].includes(user?.role || '')
+  );
+  const canAssignDriver = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(user?.role || '')
   );
   const [requests, setRequests] = useState<ServiceRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,9 +52,27 @@ export default function TransportScreen() {
 
   // Modal Đặt xe đưa đón khách
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [preselectBookingId, setPreselectBookingId] = useState<number | null>(null);
+
+  // Tự động mở modal Đặt xe kèm chọn sẵn phòng/booking khi điều hướng từ Chi tiết phòng
+  useEffect(() => {
+    if (!canOperateTransport) return;
+    if (routeParams.openCreate === '1') {
+      const triggerKey = routeParams.reqTs || `${routeParams.bookingId || 'default'}`;
+      if (lastHandledReqTsRef.current === triggerKey) return;
+      lastHandledReqTsRef.current = triggerKey;
+      const bId = routeParams.bookingId ? Number(routeParams.bookingId) : null;
+      setPreselectBookingId(bId && !isNaN(bId) ? bId : null);
+      setCreateModalVisible(true);
+    }
+  }, [routeParams.openCreate, routeParams.bookingId, routeParams.reqTs, canOperateTransport]);
   // Modal Hủy cuốc xe có lý do
   const [cancelTarget, setCancelTarget] = useState<ServiceRequestItem | null>(null);
   const [cancellingTrip, setCancellingTrip] = useState(false);
+
+  // Modal Phân công / Điều phối tài xế
+  const [assignTarget, setAssignTarget] = useState<ServiceRequestItem | null>(null);
+  const [assigningDriver, setAssigningDriver] = useState(false);
 
   const fetchTransportRequests = useCallback(async () => {
     try {
@@ -361,6 +386,35 @@ export default function TransportScreen() {
     }
   };
 
+  const handleOpenAssignDriver = useCallback((item: ServiceRequestItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAssignTarget(item);
+  }, []);
+
+  const handleAssignDriver = async (staff: AssignableStaff) => {
+    if (!assignTarget) return;
+    setAssigningDriver(true);
+    try {
+      const res = await apiClient.post(`/services/requests/${assignTarget.id}/assign/`, {
+        staff_id: staff.id,
+      });
+      if (res.data?.success || res.data?.data) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          'Điều phối thành công',
+          res.data?.message || `Đã giao cuốc xe cho ${getStaffDisplayName(staff)}!`
+        );
+        setAssignTarget(null);
+        fetchTransportRequests();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể phân công tài xế.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setAssigningDriver(false);
+    }
+  };
+
   const renderItem = useCallback(
     ({ item }: { item: ServiceRequestItem }) => (
       <TransportCard
@@ -368,7 +422,9 @@ export default function TransportScreen() {
         isMyTask={item.assigned_staff === user?.id}
         isActionLoading={actionLoadingId === item.id}
         canOperate={canOperateTransport}
+        canAssign={canAssignDriver}
         onClaim={handleClaim}
+        onOpenAssign={handleOpenAssignDriver}
         onUpdateStatus={handleUpdateStatus}
         onOpenCancel={handleOpenCancelTrip}
         onCallGuest={callGuest}
@@ -376,7 +432,7 @@ export default function TransportScreen() {
         onOpenMap={openMapNavigation}
       />
     ),
-    [user?.id, actionLoadingId, canOperateTransport, handleClaim, handleUpdateStatus, handleOpenCancelTrip]
+    [user?.id, actionLoadingId, canOperateTransport, canAssignDriver, handleClaim, handleOpenAssignDriver, handleUpdateStatus, handleOpenCancelTrip]
   );
 
   return (
@@ -605,7 +661,11 @@ export default function TransportScreen() {
       <CreateTransportModal
         visible={createModalVisible}
         isDark={isDark}
-        onClose={() => setCreateModalVisible(false)}
+        initialBookingId={preselectBookingId}
+        onClose={() => {
+          setCreateModalVisible(false);
+          setPreselectBookingId(null);
+        }}
         onSuccess={fetchTransportRequests}
       />
 
@@ -617,6 +677,24 @@ export default function TransportScreen() {
         submitting={cancellingTrip}
         onClose={() => setCancelTarget(null)}
         onConfirm={handleConfirmCancelTrip}
+      />
+
+      {/* Modal Điều Phối / Phân Công Tài Xế */}
+      <AssignStaffModal
+        visible={Boolean(assignTarget)}
+        title="Điều Phối Tài Xế"
+        subtitle={
+          assignTarget
+            ? `${assignTarget.room_number ? `Phòng ${assignTarget.room_number}` : 'Đón Sảnh'} • ${assignTarget.service_name} (${assignTarget.guest_name})`
+            : undefined
+        }
+        recommendedRoles={['service_staff']}
+        recommendedLabel="Đội xe & Phục vụ"
+        currentAssigneeId={assignTarget?.assigned_staff}
+        currentAssigneeName={assignTarget?.assigned_staff_name}
+        submitting={assigningDriver}
+        onClose={() => setAssignTarget(null)}
+        onAssign={handleAssignDriver}
       />
     </SafeAreaView>
   );

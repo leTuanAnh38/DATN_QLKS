@@ -229,8 +229,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'message': f'Đã lập phiếu bảo trì #{ticket.ticket_code} và chuyển phòng {room.room_number} sang "Đang bảo trì".',
-            'ticket': MaintenanceTicketSerializer(ticket).data,
-            'room': RoomSerializer(room).data,
+            'ticket': MaintenanceTicketSerializer(ticket, context={'request': request}).data,
+            'room': RoomSerializer(room, context={'request': request}).data,
             'stats': stats_data
         }, status=status.HTTP_201_CREATED)
 
@@ -379,8 +379,8 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'message': f'Đã hoàn tất sửa chữa phòng {room.room_number}! Phòng đã được chuyển giao cho bộ phận Buồng phòng dọn dẹp.',
-            'ticket': MaintenanceTicketSerializer(ticket).data,
-            'room': RoomSerializer(room).data,
+            'ticket': MaintenanceTicketSerializer(ticket, context={'request': request}).data,
+            'room': RoomSerializer(room, context={'request': request}).data,
             'stats': stats_data
         }, status=status.HTTP_200_OK)
 
@@ -421,7 +421,85 @@ class MaintenanceTicketViewSet(viewsets.ModelViewSet):
         return Response({
             'success': True,
             'message': f'Bạn ({tech_name}) đã tiếp nhận xử lý phiếu #{ticket.ticket_code} (Phòng {ticket.room.room_number}).',
-            'ticket': MaintenanceTicketSerializer(ticket).data
+            'ticket': MaintenanceTicketSerializer(ticket, context={'request': request}).data
+        })
+
+    @action(detail=True, methods=['post'], url_path='assign')
+    def assign_technician(self, request, pk=None):
+        """
+        Quản lý / Lễ tân phân công kỹ thuật viên xử lý phiếu bảo trì:
+        POST /api/rooms/maintenance-tickets/{id}/assign/
+        Body: { "staff_id": 12 } (hoặc "technician_id")
+        """
+        user = request.user
+        user_role = getattr(user, 'role', '')
+        allowed_roles = ['admin', 'owner', 'manager', 'receptionist']
+        if not (user.is_authenticated and (user.is_superuser or user_role in allowed_roles)):
+            return Response({
+                'success': False,
+                'message': 'Chỉ Quản lý hoặc Lễ tân mới có quyền phân công kỹ thuật viên.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        ticket = self.get_object()
+        if ticket.status in ['completed', 'cancelled']:
+            return Response({
+                'success': False,
+                'message': f'Phiếu bảo trì này đã {ticket.get_status_display().lower()}, không thể phân công.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        staff_id = request.data.get('staff_id') or request.data.get('technician_id')
+        if not staff_id:
+            return Response({
+                'success': False,
+                'message': 'Vui lòng chọn kỹ thuật viên cần phân công.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        target_staff = User.objects.filter(pk=staff_id, is_active=True).exclude(role='guest').first()
+        if not target_staff:
+            return Response({
+                'success': False,
+                'message': 'Không tìm thấy nhân viên kỹ thuật hợp lệ.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        assignable_roles = ['technician', 'housekeeper', 'service_staff']
+        if target_staff.id == user.id or getattr(target_staff, 'role', '') not in assignable_roles:
+            return Response({
+                'success': False,
+                'message': 'Chỉ được phân công cho nhân sự hiện trường (Kỹ thuật, Buồng phòng, Phục vụ) đang hoạt động.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        ticket.technician = target_staff
+        ticket.save(update_fields=['technician'])
+
+        tech_name = target_staff.get_full_name() or target_staff.username
+        assigner_name = user.get_full_name() or user.username
+        log_action(
+            user=user,
+            action='UPDATE',
+            module='ROOM',
+            description=f"{assigner_name} phân công phiếu bảo trì #{ticket.ticket_code} phòng {ticket.room.room_number} cho {tech_name}",
+            request=request
+        )
+
+        # Bắn thông báo + Push Notification trực tiếp cho kỹ thuật viên được giao
+        if target_staff.id != user.id:
+            try:
+                from ...notifications.models import Notification
+                Notification.objects.create(
+                    recipient=target_staff,
+                    title=f"Được phân công bảo trì: Phòng {ticket.room.room_number}",
+                    message=f"{assigner_name} đã giao phiếu #{ticket.ticket_code} ({ticket.equipment_name}) tại Phòng {ticket.room.room_number} cho bạn xử lý.",
+                    notification_type='room',
+                    priority='urgent' if ticket.priority == 'urgent' else 'high',
+                    action_url='/admin/maintenance',
+                )
+            except Exception as e:
+                print(f"Lỗi tạo thông báo phân công bảo trì: {e}")
+
+        return Response({
+            'success': True,
+            'message': f'Đã phân công phiếu #{ticket.ticket_code} (Phòng {ticket.room.room_number}) cho {tech_name}!',
+            'ticket': MaintenanceTicketSerializer(ticket, context={'request': request}).data
         })
 
     @action(detail=True, methods=['post'], url_path='cancel')

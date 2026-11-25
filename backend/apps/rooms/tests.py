@@ -7,6 +7,7 @@ from .models import Room, RoomCategory
 User = get_user_model()
 
 
+# Kiểm thử hiển thị hạng phòng công khai và phân quyền cập nhật trạng thái phòng
 class RoomManagementTests(APITestCase):
     def setUp(self):
         self.guest = User.objects.create_user(
@@ -36,10 +37,12 @@ class RoomManagementTests(APITestCase):
             floor=3,
         )
 
+    # Kiểm tra người dùng công khai xem được danh sách hạng phòng (không cần đăng nhập)
     def test_public_can_list_room_categories(self):
         res = self.client.get('/api/rooms/categories/')
         self.assertEqual(res.status_code, 200)
 
+    # Kiểm tra khách hàng bị chặn đổi trạng thái phòng (403) trong khi nhân viên buồng phòng cập nhật được (200)
     def test_guest_cannot_update_room_status_while_housekeeper_can(self):
         self.client.force_authenticate(user=self.guest)
         res_guest = self.client.patch(

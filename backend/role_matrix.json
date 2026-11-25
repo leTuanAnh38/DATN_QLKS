@@ -254,8 +254,8 @@
     },
     "services": {
       "read": true,
-      "create": false,
-      "update": false,
+      "create": true,
+      "update": true,
       "delete": false
     },
     "finance": {
@@ -265,7 +265,7 @@
       "delete": false
     },
     "reports": {
-      "read": false,
+      "read": true,
       "create": false,
       "update": false,
       "delete": false

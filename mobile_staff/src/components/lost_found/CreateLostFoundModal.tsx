@@ -20,12 +20,12 @@ import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 
 export const LOST_FOUND_CATEGORIES = [
-  { key: 'electronics', label: 'Điện tử (Điện thoại, Laptop, Sạc)', icon: 'phone-portrait' },
-  { key: 'valuable', label: 'Giá trị (Ví, Tiền mặt, Trang sức)', icon: 'diamond' },
-  { key: 'documents', label: 'Giấy tờ / Hộ chiếu / CCCD', icon: 'document-text' },
-  { key: 'clothing', label: 'Quần áo / Giày dép / Túi xách', icon: 'shirt' },
-  { key: 'accessories', label: 'Phụ kiện / Kính mắt / Mỹ phẩm', icon: 'glasses' },
-  { key: 'other', label: 'Đồ dùng khác', icon: 'cube' },
+  { key: 'electronics', shortLabel: 'Điện tử', label: 'Điện tử (Điện thoại, Laptop, Sạc)', icon: 'phone-portrait' },
+  { key: 'valuable', shortLabel: 'Giá trị', label: 'Giá trị (Ví, Tiền mặt, Trang sức)', icon: 'diamond' },
+  { key: 'documents', shortLabel: 'Giấy tờ', label: 'Giấy tờ / Hộ chiếu / CCCD', icon: 'document-text' },
+  { key: 'clothing', shortLabel: 'Quần áo', label: 'Quần áo / Giày dép / Túi xách', icon: 'shirt' },
+  { key: 'accessories', shortLabel: 'Phụ kiện', label: 'Phụ kiện / Kính mắt / Mỹ phẩm', icon: 'glasses' },
+  { key: 'other', shortLabel: 'Đồ khác', label: 'Đồ dùng khác', icon: 'cube' },
 ];
 
 export interface CreateLostFoundModalProps {
@@ -114,7 +114,9 @@ export const CreateLostFoundModal: React.FC<CreateLostFoundModalProps> = ({
       formData.append('item_name', itemName.trim());
       formData.append('category', category);
       if (roomNumber.trim()) {
-        formData.append('room_number', roomNumber.trim());
+        const cleanLoc = roomNumber.trim();
+        formData.append('room_number', cleanLoc);
+        formData.append('location_found', cleanLoc);
       }
       if (description.trim()) {
         formData.append('description', description.trim());
@@ -222,7 +224,7 @@ export const CreateLostFoundModal: React.FC<CreateLostFoundModalProps> = ({
                         category === c.key && styles.categoryChipTextActive,
                       ]}
                     >
-                      {c.label.split(' ')[0]}
+                      {c.shortLabel}
                     </Text>
                   </TouchableOpacity>
                 ))}

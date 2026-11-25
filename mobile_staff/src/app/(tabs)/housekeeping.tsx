@@ -19,6 +19,7 @@ import { useFocusPolling } from '../../hooks/use-focus-polling';
 import { styles } from '../../components/housekeeping/styles';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
+import { hasStaffPermission } from '../../utils/permissions';
 import NotificationBell from '../../components/NotificationBell';
 import BookingManagementModal from '../../components/BookingManagementModal';
 import CustomerCrmModal from '../../components/CustomerCrmModal';
@@ -68,10 +69,9 @@ export default function HousekeepingScreen() {
       ['admin', 'owner', 'manager', 'receptionist', 'housekeeper', 'technician'].includes(userRole)
   );
 
-  // 6. Tra cứu CRM & Danh sách Đặt phòng tổng: Lễ tân, Thu ngân, Quản lý, Chủ, Admin
-  const canAccessCrmAndBookings = Boolean(
-    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist', 'cashier'].includes(userRole)
-  );
+  // 6. Tách riêng quyền CRM (guests.read) và Danh sách Đặt phòng & Lịch lưu trú (bookings.read) theo role_matrix.json
+  const canAccessCrm = hasStaffPermission(user, 'guests', 'read');
+  const canAccessBookings = hasStaffPermission(user, 'bookings', 'read');
 
   // 7. Điều hướng nhanh sang Dịch vụ / Đội xe (chỉ khi vai trò có quyền mở tab & tạo yêu cầu)
   const canNavigateServices = Boolean(
@@ -494,40 +494,40 @@ export default function HousekeepingScreen() {
           </Text>
         </View>
         <View style={styles.headerRightActions}>
-          {canAccessCrmAndBookings && (
-            <>
-              <TouchableOpacity
-                style={[
-                  styles.refreshCircleBtn,
-                  !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
-                ]}
-                onPress={() => {
-                  setBookingModalVisible(true);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                activeOpacity={0.7}
-                accessibilityLabel="Lịch đặt phòng"
-              >
-                <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
-              </TouchableOpacity>
+          {canAccessBookings && (
+            <TouchableOpacity
+              style={[
+                styles.refreshCircleBtn,
+                !isDark && { backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' },
+              ]}
+              onPress={() => {
+                setBookingModalVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Lịch đặt phòng"
+            >
+              <Ionicons name="calendar-outline" size={16} color="#F59E0B" />
+            </TouchableOpacity>
+          )}
 
-              <TouchableOpacity
-                style={[
-                  styles.refreshCircleBtn,
-                  { borderColor: 'rgba(56, 189, 248, 0.4)' },
-                  !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
-                ]}
-                onPress={() => {
-                  setCrmGuestId(null);
-                  setCrmModalVisible(true);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                activeOpacity={0.7}
-                accessibilityLabel="Hồ sơ khách hàng CRM"
-              >
-                <Ionicons name="people-outline" size={16} color="#38BDF8" />
-              </TouchableOpacity>
-            </>
+          {canAccessCrm && (
+            <TouchableOpacity
+              style={[
+                styles.refreshCircleBtn,
+                { borderColor: 'rgba(56, 189, 248, 0.4)' },
+                !isDark && { backgroundColor: '#FFFFFF', borderColor: 'rgba(56, 189, 248, 0.3)' },
+              ]}
+              onPress={() => {
+                setCrmGuestId(null);
+                setCrmModalVisible(true);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              activeOpacity={0.7}
+              accessibilityLabel="Hồ sơ khách hàng CRM"
+            >
+              <Ionicons name="people-outline" size={16} color="#38BDF8" />
+            </TouchableOpacity>
           )}
 
           <NotificationBell />
@@ -935,10 +935,12 @@ export default function HousekeepingScreen() {
         canReportLostItem={canReportLostItem}
         canReportMaintenance={canReportMaintenance}
         canChangeRoom={canChangeRoom}
-        canOpenCrm={canAccessCrmAndBookings}
+        canOpenCrm={canAccessCrm}
         canNavigateServices={canNavigateServices}
         canNavigateTransport={canNavigateTransport}
         isTechnician={isTechnician}
+        isHousekeeper={userRole === 'housekeeper'}
+        isReceptionist={userRole === 'receptionist'}
         isCashier={isCashier}
         isManagerOrAdmin={isManagerOrAdmin}
         onToggleCleaning={handleToggleCleaning}
@@ -951,9 +953,28 @@ export default function HousekeepingScreen() {
           setCrmGuestId(guestId);
           setCrmModalVisible(true);
         }}
-        onNavigateServices={() => router.navigate('/(tabs)/services')}
-        onNavigateTransport={() => router.navigate('/(tabs)/transport')}
-        onNavigateMaintenance={() => router.navigate('/(tabs)/maintenance')}
+        onNavigateServices={(r) =>
+          router.navigate({
+            pathname: '/(tabs)/services',
+            params: { openCreate: '1', roomId: String(r.id), reqTs: String(Date.now()) },
+          } as any)
+        }
+        onNavigateTransport={(r) =>
+          router.navigate({
+            pathname: '/(tabs)/transport',
+            params: {
+              openCreate: '1',
+              bookingId: r.current_booking?.id ? String(r.current_booking.id) : '',
+              reqTs: String(Date.now()),
+            },
+          } as any)
+        }
+        onNavigateMaintenance={(r) =>
+          router.navigate({
+            pathname: '/(tabs)/maintenance',
+            params: { roomNumber: r.room_number, reqTs: String(Date.now()) },
+          } as any)
+        }
       />
 
       {/* Modal Đổi Phòng Cho Khách Lưu Trú (Sự cố nặng) */}
@@ -972,11 +993,15 @@ export default function HousekeepingScreen() {
       <BookingManagementModal
         visible={bookingModalVisible}
         onClose={() => setBookingModalVisible(false)}
-        onSelectGuest={(guestId) => {
-          setCrmGuestId(guestId);
-          setBookingModalVisible(false);
-          setCrmModalVisible(true);
-        }}
+        onSelectGuest={
+          canAccessCrm
+            ? (guestId) => {
+                setCrmGuestId(guestId);
+                setBookingModalVisible(false);
+                setCrmModalVisible(true);
+              }
+            : undefined
+        }
       />
 
       {/* Modal Khách Hàng CRM & Lịch Sử */}

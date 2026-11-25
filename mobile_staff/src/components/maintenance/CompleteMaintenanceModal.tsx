@@ -20,6 +20,8 @@ import * as ImagePicker from 'expo-image-picker';
 import apiClient from '../../api/client';
 import { PARTS_SUGGESTIONS } from '../../constants/maintenance';
 import { MaintenanceTicket } from './MaintenanceTicketCard';
+import { useAuth } from '../../contexts/AuthContext';
+import { resolveMobileMediaUrl } from '../../contexts/ThemeContext';
 
 export interface CompleteMaintenanceModalProps {
   visible: boolean;
@@ -36,6 +38,7 @@ export const CompleteMaintenanceModal: React.FC<CompleteMaintenanceModalProps> =
   onClose,
   onSuccess,
 }) => {
+  const { apiUrl } = useAuth();
   const [partsReplaced, setPartsReplaced] = useState('');
   const [cost, setCost] = useState('');
   const [note, setNote] = useState('');
@@ -102,9 +105,10 @@ export const CompleteMaintenanceModal: React.FC<CompleteMaintenanceModalProps> =
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      const parsedCost = parseInt(String(cost || '0').replace(/\D/g, '') || '0', 10) || 0;
       const formData = new FormData();
       formData.append('parts_replaced', partsReplaced);
-      formData.append('cost', String(parseInt(cost || '0', 10)));
+      formData.append('cost', String(parsedCost));
       formData.append('note', note);
       formData.append('is_guest_fault', String(isGuestFault));
 
@@ -185,7 +189,7 @@ export const CompleteMaintenanceModal: React.FC<CompleteMaintenanceModalProps> =
                     </Text>
                   </View>
                   <Image
-                    source={{ uri: ticket.image_before }}
+                    source={{ uri: resolveMobileMediaUrl(ticket.image_before, apiUrl) }}
                     style={styles.initialEvidenceImage}
                     resizeMode="cover"
                   />

@@ -17,11 +17,13 @@ export interface ServiceOrderCardProps {
   isMyTask: boolean;
   isActionLoading: boolean;
   canOperate?: boolean;
+  canAssign?: boolean;
   badge: StatusBadgeConfig;
   actionConfig: ReturnType<typeof getServiceActionConfig>;
   lockReason: ServiceLockReason;
   sla: SlaStatus | null;
   onClaim: (item: ServiceOrder) => void;
+  onOpenAssign?: (item: ServiceOrder) => void;
   onUpdateStatus: (item: ServiceOrder, status: string, label: string) => void;
   onPromptComplete: (item: ServiceOrder, label: string) => void;
   onOpenCancelModal: (item: ServiceOrder) => void;
@@ -36,11 +38,13 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
   isMyTask,
   isActionLoading,
   canOperate = true,
+  canAssign = false,
   badge,
   actionConfig,
   lockReason,
   sla,
   onClaim,
+  onOpenAssign,
   onUpdateStatus,
   onPromptComplete,
   onOpenCancelModal,
@@ -343,11 +347,51 @@ export const ServiceOrderCard: React.FC<ServiceOrderCardProps> = React.memo(({
 
       {/* Nhân viên tiếp nhận */}
       <View style={styles.staffRow}>
-        <Text style={[styles.staffLabel, !isDark && { color: '#64748B' }]}>Người phụ trách:</Text>
-        <Text style={[styles.staffValue, !isDark && { color: '#334155' }, isMyTask && { color: '#F59E0B', fontWeight: '800' }]}>
-          {item.assigned_staff_name || 'Chưa ai nhận'}
-          {isMyTask ? ' (Bạn)' : ''}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+          <Text style={[styles.staffLabel, !isDark && { color: '#64748B' }]}>Người phụ trách: </Text>
+          <Text
+            style={[
+              styles.staffValue,
+              { flexShrink: 1 },
+              !isDark && { color: '#334155' },
+              isMyTask && { color: '#F59E0B', fontWeight: '800' },
+            ]}
+            numberOfLines={1}
+          >
+            {item.assigned_staff_name || 'Chưa ai nhận'}
+            {isMyTask ? ' (Bạn)' : ''}
+          </Text>
+        </View>
+        {canAssign &&
+          onOpenAssign &&
+          item.status !== 'completed' &&
+          item.status !== 'cancelled' && (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 9,
+                paddingVertical: 4,
+                borderRadius: 8,
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.14)' : '#EFF6FF',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#93C5FD',
+              }}
+              onPress={() => onOpenAssign(item)}
+              disabled={isActionLoading}
+              activeOpacity={0.75}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={12}
+                color={isDark ? '#38BDF8' : '#0284C7'}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#38BDF8' : '#0284C7' }}>
+                {item.assigned_staff_name ? 'Đổi người' : 'Phân công'}
+              </Text>
+            </TouchableOpacity>
+          )}
       </View>
 
       {/* Cảnh báo khóa thao tác: chưa gán phòng / khách chưa check-in */}

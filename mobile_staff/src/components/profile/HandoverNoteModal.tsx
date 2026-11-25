@@ -42,7 +42,13 @@ export default function HandoverNoteModal({
   const handleSaveHandover = async () => {
     try {
       setSavingHandover(true);
-      await SecureStore.setItemAsync('staff_shift_handover_note', tempHandoverNote.trim());
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('staff_shift_handover_note', tempHandoverNote.trim());
+        }
+      } else {
+        await SecureStore.setItemAsync('staff_shift_handover_note', tempHandoverNote.trim());
+      }
       onSaveSuccess(tempHandoverNote.trim());
       onClose();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -14,6 +14,7 @@ from ..rooms.models import LostAndFoundItem, MaintenanceTicket, Room, RoomCatego
 User = get_user_model()
 
 
+# Kiểm thử bảo mật và nghiệp vụ đặt phòng cá nhân
 class BookingSecurityAndLogicTests(APITestCase):
     def setUp(self):
         self.guest_a = User.objects.create_user(
@@ -64,6 +65,7 @@ class BookingSecurityAndLogicTests(APITestCase):
         )
         self.today = timezone.localdate()
 
+    # Kiểm tra tìm kiếm theo mã đặt phòng không làm lộ đơn của khách khác (chống IDOR)
     def test_search_query_does_not_bypass_guest_idor(self):
         bk_b = Booking.objects.create(
             guest=self.guest_b,
@@ -86,6 +88,7 @@ class BookingSecurityAndLogicTests(APITestCase):
         staff_results = res_staff.data.get('results', res_staff.data) if isinstance(res_staff.data, dict) else res_staff.data
         self.assertEqual(len(staff_results), 1)
 
+    # Kiểm tra đơn đã thanh toán quá 15 phút vẫn giữ phòng để chống đặt trùng (overbooking)
     def test_paid_booking_older_than_15_minutes_still_blocks_overbooking(self):
         c_in = self.today + timedelta(days=5)
         c_out = self.today + timedelta(days=7)
@@ -115,6 +118,7 @@ class BookingSecurityAndLogicTests(APITestCase):
         self.assertEqual(res.status_code, 400)
         self.assertEqual(res.data.get('code'), 'ROOM_SOLD_OUT')
 
+    # Kiểm tra khách vãng lai chưa đăng nhập đặt phòng không bị gán nhầm vào tài khoản khách có sẵn
     def test_unauthenticated_guest_not_assigned_to_existing_guest_a(self):
         c_in = self.today + timedelta(days=10)
         c_out = self.today + timedelta(days=11)
@@ -132,6 +136,7 @@ class BookingSecurityAndLogicTests(APITestCase):
         self.assertNotEqual(created_bk.guest_id, self.guest_a.id)
         self.assertFalse(created_bk.guest.is_active)
 
+    # Kiểm tra đổi phòng khẩn cấp giữ nguyên tiền phòng gốc trong hóa đơn (không tính phụ thu hạng phòng mới)
     def test_change_room_locks_original_room_charge_in_invoice(self):
         bk = Booking.objects.create(
             guest=self.guest_a,
@@ -171,6 +176,7 @@ from ..services.models import ServiceCategory, ServiceItem, ServiceRequest
 from ..users.models import MembershipTier
 
 
+# Kiểm thử bảo mật, nghiệp vụ và thống kê của Trợ lý AI (Chatbot)
 @override_settings(GEMINI_API_KEY='')
 class ChatbotSecurityAndLogicTests(APITestCase):
     def setUp(self):
@@ -231,6 +237,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
             booking_code='BK-TEST99',
         )
 
+    # Kiểm tra tra cứu đơn trên Chatbot yêu cầu xác thực 2 yếu tố (mã đơn + SĐT), không lộ PII khách khác
     def test_unauthenticated_phone_or_code_alone_does_not_leak_booking_pii(self):
         res_phone = self.client.post('/api/chatbot/ask/', {'message': '0909998888'}, format='json')
         self.assertEqual(res_phone.status_code, 200)
@@ -259,6 +266,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(len(res_2fa.data['tracked_bookings']), 1)
         self.assertEqual(res_2fa.data['tracked_bookings'][0]['booking_code'], 'BK-TEST99')
 
+    # Kiểm tra tra cứu đơn đặt đoàn (GRP) trên Chatbot hoạt động đúng với xác thực 2 yếu tố
     def test_group_booking_lookup_with_2fa_works(self):
         grp = GroupBooking.objects.create(
             group_code='GRP-889900',
@@ -279,6 +287,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertTrue(res_ok.data['tracked_bookings'][0]['is_group'])
         self.assertEqual(res_ok.data['tracked_bookings'][0]['booking_code'], 'GRP-889900')
 
+    # Kiểm tra chặn khách ẩn danh yêu cầu dọn phòng theo số phòng; chỉ chủ đơn đã check-in mới được yêu cầu
     def test_unauthenticated_housekeeping_by_room_number_is_blocked(self):
         before_room_notifs = Notification.objects.filter(notification_type='room').count()
         res_anon = self.client.post('/api/chatbot/ask/', {'message': 'Dọn phòng 101 giúp tôi'}, format='json')
@@ -296,6 +305,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.room_101.refresh_from_db()
         self.assertTrue(self.room_101.is_cleaning_requested)
 
+    # Kiểm tra hóa đơn tạm tính không cộng trùng dịch vụ đã đồng bộ từ ServiceRequest sang BookingExtraService
     def test_active_stay_folio_does_not_double_count_synced_service_requests(self):
         svc_cat = ServiceCategory.objects.create(name='Dining')
         svc = ServiceItem.objects.create(category=svc_cat, name='Wagyu Steak', price=Decimal('500000'))
@@ -331,6 +341,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(stay['extra_total'], 100000)
         self.assertEqual(stay['grand_total'], 2600000)
 
+    # Kiểm tra nhận diện hạng thành viên, số lượng khách, ngôn ngữ và gợi ý đúng hạng phòng phù hợp
     def test_dynamic_tier_guest_count_and_language_detection(self):
         self.client.force_authenticate(user=self.guest_a)
         ctx = build_hotel_context(
@@ -349,6 +360,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertGreaterEqual(len(res.data['suggested_rooms']), 1)
         self.assertEqual(res.data['suggested_rooms'][0]['id'], self.cat_fam.id)
 
+    # Kiểm tra Chatbot kiểm định mã khuyến mãi (còn hạn, hết hạn và mã mặc định WELCOME10)
     def test_promo_code_context_validation_handles_active_expired_and_default(self):
         now = timezone.now()
         Promotion.objects.create(
@@ -385,6 +397,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertIn('WELCOME10', res_default.data['reply'])
         self.assertIn('VALID', res_default.data['reply'])
 
+    # Kiểm tra báo hỏng thiết bị qua Chatbot yêu cầu đăng nhập và tạo phiếu bảo trì kèm thông báo cho kỹ thuật viên
     def test_maintenance_reporting_requires_auth_and_creates_ticket_when_verified(self):
         tech = User.objects.create_user(username='tech1', email='tech1@example.com', password='Password123!', role='technician')
         res_anon = self.client.post('/api/chatbot/ask/', {'message': 'Điều hòa phòng 101 bị hỏng không lạnh'}, format='json')
@@ -403,6 +416,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(ticket.booking_id, self.bk_b.id)
         self.assertTrue(Notification.objects.filter(recipient=tech, notification_type='room').exists())
 
+    # Kiểm tra đặt dịch vụ 2 bước xác nhận (chống IDOR) và chuyển tiếp yêu cầu gặp lễ tân qua Chatbot
     def test_two_tap_service_order_and_human_handoff_confirm_endpoints(self):
         svc_cat = ServiceCategory.objects.create(name='Dining')
         svc = ServiceItem.objects.create(category=svc_cat, name='Cà Phê Sữa Đá', price=Decimal('80000'), is_active=True)
@@ -451,6 +465,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(res_contact.status_code, 201)
         self.assertEqual(ContactMessage.objects.count(), 1)
 
+    # Kiểm tra phản hồi ngoại tuyến tiếng Hàn/Trung và cơ chế fallback sang model Gemini dự phòng khi lỗi 404
     def test_korean_and_chinese_offline_fallback_and_gemini_http_mock(self):
         res_ko = self.client.post('/api/chatbot/ask/', {'message': '취소 및 환불 규정 알려주세요', 'lang': 'ko'}, format='json')
         self.assertEqual(res_ko.status_code, 200)
@@ -472,6 +487,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
                 self.assertEqual(res_ai.data['reply'], 'Hello from Gemini 2.0 fallback!')
                 self.assertEqual(mocked_post.call_count, 2)
 
+    # Kiểm tra giới hạn tần suất (rate limit) cho khách ẩn danh trên Chatbot trả về mã 429
     def test_chatbot_anon_rate_limit_returns_429(self):
         self.client.force_authenticate(user=None)
         cache.clear()
@@ -483,6 +499,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
             self.assertEqual(r2.status_code, 200)
             self.assertEqual(r3.status_code, 429)
 
+    # Kiểm tra câu hỏi tham khảo thông tin (hỏi giá, giờ dọn, liên hệ) không tự ý ghi thay đổi vào CSDL
     def test_informational_questions_do_not_trigger_inhouse_db_mutations(self):
         svc_cat = ServiceCategory.objects.create(name='Drinks')
         ServiceItem.objects.create(category=svc_cat, name='Cà Phê Sữa Đá', price=Decimal('80000'), is_active=True)
@@ -509,6 +526,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(res_price.status_code, 200)
         self.assertIsNone(res_price.data['pending_action'])
 
+    # Kiểm tra ghi nhớ xác thực 2FA nhiều lượt hội thoại, chuẩn hóa SĐT +84 và đính kèm trích đoạn hội thoại khi gặp lễ tân
     def test_guest_2fa_multi_turn_memory_intl_phone_and_handoff_excerpt(self):
         svc_cat = ServiceCategory.objects.create(name='Drinks')
         ServiceItem.objects.create(category=svc_cat, name='Cà Phê Sữa Đá', price=Decimal('80000'), is_active=True)
@@ -571,6 +589,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertIn('Ngữ cảnh hội thoại AI trước đó', cm.message)
         self.assertIn('BK-TEST99', cm.message)
 
+    # Kiểm tra tra cứu đồ thất lạc qua Chatbot chống dò tìm ẩn danh và gửi cảnh báo cho buồng phòng khi chính chủ hỏi
     def test_lost_and_found_lookup_and_alert_security(self):
         hk = User.objects.create_user(username='hk1', email='hk1@example.com', password='Password123!', role='housekeeper')
         lf_item = LostAndFoundItem.objects.create(
@@ -605,6 +624,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertIn(lf_item.tracking_code, res_auth.data['reply'])
         self.assertTrue(Notification.objects.filter(recipient=hk, action_url='/admin/lost-and-found').exists())
 
+    # Kiểm tra tính điều kiện hủy phòng thời gian thực (miễn phí >48h, sát giờ <48h, và chặn hủy khi đã check-in)
     def test_real_time_booking_cancellation_eligibility(self):
         # Free cancel (> 48h before check-in)
         bk_far = Booking.objects.create(
@@ -654,6 +674,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertFalse(res_in.data['cancel_eligibility']['can_cancel'])
         self.assertEqual(res_in.data['cancel_eligibility']['reason'], 'already_checked_in')
 
+    # Kiểm tra ước tính giá phòng tự động áp dụng đồng thời ưu đãi hạng thành viên và mã giảm giá
     def test_booking_price_estimator_with_tier_and_promo(self):
         now = timezone.now()
         Promotion.objects.create(
@@ -680,6 +701,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(pe['final_total'], 3900000)
         self.assertIn('3.900.000', res.data['reply'])
 
+    # Kiểm tra ghi nhật ký tương tác Chatbot (che SĐT) và đồng bộ thống kê vào API báo cáo cho Admin
     def test_chatbot_interaction_logging_and_reports_analytics(self):
         self.client.force_authenticate(user=None)
         self.client.post('/api/chatbot/ask/', {
@@ -721,6 +743,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertTrue(any(l['code'] == 'en' for l in cb['language_breakdown']))
         self.assertEqual(len(cb['recent_logs']), 3)
 
+    # Kiểm tra đồng bộ thành phần/thời lượng dịch vụ, API trạng thái lưu trú, xác nhận đa ngôn ngữ và đánh giá hữu ích Chatbot
     def test_service_ingredients_duration_status_feedback_and_multilingual_confirm(self):
         # 1. ServiceItem ingredients & duration synced into context & offline detail response
         svc_cat = ServiceCategory.objects.create(name='Ocean Spa & Wellness')
@@ -818,6 +841,7 @@ class ChatbotSecurityAndLogicTests(APITestCase):
         self.assertEqual(cb_sum['satisfaction_rate'], 50.0)
 
 
+# Kiểm thử nghiệp vụ hủy đơn đặt đoàn (Group Booking) và yêu cầu hoàn cọc
 class GroupBookingCancellationTests(APITestCase):
     def setUp(self):
         self.leader = User.objects.create_user(
@@ -882,6 +906,7 @@ class GroupBookingCancellationTests(APITestCase):
             )
         return group, subs
 
+    # Kiểm tra trưởng đoàn được hủy trực tiếp đơn đoàn chưa đặt cọc (tentative) và hủy toàn bộ phòng con
     def test_tentative_group_can_be_cancelled_directly_by_leader(self):
         group, subs = self._create_group_with_subs(is_deposit_paid=False, status='tentative', days_until=5)
         self.client.force_authenticate(user=self.leader)
@@ -893,6 +918,7 @@ class GroupBookingCancellationTests(APITestCase):
             s.refresh_from_db()
             self.assertEqual(s.status, 'cancelled')
 
+    # Kiểm tra đơn đoàn đã cọc chặn hủy thẳng/lách phòng con, cho gửi yêu cầu hoàn cọc và chờ nhân viên duyệt
     def test_deposited_group_blocks_direct_and_single_subbooking_bypass_but_allows_request_cancel(self):
         group, subs = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=5)
 
@@ -950,6 +976,7 @@ class GroupBookingCancellationTests(APITestCase):
         self.assertEqual(res_approve.data['group_booking']['status'], 'cancelled')
         self.assertEqual(res_approve.data['group_booking']['cancel_request']['status'], 'approved')
 
+    # Kiểm tra đơn đoàn đã cọc hủy sát giờ nhận phòng (<48h) bị đánh dấu không đủ điều kiện hoàn miễn phí
     def test_deposited_group_near_checkin_marks_not_free_cancel_eligible(self):
         group, _ = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=1)
         self.client.force_authenticate(user=self.leader)

@@ -1,8 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { useSyncExternalStore } from 'react';
 import * as Haptics from 'expo-haptics';
 
 const QUEUE_STORAGE_KEY = 'ta_hotel_offline_queue_v1';
+const SAFE_SECURESTORE_BYTES = 1950;
 
 export interface OfflineQueueItem {
   id: string;
@@ -29,10 +31,31 @@ function notifyListeners() {
   });
 }
 
-/** Lưu danh sách hàng đợi vào SecureStore */
+/** Lưu danh sách hàng đợi vào SecureStore (có fallback web & giới hạn 2KB an toàn) */
 async function persistQueue(): Promise<void> {
   try {
-    await SecureStore.setItemAsync(QUEUE_STORAGE_KEY, JSON.stringify(queueCache));
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queueCache));
+      }
+      return;
+    }
+
+    let listToSave = [...queueCache];
+    let serialized = JSON.stringify(listToSave);
+    while (serialized.length > SAFE_SECURESTORE_BYTES && listToSave.length > 1) {
+      const failedIdx = listToSave.findIndex((it) => it.status === 'failed');
+      if (failedIdx >= 0) {
+        listToSave.splice(failedIdx, 1);
+      } else {
+        listToSave.shift();
+      }
+      serialized = JSON.stringify(listToSave);
+    }
+    if (listToSave.length !== queueCache.length) {
+      queueCache = listToSave;
+    }
+    await SecureStore.setItemAsync(QUEUE_STORAGE_KEY, serialized);
   } catch (err) {
     console.warn('[OFFLINE_QUEUE] Không thể lưu queue vào SecureStore:', err);
   }
@@ -41,7 +64,14 @@ async function persistQueue(): Promise<void> {
 /** Tải danh sách hàng đợi từ SecureStore vào bộ nhớ */
 export async function loadOfflineQueue(): Promise<OfflineQueueItem[]> {
   try {
-    const raw = await SecureStore.getItemAsync(QUEUE_STORAGE_KEY);
+    let raw: string | null = null;
+    if (Platform.OS === 'web') {
+      raw = typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage.getItem(QUEUE_STORAGE_KEY)
+        : null;
+    } else {
+      raw = await SecureStore.getItemAsync(QUEUE_STORAGE_KEY);
+    }
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Appearance, AppState, ColorSchemeName } from 'react-native';
+import { Appearance, AppState, ColorSchemeName, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Colors, Palette, ThemeColors } from '../constants/theme';
 import apiClient from '../api/client';
@@ -83,15 +83,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // 1. Khôi phục theme đã lưu
-    SecureStore.getItemAsync(THEME_STORAGE_KEY)
-      .then((saved) => {
+    const readSavedTheme = async () => {
+      try {
+        const saved =
+          Platform.OS === 'web'
+            ? typeof window !== 'undefined' && window.localStorage
+              ? window.localStorage.getItem(THEME_STORAGE_KEY)
+              : null
+            : await SecureStore.getItemAsync(THEME_STORAGE_KEY);
         if (saved === 'light' || saved === 'dark' || saved === 'system') {
           setThemeModeState(saved);
         }
-      })
-      .catch((err) => {
-        console.warn('Lỗi đọc cấu hình theme từ SecureStore:', err);
-      });
+      } catch (err) {
+        console.warn('Lỗi đọc cấu hình theme:', err);
+      }
+    };
+    readSavedTheme();
 
     // 2. Đồng bộ số sao & tên khách sạn từ Cài đặt hệ thống
     refreshHotelSettings();
@@ -115,7 +122,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setThemeMode = useCallback(async (mode: ThemeMode) => {
     setThemeModeState(mode);
     try {
-      await SecureStore.setItemAsync(THEME_STORAGE_KEY, mode);
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+        }
+      } else {
+        await SecureStore.setItemAsync(THEME_STORAGE_KEY, mode);
+      }
     } catch (e) {
       console.warn('Lỗi lưu cấu hình theme:', e);
     }

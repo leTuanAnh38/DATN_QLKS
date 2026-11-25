@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import apiClient from '../../api/client';
 import { useFocusPolling } from '../../hooks/use-focus-polling';
@@ -20,6 +21,7 @@ import { MAINTENANCE_ISSUE_TYPES } from '../../constants/maintenance';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppTheme } from '../../contexts/ThemeContext';
 import NotificationBell from '../../components/NotificationBell';
+import AssignStaffModal, { AssignableStaff, getStaffDisplayName } from '../../components/AssignStaffModal';
 import { MaintenanceListSkeleton } from '../../components/SkeletonLoader';
 import { enqueueOfflineAction } from '../../services/offlineQueue';
 import {
@@ -33,11 +35,21 @@ import {
 export default function MaintenanceScreen() {
   const { user } = useAuth();
   const { colors, isDark, hotelStars, hotelName } = useAppTheme();
+  const routeParams = useLocalSearchParams<{ roomNumber?: string; reqTs?: string }>();
+  const lastHandledRoomTsRef = useRef<string | null>(null);
   // Khớp web (RoomManagement.canCompleteMaintenance): chỉ Kỹ thuật & quản lý mới được nghiệm thu phiếu
   const canCompleteMaintenance = Boolean(
     user?.is_superuser || ['technician', 'admin', 'owner', 'manager'].includes(user?.role || '')
   );
+  // Khớp Backend maintenance_views.py (cancel_ticket): Kỹ thuật, Lễ tân, Quản lý, Chủ, Admin được báo sai/hủy phiếu
+  const canCancelMaintenance = Boolean(
+    user?.is_superuser || ['technician', 'receptionist', 'admin', 'owner', 'manager'].includes(user?.role || '')
+  );
   const canCreateMaintenance = Boolean(user?.is_superuser || (user?.role || '') !== 'cashier');
+  // Quản lý / Lễ tân / Chủ / Admin được phân công kỹ thuật viên cho phiếu bảo trì
+  const canAssignTechnician = Boolean(
+    user?.is_superuser || ['admin', 'owner', 'manager', 'receptionist'].includes(user?.role || '')
+  );
 
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +70,10 @@ export default function MaintenanceScreen() {
   const [selectedCancelTicket, setSelectedCancelTicket] = useState<MaintenanceTicket | null>(null);
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
+
+  // Modal Phân công Kỹ thuật viên
+  const [assignTarget, setAssignTarget] = useState<MaintenanceTicket | null>(null);
+  const [assigningTech, setAssigningTech] = useState(false);
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -80,11 +96,54 @@ export default function MaintenanceScreen() {
   // Real-time polling 6 giây đồng bộ hiện trường (chỉ khi tab hiển thị & app ở foreground)
   useFocusPolling(fetchTickets, 6000);
 
+  // Tự động lọc đúng phòng khi điều hướng từ Chi tiết phòng đang bảo trì
+  useEffect(() => {
+    if (routeParams.roomNumber) {
+      const triggerKey = routeParams.reqTs || routeParams.roomNumber;
+      if (lastHandledRoomTsRef.current === triggerKey) return;
+      lastHandledRoomTsRef.current = triggerKey;
+      setFilterStatus('fixing');
+      setScopeFilter('all');
+      setSelectedIssueType('all');
+      setSelectedFloor('all');
+      setSearchQuery(String(routeParams.roomNumber));
+    }
+  }, [routeParams.roomNumber, routeParams.reqTs]);
+
   const onRefresh = () => {
     setRefreshing(true);
     setVisibleCount(15);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     fetchTickets();
+  };
+
+  const handleOpenAssignTicket = useCallback((item: MaintenanceTicket) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAssignTarget(item);
+  }, []);
+
+  const handleAssignTechnician = async (staff: AssignableStaff) => {
+    if (!assignTarget) return;
+    setAssigningTech(true);
+    try {
+      const res = await apiClient.post(`/rooms/maintenance-tickets/${assignTarget.id}/assign/`, {
+        staff_id: staff.id,
+      });
+      if (res.data?.success || res.data?.ticket) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          'Phân công thành công',
+          res.data?.message || `Đã giao phiếu #${assignTarget.ticket_code} cho ${getStaffDisplayName(staff)}!`
+        );
+        setAssignTarget(null);
+        fetchTickets();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Không thể phân công kỹ thuật viên.';
+      Alert.alert('Lỗi', msg);
+    } finally {
+      setAssigningTech(false);
+    }
   };
 
   // KPI stats
@@ -312,15 +371,18 @@ export default function MaintenanceScreen() {
       <MaintenanceTicketCard
         item={item}
         canCompleteMaintenance={canCompleteMaintenance}
+        canCancelMaintenance={canCancelMaintenance}
+        canAssign={canAssignTechnician}
         isTechnicianOrManager={canCompleteMaintenance}
         currentUserId={user?.id}
         isLoading={actionLoadingId === item.id}
         onOpenComplete={openCompleteModal}
         onClaimTicket={handleClaimTicket}
+        onOpenAssign={handleOpenAssignTicket}
         onOpenCancel={openCancelModal}
       />
     ),
-    [canCompleteMaintenance, user?.id, actionLoadingId, openCompleteModal, handleClaimTicket, openCancelModal]
+    [canCompleteMaintenance, canCancelMaintenance, canAssignTechnician, user?.id, actionLoadingId, openCompleteModal, handleClaimTicket, handleOpenAssignTicket, openCancelModal]
   );
 
   return (
@@ -849,6 +911,24 @@ export default function MaintenanceScreen() {
         isDark={isDark}
         onClose={() => setCancelModalVisible(false)}
         onSuccess={fetchTickets}
+      />
+
+      {/* Modal Phân Công Kỹ Thuật Viên */}
+      <AssignStaffModal
+        visible={Boolean(assignTarget)}
+        title="Phân Công Kỹ Thuật Viên"
+        subtitle={
+          assignTarget
+            ? `Phòng ${assignTarget.room_number} • #${assignTarget.ticket_code} • ${assignTarget.equipment_name}`
+            : undefined
+        }
+        recommendedRoles={['technician']}
+        recommendedLabel="Đội Kỹ thuật"
+        currentAssigneeId={assignTarget?.technician}
+        currentAssigneeName={assignTarget?.technician_name}
+        submitting={assigningTech}
+        onClose={() => setAssignTarget(null)}
+        onAssign={handleAssignTechnician}
       />
     </SafeAreaView>
   );

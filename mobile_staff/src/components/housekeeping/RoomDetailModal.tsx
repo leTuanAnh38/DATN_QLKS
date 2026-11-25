@@ -29,6 +29,8 @@ interface RoomDetailModalProps {
   canNavigateServices?: boolean;
   canNavigateTransport?: boolean;
   isTechnician: boolean;
+  isHousekeeper?: boolean;
+  isReceptionist?: boolean;
   isCashier?: boolean;
   isManagerOrAdmin: boolean;
   onToggleCleaning: (room: RoomItem) => void;
@@ -38,9 +40,9 @@ interface RoomDetailModalProps {
   onOpenBreakdown: (room: RoomItem) => void;
   onOpenChangeRoom?: (room: RoomItem, booking: any, initialData?: { reason?: string; issueType?: string; equipment?: string }) => void;
   onOpenCrm: (guestId: number) => void;
-  onNavigateServices: () => void;
-  onNavigateTransport: () => void;
-  onNavigateMaintenance: () => void;
+  onNavigateServices: (room: RoomItem) => void;
+  onNavigateTransport: (room: RoomItem) => void;
+  onNavigateMaintenance: (room: RoomItem) => void;
 }
 
 export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
@@ -56,6 +58,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   canNavigateServices = true,
   canNavigateTransport = true,
   isTechnician,
+  isHousekeeper = false,
+  isReceptionist = false,
   isCashier = false,
   isManagerOrAdmin,
   onToggleCleaning,
@@ -69,9 +73,10 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
   onNavigateTransport,
   onNavigateMaintenance,
 }) => {
+  const { isDark } = useAppTheme();
+
   if (!room) return null;
 
-  const { isDark } = useAppTheme();
   const config = getStatusConfig(room.status, isDark);
   // Phòng trống đã dọn sạch không hiển thị lại khách đã check-out trước đó
   const bk = room.status === 'available' ? null : (room.current_booking || room.recent_booking);
@@ -277,20 +282,26 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                   Thiết bị trong phòng đang được Đội Kỹ thuật khắc phục theo phiếu #{room.active_maintenance?.ticket_code || 'Bảo trì'}.
                   {isTechnician || isManagerOrAdmin
                     ? ' Bạn có thể chuyển sang tab Kỹ thuật để nghiệm thu hoặc hoàn tất sửa chữa.'
+                    : isReceptionist
+                    ? ' Bạn có thể chuyển sang tab Kỹ thuật để theo dõi tiến độ hoặc phân công kỹ thuật viên.'
                     : ' Sau khi kỹ thuật viên sửa xong, phòng sẽ tự động chuyển sang "Đang dọn dẹp" để buồng phòng vào làm vệ sinh đón khách.'}
                 </Text>
 
-                {(isTechnician || isManagerOrAdmin) && (
+                {(isTechnician || isManagerOrAdmin || isReceptionist) && (
                   <TouchableOpacity
                     style={styles.maintenanceGoBtn}
                     onPress={() => {
                       onClose();
-                      onNavigateMaintenance();
+                      onNavigateMaintenance(room);
                     }}
                     activeOpacity={0.8}
                   >
                     <Ionicons name="build" size={15} color="#0A0F1D" style={{ marginRight: 6 }} />
-                    <Text style={styles.maintenanceGoBtnText}>Đi đến Phiếu bảo trì & Nghiệm thu</Text>
+                    <Text style={styles.maintenanceGoBtnText}>
+                      {isReceptionist && !isManagerOrAdmin
+                        ? 'Xem phiếu bảo trì & Phân công KTV'
+                        : 'Đi đến Phiếu bảo trì & Nghiệm thu'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -314,8 +325,12 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                 <Text style={[styles.detailActionsHeading, !isDark && { color: '#64748B' }]}>
                   {isTechnician
                     ? 'Thao tác cho Kỹ thuật viên'
-                    : canMarkCleaned
+                    : isHousekeeper
                     ? 'Thao tác nhanh cho Buồng phòng'
+                    : isManagerOrAdmin
+                    ? 'Điều phối & Thao tác phòng'
+                    : isReceptionist
+                    ? 'Thao tác nhanh cho Lễ tân'
                     : 'Thao tác nhanh'}
                 </Text>
                 {room.status === 'cleaning' && !hasGuest && (
@@ -404,8 +419,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 3. Thêm dịch vụ & Đặt xe: CHỈ khi phòng có khách và vai trò có quyền truy cập tab tương ứng */}
-                  {canNavigateServices && room.status === 'occupied' && (
+                  {/* 3. Thêm dịch vụ & Đặt xe: CHỈ khi phòng có khách (kèm current_booking) và vai trò có quyền truy cập tab tương ứng */}
+                  {canNavigateServices && room.status === 'occupied' && hasCurrentGuest && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,
@@ -413,7 +428,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       ]}
                       onPress={() => {
                         onClose();
-                        onNavigateServices();
+                        onNavigateServices(room);
                       }}
                     >
                       <Ionicons name="restaurant" size={16} color="#0284C7" style={{ marginRight: 6 }} />
@@ -421,7 +436,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {canNavigateTransport && room.status === 'occupied' && (
+                  {canNavigateTransport && room.status === 'occupied' && hasCurrentGuest && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,
@@ -429,7 +444,7 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                       ]}
                       onPress={() => {
                         onClose();
-                        onNavigateTransport();
+                        onNavigateTransport(room);
                       }}
                     >
                       <Ionicons name="car-sport" size={16} color="#D97706" style={{ marginRight: 6 }} />
@@ -471,8 +486,8 @@ export const RoomDetailModal: React.FC<RoomDetailModalProps> = React.memo(({
                     </TouchableOpacity>
                   )}
 
-                  {/* 6. Đổi phòng khẩn cấp: CHỈ cho phòng có khách và vai trò có quyền */}
-                  {canChangeRoom && room.status === 'occupied' && onOpenChangeRoom && (
+                  {/* 6. Đổi phòng khẩn cấp: CHỈ cho phòng có khách (kèm current_booking) và vai trò có quyền */}
+                  {canChangeRoom && room.status === 'occupied' && hasCurrentGuest && onOpenChangeRoom && (
                     <TouchableOpacity
                       style={[
                         styles.detailToolBtn,

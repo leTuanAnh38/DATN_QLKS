@@ -62,35 +62,46 @@ class LostAndFoundViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': 'Vui lòng nhập tên đồ vật nhặt được.'}, status=status.HTTP_400_BAD_REQUEST)
 
         room_id = data.get('room_id') or data.get('room')
+        room_number_input = str(data.get('room_number', '') or '').strip()
         room = None
         booking = None
         guest_name = data.get('guest_name', '').strip()
         guest_phone = data.get('guest_phone', '').strip()
 
         if room_id:
-            try:
-                room = Room.objects.get(pk=room_id)
-                # Tự động gán booking và thông tin khách nếu không điền tay
-                active_bk = room.bookings.filter(status='checked_in').first()
-                if not active_bk:
-                    active_bk = room.bookings.filter(status='completed').order_by('-actual_check_out', '-id').first()
-                if active_bk:
-                    booking = active_bk
-                    if not guest_name:
-                        if active_bk.guest:
-                            guest_name = active_bk.guest.get_full_name() or active_bk.guest.username
-                        elif getattr(active_bk, 'guest_name', None):
-                            guest_name = str(active_bk.guest_name)
-                        else:
-                            guest_name = "Khách lưu trú"
-                    if not guest_phone and active_bk.guest:
-                        guest_phone = active_bk.guest.phone_number or ''
-            except Room.DoesNotExist:
-                pass
+            room = Room.objects.filter(pk=room_id).first()
+        elif room_number_input:
+            clean_room_num = room_number_input.replace('Phòng', '').replace('phòng', '').replace('P.', '').replace('p.', '').strip()
+            if clean_room_num:
+                room = Room.objects.filter(room_number__iexact=clean_room_num).first()
+
+        if room:
+            # Tự động gán booking và thông tin khách nếu không điền tay
+            active_bk = room.bookings.filter(status='checked_in').first()
+            if not active_bk:
+                active_bk = room.bookings.filter(status='completed').order_by('-actual_check_out', '-id').first()
+            if active_bk:
+                booking = active_bk
+                if not guest_name:
+                    if active_bk.guest:
+                        guest_name = active_bk.guest.get_full_name() or active_bk.guest.username
+                    elif getattr(active_bk, 'guest_name', None):
+                        guest_name = str(active_bk.guest_name)
+                    else:
+                        guest_name = "Khách lưu trú"
+                if not guest_phone and active_bk.guest:
+                    guest_phone = active_bk.guest.phone_number or ''
 
         location_found = data.get('location_found', '').strip()
         if not location_found:
-            location_found = f"Phòng {room.room_number}" if room else "Khu vực khách sạn"
+            if room:
+                location_found = f"Phòng {room.room_number}"
+            elif room_number_input:
+                location_found = room_number_input
+            else:
+                location_found = "Khu vực khách sạn"
+        elif room and location_found.lower() == room.room_number.lower():
+            location_found = f"Phòng {room.room_number}"
 
         finder = request.user if request.user.is_authenticated else None
 

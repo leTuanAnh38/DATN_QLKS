@@ -229,7 +229,10 @@ export default function BookingListView({
             const priceFormatted = grandTotal
               ? `${parseInt(grandTotal, 10).toLocaleString('vi-VN')} đ`
               : '—';
-            const guestId = b.guest || b.guest_id || (typeof b.guest === 'object' ? b.guest?.id : null);
+            const guestId =
+              (typeof b.guest === 'object' && b.guest !== null ? b.guest.id : b.guest) ||
+              b.guest_id ||
+              null;
 
             return (
               <View

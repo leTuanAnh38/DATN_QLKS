@@ -135,7 +135,7 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'role', 'is_staff', 'is_superuser', 'total_points')
 
     def get_permissions(self, obj):
-        if obj.is_superuser or obj.role == 'admin':
+        if obj.is_superuser or obj.role in ['admin', 'owner']:
             return {'*': {'read': True, 'create': True, 'update': True, 'delete': True}}
         try:
             from .views import load_role_matrix
@@ -279,7 +279,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return name if name else obj.username
 
     def get_permissions(self, obj):
-        if obj.is_superuser or obj.role == 'admin':
+        if obj.is_superuser or obj.role in ['admin', 'owner']:
             return {'*': {'read': True, 'create': True, 'update': True, 'delete': True}}
         try:
             from .views import load_role_matrix

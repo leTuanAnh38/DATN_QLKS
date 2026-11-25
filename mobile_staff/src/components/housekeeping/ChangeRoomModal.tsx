@@ -25,9 +25,9 @@ import type { RoomItem } from './types';
 
 const QUICK_REASONS = [
   { label: 'Hỏng máy lạnh / điều hòa', icon: 'snow', type: 'ac', defaultStatus: 'maintenance', equipment: 'Điều hòa Daikin' },
-  { label: 'Sự cố nước / vệ sinh', icon: 'water', type: 'water', defaultStatus: 'maintenance', equipment: 'Hệ thống nước / WC' },
+  { label: 'Sự cố nước / vệ sinh', icon: 'water', type: 'plumbing', defaultStatus: 'maintenance', equipment: 'Hệ thống nước / WC' },
   { label: 'Sự cố điện / mất điện', icon: 'flash', type: 'electric', defaultStatus: 'maintenance', equipment: 'Hệ thống điện' },
-  { label: 'Khóa từ / Cửa hỏng', icon: 'key', type: 'lock', defaultStatus: 'maintenance', equipment: 'Khóa từ thông minh' },
+  { label: 'Khóa từ / Cửa hỏng', icon: 'key', type: 'furniture', defaultStatus: 'maintenance', equipment: 'Khóa từ thông minh' },
   { label: 'Phòng ồn / Khách yêu cầu', icon: 'volume-mute', type: 'other', defaultStatus: 'cleaning', equipment: 'Phòng ồn ào' },
   { label: 'Sự cố kỹ thuật khác', icon: 'construct', type: 'other', defaultStatus: 'maintenance', equipment: 'Thiết bị phòng' },
 ];
@@ -67,9 +67,6 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
   const [issueType, setIssueType] = useState('ac');
   const [oldRoomStatus, setOldRoomStatus] = useState<'maintenance' | 'cleaning'>('maintenance');
   const [equipmentName, setEquipmentName] = useState('');
-  const [partsReplaced, setPartsReplaced] = useState('');
-  const [cost, setCost] = useState('');
-  const [isGuestFault, setIsGuestFault] = useState(false);
   const [evidenceImage, setEvidenceImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,9 +77,6 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
       setIssueType(initialIssueType || 'ac');
       setEquipmentName(initialEquipment || 'Điều hòa Daikin');
       setOldRoomStatus('maintenance');
-      setPartsReplaced('');
-      setCost('');
-      setIsGuestFault(false);
       setEvidenceImage(null);
       setShowAllCategories(false);
       setSelectedRoomId(null);
@@ -94,7 +88,10 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
     if (!bookingId) return;
     setLoadingRooms(true);
     try {
-      const catId = room?.category_id || currentBooking?.category_id;
+      const catId =
+        room?.category_id ||
+        (typeof room?.category === 'object' ? room?.category?.id : room?.category) ||
+        currentBooking?.category_id;
       const params: any = {};
       if (allCats) {
         params.all_categories = 'true';
@@ -119,7 +116,7 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
     } finally {
       setLoadingRooms(false);
     }
-  }, [bookingId, room?.id, room?.category_id, currentBooking?.category_id]);
+  }, [bookingId, room?.id, room?.category_id, room?.category, currentBooking?.category_id]);
 
   useEffect(() => {
     if (visible && bookingId) {
@@ -205,8 +202,6 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
             setSubmitting(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-            const numCost = parseInt(cost.replace(/\D/g, ''), 10) || 0;
-
             try {
               const formData = new FormData();
               formData.append('new_room_id', String(selectedRoomId));
@@ -215,9 +210,6 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
               formData.append('maintenance_equipment', equipmentName.trim() || reason.trim());
               formData.append('maintenance_issue_type', issueType);
               formData.append('maintenance_description', reason.trim());
-              formData.append('parts_replaced', partsReplaced.trim());
-              formData.append('cost', String(numCost));
-              formData.append('is_guest_fault', String(isGuestFault));
 
               if (evidenceImage) {
                 const uri = evidenceImage.uri;
@@ -231,9 +223,7 @@ export const ChangeRoomModal: React.FC<ChangeRoomModalProps> = ({
                 } as any);
               }
 
-              const res = await apiClient.post(`/bookings/${bookingId}/change-room/`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-              });
+              const res = await apiClient.post(`/bookings/${bookingId}/change-room/`, formData);
 
               if (res.data?.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MAINTENANCE_ISSUE_TYPES, calculateTicketSLA } from '../../constants/maintenance';
 import { Palette } from '../../constants/theme';
-import { useAppTheme } from '../../contexts/ThemeContext';
+import { useAppTheme, resolveMobileMediaUrl } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 export interface MaintenanceTicket {
   id: number;
@@ -43,27 +44,37 @@ export interface MaintenanceTicket {
 export interface MaintenanceTicketCardProps {
   item: MaintenanceTicket;
   canCompleteMaintenance: boolean;
+  canCancelMaintenance?: boolean;
+  canAssign?: boolean;
   isTechnicianOrManager?: boolean;
   currentUserId?: number;
   isLoading: boolean;
   isClaiming?: boolean;
   onOpenComplete: (item: MaintenanceTicket) => void;
   onClaimTicket?: (item: MaintenanceTicket) => void;
+  onOpenAssign?: (item: MaintenanceTicket) => void;
   onOpenCancel?: (item: MaintenanceTicket) => void;
 }
 
 export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React.memo(({
   item,
   canCompleteMaintenance,
+  canCancelMaintenance,
+  canAssign = false,
   isTechnicianOrManager = true,
   currentUserId,
   isLoading,
   isClaiming = false,
   onOpenComplete,
   onClaimTicket,
+  onOpenAssign,
   onOpenCancel,
 }) => {
   const { isDark, hotelStars } = useAppTheme();
+  const { apiUrl } = useAuth();
+  const resolvedImageBefore = resolveMobileMediaUrl(item.image_before, apiUrl);
+  const resolvedImageAfter = resolveMobileMediaUrl(item.image_after, apiUrl);
+  const allowCancel = canCancelMaintenance ?? isTechnicianOrManager;
   const isFixing = item.status === 'fixing';
   const isCancelled = item.status === 'cancelled';
   const isCompleted = item.status === 'completed';
@@ -273,32 +284,32 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
       ) : null}
 
       {/* Bằng chứng hình ảnh hiện trường (Before & After) */}
-      {(item.image_before || item.image_after) ? (
+      {(resolvedImageBefore || resolvedImageAfter) ? (
         <View style={styles.evidenceContainer}>
           <Text style={[styles.evidenceHeaderTitle, !isDark && { color: '#64748B' }]}>
             Bằng chứng hình ảnh hiện trường:
           </Text>
           <View style={styles.evidenceRow}>
-            {item.image_before ? (
+            {resolvedImageBefore ? (
               <TouchableOpacity
                 style={[styles.evidenceThumbWrapper, !isDark && { borderColor: '#E2E8F0' }]}
-                onPress={() => setPreviewImage({ uri: item.image_before!, title: 'Ảnh hiện trường hư hại (Trước sửa)' })}
+                onPress={() => setPreviewImage({ uri: resolvedImageBefore, title: 'Ảnh hiện trường hư hại (Trước sửa)' })}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: item.image_before }} style={styles.evidenceThumb} />
+                <Image source={{ uri: resolvedImageBefore }} style={styles.evidenceThumb} />
                 <View style={[styles.evidenceBadge, { backgroundColor: '#EF4444' }]}>
                   <Text style={styles.evidenceBadgeText}>Hiện trường</Text>
                 </View>
               </TouchableOpacity>
             ) : null}
 
-            {item.image_after ? (
+            {resolvedImageAfter ? (
               <TouchableOpacity
                 style={[styles.evidenceThumbWrapper, !isDark && { borderColor: '#E2E8F0' }]}
-                onPress={() => setPreviewImage({ uri: item.image_after!, title: 'Ảnh sau khi sửa chữa (Nghiệm thu)' })}
+                onPress={() => setPreviewImage({ uri: resolvedImageAfter, title: 'Ảnh sau khi sửa chữa (Nghiệm thu)' })}
                 activeOpacity={0.8}
               >
-                <Image source={{ uri: item.image_after }} style={styles.evidenceThumb} />
+                <Image source={{ uri: resolvedImageAfter }} style={styles.evidenceThumb} />
                 <View style={[styles.evidenceBadge, { backgroundColor: '#10B981' }]}>
                   <Text style={styles.evidenceBadgeText}>Đã sửa xong</Text>
                 </View>
@@ -330,23 +341,53 @@ export const MaintenanceTicketCard: React.FC<MaintenanceTicketCardProps> = React
             )}
           </View>
 
-          {isFixing && !item.technician_name && isTechnicianOrManager && onClaimTicket && (
-            <TouchableOpacity
-              style={[styles.claimBtn, isClaiming && { opacity: 0.6 }]}
-              onPress={() => onClaimTicket(item)}
-              disabled={isClaiming}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="hand-right" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
-              <Text style={styles.claimBtnText}>Nhận việc</Text>
-            </TouchableOpacity>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {isFixing && canAssign && onOpenAssign && (
+              <TouchableOpacity
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 9,
+                  paddingVertical: 5,
+                  borderRadius: 8,
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.14)' : '#EFF6FF',
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#93C5FD',
+                }}
+                onPress={() => onOpenAssign(item)}
+                disabled={isLoading || isClaiming}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name="person-add-outline"
+                  size={12}
+                  color={isDark ? '#38BDF8' : '#0284C7'}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#38BDF8' : '#0284C7' }}>
+                  {item.technician_name ? 'Đổi KTV' : 'Phân công'}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {isFixing && !item.technician_name && isTechnicianOrManager && onClaimTicket && (
+              <TouchableOpacity
+                style={[styles.claimBtn, isClaiming && { opacity: 0.6 }]}
+                onPress={() => onClaimTicket(item)}
+                disabled={isClaiming}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="hand-right" size={13} color="#0A0F1D" style={{ marginRight: 4 }} />
+                <Text style={styles.claimBtnText}>Nhận việc</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Hàng 2: Các nút hành động (Báo sai / Nghiệm thu) */}
         {isFixing ? (
           <View style={styles.footerActionRow}>
-            {isTechnicianOrManager && onOpenCancel && (
+            {allowCancel && onOpenCancel && (
               <TouchableOpacity
                 style={[
                   styles.cancelBtn,
