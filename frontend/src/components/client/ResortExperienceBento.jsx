@@ -73,10 +73,10 @@ export default function ResortExperienceBento() {
     ];
 
     return (
-        <section className="py-16 sm:py-20 bg-white border-t border-slate-100 relative overflow-hidden">
+        <section className="py-10 sm:py-18 bg-white border-t border-slate-100 relative overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10 sm:mb-12">
+                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-11">
                     <div className="max-w-2xl">
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             KHÔNG GIAN &amp; TIỆN ÍCH
@@ -92,20 +92,22 @@ export default function ResortExperienceBento() {
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
                         <Link
                             to="/rooms"
-                            className="w-full sm:w-auto justify-center min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all"
+                            className="w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all whitespace-nowrap"
                         >
-                            <span>Khám phá không gian phòng</span>
-                            <ArrowRight className="w-4 h-4" />
+                            <span className="sm:hidden">Xem phòng</span>
+                            <span className="hidden sm:inline">Khám phá không gian phòng</span>
+                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                         </Link>
                         <Link
                             to="/contact"
-                            className="w-full sm:w-auto justify-center min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 text-xs sm:text-sm font-bold transition-all"
+                            className="w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 text-xs sm:text-sm font-bold transition-all whitespace-nowrap"
                         >
-                            <MapPin className="w-4 h-4 text-amber-600" />
-                            <span>Vị trí & Chỉ đường</span>
+                            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                            <span className="sm:hidden">Chỉ đường</span>
+                            <span className="hidden sm:inline">Vị trí & Chỉ đường</span>
                         </Link>
                     </div>
                 </div>

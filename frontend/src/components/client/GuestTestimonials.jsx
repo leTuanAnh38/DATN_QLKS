@@ -107,16 +107,19 @@ export default function GuestTestimonials() {
     }, [rawReviews]);
 
     return (
-        <section className="py-12 sm:py-20 bg-[#f4f7fb] border-b border-slate-200/60">
+        <section className="py-10 sm:py-18 bg-[#f4f7fb] border-b border-slate-200/60">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header tối giản, sang trọng theo mẫu */}
-                <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-14">
+                <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-12">
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ĐÁNH GIÁ KHÁCH HÀNG
                     </span>
                     <h2 className="font-serif text-2xl sm:text-4xl lg:text-[42px] font-bold text-slate-900 leading-[1.22] tracking-tight">
                         Cảm Nhận Chân Thực Về {hotelName}
                     </h2>
+                    <div className="sm:hidden mt-2 text-[11px] font-semibold text-slate-400">
+                        Vuốt ngang xem thêm đánh giá →
+                    </div>
                 </div>
 
                 {/* 3 Cards Grid theo đúng bố cục mẫu */}

@@ -599,9 +599,9 @@ export default function PaymentModal({
                             </div>
                         </div>
 
-                        {/* Thông báo lỗi nếu có */}
+                        {/* Thông báo lỗi nếu có (hiển thị trên Desktop; trên Mobile hiển thị ngay tại sticky footer) */}
                         {errorMessage && (
-                            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-center gap-2 animate-fadeIn">
+                            <div className="hidden md:flex p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 items-center gap-2 animate-fadeIn">
                                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                                 <span>{errorMessage}</span>
                             </div>
@@ -749,6 +749,12 @@ export default function PaymentModal({
                     className="md:hidden shrink-0 px-3.5 pt-2.5 bg-white/95 backdrop-blur-md border-t border-slate-200 flex flex-col gap-2 shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.12)]"
                     style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
                 >
+                    {errorMessage && (
+                        <div className="px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-[11px] leading-snug text-rose-700 flex items-start gap-1.5 animate-fadeIn">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            <span>{errorMessage}</span>
+                        </div>
+                    )}
                     <button
                         type="button"
                         onClick={handleConfirmPayment}

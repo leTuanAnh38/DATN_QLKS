@@ -596,51 +596,52 @@ export default function RoomReviewsSection({
 
             {/* 6. DANH SÁCH ĐÁNH GIÁ THỰC TẾ TỪ CƠ SỞ DỮ LIỆU */}
             <div className="space-y-4">
-                {/* BỘ LỌC THEO SỐ SAO & SẮP XẾP ĐÁNH GIÁ */}
+                {/* BỘ LỌC THEO SỐ SAO & SẮP XẾP ĐÁNH GIÁ (Nằm gọn 1 hàng duy nhất trên Mobile & Desktop) */}
                 {reviews.length >= 2 && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center justify-between gap-2">
                         {reviews.length >= 3 ? (
-                            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 overflow-x-auto no-scrollbar">
+                                <span className="hidden sm:flex text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 items-center gap-1">
                                     <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                                     <span>Lọc:</span>
                                 </span>
                                 {[
-                                    { id: 'all', label: `Tất cả (${reviews.length})` },
-                                    { id: '5', label: `5 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 5).length})` },
-                                    { id: '4', label: `4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 4).length})` },
-                                    { id: 'below4', label: `< 4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) < 4).length})` },
-                                ].filter(f => f.id === 'all' || !f.label.endsWith('(0)'))
+                                    { id: 'all', count: reviews.length, label: `Tất cả (${reviews.length})`, shortLabel: `Tất cả (${reviews.length})` },
+                                    { id: '5', count: reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 5).length, label: `5 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 5).length})`, shortLabel: `5★ (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 5).length})` },
+                                    { id: '4', count: reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 4).length, label: `4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 4).length})`, shortLabel: `4★ (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) === 4).length})` },
+                                    { id: 'below4', count: reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) < 4).length, label: `< 4 sao (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) < 4).length})`, shortLabel: `<4★ (${reviews.filter(r => Math.round(parseFloat(r.overall_rating) || 5) < 4).length})` },
+                                ].filter(f => f.id === 'all' || f.count > 0)
                                 .map((tab) => (
                                     <button
                                         key={tab.id}
                                         type="button"
                                         onClick={() => setSelectedStarFilter(tab.id)}
-                                        className={`px-3.5 py-2 min-h-[38px] sm:min-h-0 sm:py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                                        className={`px-2.5 sm:px-3.5 py-1.5 min-h-[36px] sm:min-h-0 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer shrink-0 ${
                                             selectedStarFilter === tab.id
                                                 ? 'bg-slate-900 text-white shadow-xs'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                                         }`}
                                     >
-                                        {tab.label}
+                                        <span className="sm:hidden">{tab.shortLabel}</span>
+                                        <span className="hidden sm:inline">{tab.label}</span>
                                     </button>
                                 ))}
                             </div>
                         ) : (
-                            <div />
+                            <div className="flex-1" />
                         )}
 
-                        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 self-start sm:self-auto shrink-0">
-                            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <div className="flex items-center gap-1 sm:gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-1.5 min-h-[36px] sm:min-h-0 shrink-0 max-w-[132px] sm:max-w-none">
+                            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 aria-label="Sắp xếp đánh giá phòng"
-                                className="bg-transparent text-base sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+                                className="bg-transparent text-base sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto truncate"
                             >
                                 <option value="newest">Mới nhất</option>
-                                <option value="rating_desc">Sao cao → thấp</option>
-                                <option value="rating_asc">Sao thấp → cao</option>
+                                <option value="rating_desc">Sao cao</option>
+                                <option value="rating_asc">Sao thấp</option>
                             </select>
                         </div>
                     </div>

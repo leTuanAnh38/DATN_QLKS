@@ -283,8 +283,8 @@ export default function ContactPage() {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                    {/* LEFT (DESKTOP) / DƯỚI (MOBILE): INTERACTIVE CONTACT FORM */}
-                    <div id="contact-form-card" className="order-2 lg:order-1 lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
+                    {/* LEFT (DESKTOP) / ĐẦU TIÊN (MOBILE): INTERACTIVE CONTACT FORM */}
+                    <div id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
                         <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100">
                             <div>
                                 <span className="text-[10px] sm:text-[11px] font-bold text-sky-700 uppercase tracking-wider block">
@@ -447,8 +447,8 @@ export default function ContactPage() {
                         </form>
                     </div>
 
-                    {/* RIGHT (DESKTOP) / ĐẦU TIÊN (MOBILE): HEADQUARTERS, HOTLINE 24/7 & DEPARTMENTS */}
-                    <div className="order-1 lg:order-2 lg:col-span-5 space-y-5">
+                    {/* RIGHT (DESKTOP) / BÊN DƯỚI (MOBILE): HEADQUARTERS, HOTLINE 24/7 & DEPARTMENTS */}
+                    <div className="lg:col-span-5 space-y-5">
 
                         {/* Flagship Address Box */}
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">

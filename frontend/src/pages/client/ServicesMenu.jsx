@@ -840,9 +840,9 @@ export default function ServicesMenu() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white flex flex-col justify-between">
-            <div>
-                <Navbar />
+            <Navbar />
 
+            <div className="flex-1">
                 {/* BREADCRUMB */}
                 <div className="bg-white border-b border-slate-100 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -930,17 +930,17 @@ export default function ServicesMenu() {
 
                 {/* KHU VỰC MENU CHÍNH */}
                 <main
-                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-32 sm:pb-12 space-y-8"
+                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 pb-32 sm:pb-12 space-y-6 sm:space-y-8"
                     style={{ overflowAnchor: 'none' }}
                 >
-                    {/* BỘ LỌC DANH MỤC & TÌM KIẾM */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+                    {/* BỘ LỌC DANH MỤC, TÌM KIẾM & SẮP XẾP (Mobile gọn 2 hàng: Tabs + [Tìm kiếm | Sắp xếp]) */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4 pb-4 sm:pb-6 border-b border-slate-200">
                         {/* Tabs danh mục */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 md:pb-0 scrollbar-none">
                             <button
                                 type="button"
                                 onClick={() => setSelectedCategory('all')}
-                                className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                                className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${
                                     selectedCategory === 'all'
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-1 ring-sky-500'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
@@ -955,7 +955,7 @@ export default function ServicesMenu() {
                                     key={cat.id}
                                     type="button"
                                     onClick={() => setSelectedCategory(cat.id)}
-                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-2 ${
+                                    className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${
                                         String(selectedCategory) === String(cat.id)
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-1 ring-sky-500'
                                             : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 shadow-2xs'
@@ -964,7 +964,7 @@ export default function ServicesMenu() {
                                     {renderCategoryIcon(cat.name, cat.icon, `w-3.5 h-3.5 ${String(selectedCategory) === String(cat.id) ? 'text-amber-200' : 'text-slate-400'}`)}
                                     <span>{cat.name}</span>
                                     {cat.services_count > 0 && (
-                                        <span className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
+                                        <span className={`ml-0.5 sm:ml-1 px-1.5 py-0.2 rounded-full text-[10px] ${
                                             String(selectedCategory) === String(cat.id)
                                                 ? 'bg-white/20 text-white'
                                                 : 'bg-slate-100 text-slate-600'
@@ -976,15 +976,15 @@ export default function ServicesMenu() {
                             ))}
                         </div>
 
-                        {/* Ô tìm kiếm món & Bộ sắp xếp giá (xếp dọc thoáng trên < sm, 1 hàng trên >= sm) */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto shrink-0">
+                        {/* Ô tìm kiếm món & Bộ sắp xếp giá cùng 1 hàng duy nhất */}
+                        <div className="flex items-center gap-2 w-full md:w-auto shrink-0 min-w-0">
                             <div className="relative flex-1 min-w-0 md:w-64">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Tìm món ăn, spa, đồ uống..."
-                                    className="w-full pl-9 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
+                                    placeholder="Tìm món, spa..."
+                                    className="w-full pl-9 pr-8 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
                                 />
                                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 {searchQuery && (
@@ -1003,11 +1003,11 @@ export default function ServicesMenu() {
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 aria-label="Sắp xếp theo giá"
-                                className="w-full sm:w-44 min-w-0 px-3 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
+                                className="w-[126px] sm:w-44 shrink-0 px-2.5 sm:px-3.5 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
                             >
                                 <option value="default">Mặc định</option>
-                                <option value="price_asc">Giá: Thấp → Cao</option>
-                                <option value="price_desc">Giá: Cao → Thấp</option>
+                                <option value="price_asc">Giá tăng</option>
+                                <option value="price_desc">Giá giảm</option>
                             </select>
                         </div>
                     </div>

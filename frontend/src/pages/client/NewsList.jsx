@@ -192,13 +192,13 @@ export default function NewsList() {
 
             {/* MAIN CONTENT AREA */}
             <main
-                className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 space-y-12"
+                className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 md:py-14 space-y-8 sm:space-y-12"
                 style={{ overflowAnchor: 'none' }}
             >
-                {/* BỘ LỌC DANH MỤC, TÌM KIẾM & SẮP XẾP */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+                {/* BỘ LỌC DANH MỤC, TÌM KIẾM & SẮP XẾP (Mobile gọn 2 hàng: Tabs + [Tìm kiếm | Sắp xếp]) */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4 pb-4 sm:pb-6 border-b border-slate-200">
                     {/* Tabs danh mục */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 lg:pb-0 no-scrollbar">
                         {categories.map((cat) => {
                             const isActive = selectedCategory === cat.value;
                             return (
@@ -206,7 +206,7 @@ export default function NewsList() {
                                     key={cat.value}
                                     type="button"
                                     onClick={() => setSelectedCategory(cat.value)}
-                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-2 ${isActive
+                                    className={`px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0 ${isActive
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20 ring-2 ring-sky-400/20'
                                             : 'bg-white text-slate-600 hover:text-sky-700 hover:bg-sky-50/50 border border-slate-200 hover:border-sky-200'
                                         }`}
@@ -218,25 +218,25 @@ export default function NewsList() {
                         })}
                     </div>
 
-                    {/* Thanh tìm kiếm & Sắp xếp: Xếp dọc gọn ở 375px, 1 hàng từ sm trở lên */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto shrink-0">
+                    {/* Thanh tìm kiếm & Sắp xếp nằm gọn cùng 1 hàng trên mọi màn hình */}
+                    <div className="flex items-center gap-2 w-full lg:w-auto shrink-0 min-w-0">
                         <div className="relative flex-1 lg:w-64 min-w-0">
                             <input
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Tìm bài viết, cẩm nang..."
-                                className="w-full pl-9 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition"
+                                placeholder="Tìm bài viết..."
+                                className="w-full pl-9 pr-8 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition"
                             />
                             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             {searchTerm && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition cursor-pointer"
                                     title="Xóa tìm kiếm"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
@@ -245,10 +245,10 @@ export default function NewsList() {
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                             aria-label="Sắp xếp bài viết"
-                            className="w-full sm:w-auto px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0"
+                            className="w-[126px] sm:w-auto px-2.5 sm:px-3 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0 truncate"
                         >
                             <option value="newest">Mới nhất</option>
-                            <option value="popular">Xem nhiều nhất</option>
+                            <option value="popular">Xem nhiều</option>
                         </select>
                     </div>
                 </div>

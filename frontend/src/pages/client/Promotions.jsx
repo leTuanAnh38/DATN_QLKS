@@ -473,10 +473,10 @@ export default function PromotionsPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans antialiased selection:bg-amber-500 selection:text-white flex flex-col justify-between">
-            {/* Top Navigation */}
-            <div>
-                <Navbar />
+            {/* Top Navigation (đặt làm con trực tiếp của khung trang để sticky hoạt động cả khi cuộn xuống Footer) */}
+            <Navbar />
 
+            <div className="flex-1">
                 {/* Breadcrumb Navigation */}
                 <div className="bg-white border-b border-slate-200/80 py-3">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -589,7 +589,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header kho voucher */}
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <div>
                             <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1.5">
                                 <Tag className="w-4 h-4 text-amber-600" />
@@ -603,34 +603,13 @@ export default function PromotionsPage() {
                             </p>
                         </div>
 
-                        {/* Cụm Bộ lọc (% vs Tiền mặt) + Ô tìm kiếm mã voucher cùng 1 thanh công cụ */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-                            <div className="relative flex-1 sm:w-64">
-                                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Tìm mã voucher, ưu đãi..."
-                                    className="w-full pl-9 pr-10 py-2.5 rounded-2xl bg-white border border-slate-200 text-base sm:text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 shadow-xs transition"
-                                />
-                                {searchTerm && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearchTerm('')}
-                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
-                                        title="Xóa tìm kiếm"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs w-full sm:w-auto overflow-x-auto no-scrollbar text-xs font-semibold shrink-0">
+                        {/* Cụm Bộ lọc (% vs Tiền mặt) + [Tìm kiếm | Sắp xếp] (Mobile gọn 2 hàng thay vì 3 hàng) */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto">
+                            <div className="flex items-center bg-white border border-slate-200 p-1 rounded-2xl shadow-xs w-full sm:w-auto overflow-x-auto no-scrollbar text-xs font-semibold shrink-0 sm:order-2">
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('all')}
-                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'all'
+                                    className={`flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'all'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -640,7 +619,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('percentage')}
-                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'percentage'
+                                    className={`flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'percentage'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -650,27 +629,51 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('fixed')}
-                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'fixed'
+                                    className={`flex-1 sm:flex-initial min-h-[36px] sm:min-h-0 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'fixed'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
                                 >
-                                    Giảm tiền mặt
+                                    <span className="sm:hidden">Tiền mặt</span>
+                                    <span className="hidden sm:inline">Giảm tiền mặt</span>
                                 </button>
                             </div>
 
-                            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl px-3 py-2 shadow-xs shrink-0">
-                                <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    aria-label="Sắp xếp mã ưu đãi"
-                                    className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
-                                >
-                                    <option value="expiring_soon">Sắp hết hạn trước</option>
-                                    <option value="discount_desc">Giảm nhiều nhất</option>
-                                    <option value="newest">Mới nhất</option>
-                                </select>
+                            <div className="flex items-center gap-2 min-w-0 w-full sm:w-auto sm:contents">
+                                <div className="relative flex-1 min-w-0 sm:w-64 sm:order-1">
+                                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Tìm mã ưu đãi..."
+                                        className="w-full pl-9 pr-8 py-2 sm:py-2.5 rounded-2xl bg-white border border-slate-200 text-base sm:text-xs text-slate-900 placeholder:text-xs placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/15 shadow-xs transition"
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                                            title="Xóa tìm kiếm"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="w-[140px] sm:w-auto flex items-center gap-1 bg-white border border-slate-200 rounded-2xl px-2.5 sm:px-3 py-2 shadow-xs shrink-0 sm:order-3">
+                                    <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        aria-label="Sắp xếp mã ưu đãi"
+                                        className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto truncate"
+                                    >
+                                        <option value="expiring_soon">Sắp hết hạn</option>
+                                        <option value="discount_desc">Giảm nhiều</option>
+                                        <option value="newest">Mới nhất</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>

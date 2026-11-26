@@ -28,7 +28,9 @@ export default function Navbar({
     const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [drawerTop, setDrawerTop] = useState(64);
     const userMenuRef = useRef(null);
+    const headerRef = useRef(null);
 
     // Thông tin thương hiệu & Logo động từ cài đặt hệ thống
     const { settings } = useHotelSettings();
@@ -50,13 +52,21 @@ export default function Navbar({
         };
     }, []);
 
-    // Khóa cuộn nền khi mở Mobile Drawer để tránh trôi trang phía sau trên iOS/Android
+    // Đồng bộ vị trí top của Mobile Drawer (fixed) ngay sát dưới Header mà không đặt body overflow:hidden (tránh phá hỏng position:sticky khi đang cuộn ở Footer)
     useEffect(() => {
         if (!mobileMenuOpen) return undefined;
-        const prevOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+        const syncDrawerTop = () => {
+            if (headerRef.current) {
+                const bottom = Math.round(headerRef.current.getBoundingClientRect().bottom);
+                setDrawerTop(bottom > 0 ? bottom : 64);
+            }
+        };
+        syncDrawerTop();
+        window.addEventListener('resize', syncDrawerTop);
+        window.addEventListener('scroll', syncDrawerTop, { passive: true });
         return () => {
-            document.body.style.overflow = prevOverflow;
+            window.removeEventListener('resize', syncDrawerTop);
+            window.removeEventListener('scroll', syncDrawerTop);
         };
     }, [mobileMenuOpen]);
 
@@ -176,17 +186,17 @@ export default function Navbar({
                 </div>
             </div>
 
-            {/* Backdrop làm mờ nền khi mở Mobile Drawer */}
+            {/* Backdrop làm mờ nền khi mở Mobile Drawer (dùng touch-none thay vì body overflow:hidden để không làm mất sticky header) */}
             {mobileMenuOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-slate-900/40 xl:hidden"
+                    className="fixed inset-0 z-[54] bg-slate-900/40 touch-none xl:hidden"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-hidden="true"
                 />
             )}
 
             {/* 2. HEADER NAVIGATION */}
-            <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-xs">
+            <header ref={headerRef} className="sticky top-0 z-[55] bg-white border-b border-slate-200 shadow-xs">
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4 xl:gap-6">
                     {/* Brand Logo: Co giãn an toàn trên 375px, giữ nguyên vẹn trên máy tính */}
                     <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0 flex-1 xl:flex-none xl:shrink-0">
@@ -407,9 +417,13 @@ export default function Navbar({
                             type="button"
                             onClick={() => {
                                 setUserMenuOpen(false);
+                                if (!mobileMenuOpen && headerRef.current) {
+                                    const bottom = Math.round(headerRef.current.getBoundingClientRect().bottom);
+                                    setDrawerTop(bottom > 0 ? bottom : 64);
+                                }
                                 setMobileMenuOpen((prev) => !prev);
                             }}
-                            className="xl:hidden min-w-[40px] min-h-[40px] p-2 rounded-lg text-slate-600 sm:hover:text-slate-900 sm:hover:bg-slate-100 active:bg-slate-100 focus:outline-none select-none flex items-center justify-center"
+                            className="xl:hidden min-w-[40px] min-h-[40px] p-2 rounded-lg text-slate-600 sm:hover:text-slate-900 sm:hover:bg-slate-100 active:bg-slate-100 focus:outline-none select-none touch-manipulation flex items-center justify-center cursor-pointer"
                             aria-label="Toggle Menu"
                             aria-expanded={mobileMenuOpen}
                         >
@@ -423,10 +437,17 @@ export default function Navbar({
                         </button>
                     </div>
                 </div>
+            </header>
 
-                {/* Mobile Navigation Dropdown (phủ nổi absolute để không làm phình header và đẩy trang) */}
-                {mobileMenuOpen && (
-                    <div className="xl:hidden absolute top-full left-0 right-0 z-50 border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-xl max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
+            {/* Mobile Navigation Drawer (render fixed ngang hàng header để luôn bám đúng khung nhìn ngay cả khi cuộn xuống Footer) */}
+            {mobileMenuOpen && (
+                <div
+                    className="xl:hidden fixed left-0 right-0 z-[55] border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 shadow-xl overflow-y-auto overscroll-contain"
+                    style={{
+                        top: `${drawerTop}px`,
+                        maxHeight: `calc(100dvh - ${drawerTop}px)`
+                    }}
+                >
                         {/* Mobile User Status */}
                         {isAuthenticated && (
                             <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">
@@ -575,9 +596,8 @@ export default function Navbar({
                                 <span>Hotline 24/7: <strong>{hotlineDisplay}</strong></span>
                             </a>
                         </div>
-                    </div>
-                )}
-            </header>
+                </div>
+            )}
 
             {/* Modal Đổi Mật Khẩu */}
             <ChangePasswordModal

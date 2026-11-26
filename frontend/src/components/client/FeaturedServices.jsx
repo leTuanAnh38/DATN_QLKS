@@ -209,14 +209,14 @@ export default function FeaturedServices() {
     };
 
     return (
-        <section id="menu-dich-vu" className="py-16 sm:py-20 bg-gradient-to-b from-[#f4f8fb] via-[#f8fafc] to-[#f4f8fb] border-y border-slate-200/60 relative overflow-hidden transform-gpu">
+        <section id="menu-dich-vu" className="py-10 sm:py-18 bg-gradient-to-b from-[#f4f8fb] via-[#f8fafc] to-[#f4f8fb] border-y border-slate-200/60 relative overflow-hidden transform-gpu">
             {/* Background Decorator Lights - sử dụng Radial Gradient nhẹ nhàng */}
             <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.12),transparent_70%)] pointer-events-none" />
             <div className="absolute bottom-10 right-0 w-[450px] h-[450px] bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.08),transparent_70%)] pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* 1. SECTION HEADER */}
-                <div className="text-center max-w-3xl mx-auto mb-7">
+                <div className="text-center max-w-3xl mx-auto mb-5 sm:mb-7">
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ẨM THỰC &amp; DỊCH VỤ
                     </span>
@@ -231,14 +231,14 @@ export default function FeaturedServices() {
                     </p>
                 </div>
 
-                {/* Filter Tabs: Cuộn ngang mượt trên điện thoại, căn giữa trên Desktop */}
-                <div className="max-w-5xl mx-auto mb-10 sm:mb-12">
-                    <div className="flex sm:flex-wrap lg:flex-nowrap items-center sm:justify-center gap-2 sm:gap-2.5 overflow-x-auto py-1.5 sm:py-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                {/* Filter Tabs: Gọn đủ 4 tab trên 375px, nhãn đầy đủ trên Desktop */}
+                <div className="max-w-5xl mx-auto mb-5 sm:mb-11">
+                    <div className="flex sm:flex-wrap lg:flex-nowrap items-center justify-start sm:justify-center gap-1.5 sm:gap-2.5 overflow-x-auto py-1 sm:py-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {[
-                            { id: 'all', label: 'Tất Cả Dịch Vụ', icon: LayoutGrid },
-                            { id: 'dining', label: 'Ẩm Thực Thượng Hạng', icon: UtensilsCrossed },
-                            { id: 'spa', label: 'The Lotus Spa & Wellness', icon: Flower2 },
-                            { id: 'drinks', label: 'Đồ Uống & Bar Cao Cấp', icon: Wine },
+                            { id: 'all', label: 'Tất Cả Dịch Vụ', shortLabel: 'Tất cả', icon: LayoutGrid },
+                            { id: 'dining', label: 'Ẩm Thực Thượng Hạng', shortLabel: 'Ẩm thực', icon: UtensilsCrossed },
+                            { id: 'spa', label: 'The Lotus Spa & Wellness', shortLabel: 'Spa', icon: Flower2 },
+                            { id: 'drinks', label: 'Đồ Uống & Bar Cao Cấp', shortLabel: 'Đồ uống', icon: Wine },
                         ].map((tab) => {
                             const TabIcon = tab.icon;
                             return (
@@ -246,17 +246,21 @@ export default function FeaturedServices() {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveFilter(tab.id)}
-                                    className={`px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                                    className={`px-3 sm:px-5 py-2 sm:py-2.5 min-h-[38px] sm:min-h-0 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                                         activeFilter === tab.id
                                             ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 sm:scale-[1.03]'
                                             : 'bg-white text-slate-600 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
                                     }`}
                                 >
                                     <TabIcon className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{tab.label}</span>
+                                    <span className="sm:hidden">{tab.shortLabel}</span>
+                                    <span className="hidden sm:inline">{tab.label}</span>
                                 </button>
                             );
                         })}
+                    </div>
+                    <div className="sm:hidden mt-2.5 flex items-center justify-end text-[11px] font-semibold text-slate-400">
+                        <span>Vuốt ngang xem thêm →</span>
                     </div>
                 </div>
 

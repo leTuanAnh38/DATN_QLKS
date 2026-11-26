@@ -131,10 +131,10 @@ export default function FeaturedPromotions() {
     };
 
     return (
-        <section className="py-16 sm:py-20 bg-white border-b border-slate-200/60 relative overflow-hidden">
+        <section className="py-10 sm:py-18 bg-white border-b border-slate-200/60 relative overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 sm:mb-12">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-5 sm:mb-11">
                     <div className="max-w-2xl">
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             ƯU ĐÃI ĐẶC QUYỀN
@@ -150,16 +150,21 @@ export default function FeaturedPromotions() {
                         </p>
                     </div>
 
-                    <Link
-                        to="/promotions"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/60 text-slate-700 hover:text-sky-700 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap self-start md:self-auto group"
-                    >
-                        <span>Xem tất cả ưu đãi</span>
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
+                        <Link
+                            to="/promotions"
+                            className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white border border-slate-200 hover:border-sky-300 hover:bg-sky-50/60 text-slate-700 hover:text-sky-700 text-xs sm:text-sm font-bold transition-all shadow-xs whitespace-nowrap group"
+                        >
+                            <span>Xem tất cả ưu đãi</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                        <span className="sm:hidden text-[11px] font-semibold text-slate-400 whitespace-nowrap">
+                            Vuốt ngang →
+                        </span>
+                    </div>
                 </div>
 
-                {/* Grid Voucher Cards (Ticket Stub Design đồng bộ 100% với trang /promotions, không dùng ảnh giả) */}
+                {/* Grid Voucher Cards (Ticket Stub Design nổi khối giấy vé trên nền trắng) */}
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[1, 2, 3, 4].map((n) => (
@@ -184,12 +189,12 @@ export default function FeaturedPromotions() {
                             return (
                                 <div
                                     key={promo.id || promo.code}
-                                    className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center relative bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400 p-5 sm:p-6 flex flex-col justify-between shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                                    className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center relative bg-gradient-to-b from-slate-50/85 via-[#fafbfd] to-white rounded-3xl border border-slate-200/90 hover:border-amber-400 p-5 sm:p-6 flex flex-col justify-between shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                                 >
-                                    {/* Răng cưa vé (Perforated ticket cutout circle) đồng bộ trang Ưu đãi */}
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full border-b border-slate-200" />
-                                    <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-r border-slate-200" />
-                                    <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-6 bg-white rounded-full border-l border-slate-200" />
+                                    {/* Răng cưa vé (Perforated ticket cutout circle) nổi rõ tương phản với nền giấy vé */}
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full border border-slate-200/90" />
+                                    <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-6 h-6 bg-white rounded-full border border-slate-200/90" />
+                                    <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-6 bg-white rounded-full border border-slate-200/90" />
 
                                     {/* Card Header & Discount Value */}
                                     <div>

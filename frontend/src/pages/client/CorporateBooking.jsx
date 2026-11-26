@@ -1000,21 +1000,28 @@ export default function CorporateBooking() {
                         </div>
 
                         {!appliedPartner ? (
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-lg sm:pl-10.5">
+                            <div className="flex items-center gap-2 sm:gap-3 max-w-lg sm:pl-10.5">
                                 <input
                                     type="text"
-                                    placeholder="Nhập mã (VD: FPT2026, VIETTEL2026...)"
+                                    placeholder="Nhập mã (VD: FPT2026...)"
                                     value={corporateCodeInput}
                                     onChange={(e) => setCorporateCodeInput(e.target.value.toUpperCase())}
-                                    className="flex-1 px-4 py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-xs font-mono font-bold text-slate-900 placeholder:text-xs uppercase focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                    className="flex-1 min-w-0 px-3.5 sm:px-4 py-2.5 sm:py-3 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-2xl text-base sm:text-xs font-mono font-bold text-slate-900 placeholder:text-xs uppercase focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                 />
                                 <button
                                     type="button"
                                     disabled={isValidatingCode || !corporateCodeInput.trim()}
                                     onClick={handleApplyCorporateCode}
-                                    className="px-6 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-2xl shadow-md shadow-sky-900/20 hover:shadow-sky-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
+                                    className="shrink-0 min-h-[44px] sm:min-h-0 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-2xl shadow-md shadow-sky-900/20 hover:shadow-sky-500/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95 whitespace-nowrap"
                                 >
-                                    {isValidatingCode ? 'Đang kiểm tra...' : 'Áp Dụng Mã'}
+                                    {isValidatingCode ? (
+                                        'Đang kiểm tra...'
+                                    ) : (
+                                        <>
+                                            <span className="sm:hidden">Áp dụng</span>
+                                            <span className="hidden sm:inline">Áp Dụng Mã</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         ) : (

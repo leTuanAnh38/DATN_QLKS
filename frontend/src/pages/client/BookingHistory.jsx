@@ -782,18 +782,18 @@ export default function BookingHistory() {
                 {isAuthenticated && (
                     <div className="space-y-6">
                         {/* THANH CÔNG CỤ: TABS LỌC THEO TRẠNG THÁI, PHÂN LOẠI LOẠI ĐƠN & Ô TÌM KIẾM */}
-                        <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
-                            {/* Hàng 1: Nút Phân loại Đơn khách lẻ / Đơn đoàn B2B + Ô tìm kiếm */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                                <div className="flex items-center gap-2 flex-wrap">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-3 sm:p-5 shadow-xs space-y-2.5 sm:space-y-4">
+                            {/* Hàng 1: Phân loại Đơn + [Tìm kiếm | Sắp xếp] (Mobile gọn 2 hàng + Hàng tabs trạng thái = 3 hàng) */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-2.5 sm:pb-3 border-b border-slate-100">
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
                                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:inline">
                                         Phân loại:
                                     </span>
-                                    <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200/70 overflow-x-auto max-w-full no-scrollbar">
+                                    <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto p-1 bg-slate-100 rounded-2xl border border-slate-200/70 gap-1 sm:gap-0">
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('all')}
-                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'all'
+                                            className={`min-h-[36px] sm:min-h-0 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap flex items-center justify-center ${bookingTypeFilter === 'all'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
@@ -803,12 +803,12 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('individual')}
-                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'individual'
+                                            className={`min-h-[36px] sm:min-h-0 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap ${bookingTypeFilter === 'individual'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
                                         >
-                                            <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500 shrink-0" />
+                                            <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500 shrink-0 hidden xs:inline-block" />
                                             <span>Khách lẻ</span>
                                             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-slate-200/80 text-slate-700">
                                                 {stats.individualCount}
@@ -817,13 +817,14 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('group')}
-                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'group'
+                                            className={`min-h-[36px] sm:min-h-0 px-2 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap ${bookingTypeFilter === 'group'
                                                     ? 'bg-indigo-600 text-white shadow-xs'
                                                     : 'text-indigo-700 hover:bg-indigo-50/60'
                                                 }`}
                                         >
-                                            <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                                            <span>Theo đoàn B2B</span>
+                                            <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 hidden xs:inline-block" />
+                                            <span className="sm:hidden">Đoàn</span>
+                                            <span className="hidden sm:inline">Theo đoàn B2B</span>
                                             <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${bookingTypeFilter === 'group'
                                                     ? 'bg-indigo-800 text-white'
                                                     : 'bg-indigo-100 text-indigo-700'
@@ -834,65 +835,66 @@ export default function BookingHistory() {
                                     </div>
                                 </div>
 
-                                {/* Ô tìm kiếm nhanh & Bộ chọn sắp xếp */}
-                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 shrink-0">
-                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                        <select
-                                            value={sortBy}
-                                            onChange={(e) => setSortBy(e.target.value)}
-                                            aria-label="Sắp xếp đơn đặt phòng"
-                                            className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto"
-                                        >
-                                            <option value="upcoming_first">Ưu tiên chuyến sắp tới</option>
-                                            <option value="newest">Mới đặt gần nhất</option>
-                                            <option value="check_in_asc">Ngày nhận phòng gần nhất</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="relative w-full sm:w-72">
+                                {/* Ô tìm kiếm nhanh & Bộ chọn sắp xếp nằm chung 1 hàng duy nhất */}
+                                <div className="flex items-center gap-2 w-full sm:w-auto min-w-0">
+                                    <div className="relative flex-1 min-w-0 sm:w-72 sm:order-2">
                                         <input
                                             type="text"
-                                            placeholder="Tìm Mã đơn (BK-...), Mã đoàn, phòng..."
+                                            placeholder="Tìm mã đơn, phòng..."
                                             value={searchKeyword}
                                             onChange={(e) => setSearchKeyword(e.target.value)}
-                                            className="w-full pl-9 pr-10 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
+                                            className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-medium text-slate-900 placeholder:text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition"
                                         />
                                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                         {searchKeyword && (
                                             <button
                                                 type="button"
                                                 onClick={() => setSearchKeyword('')}
-                                                className="absolute right-0.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer rounded-lg"
+                                                className="absolute right-0.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer rounded-lg"
                                                 title="Xóa từ khóa"
                                             >
-                                                <X className="w-4 h-4" />
+                                                <X className="w-3.5 h-3.5" />
                                             </button>
                                         )}
+                                    </div>
+
+                                    <div className="w-[138px] sm:w-auto flex items-center gap-1 sm:gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-2 shrink-0 sm:order-1">
+                                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
+                                        <select
+                                            value={sortBy}
+                                            onChange={(e) => setSortBy(e.target.value)}
+                                            aria-label="Sắp xếp đơn đặt phòng"
+                                            className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto truncate"
+                                        >
+                                            <option value="upcoming_first">Chuyến sắp tới</option>
+                                            <option value="newest">Mới đặt nhất</option>
+                                            <option value="check_in_asc">Ngày nhận sớm</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Hàng 2: Tabs lọc theo trạng thái đơn */}
-                            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 no-scrollbar">
+                            <div className="flex items-center gap-1.5 overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 pb-0.5 md:pb-0 no-scrollbar">
                                 {[
-                                    { key: 'all', label: 'Tất cả trạng thái', count: stats.total },
-                                    { key: 'pending', label: 'Chờ duyệt', count: stats.pending },
-                                    { key: 'confirmed', label: 'Đã xác nhận', count: stats.confirmed },
-                                    { key: 'checked_in', label: 'Đang lưu trú', count: stats.checkedIn },
-                                    { key: 'completed', label: 'Hoàn thành', count: stats.completed },
-                                    { key: 'cancelled', label: 'Đã hủy', count: stats.cancelled }
+                                    { key: 'all', label: 'Tất cả', fullLabel: 'Tất cả trạng thái', count: stats.total },
+                                    { key: 'pending', label: 'Chờ duyệt', fullLabel: 'Chờ duyệt', count: stats.pending },
+                                    { key: 'confirmed', label: 'Đã xác nhận', fullLabel: 'Đã xác nhận', count: stats.confirmed },
+                                    { key: 'checked_in', label: 'Đang ở', fullLabel: 'Đang lưu trú', count: stats.checkedIn },
+                                    { key: 'completed', label: 'Hoàn thành', fullLabel: 'Hoàn thành', count: stats.completed },
+                                    { key: 'cancelled', label: 'Đã hủy', fullLabel: 'Đã hủy', count: stats.cancelled }
                                 ].map((tab) => (
                                     <button
                                         key={tab.key}
                                         type="button"
                                         onClick={() => setStatusFilter(tab.key)}
-                                        className={`min-h-[38px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer shrink-0 ${statusFilter === tab.key
+                                        className={`min-h-[36px] sm:min-h-0 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 sm:gap-2 whitespace-nowrap cursor-pointer shrink-0 ${statusFilter === tab.key
                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                             }`}
                                     >
-                                        <span>{tab.label}</span>
+                                        <span className="sm:hidden">{tab.label}</span>
+                                        <span className="hidden sm:inline">{tab.fullLabel}</span>
                                         <span
                                             className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${statusFilter === tab.key
                                                     ? 'bg-black/20 text-white'

@@ -66,6 +66,7 @@ export default function RoomsAndSuitesPage() {
         (priceRange !== 'all' ? 1 : 0) +
         (capacityFilter !== 'all' ? 1 : 0) +
         (viewFilter !== 'all' ? 1 : 0);
+    const mobileFilterBadgeCount = activeAdvancedCount + (sortBy !== 'featured' ? 1 : 0);
 
     const searchNights = (checkInParam && checkOutParam)
         ? Math.max(1, Math.round((new Date(checkOutParam) - new Date(checkInParam)) / (1000 * 60 * 60 * 24)))
@@ -76,6 +77,7 @@ export default function RoomsAndSuitesPage() {
         hasActiveSearch ||
         searchQuery.trim() !== '' ||
         selectedTab !== 'all' ||
+        sortBy !== 'featured' ||
         priceRange !== 'all' ||
         capacityFilter !== 'all' ||
         viewFilter !== 'all'
@@ -257,36 +259,37 @@ export default function RoomsAndSuitesPage() {
                 </div>
             </header>
 
-            {/* 2. FILTER & SEARCH TOOLBAR */}
-            <section className="bg-white border-b border-slate-200 py-3 sm:py-3.5 shadow-xs">
+            {/* 2. FILTER & SEARCH TOOLBAR (Mobile gọn 2 hàng: Tab pills + [Tìm kiếm | Lọc & Sắp xếp]) */}
+            <section className="bg-white border-b border-slate-200 py-2.5 sm:py-3.5 shadow-xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 sm:gap-3.5">
                         {/* Tab Pills (tràn lề ngang mượt trên mobile) */}
-                        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 md:pb-0 scrollbar-none">
+                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
                             {[
-                                { id: 'all', label: 'Tất Cả Hạng Phòng' },
-                                { id: 'deluxe', label: 'Deluxe Hướng Biển' },
-                                { id: 'suite', label: 'Suites Cao Cấp' },
-                                { id: 'penthouse', label: 'Penthouse Hoàng Gia' },
+                                { id: 'all', label: 'Tất Cả Hạng Phòng', shortLabel: 'Tất cả' },
+                                { id: 'deluxe', label: 'Deluxe Hướng Biển', shortLabel: 'Deluxe' },
+                                { id: 'suite', label: 'Suites Cao Cấp', shortLabel: 'Suites' },
+                                { id: 'penthouse', label: 'Penthouse Hoàng Gia', shortLabel: 'Penthouse' },
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setSelectedTab(tab.id)}
-                                    className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                                    className={`px-3.5 sm:px-4 py-1.5 sm:py-2 min-h-[36px] sm:min-h-0 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                                         selectedTab === tab.id
-                                            ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 scale-[1.02]'
+                                            ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20'
                                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900'
                                     }`}
                                 >
-                                    {tab.label}
+                                    <span className="sm:hidden">{tab.shortLabel}</span>
+                                    <span className="hidden sm:inline">{tab.label}</span>
                                 </button>
                             ))}
                             {!['all', 'deluxe', 'suite', 'penthouse'].includes(selectedTab) && (
                                 <button
                                     type="button"
                                     onClick={() => setSelectedTab('all')}
-                                    className="px-3.5 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer shrink-0 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 flex items-center gap-1.5"
+                                    className="px-3.5 py-1.5 sm:py-2 min-h-[36px] sm:min-h-0 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer shrink-0 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 flex items-center gap-1.5"
                                     title="Bấm để bỏ chọn hạng phòng này"
                                 >
                                     <span>{selectedCategoryLabel}</span>
@@ -295,65 +298,94 @@ export default function RoomsAndSuitesPage() {
                             )}
                         </div>
 
-                        {/* Search, Sort & Toggle Advanced Filter Controls */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
-                            <div className="relative flex-1 md:w-52">
+                        {/* Search, Sort (Desktop) & Toggle Filter/Sort (Mobile gọn chung 1 hàng) */}
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                            <div className="relative flex-1 min-w-0 md:w-52">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Tìm tên phòng, loại giường..."
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                                    placeholder="Tìm phòng, loại giường..."
+                                    className="w-full pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-900 placeholder:text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
                                 />
                                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
                                     <Search className="w-3.5 h-3.5" />
                                 </span>
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery('')}
+                                        aria-label="Xóa từ khóa tìm kiếm"
+                                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
                             </div>
 
-                            <div className="flex items-center gap-2 min-w-0">
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="flex-1 min-w-0 w-full sm:w-auto sm:flex-initial bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
-                                >
-                                    <option value="featured">Đề xuất hàng đầu</option>
-                                    <option value="price-asc">Giá: Thấp đến Cao</option>
-                                    <option value="price-desc">Giá: Cao đến Thấp</option>
-                                    <option value="size-desc">Diện tích rộng nhất</option>
-                                    <option value="capacity-desc">Sức chứa nhiều nhất</option>
-                                </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                aria-label="Sắp xếp hạng phòng"
+                                className="hidden sm:block bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer shrink-0"
+                            >
+                                <option value="featured">Đề xuất hàng đầu</option>
+                                <option value="price-asc">Giá: Thấp đến Cao</option>
+                                <option value="price-desc">Giá: Cao đến Thấp</option>
+                                <option value="size-desc">Diện tích rộng nhất</option>
+                                <option value="capacity-desc">Sức chứa nhiều nhất</option>
+                            </select>
 
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAdvancedFilters((prev) => !prev)}
-                                    aria-expanded={showAdvancedFilters}
-                                    className={`shrink-0 min-h-[40px] sm:min-h-0 px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                        showAdvancedFilters || activeAdvancedCount > 0
-                                            ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-2xs'
-                                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                                    }`}
-                                >
-                                    <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    <span>Bộ lọc</span>
-                                    {activeAdvancedCount > 0 && (
-                                        <span className="min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">
-                                            {activeAdvancedCount}
-                                        </span>
-                                    )}
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvancedFilters((prev) => !prev)}
+                                aria-expanded={showAdvancedFilters}
+                                className={`shrink-0 min-h-[42px] sm:min-h-0 px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                                    showAdvancedFilters || mobileFilterBadgeCount > 0
+                                        ? 'bg-amber-50 text-amber-800 border-amber-300 shadow-2xs'
+                                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                            >
+                                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span className="sm:hidden">Lọc</span>
+                                <span className="hidden sm:inline">Bộ lọc</span>
+                                {mobileFilterBadgeCount > 0 && (
+                                    <span className="sm:hidden min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-extrabold flex items-center justify-center tabular-nums">
+                                        {mobileFilterBadgeCount}
+                                    </span>
+                                )}
+                                {activeAdvancedCount > 0 && (
+                                    <span className="hidden sm:flex min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-extrabold items-center justify-center tabular-nums">
+                                        {activeAdvancedCount}
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </div>
 
-                    {/* Khay Bộ lọc nâng cao (chỉ xổ ra khi bấm nút "Bộ lọc") */}
+                    {/* Khay Bộ lọc & Sắp xếp nâng cao (chỉ xổ ra khi bấm nút "Lọc" / "Bộ lọc") */}
                     {showAdvancedFilters && (
-                        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2.5 animate-in fade-in duration-150">
-                            <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2 flex-1">
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 animate-in fade-in duration-150">
+                            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 flex-1">
+                                {/* Sắp xếp gom vào khay trên Mobile (< sm) để thanh công cụ chỉ còn 2 dòng */}
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    aria-label="Sắp xếp hạng phòng"
+                                    className="sm:hidden w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 py-2 text-base font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                >
+                                    <option value="featured">Sắp xếp: Đề xuất</option>
+                                    <option value="price-asc">Giá: Thấp → Cao</option>
+                                    <option value="price-desc">Giá: Cao → Thấp</option>
+                                    <option value="size-desc">Diện tích lớn nhất</option>
+                                    <option value="capacity-desc">Sức chứa nhiều nhất</option>
+                                </select>
+
                                 <select
                                     value={priceRange}
                                     onChange={(e) => setPriceRange(e.target.value)}
                                     aria-label="Lọc theo khoảng giá"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi mức giá</option>
                                     <option value="under-2m">Dưới 2.000.000đ / đêm</option>
@@ -365,7 +397,7 @@ export default function RoomsAndSuitesPage() {
                                     value={capacityFilter}
                                     onChange={(e) => setCapacityFilter(e.target.value)}
                                     aria-label="Lọc theo sức chứa"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi sức chứa</option>
                                     <option value="1">Từ 1 người lớn</option>
@@ -379,9 +411,9 @@ export default function RoomsAndSuitesPage() {
                                     value={viewFilter}
                                     onChange={(e) => setViewFilter(e.target.value)}
                                     aria-label="Lọc theo hướng nhìn"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
-                                    <option value="all">Tất cả hướng nhìn</option>
+                                    <option value="all">Mọi hướng nhìn</option>
                                     <option value="sea">Hướng biển / Mỹ Khê</option>
                                     <option value="city">Hướng thành phố / Sông Hàn</option>
                                 </select>
