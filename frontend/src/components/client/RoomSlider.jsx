@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useInViewOnce } from '../../hooks/useMotion';
 import { Camera, Maximize2, Users, BedDouble, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const formatDateToInput = (date) => {
@@ -28,6 +29,7 @@ export default function RoomSlider({ rooms = [] }) {
     });
     const [isHovered, setIsHovered] = useState(false);
     const [slideDirection, setSlideDirection] = useState('forward'); // 'forward' | 'backward'
+    const [sliderRef, sliderVisible] = useInViewOnce({ threshold: 0.08 });
 
     const today = new Date();
     const tomorrow = new Date(today);
@@ -194,7 +196,8 @@ export default function RoomSlider({ rooms = [] }) {
     }
 
     return (
-        <div 
+        <div
+            ref={sliderRef}
             className="relative"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -249,7 +252,7 @@ export default function RoomSlider({ rooms = [] }) {
                         transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)`,
                     }}
                 >
-                    {rooms.map((room) => {
+                    {rooms.map((room, roomIdx) => {
                         const primaryImage =
                             room.feature_image ||
                             room.images?.find((img) => img.is_feature)?.image_url ||
@@ -280,7 +283,14 @@ export default function RoomSlider({ rooms = [] }) {
                                 key={room.id}
                                 className="w-full sm:w-1/2 lg:w-1/3 shrink-0 px-3"
                             >
-                                <div className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full group">
+                                <div
+                                    className={`${
+                                        roomIdx < 3
+                                            ? (sliderVisible ? 'reveal-card-in' : 'reveal-card-hidden')
+                                            : ''
+                                    } bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col h-full group`}
+                                    style={sliderVisible && roomIdx < 3 ? { animationDelay: `${roomIdx * 100}ms` } : undefined}
+                                >
                                     {/* Ảnh đại diện chính thoáng mắt, không che ảnh bằng nhiều nhãn */}
                                     <div className="relative h-60 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
                                         <Link to={`/rooms/${room.id}`} className="block w-full h-full">
@@ -405,7 +415,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     onTouchStart={(e) => e.stopPropagation()}
-                                                    className="px-3.5 py-2.5 min-h-[42px] sm:min-h-0 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:-translate-y-0.5"
+                                                    className="btn-luxury-shine px-3.5 py-2.5 min-h-[42px] sm:min-h-0 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:-translate-y-0.5"
                                                 >
                                                     Đặt ngay
                                                 </Link>

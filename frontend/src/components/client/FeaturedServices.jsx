@@ -16,6 +16,8 @@ import hotelService from '../../services/hotelService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
 import { ServiceDetailModal } from './services';
+import Reveal from '../common/Reveal';
+import { useInViewOnce } from '../../hooks/useMotion';
 
 // Danh sách dịch vụ mẫu cao cấp dự phòng (fallback) để giao diện luôn tráng lệ
 const FALLBACK_SERVICES = [
@@ -142,6 +144,7 @@ export default function FeaturedServices() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [loading, setLoading] = useState(true);
     const [detailItem, setDetailItem] = useState(null);
+    const [servicesGridRef, servicesGridVisible] = useInViewOnce({ threshold: 0.08 });
 
     useEffect(() => {
         const fetchServiceData = async () => {
@@ -216,7 +219,7 @@ export default function FeaturedServices() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* 1. SECTION HEADER */}
-                <div className="text-center max-w-3xl mx-auto mb-5 sm:mb-7">
+                <Reveal className="text-center max-w-3xl mx-auto mb-5 sm:mb-7">
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ẨM THỰC &amp; DỊCH VỤ
                     </span>
@@ -229,10 +232,10 @@ export default function FeaturedServices() {
                     <p className="text-slate-600 text-sm sm:text-base mt-3.5 leading-relaxed font-normal">
                         Thưởng thức mỹ vị ẩm thực thượng hạng, liệu trình The Lotus Spa thư giãn tái tạo năng lượng và hệ thống đồ uống cao cấp ngay trong không gian riêng tư của quý khách.
                     </p>
-                </div>
+                </Reveal>
 
                 {/* Filter Tabs: Gọn đủ 4 tab trên 375px, nhãn đầy đủ trên Desktop */}
-                <div className="max-w-5xl mx-auto mb-5 sm:mb-11">
+                <Reveal delay={80} className="max-w-5xl mx-auto mb-5 sm:mb-11">
                     <div className="flex sm:flex-wrap lg:flex-nowrap items-center justify-start sm:justify-center gap-1.5 sm:gap-2.5 overflow-x-auto py-1 sm:py-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
                         {[
                             { id: 'all', label: 'Tất Cả Dịch Vụ', shortLabel: 'Tất cả', icon: LayoutGrid },
@@ -246,7 +249,7 @@ export default function FeaturedServices() {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setActiveFilter(tab.id)}
-                                    className={`px-3 sm:px-5 py-2 sm:py-2.5 min-h-[38px] sm:min-h-0 rounded-full text-xs font-bold transition-all duration-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                                    className={`px-3 sm:px-5 py-2 sm:py-2.5 min-h-[38px] sm:min-h-0 rounded-full text-xs font-bold transition-all duration-300 ease-out active:scale-95 flex items-center gap-1.5 sm:gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                                         activeFilter === tab.id
                                             ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 sm:scale-[1.03]'
                                             : 'bg-white text-slate-600 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
@@ -262,7 +265,7 @@ export default function FeaturedServices() {
                     <div className="sm:hidden mt-2.5 flex items-center justify-end text-[11px] font-semibold text-slate-400">
                         <span>Vuốt ngang xem thêm →</span>
                     </div>
-                </div>
+                </Reveal>
 
                 {/* 2. SERVICES GRID */}
                 {loading ? (
@@ -283,7 +286,7 @@ export default function FeaturedServices() {
                         ))}
                     </div>
                 ) : displayedServices.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-sm">
+                    <div key={activeFilter} className="animate-tab-reveal bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-sm">
                         <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
                             <BellRing className="w-7 h-7" />
                         </div>
@@ -297,17 +300,22 @@ export default function FeaturedServices() {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
-                        {displayedServices.map((item) => {
-                            const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80';
-                            const categoryName = item.category_name || item.category?.name || (`Dịch vụ ${starCount} sao`);
-                            const ctaLabel = getServiceCtaLabel(categoryName);
+                    <div ref={servicesGridRef}>
+                        <div
+                            key={activeFilter}
+                            className="animate-tab-reveal flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar"
+                        >
+                            {displayedServices.map((item, idx) => {
+                                const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80';
+                                const categoryName = item.category_name || item.category?.name || (`Dịch vụ ${starCount} sao`);
+                                const ctaLabel = getServiceCtaLabel(categoryName);
 
-                            return (
-                                <div
-                                    key={item.id}
-                                    className="w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full"
-                                >
+                                return (
+                                    <div
+                                        key={item.id}
+                                        className={`${servicesGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full`}
+                                        style={servicesGridVisible ? { animationDelay: `${Math.min(idx, 5) * 75}ms` } : undefined}
+                                    >
                                     {/* Image Wrapper: Bấm để xem chi tiết dịch vụ */}
                                     <div
                                         role="button"
@@ -382,24 +390,25 @@ export default function FeaturedServices() {
                                             <Link
                                                 to="/services"
                                                 state={{ serviceId: item.id }}
-                                                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition-all duration-200 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap shrink-0"
+                                                className="btn-luxury-shine group/cta inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition-all duration-200 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap shrink-0"
                                             >
                                                 <span>{ctaLabel}</span>
-                                                <ArrowRight className="w-3.5 h-3.5" />
+                                                <ArrowRight className="w-3.5 h-3.5 group-hover/cta:translate-x-1 transition-transform" />
                                             </Link>
                                         </div>
                                     </div>
                                 </div>
                             );
                         })}
+                        </div>
                     </div>
                 )}
 
-                {/* 3. LUXURY SERVICES PROMOTION BANNER (Giữ nguyên tông sáng trắng thanh lịch, bổ sung cụm ảnh minh họa sang trọng) */}
-                <div className="mt-14 bg-gradient-to-br from-white via-white to-amber-50/40 rounded-3xl p-6 sm:p-10 text-slate-800 shadow-[0_18px_45px_-15px_rgba(15,23,42,0.1)] border border-amber-200/60 ring-1 ring-slate-900/5 relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-center gap-7 sm:gap-8 transform-gpu">
-                    {/* Background Glow nhẹ nhàng bằng Radial Gradient thay vì blur nặng */}
-                    <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-[radial-gradient(circle,rgba(251,191,36,0.14),transparent_70%)] pointer-events-none" />
-                    <div className="absolute -left-20 -top-20 w-80 h-80 bg-[radial-gradient(circle,rgba(14,165,233,0.08),transparent_70%)] pointer-events-none" />
+                {/* 3. LUXURY SERVICES PROMOTION BANNER (Giữ nguyên tông sáng trắng thanh lịch, bổ sung ánh sáng nền chuyển động êm) */}
+                <Reveal delay={80} className="mt-14 bg-gradient-to-br from-white via-white to-amber-50/40 rounded-3xl p-6 sm:p-10 text-slate-800 shadow-[0_18px_45px_-15px_rgba(15,23,42,0.1)] border border-amber-200/60 ring-1 ring-slate-900/5 relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 items-center gap-7 sm:gap-8 transform-gpu">
+                    {/* Background Glow nhẹ nhàng chuyển động chậm (GPU transform/opacity) */}
+                    <div className="animate-ambient-drift absolute -right-20 -bottom-20 w-80 h-80 bg-[radial-gradient(circle,rgba(251,191,36,0.16),transparent_70%)] pointer-events-none" />
+                    <div className="animate-ambient-drift-reverse absolute -left-20 -top-20 w-80 h-80 bg-[radial-gradient(circle,rgba(14,165,233,0.1),transparent_70%)] pointer-events-none" />
 
                     {/* Cột trái: Nội dung & Nút bấm (7 cột) */}
                     <div className="lg:col-span-7 space-y-4 text-center lg:text-left relative z-10">
@@ -416,14 +425,14 @@ export default function FeaturedServices() {
                         <div className="pt-1 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
                             <Link
                                 to="/services"
-                                className="w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-[0_10px_24px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_14px_28px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:scale-95 text-center flex items-center justify-center gap-2"
+                                className="btn-luxury-shine group/btn w-full sm:w-auto px-7 py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all shadow-[0_10px_24px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_14px_28px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:scale-95 text-center flex items-center justify-center gap-2"
                             >
                                 <span>Khám Phá Menu Dịch Vụ</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                             </Link>
                             <a
                                 href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
-                                className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 hover:border-amber-300 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs text-center flex items-center justify-center gap-2"
+                                className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 hover:border-amber-300 font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs hover:-translate-y-0.5 text-center flex items-center justify-center gap-2"
                             >
                                 <Phone className="w-3.5 h-3.5 text-amber-600" />
                                 <span>Hotline Phục Vụ: {settings?.hotline || '1900 8899'}</span>
@@ -437,11 +446,11 @@ export default function FeaturedServices() {
                             <img
                                 src={resolveMediaUrl(settings?.concierge_dining_img, DEFAULT_BANNERS.concierge_dining_img)}
                                 alt="Ẩm thực phục vụ tận phòng"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent" />
-                            <span className="absolute bottom-2.5 left-3 right-3 text-white text-[11px] font-bold">
+                            <span className="absolute bottom-2.5 left-3 right-3 text-white text-[11px] font-bold group-hover:-translate-y-0.5 transition-transform duration-300">
                                 Ẩm Thực Tại Phòng
                             </span>
                         </div>
@@ -449,16 +458,16 @@ export default function FeaturedServices() {
                             <img
                                 src={resolveMediaUrl(settings?.concierge_spa_img, DEFAULT_BANNERS.concierge_spa_img)}
                                 alt="Liệu trình The Lotus Spa"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-transparent to-transparent" />
-                            <span className="absolute bottom-2.5 left-3 right-3 text-white text-[11px] font-bold">
+                            <span className="absolute bottom-2.5 left-3 right-3 text-white text-[11px] font-bold group-hover:-translate-y-0.5 transition-transform duration-300">
                                 The Lotus Spa 24/7
                             </span>
                         </div>
                     </div>
-                </div>
+                </Reveal>
             </div>
 
             {/* Modal Chi tiết dịch vụ khi bấm vào thẻ trên Trang chủ */}

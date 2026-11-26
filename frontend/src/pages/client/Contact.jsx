@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import Reveal from '../../components/common/Reveal';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 import { contactService } from '../../services/contactService';
@@ -214,7 +215,7 @@ export default function ContactPage() {
             {toast && (
                 <div
                     role="status"
-                    className={`fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium transition-all duration-300 ${
+                    className={`animate-drawer-down fixed top-20 sm:top-24 left-4 right-4 sm:left-auto sm:right-5 z-[60] max-w-sm flex items-start gap-3 px-4 py-3.5 rounded-2xl shadow-xl border text-xs sm:text-sm font-medium transition-all duration-300 ${
                         toast.type === 'success'
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-emerald-500/10'
                             : 'bg-rose-50 text-rose-800 border-rose-200 shadow-rose-500/10'
@@ -255,7 +256,7 @@ export default function ContactPage() {
                 <img
                     src={hotelInfo.banner_contact || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"}
                     alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="animate-ken-burns absolute inset-0 w-full h-full object-cover object-center"
                 />
 
                 {/* Gradient Overlay tối bảo vệ độ tương phản chữ */}
@@ -265,14 +266,20 @@ export default function ContactPage() {
                     <div className="max-w-3xl flex flex-col items-start text-left">
                         
 
-                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md">
+                        <h1
+                            className="animate-hero-up font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md"
+                            style={{ animationDelay: '50ms' }}
+                        >
                             Kết Nối & Chỉ Dẫn Đường Đi <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 {hotelInfo.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                             </span>
                         </h1>
 
-                        <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md">
+                        <p
+                            className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md"
+                            style={{ animationDelay: '160ms' }}
+                        >
                             Đội ngũ Lễ tân & Chăm sóc Khách hàng luôn sẵn sàng tư vấn đặt phòng và hỗ trợ Quý khách 24/7.
                         </p>
                     </div>
@@ -284,7 +291,7 @@ export default function ContactPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
                     {/* LEFT (DESKTOP) / ĐẦU TIÊN (MOBILE): INTERACTIVE CONTACT FORM */}
-                    <div id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
+                    <Reveal id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
                         <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100">
                             <div>
                                 <span className="text-[10px] sm:text-[11px] font-bold text-sky-700 uppercase tracking-wider block">
@@ -425,7 +432,7 @@ export default function ContactPage() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full sm:w-auto px-7 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                                className="btn-luxury-shine group w-full sm:w-auto px-7 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
                                     <>
@@ -435,7 +442,7 @@ export default function ContactPage() {
                                 ) : (
                                     <>
                                         <span>Gửi Yêu Cầu Liên Hệ</span>
-                                        <Send className="w-4 h-4" />
+                                        <Send className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                     </>
                                 )}
                             </button>
@@ -445,10 +452,10 @@ export default function ContactPage() {
                                 <span>Bảo mật dữ liệu chuẩn mã hóa SSL 256-bit. Cam kết phản hồi từ nhân viên trong vòng 15 phút.</span>
                             </div>
                         </form>
-                    </div>
+                    </Reveal>
 
                     {/* RIGHT (DESKTOP) / BÊN DƯỚI (MOBILE): HEADQUARTERS, HOTLINE 24/7 & DEPARTMENTS */}
-                    <div className="lg:col-span-5 space-y-5">
+                    <Reveal delay={100} className="lg:col-span-5 space-y-5">
 
                         {/* Flagship Address Box */}
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">
@@ -637,14 +644,14 @@ export default function ContactPage() {
                                 </div>
                             </a>
                         </div>
-                    </div>
+                    </Reveal>
                 </div>
             </main>
 
             {/* INTERACTIVE MAP SECTION & 4 KEY TRAVEL TIMES */}
             <section className="py-12 sm:py-16 bg-white border-t border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                    <Reveal className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
                             <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
                                 Tọa độ thuận tiện & Kết nối
@@ -660,7 +667,7 @@ export default function ContactPage() {
                             <MapPin className="w-4 h-4 text-sky-600 shrink-0" />
                             <span>{hotelInfo.address}</span>
                         </div>
-                    </div>
+                    </Reveal>
 
                     {/* BẢN ĐỒ THỰC TẾ GOOGLE MAPS */}
                     <div className="w-full h-[300px] sm:h-[400px] lg:h-[460px] rounded-3xl overflow-hidden shadow-lg border border-slate-200 relative bg-slate-100">

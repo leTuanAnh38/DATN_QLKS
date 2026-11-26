@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BedDouble } from 'lucide-react';
 import roomService from '../../services/roomService';
 import RoomSlider from './RoomSlider';
+import Reveal from '../common/Reveal';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 
 export default function FeaturedRoomCategories() {
@@ -52,7 +53,7 @@ export default function FeaturedRoomCategories() {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                 {/* Section Header */}
-                <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
+                <Reveal className="text-center max-w-3xl mx-auto mb-10 sm:mb-12">
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         PHÒNG NGHỈ &amp; SUITES
                     </span>
@@ -78,7 +79,7 @@ export default function FeaturedRoomCategories() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setFilterType(tab.id)}
-                                className={`px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
+                                className={`px-4 sm:px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ease-out cursor-pointer whitespace-nowrap shrink-0 active:scale-95 ${
                                     filterType === tab.id
                                         ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 sm:scale-[1.03]'
                                         : 'bg-white text-slate-700 hover:bg-sky-50/60 hover:text-sky-700 border border-slate-200/90 hover:border-sky-300 shadow-2xs'
@@ -88,7 +89,7 @@ export default function FeaturedRoomCategories() {
                             </button>
                         ))}
                     </div>
-                </div>
+                </Reveal>
 
                 {/* Cards Grid */}
                 {loading ? (
@@ -105,7 +106,7 @@ export default function FeaturedRoomCategories() {
                         ))}
                     </div>
                 ) : filteredCategories.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm">
+                    <div key={filterType} className="animate-tab-reveal bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-lg mx-auto shadow-sm">
                         <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
                             <BedDouble className="w-8 h-8" />
                         </div>
@@ -115,7 +116,9 @@ export default function FeaturedRoomCategories() {
                         </p>
                     </div>
                 ) : (
-                    <RoomSlider rooms={filteredCategories} />
+                    <div key={filterType} className="animate-tab-reveal">
+                        <RoomSlider rooms={filteredCategories} />
+                    </div>
                 )}
             </div>
         </section>

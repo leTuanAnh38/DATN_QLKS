@@ -42,8 +42,25 @@ export default function NotificationBell({ theme = 'light' }) {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isClearingRead, setIsClearingRead] = useState(false);
     const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'payment' | 'booking' | 'service'
+    const [isBellRinging, setIsBellRinging] = useState(false);
     const popoverRef = useRef(null);
     const prevUnreadRef = useRef(null);
+    const bellTimerRef = useRef(null);
+
+    const triggerBellChime = () => {
+        if (bellTimerRef.current) clearTimeout(bellTimerRef.current);
+        setIsBellRinging(false);
+        requestAnimationFrame(() => {
+            setIsBellRinging(true);
+            bellTimerRef.current = setTimeout(() => setIsBellRinging(false), 800);
+        });
+    };
+
+    useEffect(() => {
+        return () => {
+            if (bellTimerRef.current) clearTimeout(bellTimerRef.current);
+        };
+    }, []);
 
     const [soundEnabled, setSoundEnabled] = useState(() => {
         try {
@@ -120,8 +137,11 @@ export default function NotificationBell({ theme = 'light' }) {
 
                 if (prevUnreadRef.current !== null && nextUnread > prevUnreadRef.current) {
                     if (soundEnabled) playChime();
+                    triggerBellChime();
                     window.dispatchEvent(new CustomEvent('pms_room_updated'));
                     window.dispatchEvent(new CustomEvent('pms_booking_created'));
+                } else if (prevUnreadRef.current === null && nextUnread > 0) {
+                    triggerBellChime();
                 }
                 prevUnreadRef.current = nextUnread;
 
@@ -421,12 +441,15 @@ export default function NotificationBell({ theme = 'light' }) {
                 title="Thông báo hệ thống"
                 aria-label="Thông báo hệ thống"
             >
-                <Bell className="w-5 h-5 transition-transform duration-200 group-hover:rotate-12" />
+                <Bell className={`w-5 h-5 transition-transform duration-200 group-hover:rotate-12 ${isBellRinging ? 'animate-bell-chime' : ''}`} />
 
-                {/* Badge số lượng thông báo chưa đọc (unreadCount) */}
+                {/* Badge số lượng thông báo chưa đọc (unreadCount) với vòng nhịp dịu */}
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold min-w-4.5 h-4.5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-md animate-pulse">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-4.5 h-4.5">
+                        <span className="animate-ai-ripple absolute inset-0 rounded-full bg-rose-400/70 pointer-events-none" />
+                        <span className="relative bg-red-500 text-white text-[10px] font-extrabold min-w-4.5 h-4.5 px-1 rounded-full flex items-center justify-center border-2 border-white shadow-md tabular-nums">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                        </span>
                     </span>
                 )}
             </button>
@@ -441,7 +464,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-80px)] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-popover max-h-[calc(100dvh-80px)] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}

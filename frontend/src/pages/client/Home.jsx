@@ -24,6 +24,8 @@ import ResortExperienceBento from '../../components/client/ResortExperienceBento
 import FeaturedServices from '../../components/client/FeaturedServices';
 import FeaturedPromotions from '../../components/client/FeaturedPromotions';
 import GuestTestimonials from '../../components/client/GuestTestimonials';
+import Reveal from '../../components/common/Reveal';
+import { useInViewOnce } from '../../hooks/useMotion';
 import postService from '../../services/postService';
 import roomService from '../../services/roomService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
@@ -87,6 +89,7 @@ export default function TADaNangHotelLanding() {
     const [roomCategories, setRoomCategories] = useState([]);
     const [latestPosts, setLatestPosts] = useState([]);
     const [isLoadingNews, setIsLoadingNews] = useState(true);
+    const [newsGridRef, newsGridVisible] = useInViewOnce({ threshold: 0.1 });
 
     const { settings } = useHotelSettings();
     const bannerHome1 = resolveBannerUrl(settings?.banner_home, DEFAULT_BANNERS.banner_home);
@@ -160,11 +163,11 @@ export default function TADaNangHotelLanding() {
         }, 150);
     };
 
-    // Tự động chuyển ảnh banner sau mỗi 6 giây
+    // Tự động chuyển ảnh banner sau mỗi 6.5 giây (khớp nhịp phóng chậm Ken Burns)
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentBanner((prev) => (prev + 1) % bannerImages.length);
-        }, 6000);
+        }, 6500);
         return () => clearInterval(timer);
     }, [bannerImages.length]);
 
@@ -263,62 +266,73 @@ export default function TADaNangHotelLanding() {
                 onTouchEnd={handleBannerTouchEnd}
                 className="relative w-full min-h-[440px] lg:h-[470px] xl:h-[520px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
             >
-                {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng cross-fade mềm mại */}
-                {bannerImages.map((b, idx) => (
-                    <div
-                        key={idx}
-                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                            currentBanner === idx ? 'opacity-100 z-0' : 'opacity-0 -z-10'
-                        }`}
-                    >
-                        <img
-                            src={b.url}
-                            alt={b.title}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            decoding="async"
-                            className={`w-full h-full object-cover object-center transition-transform duration-7000 ease-out ${
-                                currentBanner === idx ? 'scale-105' : 'scale-100'
+                {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng Ken Burns + Crossfade mềm mại */}
+                {bannerImages.map((b, idx) => {
+                    const isActiveSlide = currentBanner === idx;
+                    return (
+                        <div
+                            key={idx}
+                            className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
+                                isActiveSlide ? 'opacity-100 z-0' : 'opacity-0 -z-10 pointer-events-none'
                             }`}
-                        />
-                    </div>
-                ))}
+                        >
+                            <img
+                                src={b.url}
+                                alt={b.title}
+                                loading={idx === 0 ? "eager" : "lazy"}
+                                decoding="async"
+                                className={`w-full h-full object-cover object-center ${
+                                    isActiveSlide ? 'animate-ken-burns' : 'scale-[1.06]'
+                                }`}
+                            />
+                        </div>
+                    );
+                })}
 
                 {/* Lớp phủ 2 tầng cân bằng: giữ trọn vẻ lung linh hoàng hôn & hồ bơi nhưng tăng độ sắc nét cho chữ */}
                 <div className="absolute inset-0 bg-gradient-to-b from-slate-950/45 via-slate-900/25 to-slate-950/75 z-1" />
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.38)_0%,transparent_70%)] z-1 pointer-events-none" />
 
-                {/* Hero Content nổi bật trên cùng (relative z-10) */}
+                {/* Hero Content nổi bật trên cùng (relative z-10) - Chữ động nối tiếp theo từng slide */}
                 <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-14 text-center text-white pt-8 pb-16 sm:pb-20">
-                    <h1 className="font-serif text-2xl xs:text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.2] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-all duration-700">
-                        {bannerImages[currentBanner].title} <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
-                            {bannerImages[currentBanner].subtitle}
-                        </span>
-                    </h1>
+                    <div key={currentBanner}>
+                        <h1
+                            className="animate-hero-up font-serif text-2xl xs:text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.2] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]"
+                            style={{ animationDelay: '60ms' }}
+                        >
+                            {bannerImages[currentBanner].title} <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]">
+                                {bannerImages[currentBanner].subtitle}
+                            </span>
+                        </h1>
 
-                    <p className="text-sm sm:text-base text-white/95 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-all duration-700">
-                        {bannerImages[currentBanner].desc}
-                    </p>
+                        <p
+                            className="animate-hero-up text-sm sm:text-base text-white/95 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                            style={{ animationDelay: '180ms' }}
+                        >
+                            {bannerImages[currentBanner].desc}
+                        </p>
 
-                    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:gap-x-7 text-xs sm:text-[13px] font-medium text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
-                        <span className="inline-flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Giá trực tiếp tốt nhất</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Linh hoạt đổi hủy 24h</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Đưa đón sân bay VIP</span>
-                        </span>
+                        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:gap-x-7 text-xs sm:text-[13px] font-medium text-white/95 drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]">
+                            <span className="animate-hero-up inline-flex items-center gap-1.5" style={{ animationDelay: '290ms' }}>
+                                <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Giá trực tiếp tốt nhất</span>
+                            </span>
+                            <span className="animate-hero-up inline-flex items-center gap-1.5" style={{ animationDelay: '390ms' }}>
+                                <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Linh hoạt đổi hủy 24h</span>
+                            </span>
+                            <span className="animate-hero-up inline-flex items-center gap-1.5" style={{ animationDelay: '490ms' }}>
+                                <svg className="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Đưa đón sân bay VIP</span>
+                            </span>
+                        </div>
                     </div>
 
                     {/* Dấu chấm chuyển slide (Dots Indicators) */}
@@ -366,13 +380,16 @@ export default function TADaNangHotelLanding() {
             </section>
 
             {/* 4. FLOATING BOOKING SEARCH BAR WIDGET (Thanh tìm kiếm nguyên khối cao cấp) */}
-            <div className="relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-4 -mt-10 sm:-mt-14">
-                <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_-12px_rgba(15,23,42,0.16)] border border-slate-200/75 ring-1 ring-slate-900/5 overflow-hidden transition-all duration-300">
+            <div
+                className="animate-hero-up relative z-20 w-full max-w-6xl mx-auto px-3 sm:px-4 -mt-10 sm:-mt-14"
+                style={{ animationDelay: '260ms' }}
+            >
+                <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_-12px_rgba(15,23,42,0.16)] hover:shadow-[0_24px_56px_-12px_rgba(15,23,42,0.2)] focus-within:shadow-[0_24px_56px_-12px_rgba(2,132,199,0.22)] border border-slate-200/75 focus-within:border-sky-300/80 ring-1 ring-slate-900/5 focus-within:ring-2 focus-within:ring-sky-500/15 overflow-hidden transition-all duration-300">
                     {/* Form Fields: 4 Input fields ngăn cách bằng đường kẻ mảnh + Nút Tìm phòng */}
                     <form onSubmit={handleSearchRooms} className="p-2.5 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center gap-2 lg:gap-0">
                         <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
                             {/* Field 1: Hạng phòng */}
-                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group">
+                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
                                 <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                     <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <span>Hạng phòng</span>
@@ -423,7 +440,7 @@ export default function TADaNangHotelLanding() {
                                             checkInRef.current?.focus();
                                         }
                                     }}
-                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -451,7 +468,7 @@ export default function TADaNangHotelLanding() {
                                             checkOutRef.current?.focus();
                                         }
                                     }}
-                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -472,7 +489,7 @@ export default function TADaNangHotelLanding() {
                             </div>
 
                             {/* Field 4: Guests & Rooms */}
-                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-colors group">
+                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
                                 <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                     <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <span>Khách & Phòng</span>
@@ -502,7 +519,7 @@ export default function TADaNangHotelLanding() {
                             <button
                                 type="submit"
                                 title={Number(guests) >= 5 ? 'Chuyển sang Cổng Đặt Phòng Đoàn & Doanh Nghiệp' : 'Tìm kiếm phòng trống phù hợp'}
-                                className="w-full lg:w-auto px-6 lg:px-7 min-h-[44px] h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer"
+                                className="btn-luxury-shine w-full lg:w-auto px-6 lg:px-7 min-h-[44px] h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer"
                             >
                                 {Number(guests) >= 5 ? (
                                     <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -556,7 +573,7 @@ export default function TADaNangHotelLanding() {
             <section id="tin-tuc" className="bg-white py-10 sm:py-18">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Tiêu đề */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-11 gap-4 sm:gap-6">
+                <Reveal className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-11 gap-4 sm:gap-6">
                     <div>
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             TIN TỨC &amp; CẨM NANG
@@ -581,7 +598,7 @@ export default function TADaNangHotelLanding() {
                             Vuốt ngang →
                         </span>
                     </div>
-                </div>
+                </Reveal>
 
                 {/* Danh sách bài viết */}
                 {isLoadingNews ? (
@@ -608,11 +625,15 @@ export default function TADaNangHotelLanding() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
-                        {latestPosts.slice(0, 3).map((post) => (
+                    <div
+                        ref={newsGridRef}
+                        className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar"
+                    >
+                        {latestPosts.slice(0, 3).map((post, idx) => (
                             <article
                                 key={post.id}
-                                className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.14)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                                className={`${newsGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.14)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group`}
+                                style={newsGridVisible ? { animationDelay: `${idx * 110}ms` } : undefined}
                             >
                                 <div>
                                     {/* Ảnh bìa */}

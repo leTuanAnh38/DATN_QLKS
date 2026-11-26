@@ -47,6 +47,7 @@ import {
     RoomReviewsSection
 } from '../../components/client/room-detail';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import Reveal from '../../components/common/Reveal';
 
 // Hàm tiện ích format ngày thành chuỗi YYYY-MM-DD
 const formatDateToInput = (date) => {
@@ -911,7 +912,7 @@ export default function DetailRoom() {
             <section className="bg-white pt-4 sm:pt-6 pb-3 sm:pb-4">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="space-y-2">
+                        <div className="animate-hero-up space-y-2" style={{ animationDelay: '40ms' }}>
                             {/* Dải huy hiệu gọn gàng, không trùng lặp */}
                             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                                 <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200/80 text-[10px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1">
@@ -935,7 +936,10 @@ export default function DetailRoom() {
                         </div>
 
                         {/* Hộp đánh giá: trên mobile gọn gàng tự nhiên (self-start), không bị bè 100% chiều ngang */}
-                        <div className="inline-flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl shrink-0 self-start md:self-auto shadow-2xs">
+                        <div
+                            className="animate-hero-up inline-flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl shrink-0 self-start md:self-auto shadow-2xs"
+                            style={{ animationDelay: '130ms' }}
+                        >
                             <span className="flex items-center gap-1 text-slate-900 text-base sm:text-lg font-bold">
                                 <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-400 text-amber-400" /> {reviewStats.average}
                             </span>
@@ -970,7 +974,7 @@ export default function DetailRoom() {
                                 key={safeImageIndex}
                                 src={gallery[safeImageIndex]?.url || gallery[0]?.url}
                                 alt={gallery[safeImageIndex]?.title || room.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
+                                className="animate-fadeIn w-full h-full object-cover group-hover:scale-105 transition duration-700 ease-out"
                                 onError={(e) => {
                                     e.target.onerror = null;
                                     e.target.src = 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
@@ -1159,7 +1163,7 @@ export default function DetailRoom() {
                     {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (8 COLS) */}
                     <div className="lg:col-span-8 space-y-12 min-w-0">
                         {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+                        <Reveal className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
                                     <Maximize2 className="w-5 h-5" />
@@ -1210,10 +1214,10 @@ export default function DetailRoom() {
                                     </strong>
                                 </div>
                             </div>
-                        </div>
+                        </Reveal>
 
                         {/* MÔ TẢ HẠNG PHÒNG */}
-                        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
+                        <Reveal delay={60} className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs space-y-5">
                          
                             <h2 className="font-serif text-xl sm:text-3xl font-bold text-slate-900 leading-tight">
                                 {roomHeadline}
@@ -1252,10 +1256,10 @@ export default function DetailRoom() {
                                     </p>
                                 </div>
                             )}
-                        </div>
+                        </Reveal>
 
                         {/* TIỆN ÍCH (AMENITIES): MAP MẢNG DỮ LIỆU TỪ API */}
-                        <div className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
+                        <Reveal delay={60} className="bg-white p-4 sm:p-8 rounded-3xl border border-slate-200 shadow-xs">
                             <div className="flex items-center justify-between mb-6 sm:mb-8 pb-4 border-b border-slate-100">
                                 <div>
                                     <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
@@ -1342,7 +1346,7 @@ export default function DetailRoom() {
                                     })}
                                 </div>
                             </div>
-                        </div>
+                        </Reveal>
 
                         {/* SƠ ĐỒ BỐ TRÍ KHÔNG GIAN (FLOOR PLAN) */}
                         <RoomFloorPlan

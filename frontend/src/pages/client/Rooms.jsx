@@ -220,11 +220,11 @@ export default function RoomsAndSuitesPage() {
 
             {/* 1. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
             <header className="relative bg-slate-950 overflow-hidden py-6 sm:py-10 lg:py-14 border-b border-slate-800 shadow-md">
-                {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
+                {/* 1. Ảnh nền sắc nét 100% với hiệu ứng Ken Burns phóng chậm mượt */}
                 <img
                     src={bannerRoomsImg}
                     alt="Phòng nghỉ & Suites Khách Sạn TA Đà Nẵng"
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="animate-ken-burns absolute inset-0 w-full h-full object-cover object-center"
                 />
 
                 {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
@@ -234,18 +234,24 @@ export default function RoomsAndSuitesPage() {
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6">
                         <div className="max-w-3xl flex flex-col items-start text-left">
-                            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            <h1
+                                className="animate-hero-up font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm"
+                                style={{ animationDelay: '50ms' }}
+                            >
                                 Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
                                 <span className="text-amber-400">
                                     Bên Bờ Biển Mỹ Khê
                                 </span>
                             </h1>
-                            <p className="text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                            <p
+                                className="animate-hero-up text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
+                                style={{ animationDelay: '160ms' }}
+                            >
                                 Khám phá các hạng phòng và suites chuẩn {settings?.stars || 3} sao tầm nhìn hướng biển, tiện nghi hiện đại tại {hotelName}.
                             </p>
                         </div>
 
-                        <div className="mt-1 lg:mt-0 shrink-0">
+                        <div className="animate-hero-up mt-1 lg:mt-0 shrink-0" style={{ animationDelay: '250ms' }}>
                             <Link
                                 to="/corporate-booking"
                                 className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 min-h-[42px] rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-amber-300/40 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group"
@@ -365,7 +371,7 @@ export default function RoomsAndSuitesPage() {
 
                     {/* Khay Bộ lọc & Sắp xếp nâng cao (chỉ xổ ra khi bấm nút "Lọc" / "Bộ lọc") */}
                     {showAdvancedFilters && (
-                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 animate-in fade-in duration-150">
+                        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-2 animate-drawer-down">
                             <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 flex-1">
                                 {/* Sắp xếp gom vào khay trên Mobile (< sm) để thanh công cụ chỉ còn 2 dòng */}
                                 <select
@@ -535,7 +541,10 @@ export default function RoomsAndSuitesPage() {
 
                 {/* Danh sách phòng xếp dọc dạng thẻ ngang rộng chuẩn Booking / Resort cao cấp (Mobile tự gập thẻ đứng) */}
                 {!loading && !error && sortedCategories.length > 0 && (
-                    <div className="space-y-6">
+                    <div
+                        key={`${selectedTab}-${priceRange}-${capacityFilter}-${viewFilter}-${sortBy}`}
+                        className="animate-tab-reveal space-y-6"
+                    >
                         {sortedCategories.map((room) => {
                             const fallbackImg =
                                 'https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80';
@@ -599,7 +608,7 @@ export default function RoomsAndSuitesPage() {
                             return (
                                 <article
                                     key={room.id}
-                                    className="bg-white rounded-3xl overflow-hidden border border-slate-200/85 shadow-[0_6px_25px_-10px_rgba(15,23,42,0.08)] hover:shadow-[0_20px_45px_-15px_rgba(15,23,42,0.16)] hover:border-sky-200/90 transition-all duration-300 flex flex-col lg:flex-row group"
+                                    className="bg-white rounded-3xl overflow-hidden border border-slate-200/85 shadow-[0_6px_25px_-10px_rgba(15,23,42,0.08)] hover:shadow-[0_20px_45px_-15px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1 transition-all duration-300 flex flex-col lg:flex-row group"
                                 >
                                     {/* CỘT TRÁI: ẢNH PHÒNG RỘNG + VUỐT TAY / KÉO CHUỘT / MŨI TÊN CHUYỂN ẢNH */}
                                     <RoomCardImageCarousel
@@ -715,10 +724,10 @@ export default function RoomsAndSuitesPage() {
                                                 <Link
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
-                                                    className="min-h-[42px] px-2.5 sm:px-6 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center gap-1 sm:gap-1.5 hover:-translate-y-0.5"
+                                                    className="btn-luxury-shine group/btn min-h-[42px] px-2.5 sm:px-6 py-2.5 sm:py-3 text-[11px] sm:text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center gap-1 sm:gap-1.5 hover:-translate-y-0.5"
                                                 >
                                                     <span>Đặt Phòng Ngay</span>
-                                                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                                                    <ArrowRight className="w-3.5 h-3.5 shrink-0 group-hover/btn:translate-x-1 transition-transform" />
                                                 </Link>
                                             </div>
                                         </div>

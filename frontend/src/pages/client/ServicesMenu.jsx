@@ -856,11 +856,11 @@ export default function ServicesMenu() {
 
                 {/* HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
                 <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
-                    {/* 1. Ảnh nền sắc nét 100% không giảm opacity, không blur */}
+                    {/* 1. Ảnh nền sắc nét 100% với Ken Burns phóng chậm mượt */}
                     <img
                         src={bannerServicesImg}
                         alt={`Luxury ${starCount}-Star Resort & Dining`}
-                        className="absolute inset-0 w-full h-full object-cover object-center"
+                        className="animate-ken-burns absolute inset-0 w-full h-full object-cover object-center"
                     />
 
                     {/* 2. Lớp phủ Gradient tối (Gradient Overlay) bảo vệ độ tương phản chữ */}
@@ -869,19 +869,25 @@ export default function ServicesMenu() {
                     {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
                     <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="max-w-3xl flex flex-col items-start text-left">
-                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                            <h1
+                                className="animate-hero-up text-2xl sm:text-3xl lg:text-4xl font-serif font-black text-white tracking-tight leading-tight drop-shadow-sm"
+                                style={{ animationDelay: '50ms' }}
+                            >
                                 Thực Đơn Dịch Vụ Tại Phòng <br className="hidden sm:inline" />
                                 <span className="text-amber-400">
                                     & Đặc Quyền Lưu Trú
                                 </span>
                             </h1>
-                            <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                            <p
+                                className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
+                                style={{ animationDelay: '160ms' }}
+                            >
                                 Ẩm thực thượng hạng, trà chiều, liệu trình spa và tiện ích buồng phòng chuẩn {starCount} sao phục vụ tận phòng 24/7.
                             </p>
 
                             {/* Thông tin phòng đang lưu trú của khách */}
                             {isAuthenticated && activeBookings.length > 0 && (
-                                <div className="mt-6 flex flex-wrap items-center gap-3">
+                                <div className="animate-hero-up mt-6 flex flex-wrap items-center gap-3" style={{ animationDelay: '260ms' }}>
                                     <div className="inline-flex flex-wrap items-center gap-2 p-2.5 px-4 rounded-2xl bg-white/90 backdrop-blur-md border border-amber-200/80 text-xs shadow-xs">
                                         <span className="text-amber-900 font-bold flex items-center gap-1.5">
                                             <BedDouble className="w-4 h-4 text-amber-600" />
@@ -904,7 +910,7 @@ export default function ServicesMenu() {
 
                 {/* TOAST THÔNG BÁO (Đưa lên góc trên, không che đè lên AI Chatbot ở góc dưới) */}
                 {toast && (
-                    <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-300">
+                    <div className="fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-50 max-w-md animate-drawer-down">
                         <div
                             className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-semibold backdrop-blur-md ${
                                 toast.type === 'success'
@@ -1043,7 +1049,11 @@ export default function ServicesMenu() {
                             </button>
                         </div>
                     ) : (
-                        <div id="services-menu-grid" className="scroll-mt-24 min-h-[60vh] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        <div
+                            id="services-menu-grid"
+                            key={`${selectedCategory}-${sortBy}-${safePage}`}
+                            className="animate-tab-reveal scroll-mt-24 min-h-[60vh] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        >
                             {paginatedItems.map((item) => {
                                 const itemImg =
                                     item.display_image ||
@@ -1088,7 +1098,7 @@ export default function ServicesMenu() {
 
                                                 {/* Badge trạng thái đã thêm vào giỏ (chỉ hiển thị 1 lần duy nhất tại đây) */}
                                                 {inCart && (
-                                                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 text-white text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 animate-scale-up">
+                                                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 text-white text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 animate-popover">
                                                         <Check className="w-3 h-3 text-white stroke-[3]" />
                                                         <span>Đã chọn ({inCart.quantity})</span>
                                                     </span>
@@ -1162,7 +1172,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-10 sm:h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 cursor-pointer"
+                                                        className="btn-luxury-shine h-10 sm:h-9 px-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 cursor-pointer"
                                                         title="Gọi riêng món này ngay"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1183,7 +1193,7 @@ export default function ServicesMenu() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenOrderModal(item)}
-                                                        className="h-10 sm:h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-1"
+                                                        className="btn-luxury-shine h-10 sm:h-9 px-2 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-1"
                                                         title="Gọi riêng món này ngay lập tức"
                                                     >
                                                         <Zap className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
@@ -1296,7 +1306,7 @@ export default function ServicesMenu() {
                     <button
                         type="button"
                         onClick={() => setIsCartModalOpen(true)}
-                        className="fixed bottom-[4.5rem] left-3 sm:bottom-[5.25rem] sm:left-6 z-40 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-xl shadow-sky-900/30 border border-sky-300/40 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
+                        className="btn-luxury-shine animate-callout fixed bottom-[4.5rem] left-3 sm:bottom-[5.25rem] sm:left-6 z-40 px-3.5 sm:px-4 py-2.5 sm:py-3 min-h-[44px] rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-xl shadow-sky-900/30 border border-sky-300/40 font-bold text-xs flex items-center gap-2 sm:gap-2.5 transition transform hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-md group"
                         title="Xem giỏ dịch vụ và gửi yêu cầu nhiều món cùng lúc"
                     >
                         <ShoppingBag className="w-4 h-4 text-sky-100 group-hover:rotate-12 transition-transform shrink-0" />

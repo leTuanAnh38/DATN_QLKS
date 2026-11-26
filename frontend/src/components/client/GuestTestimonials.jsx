@@ -3,6 +3,8 @@ import { Star } from 'lucide-react';
 import { reviewService } from '../../services/reviewService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import Reveal from '../common/Reveal';
+import { useInViewOnce } from '../../hooks/useMotion';
 
 const FALLBACK_REVIEWS = [
     {
@@ -59,6 +61,7 @@ export default function GuestTestimonials() {
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
     const [rawReviews, setRawReviews] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [reviewsGridRef, reviewsGridVisible] = useInViewOnce({ threshold: 0.1 });
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -110,7 +113,7 @@ export default function GuestTestimonials() {
         <section className="py-10 sm:py-18 bg-[#f4f7fb] border-b border-slate-200/60">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header tối giản, sang trọng theo mẫu */}
-                <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-12">
+                <Reveal className="text-center max-w-2xl mx-auto mb-5 sm:mb-12">
                     <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                         ĐÁNH GIÁ KHÁCH HÀNG
                     </span>
@@ -120,7 +123,7 @@ export default function GuestTestimonials() {
                     <div className="sm:hidden mt-2 text-[11px] font-semibold text-slate-400">
                         Vuốt ngang xem thêm đánh giá →
                     </div>
-                </div>
+                </Reveal>
 
                 {/* 3 Cards Grid theo đúng bố cục mẫu */}
                 {loading ? (
@@ -147,7 +150,10 @@ export default function GuestTestimonials() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
+                    <div
+                        ref={reviewsGridRef}
+                        className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar"
+                    >
                         {displayReviews.map((rev, idx) => {
                             const guestName = getGuestDisplayName(rev);
                             const subtitle =
@@ -165,7 +171,8 @@ export default function GuestTestimonials() {
                             return (
                                 <article
                                     key={rev.id || idx}
-                                    className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                                    className={`${reviewsGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl p-5 sm:p-8 border border-slate-100 hover:border-amber-200/70 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between`}
+                                    style={reviewsGridVisible ? { animationDelay: `${idx * 110}ms` } : undefined}
                                 >
                                     <div>
                                         {/* 5 Ngôi sao vàng nâu sang trọng ở trên cùng */}

@@ -722,7 +722,32 @@ export default function AIChatbotWidget() {
     const storageKey = getStorageKey(userId);
     const prevUserIdRef = useRef(userId);
     const [isOpen, setIsOpen] = useState(false);
+    const [shouldRenderChat, setShouldRenderChat] = useState(false);
+    const [isChatVisible, setIsChatVisible] = useState(false);
     const [showCalloutBubble, setShowCalloutBubble] = useState(false);
+
+    // Chuyển cảnh mở/thu gọn cửa sổ chat mượt mà từ góc dưới phải (scale + opacity)
+    useEffect(() => {
+        let raf1 = null;
+        let raf2 = null;
+        let closeTimer = null;
+
+        if (isOpen) {
+            raf1 = requestAnimationFrame(() => {
+                setShouldRenderChat(true);
+                raf2 = requestAnimationFrame(() => setIsChatVisible(true));
+            });
+        } else {
+            raf1 = requestAnimationFrame(() => setIsChatVisible(false));
+            closeTimer = setTimeout(() => setShouldRenderChat(false), 280);
+        }
+
+        return () => {
+            if (raf1) cancelAnimationFrame(raf1);
+            if (raf2) cancelAnimationFrame(raf2);
+            if (closeTimer) clearTimeout(closeTimer);
+        };
+    }, [isOpen]);
     const [selectedLang, setSelectedLang] = useState('vi');
     const [activeStayInfo, setActiveStayInfo] = useState(null);
     const [actionStates, setActionStates] = useState({});
@@ -1489,7 +1514,7 @@ export default function AIChatbotWidget() {
                             setIsOpen(true);
                             setShowCalloutBubble(false);
                         }}
-                        className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-[0_15px_35px_-5px_rgba(15,23,42,0.14)] text-slate-800 max-w-[280px] sm:max-w-[320px] cursor-pointer animate-in fade-in slide-in-from-bottom-4 duration-400 group relative hover:border-sky-300 transition-all select-none"
+                        className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-[0_15px_35px_-5px_rgba(15,23,42,0.14)] text-slate-800 max-w-[280px] sm:max-w-[320px] cursor-pointer animate-callout group relative hover:border-sky-300 hover:-translate-y-0.5 transition-all select-none"
                         role="region"
                         aria-label="Thông điệp chào mừng từ Trợ lý AI"
                     >
@@ -1566,13 +1591,19 @@ export default function AIChatbotWidget() {
                         <span className="absolute -inset-full top-0 bg-gradient-to-r from-transparent via-sky-200/35 to-transparent transform -skew-x-12 group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                     </span>
 
-                    {/* Avatar AI Xanh Biển đồng bộ hệ nút + Chấm Online */}
+                    {/* Avatar AI Xanh Biển đồng bộ hệ nút + Vòng sóng thở dịu + Chấm Online */}
                     <div className="relative flex-shrink-0">
-                        <div className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-600 via-blue-600 to-cyan-700 text-white shadow-sm shadow-sky-600/30 ring-1 ring-inset ring-white/20">
+                        {!isOpen && (
+                            <span
+                                aria-hidden="true"
+                                className="animate-ai-ripple absolute -inset-0.5 rounded-full bg-sky-400/40 pointer-events-none"
+                            />
+                        )}
+                        <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-sky-600 via-blue-600 to-cyan-700 text-white shadow-sm shadow-sky-600/30 ring-1 ring-inset ring-white/20 transition-transform duration-300 group-hover:scale-105">
                             {isOpen ? (
-                                <ChevronDown className="w-4 h-4 text-white transition-transform duration-200" />
+                                <ChevronDown className="w-4 h-4 text-white transition-transform duration-300" />
                             ) : (
-                                <Bot className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-white" />
+                                <Bot className="w-4 h-4 sm:w-[18px] sm:h-[18px] text-white transition-transform duration-300" />
                             )}
                         </div>
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
@@ -1601,10 +1632,14 @@ export default function AIChatbotWidget() {
                 </button>
             </div>
 
-            {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT */}
-            {isOpen && (
+            {/* 2. CỬA SỔ CHAT WINDOW SANG TRỌNG DỊU MẮT (Mở/Thu gọn mượt từ góc dưới phải) */}
+            {(isOpen || shouldRenderChat) && (
                 <div
-                    className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-20 sm:right-6 sm:w-[410px] sm:h-[550px] sm:max-h-[calc(100vh-6rem)]"
+                    className={`fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md origin-bottom-right transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-20 sm:right-6 sm:w-[410px] sm:h-[550px] sm:max-h-[calc(100vh-6rem)] ${
+                        isChatVisible
+                            ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+                            : 'opacity-0 scale-95 translate-y-3 pointer-events-none'
+                    }`}
                     style={{
                         boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)',
                         ...(mobileViewportHeight ? { height: `${mobileViewportHeight}px`, maxHeight: `${mobileViewportHeight}px` } : {})

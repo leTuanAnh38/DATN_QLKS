@@ -10,6 +10,7 @@ import UserAvatar from '../common/UserAvatar';
 import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
+import { useScrolled } from '../../hooks/useMotion';
 import { Phone, CalendarClock, User, Tag, KeyRound, LayoutDashboard } from 'lucide-react';
 
 const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
@@ -29,6 +30,7 @@ export default function Navbar({
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [drawerTop, setDrawerTop] = useState(64);
+    const isScrolled = useScrolled(24);
     const userMenuRef = useRef(null);
     const headerRef = useRef(null);
 
@@ -68,7 +70,7 @@ export default function Navbar({
             window.removeEventListener('resize', syncDrawerTop);
             window.removeEventListener('scroll', syncDrawerTop);
         };
-    }, [mobileMenuOpen]);
+    }, [mobileMenuOpen, isScrolled]);
 
     // Tự động đóng menu khi chuyển trang
     useEffect(() => {
@@ -189,23 +191,49 @@ export default function Navbar({
             {/* Backdrop làm mờ nền khi mở Mobile Drawer (dùng touch-none thay vì body overflow:hidden để không làm mất sticky header) */}
             {mobileMenuOpen && (
                 <div
-                    className="fixed inset-0 z-[54] bg-slate-900/40 touch-none xl:hidden"
+                    className="fixed inset-0 z-[54] bg-slate-900/40 backdrop-blur-[2px] touch-none xl:hidden animate-fadeIn"
                     onClick={() => setMobileMenuOpen(false)}
                     aria-hidden="true"
                 />
             )}
 
             {/* 2. HEADER NAVIGATION */}
-            <header ref={headerRef} className="sticky top-0 z-[55] bg-white border-b border-slate-200 shadow-xs">
-                <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[68px] flex items-center justify-between gap-2 sm:gap-4 xl:gap-6">
-                    {/* Brand Logo: Co giãn an toàn trên 375px, giữ nguyên vẹn trên máy tính */}
+            <header
+                ref={headerRef}
+                className={`sticky top-0 z-[55] border-b transition-all duration-300 ease-out ${
+                    isScrolled
+                        ? 'border-slate-200/75 shadow-[0_10px_30px_-14px_rgba(15,23,42,0.14)]'
+                        : 'border-slate-200 shadow-xs'
+                }`}
+            >
+                {/* Lớp nền kính mờ tách riêng để mix-blend-multiply trên Logo hòa tan hoàn toàn, không bị lộ viền trắng khi lướt qua ảnh */}
+                <div
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute inset-0 transition-all duration-300 ease-out ${
+                        isScrolled
+                            ? 'bg-white/88 backdrop-blur-xl'
+                            : 'bg-white'
+                    }`}
+                />
+                <div
+                    className={`relative max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 sm:gap-4 xl:gap-6 transition-all duration-300 ease-out ${
+                        isScrolled ? 'h-14 sm:h-[60px]' : 'h-16 sm:h-[68px]'
+                    }`}
+                >
+                    {/* Brand Logo: Khung huy hiệu tròn sang trọng, không lộ viền vuông trên nền kính mờ */}
                     <Link to="/" className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0 flex-1 xl:flex-none xl:shrink-0">
                         {settings?.logo_url ? (
-                            <img
-                                src={resolveMediaUrl(settings.logo_url)}
-                                alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
-                                className="h-8 sm:h-12 w-auto max-w-[90px] sm:max-w-[180px] object-contain group-hover:scale-105 transition-transform shrink-0 mix-blend-multiply"
-                            />
+                            <div
+                                className={`${
+                                    isScrolled ? 'w-9 h-9 sm:w-10 sm:h-10' : 'w-9 h-9 sm:w-12 sm:h-12'
+                                } rounded-full bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300`}
+                            >
+                                <img
+                                    src={resolveMediaUrl(settings.logo_url)}
+                                    alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
                         ) : (
                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 border border-amber-500/40 flex items-center justify-center shadow-md shadow-slate-900/30 shrink-0 group-hover:scale-105 transition-transform">
                                 <span className="text-amber-400 font-serif font-black text-base sm:text-xl tracking-tighter">TA</span>
@@ -229,9 +257,9 @@ export default function Navbar({
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`whitespace-nowrap transition-colors duration-200 py-1 ${
+                                    className={`nav-link-luxury whitespace-nowrap transition-colors duration-200 py-1 ${
                                         active
-                                            ? 'text-amber-700 font-bold border-b-2 border-amber-600'
+                                            ? 'nav-link-active text-amber-700 font-bold'
                                             : 'text-slate-700 hover:text-amber-700'
                                     }`}
                                 >
@@ -247,7 +275,7 @@ export default function Navbar({
                         <Link
                             to={actionLink}
                             onClick={handleActionClick}
-                            className="hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
+                            className="btn-luxury-shine hidden sm:inline-flex items-center gap-2 px-3.5 xl:px-4.5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs xl:text-[13px] rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 whitespace-nowrap shrink-0 group cursor-pointer"
                         >
                             <svg className="w-4 h-4 text-white/95 group-hover:scale-110 transition-transform shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -298,7 +326,7 @@ export default function Navbar({
 
                                 {/* Dropdown Menu tài khoản */}
                                 {userMenuOpen && (
-                                    <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 py-2.5 z-50 animate-fadeIn divide-y divide-slate-100">
+                                    <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-slate-200 py-2.5 z-50 animate-popover origin-top-right divide-y divide-slate-100">
                                         {/* Header: Thông tin user */}
                                         <div className="px-4 py-2">
                                             <div className="font-bold text-slate-900 text-sm truncate">
@@ -442,7 +470,7 @@ export default function Navbar({
             {/* Mobile Navigation Drawer (render fixed ngang hàng header để luôn bám đúng khung nhìn ngay cả khi cuộn xuống Footer) */}
             {mobileMenuOpen && (
                 <div
-                    className="xl:hidden fixed left-0 right-0 z-[55] border-t border-slate-200 bg-white px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 shadow-xl overflow-y-auto overscroll-contain"
+                    className="xl:hidden fixed left-0 right-0 z-[55] border-t border-slate-200 bg-white/98 backdrop-blur-xl px-4 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-2 shadow-xl overflow-y-auto overscroll-contain animate-drawer-down"
                     style={{
                         top: `${drawerTop}px`,
                         maxHeight: `calc(100dvh - ${drawerTop}px)`

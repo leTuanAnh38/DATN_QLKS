@@ -22,6 +22,7 @@ import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
 import { contactService } from '../../services/contactService';
 import ModalDialog from '../common/ModalDialog';
+import Reveal from '../common/Reveal';
 
 export default function Footer() {
     const [email, setEmail] = useState('');
@@ -77,17 +78,19 @@ export default function Footer() {
         <footer className="bg-slate-50/90 border-t border-slate-200 text-slate-700 font-sans mt-10 sm:mt-16 pt-10 sm:pt-16 pb-24 sm:pb-10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* 4 CỘT CHÍNH */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-7 sm:gap-10 lg:gap-8 pb-8 sm:pb-12 border-b border-slate-200/80">
+                <Reveal className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-7 sm:gap-10 lg:gap-8 pb-8 sm:pb-12 border-b border-slate-200/80">
                     
                     {/* CỘT 1: THƯƠNG HIỆU & GIẢI THƯỞNG (lg:col-span-4) */}
                     <div className="lg:col-span-4 space-y-3.5 sm:space-y-4">
                         <Link to="/" className="inline-flex items-center space-x-3 group">
                             {hotelInfo?.logo_url ? (
-                                <img
-                                    src={resolveMediaUrl(hotelInfo.logo_url)}
-                                    alt={hotelName}
-                                    className="h-10 max-w-[140px] object-contain group-hover:scale-105 transition-transform mix-blend-multiply"
-                                />
+                                <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300">
+                                    <img
+                                        src={resolveMediaUrl(hotelInfo.logo_url)}
+                                        alt={hotelName}
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
                             ) : (
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-white font-serif font-black text-lg shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
                                     TA
@@ -214,37 +217,37 @@ export default function Footer() {
                         <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-1 sm:gap-y-2 text-xs text-slate-600">
                             <li>
                                 <Link to="/rooms" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Phòng Nghỉ & Suites</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link to="/services" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Ẩm Thực & Dịch Vụ</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link to="/promotions" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Ưu Đãi Đặc Quyền</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link to="/corporate-booking" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Khách Đoàn & MICE</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link to="/news" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Tin Tức & Cẩm Nang</span>
                                 </Link>
                             </li>
                             <li>
                                 <Link to={isAuthenticated ? '/profile?tab=membership' : '/login'} className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
                                     <span className="truncate">Hội Viên TA Club</span>
                                 </Link>
                             </li>
@@ -360,7 +363,7 @@ export default function Footer() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </Reveal>
 
                 {/* THANH PHƯƠNG THỨC THANH TOÁN (PAYMENT BADGES) */}
                 <div className="py-4 sm:py-6 border-b border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-xs">

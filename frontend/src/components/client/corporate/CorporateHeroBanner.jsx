@@ -12,7 +12,7 @@ export default function CorporateHeroBanner({ settings }) {
                 <img
                     src={settings?.banner_corporate || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=85"}
                     alt="Đặt phòng theo đoàn khách sạn TA Đà Nẵng"
-                    className="w-full h-full object-cover object-center"
+                    className="animate-ken-burns w-full h-full object-cover object-center"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 md:via-white/55 to-white/40 md:to-transparent" />
             </div>
@@ -20,23 +20,35 @@ export default function CorporateHeroBanner({ settings }) {
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-12 lg:py-14">
                 <div className="space-y-5 max-w-2xl lg:max-w-3xl">
                     <div className="space-y-3">
-                        <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-sky-700">
+                        <span
+                            className="animate-hero-up inline-block text-xs font-bold uppercase tracking-[0.2em] text-sky-700"
+                            style={{ animationDelay: '40ms' }}
+                        >
                             DỊCH VỤ DOANH NGHIỆP & HỘI THẢO
                         </span>
-                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+                        <h1
+                            className="animate-hero-up font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight"
+                            style={{ animationDelay: '120ms' }}
+                        >
                             Khách Hàng Doanh Nghiệp <br className="hidden sm:inline" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700">
                                 & Đặt Phòng Theo Đoàn
                             </span>
                         </h1>
-                        <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-normal max-w-2xl">
+                        <p
+                            className="animate-hero-up text-slate-600 text-sm sm:text-base leading-relaxed font-normal max-w-2xl"
+                            style={{ animationDelay: '210ms' }}
+                        >
                             Giải pháp lưu trú chuyên nghiệp cho công tác, hội thảo và du lịch tập thể với quy trình đặt nhiều phòng nhanh chóng.
                         </p>
                     </div>
 
                     {/* Các tiện ích & đặc quyền dành riêng cho đoàn */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4 border-t border-slate-200/80 max-w-2xl">
-                        <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all">
+                        <div
+                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            style={{ animationDelay: '280ms' }}
+                        >
                             <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
                                 <Percent className="w-5 h-5 text-sky-600" />
                             </div>
@@ -46,7 +58,10 @@ export default function CorporateHeroBanner({ settings }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all">
+                        <div
+                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            style={{ animationDelay: '360ms' }}
+                        >
                             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/70 shadow-2xs">
                                 <Receipt className="w-5 h-5 text-emerald-600" />
                             </div>
@@ -56,7 +71,10 @@ export default function CorporateHeroBanner({ settings }) {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-xs transition-all">
+                        <div
+                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            style={{ animationDelay: '440ms' }}
+                        >
                             <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
                                 <Headphones className="w-5 h-5 text-sky-600" />
                             </div>

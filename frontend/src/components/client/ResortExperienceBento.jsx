@@ -13,11 +13,48 @@ import {
 } from 'lucide-react';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+import Reveal from '../common/Reveal';
+import { useInViewOnce, useCountUp } from '../../hooks/useMotion';
+
+function GoldenStatCard({ stat, isVisible, delay }) {
+    const IconComp = stat.icon;
+    const animatedNum = useCountUp({
+        end: stat.target,
+        start: 0,
+        duration: stat.duration || 1150,
+        decimals: stat.decimals || 0,
+        enabled: isVisible
+    });
+
+    return (
+        <div
+            className={`${isVisible ? 'reveal-card-in' : 'reveal-card-hidden'} p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-50/90 via-white to-amber-50/30 border border-slate-200/80 hover:border-sky-200/90 shadow-2xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 group`}
+            style={isVisible ? { animationDelay: `${delay}ms` } : undefined}
+        >
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 group-hover:bg-gradient-to-br group-hover:from-sky-600 group-hover:to-blue-700 group-hover:text-white group-hover:border-transparent flex items-center justify-center shrink-0 transition-all duration-300 shadow-2xs">
+                <IconComp className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0">
+                <div className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-tight tabular-nums">
+                    {animatedNum}{stat.suffix}
+                </div>
+                <div className="text-[11px] sm:text-xs font-bold text-amber-800 mt-0.5 leading-snug">
+                    {stat.label}
+                </div>
+                <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
+                    {stat.desc}
+                </p>
+            </div>
+        </div>
+    );
+}
 
 export default function ResortExperienceBento() {
     const { settings } = useHotelSettings();
     const starCount = settings?.stars || 3;
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
+    const [bentoRef, bentoVisible] = useInViewOnce({ threshold: 0.1 });
+    const [statsRef, statsVisible] = useInViewOnce({ threshold: 0.15 });
 
     // Ảnh đồng bộ trực tiếp từ Cài Đặt Hệ Thống (Admin có thể upload hoặc dán URL tùy ý)
     const BENTO_GALLERY = {
@@ -48,25 +85,34 @@ export default function ResortExperienceBento() {
     const stats = [
         {
             icon: MapPin,
-            value: '2 Phút',
+            target: 2,
+            suffix: ' Phút',
+            duration: 900,
             label: 'Bước ra bãi biển Mỹ Khê',
             desc: 'Tọa lạc tại cung đường biển Võ Nguyên Giáp đắt giá nhất Đà Nẵng'
         },
         {
             icon: Waves,
-            value: '180° View',
+            target: 180,
+            suffix: '° View',
+            duration: 1250,
             label: 'Hồ bơi vô cực hướng biển',
             desc: 'Ngắm trọn bình minh đại dương và bán đảo Sơn Trà từ tầng thượng'
         },
         {
             icon: Star,
-            value: '5.0 / 5.0',
+            target: 5.0,
+            decimals: 1,
+            suffix: ' / 5.0',
+            duration: 1200,
             label: 'Điểm hài lòng thực tế',
             desc: 'Được bình chọn xuất sắc bởi du khách lưu trú trong nước và quốc tế'
         },
         {
             icon: Clock,
-            value: '24 / 7',
+            target: 24,
+            suffix: ' / 7',
+            duration: 1100,
             label: 'Concierge & Room Service',
             desc: 'Phục vụ ẩm thực tận phòng, đặt lịch Spa và hỗ trợ xe sân bay mọi lúc'
         }
@@ -76,7 +122,7 @@ export default function ResortExperienceBento() {
         <section className="py-10 sm:py-18 bg-white border-t border-slate-100 relative overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-11">
+                <Reveal className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-11">
                     <div className="max-w-2xl">
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             KHÔNG GIAN &amp; TIỆN ÍCH
@@ -95,27 +141,30 @@ export default function ResortExperienceBento() {
                     <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto shrink-0">
                         <Link
                             to="/rooms"
-                            className="w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all whitespace-nowrap"
+                            className="btn-luxury-shine group w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all whitespace-nowrap"
                         >
                             <span className="sm:hidden">Xem phòng</span>
                             <span className="hidden sm:inline">Khám phá không gian phòng</span>
-                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
                         </Link>
                         <Link
                             to="/contact"
-                            className="w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 text-xs sm:text-sm font-bold transition-all whitespace-nowrap"
+                            className="w-full sm:w-auto justify-center min-h-[42px] sm:min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 hover:border-amber-300 text-xs sm:text-sm font-bold transition-all whitespace-nowrap"
                         >
                             <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                             <span className="sm:hidden">Chỉ đường</span>
                             <span className="hidden sm:inline">Vị trí & Chỉ đường</span>
                         </Link>
                     </div>
-                </div>
+                </Reveal>
 
-                {/* BENTO PHOTO GALLERY (4 tấm ảnh độc bản, không trùng với các section khác) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-5">
+                {/* BENTO PHOTO GALLERY (4 tấm ảnh độc bản, xuất hiện nối tiếp mềm mại) */}
+                <div ref={bentoRef} className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-5">
                     {/* Ảnh lớn 1 (Chiếm 7 cột, cao 2 hàng): Hồ Bơi Vô Cực Hướng Biển */}
-                    <div className="lg:col-span-7 lg:row-span-2 relative group rounded-3xl overflow-hidden min-h-[250px] sm:min-h-[440px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.15)]">
+                    <div
+                        className={`${bentoVisible ? 'reveal-card-in' : 'reveal-card-hidden'} lg:col-span-7 lg:row-span-2 relative group rounded-3xl overflow-hidden min-h-[250px] sm:min-h-[440px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.15)]`}
+                        style={bentoVisible ? { animationDelay: '0ms' } : undefined}
+                    >
                         <img
                             src={BENTO_GALLERY.mainPool.url}
                             alt={BENTO_GALLERY.mainPool.title}
@@ -129,7 +178,7 @@ export default function ResortExperienceBento() {
                                 <span>{BENTO_GALLERY.mainPool.badge}</span>
                             </span>
                         </div>
-                        <div className="absolute bottom-5 left-5 right-5 sm:bottom-7 sm:left-7 sm:right-7 text-white">
+                        <div className="absolute bottom-5 left-5 right-5 sm:bottom-7 sm:left-7 sm:right-7 text-white group-hover:-translate-y-1 transition-transform duration-500 ease-out">
                             <h3 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold mb-2 leading-snug">
                                 {BENTO_GALLERY.mainPool.title}
                             </h3>
@@ -140,7 +189,10 @@ export default function ResortExperienceBento() {
                     </div>
 
                     {/* Ảnh 2 (Chiếm 5 cột, hàng trên): The Lotus Spa & Wellness */}
-                    <div className="lg:col-span-5 relative group rounded-3xl overflow-hidden min-h-[210px] sm:min-h-[225px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
+                    <div
+                        className={`${bentoVisible ? 'reveal-card-in' : 'reveal-card-hidden'} lg:col-span-5 relative group rounded-3xl overflow-hidden min-h-[210px] sm:min-h-[225px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]`}
+                        style={bentoVisible ? { animationDelay: '100ms' } : undefined}
+                    >
                         <img
                             src={BENTO_GALLERY.spaSanctuary.url}
                             alt={BENTO_GALLERY.spaSanctuary.title}
@@ -154,7 +206,7 @@ export default function ResortExperienceBento() {
                                 <span>{BENTO_GALLERY.spaSanctuary.badge}</span>
                             </span>
                         </div>
-                        <div className="absolute bottom-4 left-4 right-4 text-white">
+                        <div className="absolute bottom-4 left-4 right-4 text-white group-hover:-translate-y-1 transition-transform duration-500 ease-out">
                             <h3 className="font-serif text-lg sm:text-xl font-bold mb-1">
                                 {BENTO_GALLERY.spaSanctuary.title}
                             </h3>
@@ -167,7 +219,10 @@ export default function ResortExperienceBento() {
                     {/* Hàng dưới bên phải chia 2 ảnh nhỏ (2 cột ngay cả trên mobile để gọn chiều dài) */}
                     <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-5">
                         {/* Ảnh 3: Nhà hàng & Sky Bar */}
-                        <div className="relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
+                        <div
+                            className={`${bentoVisible ? 'reveal-card-in' : 'reveal-card-hidden'} relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]`}
+                            style={bentoVisible ? { animationDelay: '190ms' } : undefined}
+                        >
                             <img
                                 src={BENTO_GALLERY.fineDining.url}
                                 alt={BENTO_GALLERY.fineDining.title}
@@ -181,7 +236,7 @@ export default function ResortExperienceBento() {
                                     <span className="truncate">{BENTO_GALLERY.fineDining.badge}</span>
                                 </span>
                             </div>
-                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white">
+                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white group-hover:-translate-y-0.5 transition-transform duration-500 ease-out">
                                 <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
                                     {BENTO_GALLERY.fineDining.title}
                                 </h4>
@@ -189,7 +244,10 @@ export default function ResortExperienceBento() {
                         </div>
 
                         {/* Ảnh 4: Bãi biển Mỹ Khê & Đưa đón VIP */}
-                        <div className="relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
+                        <div
+                            className={`${bentoVisible ? 'reveal-card-in' : 'reveal-card-hidden'} relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]`}
+                            style={bentoVisible ? { animationDelay: '270ms' } : undefined}
+                        >
                             <img
                                 src={BENTO_GALLERY.coastalView.url}
                                 alt={BENTO_GALLERY.coastalView.title}
@@ -203,7 +261,7 @@ export default function ResortExperienceBento() {
                                     <span className="truncate">{BENTO_GALLERY.coastalView.badge}</span>
                                 </span>
                             </div>
-                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white">
+                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white group-hover:-translate-y-0.5 transition-transform duration-500 ease-out">
                                 <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
                                     {BENTO_GALLERY.coastalView.title}
                                 </h4>
@@ -212,32 +270,16 @@ export default function ResortExperienceBento() {
                     </div>
                 </div>
 
-                {/* DẢI 4 THÔNG SỐ VÀNG (Lưới 2 cột gọn trên mobile) */}
-                <div className="mt-6 sm:mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-                    {stats.map((st, idx) => {
-                        const IconComp = st.icon;
-                        return (
-                            <div
-                                key={idx}
-                                className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-50/90 via-white to-amber-50/30 border border-slate-200/80 hover:border-sky-200/90 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 group"
-                            >
-                                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 group-hover:bg-gradient-to-br group-hover:from-sky-600 group-hover:to-blue-700 group-hover:text-white group-hover:border-transparent flex items-center justify-center shrink-0 transition-all duration-300 shadow-2xs">
-                                    <IconComp className="w-4 h-4 sm:w-5 sm:h-5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <div className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-tight">
-                                        {st.value}
-                                    </div>
-                                    <div className="text-[11px] sm:text-xs font-bold text-amber-800 mt-0.5 leading-snug">
-                                        {st.label}
-                                    </div>
-                                    <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
-                                        {st.desc}
-                                    </p>
-                                </div>
-                            </div>
-                        );
-                    })}
+                {/* DẢI 4 THÔNG SỐ VÀNG (Count-up mượt mà khi cuộn tới, lưới 2 cột gọn trên mobile) */}
+                <div ref={statsRef} className="mt-6 sm:mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+                    {stats.map((st, idx) => (
+                        <GoldenStatCard
+                            key={idx}
+                            stat={st}
+                            isVisible={statsVisible}
+                            delay={idx * 90}
+                        />
+                    ))}
                 </div>
             </div>
         </section>

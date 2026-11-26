@@ -262,7 +262,7 @@ export default function RoomBookingWidget({
             {/* STICKY BOTTOM BAR DÀNH RIÊNG CHO ĐIỆN THOẠI DI ĐỘNG */}
             <aside
                 aria-label="Thanh đặt phòng di động"
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3.5 sm:px-4 py-3 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between gap-2.5 animate-in fade-in slide-in-from-bottom duration-300"
+                className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3.5 sm:px-4 py-3 shadow-[0_-8px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between gap-2.5 animate-callout"
                 style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
             >
                 <div className="min-w-0 flex-1">
@@ -288,7 +288,7 @@ export default function RoomBookingWidget({
                                 handleGoToCheckout();
                             }
                         }}
-                        className="group relative min-h-[42px] px-3.5 sm:px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 active:scale-95 transition-all flex items-center gap-1.5 sm:gap-2 overflow-hidden cursor-pointer whitespace-nowrap"
+                        className="btn-luxury-shine group relative min-h-[42px] px-3.5 sm:px-5 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 active:scale-95 transition-all flex items-center gap-1.5 sm:gap-2 overflow-hidden cursor-pointer whitespace-nowrap"
                     >
                         <ShieldCheck className="w-4 h-4 text-white/90 shrink-0" />
                         <span>Đặt phòng ngay</span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import Reveal from '../../components/common/Reveal';
 import postService from '../../services/postService';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useScrollAfterPageChange } from '../../utils/scrollUtils';
@@ -166,7 +167,7 @@ export default function NewsList() {
                 <img
                     src={settings?.banner_news || "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"}
                     alt="Khách Sạn TA Đà Nẵng Resort"
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="animate-ken-burns absolute inset-0 w-full h-full object-cover object-center"
                 />
 
                 {/* Gradient Overlay bảo vệ độ tương phản chữ */}
@@ -176,14 +177,20 @@ export default function NewsList() {
                     <div className="max-w-3xl flex flex-col items-start text-left">
 
 
-                        <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
+                        <h1
+                            className="animate-hero-up font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm"
+                            style={{ animationDelay: '50ms' }}
+                        >
                             Khám Phá Trải Nghiệm & <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-sky-300 via-cyan-200 to-sky-400 bg-clip-text text-transparent">
                                 Cẩm Nang Tinh Hoa
                             </span>
                         </h1>
 
-                        <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                        <p
+                            className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
+                            style={{ animationDelay: '160ms' }}
+                        >
                             Cập nhật cẩm nang du lịch Đà Nẵng, nghệ thuật ẩm thực và các sự kiện nổi bật tại {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}.
                         </p>
                     </div>
@@ -255,7 +262,7 @@ export default function NewsList() {
 
                 {/* FEATURED POST (BÀI VIẾT NỔI BẬT) */}
                 {featuredPost && (
-                    <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-sky-200/80 transition-all duration-300 group">
+                    <Reveal className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-sky-200/80 transition-all duration-300 group">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                             {/* Cột ảnh bìa */}
                             <div className="lg:col-span-7 relative h-56 sm:h-80 lg:h-full lg:min-h-[320px] overflow-hidden bg-slate-100">
@@ -265,7 +272,7 @@ export default function NewsList() {
                                         alt={featuredPost.title}
                                         loading="lazy"
                                         decoding="async"
-                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-sky-50 to-slate-100 text-sky-400">
@@ -333,7 +340,7 @@ export default function NewsList() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Reveal>
                 )}
 
                 {/* GRID CÁC THẺ BÀI VIẾT (CARDS) */}
@@ -398,11 +405,14 @@ export default function NewsList() {
                                 )}
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div
+                                key={`${selectedCategory}-${sortBy}-${safeCurrentPage}`}
+                                className="animate-tab-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                            >
                                 {paginatedPosts.map((post) => (
                                     <article
                                         key={post.id}
-                                        className="bg-white rounded-3xl border border-slate-200/90 hover:border-sky-200/90 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                                        className="bg-white rounded-3xl border border-slate-200/90 hover:border-sky-200/90 shadow-xs hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                                     >
                                         <div>
                                             {/* Ảnh bìa */}
@@ -413,7 +423,7 @@ export default function NewsList() {
                                                         alt={post.title}
                                                         loading="lazy"
                                                         decoding="async"
-                                                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-sky-50/70 to-slate-100 text-sky-300">

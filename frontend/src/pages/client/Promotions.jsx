@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import Reveal from '../../components/common/Reveal';
 import { promotionService } from '../../services/promotionService';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import { useAuth } from '../../store/authStore';
@@ -502,19 +503,22 @@ export default function PromotionsPage() {
                                     e.currentTarget.src = DEFAULT_BANNERS.banner_promotions;
                                 }
                             }}
-                            className="w-full h-full object-cover"
+                            className="animate-ken-burns w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-white/90 backdrop-blur-[2px]" />
                         <div className="absolute inset-0 bg-gradient-to-b from-amber-50/40 via-white/85 to-slate-50" />
                     </div>
                     {/* Ambient Glow Orbs */}
-                    <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-300/25 via-rose-300/20 to-amber-300/25 blur-3xl rounded-full pointer-events-none z-0" />
-                    <div className="absolute -top-20 right-10 w-72 h-72 bg-amber-200/30 rounded-full blur-3xl pointer-events-none z-0" />
+                    <div className="animate-ambient-drift absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[320px] bg-gradient-to-r from-blue-300/25 via-rose-300/20 to-amber-300/25 blur-3xl rounded-full pointer-events-none z-0" />
+                    <div className="animate-ambient-drift-reverse absolute -top-20 right-10 w-72 h-72 bg-amber-200/30 rounded-full blur-3xl pointer-events-none z-0" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="text-center max-w-3xl mx-auto">
                             {/* Top Live Badge */}
-                            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest shadow-xs mb-4 sm:mb-5 animate-pulse max-w-full">
+                            <div
+                                className="animate-hero-up inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest shadow-xs mb-4 sm:mb-5 max-w-full"
+                                style={{ animationDelay: '40ms' }}
+                            >
                                 <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
                                 <span className="leading-snug">
                                     {maxPercentVoucher > 0
@@ -524,20 +528,29 @@ export default function PromotionsPage() {
                             </div>
 
                             {/* Royal Headline */}
-                            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-tight">
+                            <h1
+                                className="animate-hero-up font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-tight"
+                                style={{ animationDelay: '130ms' }}
+                            >
                                 Kho Ưu Đãi & Voucher{' '}
                                 <span className="bg-gradient-to-r from-amber-600 via-rose-600 to-orange-500 bg-clip-text text-transparent">
                                     Thượng Lưu
                                 </span>
                             </h1>
 
-                            <p className="mt-4 text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
+                            <p
+                                className="animate-hero-up mt-4 text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto"
+                                style={{ animationDelay: '220ms' }}
+                            >
                                 Săn mã giảm giá độc quyền và đặc quyền hội viên TA Club với cam kết giá đặt trực tiếp tốt nhất.
                             </p>
 
                             {/* FLASH SALE COUNTDOWN TIMER HOẶC LIVE STATUS */}
                             {showCountdown ? (
-                                <div className="mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60">
+                                <div
+                                    className="animate-hero-up mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60"
+                                    style={{ animationDelay: '310ms' }}
+                                >
                                     <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider sm:tracking-widest mb-3 text-center">
                                         <Clock className="w-4 h-4 text-amber-600 animate-spin shrink-0" style={{ animationDuration: '8s' }} />
                                         <span>
@@ -704,7 +717,10 @@ export default function PromotionsPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div
+                            key={`${activePromoTab}-${sortBy}`}
+                            className="animate-tab-reveal grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                        >
                             {filteredDbPromotions.map((promo) => {
                                 const isPercentage = promo.discount_type === 'percentage';
                                 const isCopied = copiedCode === promo.code;
@@ -783,8 +799,8 @@ export default function PromotionsPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyCode(promo.code)}
-                                                    className={`shrink-0 min-h-[40px] px-3 py-2 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-bold ${isCopied
-                                                            ? 'bg-emerald-600 text-white shadow-xs'
+                                                    className={`shrink-0 min-h-[40px] px-3 py-2 rounded-xl transition-all duration-200 active:scale-95 cursor-pointer flex items-center gap-1 text-xs font-bold ${isCopied
+                                                            ? 'bg-emerald-600 text-white shadow-xs scale-[1.03]'
                                                             : 'bg-white hover:bg-amber-100 text-amber-900 border border-amber-200'
                                                         }`}
                                                     title="Sao chép mã voucher"
@@ -806,10 +822,10 @@ export default function PromotionsPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleApplyAndBook(promo.code)}
-                                                className="w-full min-h-[42px] py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                                className="btn-luxury-shine group/btn w-full min-h-[42px] py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 hover:-translate-y-0.5 active:scale-95 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span>Sử Dụng Ngay</span>
-                                                <ArrowRight className="w-3.5 h-3.5" />
+                                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                                             </button>
                                         </div>
                                     </div>
@@ -824,7 +840,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 <section className="py-10 sm:py-16 bg-slate-50 border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center max-w-2xl mx-auto mb-8">
+                        <Reveal className="text-center max-w-2xl mx-auto mb-8">
                             <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">
                                 <Crown className="w-4 h-4 text-amber-600" />
                                 <span>ĐẶC QUYỀN HỘI VIÊN TA CLUB</span>
@@ -835,7 +851,7 @@ export default function PromotionsPage() {
                             <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
                                 Đăng ký tài khoản miễn phí để tự động tích điểm sau mỗi kỳ nghỉ. Càng tích lũy nhiều điểm, hạng thẻ càng cao và chiết khấu phòng càng lớn!
                             </p>
-                        </div>
+                        </Reveal>
 
                         {/* Thanh giải thích quy tắc tích điểm 100k = 1 pt */}
                         <div className="max-w-4xl mx-auto mb-10 px-5 py-4 rounded-2xl bg-white border border-slate-200/80 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.1)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
@@ -1100,7 +1116,7 @@ export default function PromotionsPage() {
                                     </span>
                                 </button>
                                 {activeFaq === idx && (
-                                    <div className="px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50/60">
+                                    <div className="animate-fadeIn px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3 bg-slate-50/60">
                                         {faq.a}
                                     </div>
                                 )}
@@ -1109,7 +1125,7 @@ export default function PromotionsPage() {
                     </div>
 
                     {/* Concierge Banner */}
-                    <div className="mt-10 p-5 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-amber-500/30">
+                    <Reveal className="mt-10 p-5 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-amber-500/30">
                         <div className="text-left">
                             <strong className="text-white text-sm sm:text-base font-bold flex items-center gap-2">
                                 <PhoneCall className="w-4 h-4 text-amber-400 shrink-0" />
@@ -1120,7 +1136,7 @@ export default function PromotionsPage() {
                         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
                             <a
                                 href={`tel:${(settings?.hotline || '1900 8899').replace(/\s+/g, '')}`}
-                                className="flex-1 sm:flex-initial justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-sky-900/20 transition cursor-pointer whitespace-nowrap"
+                                className="btn-luxury-shine flex-1 sm:flex-initial justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs flex items-center gap-2 shadow-md shadow-sky-900/20 transition cursor-pointer whitespace-nowrap"
                             >
                                 <PhoneCall className="w-4 h-4 shrink-0" />
                                 <span>{settings?.hotline || '1900 8899'}</span>
@@ -1132,7 +1148,7 @@ export default function PromotionsPage() {
                                 Liên Hệ Concierge
                             </Link>
                         </div>
-                    </div>
+                    </Reveal>
                 </section>
             </div>
 
