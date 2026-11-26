@@ -211,39 +211,39 @@ export default function Footer() {
                             <span>Khám Phá & Dịch Vụ</span>
                         </h4>
                         {/* Lưới 2 cột trên điện thoại để tiết kiệm 50% chiều dài trang */}
-                        <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-2.5 sm:gap-y-2 text-xs text-slate-600">
+                        <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-1 sm:gap-y-2 text-xs text-slate-600">
                             <li>
-                                <Link to="/rooms" className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to="/rooms" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Phòng Nghỉ & Suites</span>
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/services" className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to="/services" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Ẩm Thực & Dịch Vụ</span>
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/promotions" className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to="/promotions" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Ưu Đãi Đặc Quyền</span>
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/corporate-booking" className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to="/corporate-booking" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Khách Đoàn & MICE</span>
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/news" className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to="/news" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Tin Tức & Cẩm Nang</span>
                                 </Link>
                             </li>
                             <li>
-                                <Link to={isAuthenticated ? '/profile?tab=membership' : '/login'} className="hover:text-sky-700 transition flex items-center gap-1.5 group">
+                                <Link to={isAuthenticated ? '/profile?tab=membership' : '/login'} className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
                                     <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 transition-colors shrink-0" />
                                     <span className="truncate">Hội Viên TA Club</span>
                                 </Link>

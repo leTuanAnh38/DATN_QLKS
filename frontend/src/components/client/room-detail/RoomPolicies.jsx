@@ -96,8 +96,8 @@ export default function RoomPolicies({
                 </button>
             </div>
 
-            {/* 3 Cột thông số thoáng sạch, dễ đọc ngay lập tức */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {/* 3 Cột thông số thoáng sạch (Nhận/Trả xếp 2 cột trên mobile để tiết kiệm chiều cao) */}
+            <div className="mt-5 sm:mt-6 grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
                 {/* Cột 1: Nhận phòng */}
                 <div>
                     <span className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
@@ -125,7 +125,7 @@ export default function RoomPolicies({
                 </div>
 
                 {/* Cột 3: Chính sách hủy */}
-                <div>
+                <div className="col-span-2 md:col-span-1 pt-3 md:pt-0 border-t md:border-t-0 border-slate-200/70">
                     <span className="block text-[10.5px] font-bold uppercase tracking-wider text-slate-500">
                         CHÍNH SÁCH HỦY PHÒNG
                     </span>

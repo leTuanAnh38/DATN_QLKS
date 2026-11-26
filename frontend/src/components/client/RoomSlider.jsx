@@ -326,8 +326,8 @@ export default function RoomSlider({ rooms = [] }) {
                                                 <Link to={`/rooms/${room.id}`}>{room.name}</Link>
                                             </h3>
 
-                                            {/* Dải thông số phòng trên 1 hàng gọn gàng, thẳng hàng tuyệt đối giữa các thẻ */}
-                                            <div className="mt-2.5 flex items-center gap-2.5 text-[11px] text-slate-600 font-medium whitespace-nowrap">
+                                            {/* Dải thông số phòng (tự xuống dòng gọn trên mobile 375px) */}
+                                            <div className="mt-2.5 flex flex-wrap sm:flex-nowrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-600 font-medium">
                                                 <span className="inline-flex items-center gap-1 shrink-0">
                                                     <Maximize2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                                     <span>{room.size} m²</span>
@@ -339,7 +339,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 </span>
                                                 {room.bed_type && (
                                                     <>
-                                                        <span className="w-px h-3 bg-slate-200 shrink-0" />
+                                                        <span className="hidden sm:inline-block w-px h-3 bg-slate-200 shrink-0" />
                                                         <span
                                                             className="inline-flex items-center gap-1 min-w-0"
                                                             title={room.bed_type}
@@ -397,7 +397,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     to={`/rooms/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     onTouchStart={(e) => e.stopPropagation()}
-                                                    className="px-3 py-2.5 text-xs font-semibold text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
+                                                    className="px-3 py-2.5 min-h-[42px] sm:min-h-0 text-xs font-semibold text-slate-700 bg-slate-100/90 hover:bg-slate-200/90 rounded-xl transition whitespace-nowrap text-center flex items-center justify-center cursor-pointer active:scale-95"
                                                 >
                                                     Xem chi tiết
                                                 </Link>
@@ -405,7 +405,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                     to={`/checkout/${room.id}`}
                                                     state={{ checkInDate: todayStr, checkOutDate: tomorrowStr, guestCount: 2 }}
                                                     onTouchStart={(e) => e.stopPropagation()}
-                                                    className="px-3.5 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:-translate-y-0.5"
+                                                    className="px-3.5 py-2.5 min-h-[42px] sm:min-h-0 text-xs font-bold text-white bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 rounded-xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 transition-all transform active:scale-95 whitespace-nowrap text-center flex items-center justify-center hover:-translate-y-0.5"
                                                 >
                                                     Đặt ngay
                                                 </Link>
@@ -419,9 +419,9 @@ export default function RoomSlider({ rooms = [] }) {
                 </div>
             </div>
 
-            {/* Pagination Dots */}
+            {/* Pagination Dots (tăng vùng chạm mobile p-2) */}
             {maxIndex > 0 && (
-                <div className="flex items-center justify-center gap-1.5 mt-6">
+                <div className="flex items-center justify-center gap-0.5 mt-5">
                     {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
                         <button
                             key={idx}
@@ -429,12 +429,16 @@ export default function RoomSlider({ rooms = [] }) {
                             onClick={() => setCurrentIndex(idx)}
                             onTouchStart={(e) => e.stopPropagation()}
                             aria-label={`Trang ${idx + 1}`}
-                            className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                                currentIndex === idx
-                                    ? 'w-8 bg-gradient-to-r from-sky-600 to-blue-700 shadow-xs'
-                                    : 'w-2 bg-slate-300 hover:bg-slate-400'
-                            }`}
-                        />
+                            className="p-2 flex items-center justify-center cursor-pointer"
+                        >
+                            <span
+                                className={`block h-2 rounded-full transition-all duration-300 ${
+                                    currentIndex === idx
+                                        ? 'w-7 bg-gradient-to-r from-sky-600 to-blue-700 shadow-xs'
+                                        : 'w-2 bg-slate-300 hover:bg-slate-400'
+                                }`}
+                            />
+                        </button>
                     ))}
                 </div>
             )}

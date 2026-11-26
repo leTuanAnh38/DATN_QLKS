@@ -202,11 +202,11 @@ export default function OrderSummarySidebar({
                     </div>
                 )}
 
-                {/* NÚT BẤM XÁC NHẬN ĐẶT PHÒNG */}
+                {/* NÚT BẤM XÁC NHẬN ĐẶT PHÒNG (Ẩn trên < lg vì mobile đã có Sticky Bottom Bar tránh lặp nút) */}
                 <button
                     type="submit"
                     disabled={isSubmitting || availability?.is_sold_out}
-                    className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden group ${
+                    className={`hidden lg:flex w-full py-4 text-white font-bold text-sm rounded-2xl shadow-xl items-center justify-center gap-2 transition-all duration-300 relative overflow-hidden group ${
                         availability?.is_sold_out
                             ? 'bg-slate-400 cursor-not-allowed shadow-none'
                             : 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 shadow-sky-900/20 hover:shadow-lg hover:shadow-sky-500/25 hover:scale-[1.01] active:scale-[0.99] cursor-pointer'

@@ -514,12 +514,12 @@ export default function PromotionsPage() {
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="text-center max-w-3xl mx-auto">
                             {/* Top Live Badge */}
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold uppercase tracking-widest shadow-xs mb-5 animate-pulse">
-                                <Flame className="w-4 h-4 text-rose-500" />
-                                <span>
+                            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-widest shadow-xs mb-4 sm:mb-5 animate-pulse max-w-full">
+                                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 shrink-0" />
+                                <span className="leading-snug">
                                     {maxPercentVoucher > 0
-                                        ? `ĐẶC QUYỀN ĐỘC BẢN 2026 • CHIẾT KHẤU TỚI ${maxPercentVoucher}%`
-                                        : 'ĐẶC QUYỀN ĐỘC BẢN 2026 • KHO ƯU ĐÃI THỰC TẾ'}
+                                        ? `ĐẶC QUYỀN 2026 • GIẢM TỚI ${maxPercentVoucher}%`
+                                        : 'ĐẶC QUYỀN 2026 • KHO ƯU ĐÃI THỰC TẾ'}
                                 </span>
                             </div>
 
@@ -587,7 +587,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 2. REAL VOUCHERS HUB: THẺ TICKET CẮT RĂNG CƯA TỪ DATABASE THẬT */}
                 {/* ============================================================== */}
-                <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header kho voucher */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
                         <div>
@@ -630,7 +630,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('all')}
-                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'all'
+                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'all'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -640,7 +640,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('percentage')}
-                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'percentage'
+                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'percentage'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -650,7 +650,7 @@ export default function PromotionsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setActivePromoTab('fixed')}
-                                    className={`flex-1 sm:flex-initial px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'fixed'
+                                    className={`flex-1 sm:flex-initial min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 rounded-xl transition cursor-pointer whitespace-nowrap text-center ${activePromoTab === 'fixed'
                                             ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white font-bold shadow-md shadow-sky-900/20'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                         }`}
@@ -803,7 +803,7 @@ export default function PromotionsPage() {
                                             <button
                                                 type="button"
                                                 onClick={() => handleApplyAndBook(promo.code)}
-                                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                                className="w-full min-h-[42px] py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white font-bold text-xs shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
                                             >
                                                 <span>Sử Dụng Ngay</span>
                                                 <ArrowRight className="w-3.5 h-3.5" />
@@ -819,7 +819,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 3. CHƯƠNG TRÌNH HỘI VIÊN VIP TA CLUB (LOYALTY TIERS) */}
                 {/* ============================================================== */}
-                <section className="py-16 bg-slate-50 border-t border-slate-200/80">
+                <section className="py-10 sm:py-16 bg-slate-50 border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center max-w-2xl mx-auto mb-8">
                             <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">
@@ -859,12 +859,12 @@ export default function PromotionsPage() {
                             </div>
                         </div>
 
-                        {/* 4 Hạng thẻ hội viên chuẩn hóa theo mẫu thẻ kim loại ATM của Profile (MembershipCard) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* 4 Hạng thẻ hội viên (cuộn ngang mượt trên < sm để giảm độ dài trang) */}
+                        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
                             {membershipTiers.map((tier, idx) => (
                                 <div
                                     key={idx}
-                                    className={`rounded-3xl border ${tier.border} ${tier.bg} p-5 flex flex-col justify-between shadow-md hover:shadow-xl relative overflow-hidden group hover:-translate-y-1.5 transition-all duration-300`}
+                                    className={`w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center rounded-3xl border ${tier.border} ${tier.bg} p-5 flex flex-col justify-between shadow-md hover:shadow-xl relative overflow-hidden group hover:-translate-y-1.5 transition-all duration-300`}
                                 >
                                     <div>
                                         {/* THẺ KIM LOẠI MINI ĐỒNG BỘ 100% VỚI MembershipCard.jsx TRONG PROFILE */}
@@ -877,7 +877,7 @@ export default function PromotionsPage() {
                                             {/* Top of card: Brand + Chip ATM */}
                                             <div className="flex items-start justify-between gap-2 relative z-10">
                                                 <div className="min-w-0">
-                                                    <span className="text-[8px] tracking-[0.14em] font-extrabold uppercase opacity-80 block text-white/90 truncate">
+                                                    <span className="text-[10px] tracking-[0.12em] font-extrabold uppercase opacity-80 block text-white/90 truncate">
                                                         TA CLUB LOYALTY
                                                     </span>
                                                     <h3 className="text-sm font-black tracking-wide flex items-center gap-1 mt-0.5 uppercase truncate">
@@ -907,11 +907,11 @@ export default function PromotionsPage() {
 
                                             {/* Bottom: Tier label & Badge */}
                                             <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/15 relative z-10">
-                                                <span className="text-[8.5px] font-extrabold tracking-[0.15em] uppercase opacity-80 truncate">
+                                                <span className="text-[10px] font-extrabold tracking-[0.12em] uppercase opacity-85 truncate">
                                                     {tier.tierLabel}
                                                 </span>
                                                 {tier.badge && (
-                                                    <span className="bg-amber-400 text-slate-950 text-[8.5px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                                    <span className="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                                                         {tier.badge}
                                                     </span>
                                                 )}
@@ -940,7 +940,7 @@ export default function PromotionsPage() {
 
                                     <Link
                                         to={isAuthenticated ? '/profile' : '/login'}
-                                        className={`w-full py-2.5 rounded-xl text-xs font-bold text-center transition block shadow-xs ${tier.btnClass || 'border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 bg-white'}`}
+                                        className={`w-full min-h-[42px] py-2.5 rounded-xl text-xs font-bold text-center transition flex items-center justify-center shadow-xs ${tier.btnClass || 'border border-slate-200 hover:border-sky-300 text-slate-700 hover:text-sky-700 bg-white'}`}
                                     >
                                         {isAuthenticated ? 'Xem Thẻ Hội Viên' : 'Đăng Ký / Xem Thẻ'}
                                     </Link>
@@ -953,9 +953,9 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 5. CAM KẾT 4 TRỤ CỘT ĐẶT TRỰC TIẾP (BEST RATE GUARANTEE) */}
                 {/* ============================================================== */}
-                <section className="py-16 bg-white border-t border-slate-200/80">
+                <section className="py-10 sm:py-16 bg-white border-t border-slate-200/80">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="text-center max-w-2xl mx-auto mb-12">
+                        <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
                             <span className="text-xs font-bold text-amber-600 uppercase tracking-widest block mb-2">
                                 LỢI ÍCH ĐỘC QUYỀN
                             </span>
@@ -964,7 +964,7 @@ export default function PromotionsPage() {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6">
                             <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
                                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
                                     <Gem className="w-6 h-6 text-amber-600" />

@@ -16,7 +16,8 @@ import {
     Save,
     Trash2,
     Smartphone,
-    Loader2
+    Loader2,
+    Download
 } from 'lucide-react';
 import api from '../../services/api';
 import { bookingService } from '../../services/bookingService';
@@ -371,14 +372,33 @@ export default function PaymentModal({
         }
     };
 
+    // Lưu / Tải ảnh mã VietQR về máy (hữu ích khi khách thanh toán trực tiếp trên cùng điện thoại)
+    const handleDownloadQr = async () => {
+        if (!qrDisplayUrl) return;
+        try {
+            const response = await fetch(qrDisplayUrl, { mode: 'cors' });
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `VietQR-${code || 'TAHotel'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        } catch {
+            window.open(qrDisplayUrl, '_blank', 'noopener,noreferrer');
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-fadeIn">
             {/* Backdrop click outside */}
             <div className="fixed inset-0" onClick={handleInitiateCancel} aria-hidden="true" />
 
             {/* Modal Box */}
             <div
-                className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[88vh] flex flex-col overflow-hidden z-10"
+                className="relative bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 max-w-4xl w-full max-h-[92dvh] flex flex-col overflow-hidden z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Modal - Fixed */}
@@ -448,7 +468,7 @@ export default function PaymentModal({
                                 <button
                                     type="button"
                                     onClick={() => handleCopy(totalAmount.toString(), 'amount')}
-                                    className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-white/90 hover:bg-amber-100 border border-amber-200/80 text-[11px] font-semibold text-amber-800 hover:text-amber-950 flex items-center gap-1 transition cursor-pointer shrink-0"
+                                    className="min-h-[40px] sm:min-h-0 px-3 py-2 sm:px-2 sm:py-1 rounded-lg bg-white/90 hover:bg-amber-100 border border-amber-200/80 text-[11px] font-semibold text-amber-800 hover:text-amber-950 flex items-center gap-1 transition cursor-pointer shrink-0"
                                     title="Sao chép số tiền"
                                 >
                                     {copiedKey === 'amount' ? (
@@ -591,14 +611,14 @@ export default function PaymentModal({
                     {/* ========================================================================= */}
                     {/* CỘT PHẢI (DESKTOP) / ĐẦU TIÊN (MOBILE): MÃ VIETQR VỚI VIỀN ĐỨT NÉT       */}
                     {/* ========================================================================= */}
-                    <div className="order-1 md:order-2 flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 shadow-2xs mb-4">
+                    <div className="order-1 md:order-2 flex flex-col items-center justify-center p-3.5 sm:p-6 bg-slate-50/70 rounded-2xl sm:rounded-3xl border border-slate-200/80 text-center">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-700 shadow-2xs mb-3 sm:mb-4">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             VietQR • Quét Mã Chuyển Khoản 24/7
                         </div>
 
-                        {/* Thẻ <img> hiển thị qrUrl với hiệu ứng viền đứt nét */}
-                        <div className="relative p-2.5 bg-white rounded-2xl border-2 border-dashed border-blue-400 shadow-md max-w-[270px] w-full aspect-square flex items-center justify-center overflow-hidden group">
+                        {/* Thẻ <img> hiển thị qrUrl giữ đúng tỉ lệ ảnh VietQR compact2 sắc nét trên màn 375px */}
+                        <div className="relative p-2 bg-white rounded-2xl border-2 border-dashed border-blue-400 shadow-md max-w-[235px] sm:max-w-[265px] w-full min-h-[220px] flex items-center justify-center overflow-hidden group">
                             {isLoadingConfig ? (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-2 z-10">
                                     <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
@@ -612,7 +632,7 @@ export default function PaymentModal({
                             ) : null}
 
                             {!isLoadingConfig && qrLoadError ? (
-                                <div className="flex flex-col items-center justify-center text-center px-3 gap-2">
+                                <div className="flex flex-col items-center justify-center text-center px-3 py-6 gap-2">
                                     <AlertCircle className="w-7 h-7 text-amber-500" />
                                     <span className="text-xs font-bold text-slate-700">
                                         Không thể tải ảnh mã QR
@@ -627,7 +647,7 @@ export default function PaymentModal({
                                             setIsImageLoading(true);
                                             setQrRetryNonce((n) => n + 1);
                                         }}
-                                        className="mt-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
+                                        className="mt-1 min-h-[38px] px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
                                     >
                                         <RefreshCw className="w-3.5 h-3.5" />
                                         Tải lại mã QR
@@ -639,7 +659,7 @@ export default function PaymentModal({
                                     key={qrDisplayUrl}
                                     src={qrDisplayUrl}
                                     alt={`VietQR thanh toán ${code}`}
-                                    className={`w-full h-full object-contain rounded-xl transition-all duration-200 ${
+                                    className={`w-full h-auto max-h-[265px] sm:max-h-[300px] object-contain rounded-xl transition-all duration-200 ${
                                         isImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                                     }`}
                                     onLoad={() => {
@@ -652,15 +672,27 @@ export default function PaymentModal({
                                     }}
                                 />
                             ) : !isLoadingConfig ? (
-                                <div className="text-xs text-slate-400 flex flex-col items-center gap-1">
+                                <div className="text-xs text-slate-400 flex flex-col items-center gap-1 py-6">
                                     <AlertCircle className="w-6 h-6 text-amber-500" />
                                     <span>Chưa có thông tin QR</span>
                                 </div>
                             ) : null}
                         </div>
 
+                        {/* Nút tải ảnh QR nhanh (tiện cho khách thanh toán trên cùng 1 điện thoại) */}
+                        {!isLoadingConfig && qrDisplayUrl && !qrLoadError && (
+                            <button
+                                type="button"
+                                onClick={handleDownloadQr}
+                                className="mt-2.5 min-h-[38px] px-3.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200/90 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+                            >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Lưu ảnh QR về máy</span>
+                            </button>
+                        )}
+
                         {/* Dòng chữ hướng dẫn */}
-                        <div className="mt-4 space-y-1">
+                        <div className="mt-3 space-y-1">
                             <p className="text-xs sm:text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5">
                                 <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
                                 <span>Mở app ngân hàng và quét mã để thanh toán nhanh</span>
@@ -670,12 +702,12 @@ export default function PaymentModal({
                             </p>
                         </div>
 
-                        {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) & HÀNH ĐỘNG */}
-                        <div className="w-full mt-6 space-y-3">
-                            <div className="p-3.5 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-2.5 text-blue-700 shadow-xs">
-                                <span className="relative flex h-3 w-3 shrink-0">
+                        {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) & HÀNH ĐỘNG (DESKTOP) */}
+                        <div className="w-full mt-4 sm:mt-6 space-y-3">
+                            <div className="p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-2 text-blue-700 shadow-xs">
+                                <span className="relative flex h-2.5 w-2.5 shrink-0">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
                                 </span>
                                 <RefreshCw className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
                                 <span className="text-xs sm:text-sm font-semibold text-blue-900 animate-pulse tracking-wide">
@@ -683,7 +715,7 @@ export default function PaymentModal({
                                 </span>
                             </div>
 
-                            <div className="flex flex-col gap-2 pt-1">
+                            <div className="hidden md:flex flex-col gap-2 pt-1">
                                 <button
                                     type="button"
                                     onClick={handleConfirmPayment}
@@ -711,6 +743,34 @@ export default function PaymentModal({
                     </div>
                 </div>
             </div>
+
+                {/* STICKY FOOTER HÀNH ĐỘNG RIÊNG CHO MOBILE (< md) ĐỂ KHÔNG BỊ KHUẤT TRÊN 375x667 */}
+                <div
+                    className="md:hidden shrink-0 px-3.5 pt-2.5 bg-white/95 backdrop-blur-md border-t border-slate-200 flex flex-col gap-2 shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.12)]"
+                    style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
+                >
+                    <button
+                        type="button"
+                        onClick={handleConfirmPayment}
+                        disabled={isLoading}
+                        className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-[0.99] text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-900/20 disabled:opacity-50"
+                    >
+                        {isLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        )}
+                        <span>Tôi đã chuyển khoản xong (Kiểm tra ngay)</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleInitiateCancel}
+                        disabled={isLoading}
+                        className="w-full min-h-[40px] py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition cursor-pointer disabled:opacity-50 text-center"
+                    >
+                        Hủy bỏ / Thanh toán sau
+                    </button>
+                </div>
         </div>
 
             {/* ========================================================================= */}

@@ -112,10 +112,10 @@ export default function RoomsComparisonAndStandards({
                         <ArrowRight className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[680px] border-collapse text-left">
+                        <table className="w-full min-w-[600px] sm:min-w-[680px] border-collapse text-left">
                             <thead>
                                 <tr className="border-b border-slate-200/80">
-                                    <th className="sticky left-0 z-10 py-4 sm:py-5 px-3 sm:px-6 text-xs sm:text-sm font-bold text-slate-900 bg-slate-50 w-[28%] shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                    <th className="sticky left-0 z-10 py-3.5 sm:py-5 px-2.5 sm:px-6 text-[11px] sm:text-sm font-bold text-slate-900 bg-slate-50 w-[124px] min-w-[124px] sm:w-[28%] shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         Thông Số &amp; Tiện Nghi
                                     </th>
                                     {comparedRooms.map((room, idx) => {
@@ -294,8 +294,8 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng liên kết xem chi tiết từng hạng phòng */}
                                 <tr className="bg-slate-50/40">
-                                    <td className="py-4 px-6 text-xs font-medium text-slate-400">
-                                        Khám phá chi tiết từng hạng
+                                    <td className="sticky left-0 z-10 bg-slate-50 py-3.5 sm:py-4 px-2.5 sm:px-6 text-[11px] sm:text-xs font-medium text-slate-500 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                        Chi tiết hạng phòng
                                     </td>
                                     {comparedRooms.map((room, idx) => {
                                         const isMiddle = comparedRooms.length === 3 && idx === 1;

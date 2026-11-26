@@ -281,7 +281,7 @@ export default function Profile() {
         return (
             <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
                 <Navbar />
-                <div className="max-w-xl mx-auto my-20 p-8 bg-white rounded-3xl shadow-xl text-center border border-slate-200">
+                <div className="max-w-xl mx-4 sm:mx-auto my-12 sm:my-20 p-6 sm:p-8 bg-white rounded-3xl shadow-xl text-center border border-slate-200">
                     <div className="w-16 h-16 mx-auto mb-4 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600 shadow-sm border border-amber-200">
                         <Crown className="w-8 h-8" />
                     </div>
@@ -445,7 +445,7 @@ export default function Profile() {
                                                 if (!isEditing) setIsEditing(true);
                                                 fileInputRef.current?.click();
                                             }}
-                                            className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition transform hover:scale-110"
+                                            className="absolute bottom-0 right-0 w-10 h-10 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white border-2 border-white shadow-md flex items-center justify-center cursor-pointer transition transform hover:scale-110"
                                             title="Thay đổi ảnh đại diện"
                                         >
                                             <Camera className="w-3.5 h-3.5" />
@@ -822,11 +822,11 @@ export default function Profile() {
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                                 Giấy tờ định danh
                                             </label>
-                                            <div className="flex flex-col xs:flex-row gap-2">
+                                            <div className="flex flex-col sm:flex-row gap-2">
                                                 <select
                                                     value={formData.idType}
                                                     onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                                                    className="w-full xs:w-36 px-2.5 py-2.5 rounded-xl text-base sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer shrink-0"
+                                                    className="w-full sm:w-36 px-2.5 py-2.5 rounded-xl text-base sm:text-sm font-medium bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/15 focus:bg-white transition cursor-pointer shrink-0"
                                                 >
                                                     <option value="CCCD">CCCD / CMND</option>
                                                     <option value="PASSPORT">Hộ chiếu</option>
@@ -957,7 +957,7 @@ export default function Profile() {
                                         setActiveTab('membership');
                                         navigate('/profile?tab=membership', { replace: true });
                                     }}
-                                    className="w-full p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full min-h-[44px] p-2.5 rounded-xl hover:bg-amber-50/70 text-slate-700 hover:text-amber-800 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
                                         <Award className="w-4 h-4 text-amber-500" />
@@ -968,7 +968,7 @@ export default function Profile() {
                                 <button
                                     type="button"
                                     onClick={() => setIsChangePasswordOpen(true)}
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full min-h-[44px] p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
                                         <Lock className="w-4 h-4 text-sky-600" />
@@ -978,7 +978,7 @@ export default function Profile() {
                                 </button>
                                 <Link
                                     to="/booking-history"
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full min-h-[44px] p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
                                         <History className="w-4 h-4 text-sky-600" />
@@ -988,7 +988,7 @@ export default function Profile() {
                                 </Link>
                                 <Link
                                     to="/promotions"
-                                    className="w-full p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                    className="w-full min-h-[44px] p-2.5 rounded-xl hover:bg-sky-50/70 text-slate-700 hover:text-sky-700 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                 >
                                     <span className="flex items-center gap-2.5">
                                         <Ticket className="w-4 h-4 text-sky-600" />
@@ -1000,7 +1000,7 @@ export default function Profile() {
                                     <button
                                         type="button"
                                         onClick={() => setIsLogoutConfirmOpen(true)}
-                                        className="w-full p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
+                                        className="w-full min-h-[44px] p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition flex items-center justify-between text-xs font-semibold cursor-pointer group"
                                     >
                                         <span className="flex items-center gap-2.5">
                                             <LogOut className="w-4 h-4 text-rose-500" />

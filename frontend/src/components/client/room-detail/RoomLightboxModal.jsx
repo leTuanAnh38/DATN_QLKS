@@ -66,6 +66,10 @@ export default function RoomLightboxModal({
     return (
         <div
             className="fixed inset-0 z-[100] bg-black/95 flex flex-col justify-between p-3 sm:p-6 backdrop-blur-md select-none"
+            style={{
+                paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))',
+                paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))',
+            }}
             onClick={onClose}
         >
             {/* Thanh tiêu đề trên cùng: Đếm số ảnh & nút đóng */}
@@ -103,7 +107,7 @@ export default function RoomLightboxModal({
                     key={lightboxIndex}
                     src={gallery[lightboxIndex]?.url}
                     alt={gallery[lightboxIndex]?.title || 'Ảnh phóng to'}
-                    className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition duration-300"
+                    className="max-w-full max-h-[75dvh] object-contain rounded-xl shadow-2xl transition duration-300"
                 />
 
                 {gallery.length > 1 && (

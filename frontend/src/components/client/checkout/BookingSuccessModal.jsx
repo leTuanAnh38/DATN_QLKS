@@ -86,7 +86,7 @@ export default function BookingSuccessModal({
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md">
-            <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-10 text-center shadow-2xl animate-in fade-in zoom-in duration-300 max-h-[90dvh] overflow-y-auto">
                 {/* Icon thành công */}
                 <div className="w-20 h-20 mx-auto rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-4xl mb-6 shadow-inner">
                     <CheckCircle2 className="w-10 h-10 text-emerald-600" />
@@ -122,7 +122,7 @@ export default function BookingSuccessModal({
                                     setTimeout(() => setCopiedCode(false), 2500);
                                 }
                             }}
-                            className="p-1.5 px-2.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-amber-600 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                            className="min-h-[38px] sm:min-h-0 py-1.5 px-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-amber-600 transition cursor-pointer flex items-center gap-1 shadow-2xs"
                             title="Sao chép mã"
                         >
                             {copiedCode ? (

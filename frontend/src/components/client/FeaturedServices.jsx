@@ -293,7 +293,7 @@ export default function FeaturedServices() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+                    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
                         {displayedServices.map((item) => {
                             const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80';
                             const categoryName = item.category_name || item.category?.name || (`Dịch vụ ${starCount} sao`);
@@ -302,7 +302,7 @@ export default function FeaturedServices() {
                             return (
                                 <div
                                     key={item.id}
-                                    className="group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full"
+                                    className="w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full"
                                 >
                                     {/* Image Wrapper: Bấm để xem chi tiết dịch vụ */}
                                     <div
@@ -332,8 +332,8 @@ export default function FeaturedServices() {
                                             <span>{categoryName}</span>
                                         </span>
 
-                                        {/* Quick view cue */}
-                                        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                                        {/* Quick view cue (chỉ hiện khi hover trên desktop để không che ảnh mobile) */}
+                                        <span className="hidden sm:inline-flex absolute bottom-3 right-3 items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                             <Eye className="w-3 h-3 text-sky-600" />
                                             <span>Xem chi tiết</span>
                                         </span>

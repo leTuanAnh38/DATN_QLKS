@@ -378,9 +378,9 @@ export default function AuthBookingPage() {
                         {/* CỘT TRÁI: QUẢN LÝ KỲ NGHỈ & THẺ VÉ VIP MOCKUP */}
                         <div className="order-2 lg:order-1 lg:col-span-6 bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-4 shadow-xs">
-                                    <Award className="w-3.5 h-3.5 text-amber-300" />
-                                    <span>Cổng Dịch Vụ Khách Hàng Thân Thiết</span>
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider mb-4 shadow-xs max-w-full">
+                                    <Award className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                                    <span className="leading-snug">Cổng Hội Viên Khách Hàng Thân Thiết</span>
                                 </div>
                                 <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight mb-3">
                                     Quản lý kỳ nghỉ dễ dàng & tiện lợi
@@ -608,7 +608,7 @@ export default function AuthBookingPage() {
                                             setLoginErrors({});
                                             setRegisterErrors({});
                                         }}
-                                        className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+                                        className={`flex-1 min-h-[42px] py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
                                             activeTab === 'login'
                                                 ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
                                                 : 'text-slate-500 hover:text-slate-800'
@@ -624,7 +624,7 @@ export default function AuthBookingPage() {
                                             setLoginErrors({});
                                             setRegisterErrors({});
                                         }}
-                                        className={`flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        className={`flex-1 min-h-[42px] py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                                             activeTab === 'register'
                                                 ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
                                                 : 'text-slate-500 hover:text-slate-800'
@@ -682,7 +682,7 @@ export default function AuthBookingPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsForgotPasswordOpen(true)}
-                                                    className="text-xs text-amber-600 hover:text-amber-700 hover:underline font-semibold cursor-pointer"
+                                                    className="py-1.5 px-1 -my-1.5 text-xs text-amber-600 hover:text-amber-700 hover:underline font-semibold cursor-pointer"
                                                 >
                                                     Quên mật khẩu?
                                                 </button>
@@ -1280,11 +1280,11 @@ export default function AuthBookingPage() {
                             )}
                         </div>
 
-                        <div className="pt-4 border-t border-slate-100 flex justify-end">
+                        <div className="pt-4 border-t border-slate-100 flex justify-end shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setLegalModal(null)}
-                                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer"
+                                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer"
                             >
                                 Đã hiểu
                             </button>

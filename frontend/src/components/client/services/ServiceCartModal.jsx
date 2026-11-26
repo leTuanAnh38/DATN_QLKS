@@ -45,9 +45,7 @@ export default function ServiceCartModal({
                 aria-hidden="true"
             />
             <div
-                className={`relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10 ${
-                    cart.length > 0 ? 'h-[92dvh] sm:h-auto sm:max-h-[88vh]' : 'max-h-[90dvh] sm:max-h-[88vh]'
-                }`}
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10 max-h-[92dvh] sm:max-h-[88dvh]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header (Clean White Theme) */}
@@ -382,12 +380,12 @@ export default function ServiceCartModal({
                         </div>
 
                         {/* Footer */}
-                        <div className="px-3.5 sm:px-6 py-3 sm:py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-between gap-2 sm:gap-3 shrink-0">
+                        <div className="px-3.5 sm:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-between gap-2 sm:gap-3 shrink-0">
                             <button
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSubmittingCart}
-                                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center whitespace-nowrap"
+                                className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center whitespace-nowrap"
                             >
                                 Thêm món
                                 <span className="hidden sm:inline"> khác</span>
@@ -395,7 +393,7 @@ export default function ServiceCartModal({
                             <button
                                 type="submit"
                                 disabled={isSubmittingCart}
-                                className="flex-[1.6] sm:flex-initial px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                                className="flex-[1.6] sm:flex-initial min-h-[44px] sm:min-h-0 px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                             >
                                 {isSubmittingCart ? (
                                     <>

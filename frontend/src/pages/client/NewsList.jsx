@@ -258,7 +258,7 @@ export default function NewsList() {
                     <div className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-sky-200/80 transition-all duration-300 group">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                             {/* Cột ảnh bìa */}
-                            <div className="lg:col-span-7 relative h-64 sm:h-80 lg:h-full min-h-[320px] overflow-hidden bg-slate-100">
+                            <div className="lg:col-span-7 relative h-56 sm:h-80 lg:h-full lg:min-h-[320px] overflow-hidden bg-slate-100">
                                 {featuredPost.thumbnail_url ? (
                                     <img
                                         src={featuredPost.thumbnail_url}
@@ -279,7 +279,7 @@ export default function NewsList() {
                             </div>
 
                             {/* Cột nội dung */}
-                            <div className="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
+                            <div className="lg:col-span-5 p-4 sm:p-8 lg:p-10 flex flex-col justify-between">
                                 <div className="space-y-3.5">
                                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold">
                                         <span className="px-2.5 py-0.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/80">

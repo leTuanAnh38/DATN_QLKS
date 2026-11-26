@@ -441,7 +441,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         aria-hidden="true"
                     />
                     <div
-                        className="fixed inset-x-2 top-[76px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-88px)] sm:max-h-[600px] flex flex-col"
+                        className="fixed inset-x-2 top-[68px] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[480px] md:w-[540px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-2xl border border-slate-200 py-0 z-[100] overflow-hidden animate-fadeIn max-h-[calc(100dvh-80px)] sm:max-h-[600px] flex flex-col"
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}
@@ -459,7 +459,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                 <button
                                     type="button"
                                     onClick={handleMarkAllAsRead}
-                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 min-h-[36px] px-2 sm:min-h-0 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 min-h-[40px] px-2.5 sm:min-h-0 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
                                     title="Đánh dấu tất cả đã đọc"
                                     aria-label="Đánh dấu tất cả đã đọc"
                                 >
@@ -473,7 +473,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                     type="button"
                                     onClick={handleClearRead}
                                     disabled={isClearingRead}
-                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-red-600 min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-red-600 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
                                     title="Dọn dẹp các thông báo đã đọc"
                                     aria-label="Dọn dẹp các thông báo đã đọc"
                                 >
@@ -484,7 +484,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={toggleSound}
-                                className={`min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg transition cursor-pointer shrink-0 ${
+                                className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg transition cursor-pointer shrink-0 ${
                                     soundEnabled ? 'text-blue-600 hover:bg-blue-100/60' : 'text-slate-400 hover:bg-slate-200/60'
                                 }`}
                                 title={soundEnabled ? 'Đang bật âm thanh thông báo (Click để tắt)' : 'Đang tắt âm thanh thông báo (Click để bật)'}
@@ -495,7 +495,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={() => fetchNotifications(false, 1, false, filter)}
-                                className="min-w-[36px] min-h-[36px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
+                                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
                                 title="Tải lại thông báo"
                                 aria-label="Tải lại thông báo"
                             >
@@ -509,7 +509,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => handleFilterChange('all')}
-                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
+                            className={`px-3 py-1.5 min-h-[36px] sm:min-h-0 sm:py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
                                 filter === 'all'
                                     ? 'bg-blue-600 text-white shadow-xs font-semibold'
                                     : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -520,7 +520,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => handleFilterChange('unread')}
-                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
+                            className={`px-3 py-1.5 min-h-[36px] sm:min-h-0 sm:py-1 rounded-lg font-medium transition cursor-pointer shrink-0 ${
                                 filter === 'unread'
                                     ? 'bg-blue-600 text-white shadow-xs font-semibold'
                                     : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -531,7 +531,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => handleFilterChange('payment')}
-                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                            className={`px-3 py-1.5 min-h-[36px] sm:min-h-0 sm:py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
                                 filter === 'payment'
                                     ? 'bg-emerald-600 text-white shadow-xs font-semibold'
                                     : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -543,7 +543,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => handleFilterChange('booking')}
-                            className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                            className={`px-3 py-1.5 min-h-[36px] sm:min-h-0 sm:py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
                                 filter === 'booking'
                                     ? 'bg-purple-600 text-white shadow-xs font-semibold'
                                     : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -556,7 +556,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={() => handleFilterChange('service')}
-                                className={`px-2.5 py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
+                                className={`px-3 py-1.5 min-h-[36px] sm:min-h-0 sm:py-1 rounded-lg font-medium transition cursor-pointer shrink-0 inline-flex items-center gap-1 ${
                                     filter === 'service'
                                         ? 'bg-amber-600 text-white shadow-xs font-semibold'
                                         : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200'
@@ -700,7 +700,7 @@ export default function NotificationBell({ theme = 'light' }) {
                         <button
                             type="button"
                             onClick={() => setIsOpen(false)}
-                            className="text-[10px] font-semibold text-slate-600 hover:text-slate-900 px-2 py-0.5 rounded hover:bg-slate-200/60 transition cursor-pointer"
+                            className="text-xs sm:text-[10px] font-semibold text-slate-600 hover:text-slate-900 min-h-[36px] sm:min-h-0 px-3 sm:px-2 py-1.5 sm:py-0.5 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
                         >
                             Đóng
                         </button>

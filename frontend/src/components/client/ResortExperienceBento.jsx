@@ -92,17 +92,17 @@ export default function ResortExperienceBento() {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
                         <Link
                             to="/rooms"
-                            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all"
+                            className="w-full sm:w-auto justify-center min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white text-xs sm:text-sm font-bold shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 hover:-translate-y-0.5 transition-all"
                         >
                             <span>Khám phá không gian phòng</span>
                             <ArrowRight className="w-4 h-4" />
                         </Link>
                         <Link
                             to="/contact"
-                            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 text-xs sm:text-sm font-bold transition-all"
+                            className="w-full sm:w-auto justify-center min-h-[44px] inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/90 text-xs sm:text-sm font-bold transition-all"
                         >
                             <MapPin className="w-4 h-4 text-amber-600" />
                             <span>Vị trí & Chỉ đường</span>
@@ -111,9 +111,9 @@ export default function ResortExperienceBento() {
                 </div>
 
                 {/* BENTO PHOTO GALLERY (4 tấm ảnh độc bản, không trùng với các section khác) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-5">
                     {/* Ảnh lớn 1 (Chiếm 7 cột, cao 2 hàng): Hồ Bơi Vô Cực Hướng Biển */}
-                    <div className="lg:col-span-7 lg:row-span-2 relative group rounded-3xl overflow-hidden min-h-[320px] sm:min-h-[440px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.15)]">
+                    <div className="lg:col-span-7 lg:row-span-2 relative group rounded-3xl overflow-hidden min-h-[250px] sm:min-h-[440px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.15)]">
                         <img
                             src={BENTO_GALLERY.mainPool.url}
                             alt={BENTO_GALLERY.mainPool.title}
@@ -162,10 +162,10 @@ export default function ResortExperienceBento() {
                         </div>
                     </div>
 
-                    {/* Hàng dưới bên phải chia 2 ảnh nhỏ */}
-                    <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                    {/* Hàng dưới bên phải chia 2 ảnh nhỏ (2 cột ngay cả trên mobile để gọn chiều dài) */}
+                    <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-5">
                         {/* Ảnh 3: Nhà hàng & Sky Bar */}
-                        <div className="relative group rounded-3xl overflow-hidden min-h-[200px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
+                        <div className="relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
                             <img
                                 src={BENTO_GALLERY.fineDining.url}
                                 alt={BENTO_GALLERY.fineDining.title}
@@ -173,21 +173,21 @@ export default function ResortExperienceBento() {
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                            <div className="absolute top-3 left-3">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[10px] font-bold">
-                                    <UtensilsCrossed className="w-3 h-3" />
-                                    <span>{BENTO_GALLERY.fineDining.badge}</span>
+                            <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
+                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
+                                    <UtensilsCrossed className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">{BENTO_GALLERY.fineDining.badge}</span>
                                 </span>
                             </div>
-                            <div className="absolute bottom-3.5 left-3.5 right-3.5 text-white">
-                                <h4 className="font-serif text-base font-bold leading-snug">
+                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white">
+                                <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
                                     {BENTO_GALLERY.fineDining.title}
                                 </h4>
                             </div>
                         </div>
 
                         {/* Ảnh 4: Bãi biển Mỹ Khê & Đưa đón VIP */}
-                        <div className="relative group rounded-3xl overflow-hidden min-h-[200px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
+                        <div className="relative group rounded-2xl sm:rounded-3xl overflow-hidden min-h-[155px] sm:min-h-[210px] bg-slate-900 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.12)]">
                             <img
                                 src={BENTO_GALLERY.coastalView.url}
                                 alt={BENTO_GALLERY.coastalView.title}
@@ -195,14 +195,14 @@ export default function ResortExperienceBento() {
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                            <div className="absolute top-3 left-3">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[10px] font-bold">
-                                    <Car className="w-3 h-3" />
-                                    <span>{BENTO_GALLERY.coastalView.badge}</span>
+                            <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
+                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
+                                    <Car className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">{BENTO_GALLERY.coastalView.badge}</span>
                                 </span>
                             </div>
-                            <div className="absolute bottom-3.5 left-3.5 right-3.5 text-white">
-                                <h4 className="font-serif text-base font-bold leading-snug">
+                            <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white">
+                                <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
                                     {BENTO_GALLERY.coastalView.title}
                                 </h4>
                             </div>
@@ -210,26 +210,26 @@ export default function ResortExperienceBento() {
                     </div>
                 </div>
 
-                {/* DẢI 4 THÔNG SỐ VÀNG (KEY RESORT HIGHLIGHTS) */}
-                <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                {/* DẢI 4 THÔNG SỐ VÀNG (Lưới 2 cột gọn trên mobile) */}
+                <div className="mt-6 sm:mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                     {stats.map((st, idx) => {
                         const IconComp = st.icon;
                         return (
                             <div
                                 key={idx}
-                                className="p-5 rounded-2xl bg-gradient-to-br from-slate-50/90 via-white to-amber-50/30 border border-slate-200/80 hover:border-sky-200/90 shadow-2xs hover:shadow-md transition-all duration-300 flex items-start gap-3.5 group"
+                                className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-50/90 via-white to-amber-50/30 border border-slate-200/80 hover:border-sky-200/90 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col sm:flex-row items-start gap-2.5 sm:gap-3.5 group"
                             >
-                                <div className="w-11 h-11 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 group-hover:bg-gradient-to-br group-hover:from-sky-600 group-hover:to-blue-700 group-hover:text-white group-hover:border-transparent flex items-center justify-center shrink-0 transition-all duration-300 shadow-2xs">
-                                    <IconComp className="w-5 h-5" />
+                                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-700 group-hover:bg-gradient-to-br group-hover:from-sky-600 group-hover:to-blue-700 group-hover:text-white group-hover:border-transparent flex items-center justify-center shrink-0 transition-all duration-300 shadow-2xs">
+                                    <IconComp className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0">
-                                    <div className="font-serif text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                                    <div className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-tight">
                                         {st.value}
                                     </div>
-                                    <div className="text-xs font-bold text-amber-800 mt-0.5">
+                                    <div className="text-[11px] sm:text-xs font-bold text-amber-800 mt-0.5 leading-snug">
                                         {st.label}
                                     </div>
-                                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                                    <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
                                         {st.desc}
                                     </p>
                                 </div>

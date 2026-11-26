@@ -347,14 +347,14 @@ export default function NewsDetail() {
                                 <div className="space-y-2">
                                     <Link
                                         to="/rooms"
-                                        className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 px-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs text-center rounded-xl shadow-md shadow-sky-900/20 transition group"
+                                        className="inline-flex items-center justify-center gap-1.5 w-full min-h-[42px] py-2.5 px-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs text-center rounded-xl shadow-md shadow-sky-900/20 transition group"
                                     >
                                         <span>Khám Phá Phòng Nghỉ</span>
                                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                                     </Link>
                                     <Link
                                         to="/promotions"
-                                        className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-4 bg-slate-50 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200/80 hover:border-sky-200 font-semibold text-xs text-center rounded-xl transition"
+                                        className="inline-flex items-center justify-center gap-1.5 w-full min-h-[40px] py-2.5 px-4 bg-slate-50 hover:bg-sky-50 text-slate-700 hover:text-sky-700 border border-slate-200/80 hover:border-sky-200 font-semibold text-xs text-center rounded-xl transition"
                                     >
                                         <span>Xem Kho Mã Ưu Đãi</span>
                                     </Link>

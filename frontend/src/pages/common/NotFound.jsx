@@ -22,7 +22,7 @@ export default function NotFound() {
                         Đường dẫn bạn tìm không tồn tại
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-500 leading-relaxed max-w-md mx-auto">
-                        Trang <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs">{pathname}</code> có thể đã được di chuyển hoặc không còn khả dụng.
+                        Trang <code className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs break-all">{pathname}</code> có thể đã được di chuyển hoặc không còn khả dụng.
                     </p>
                 </div>
 

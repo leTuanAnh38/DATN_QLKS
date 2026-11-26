@@ -793,19 +793,43 @@ export default function AIChatbotWidget() {
     const [hasUnread, setHasUnread] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [showLangDropdown, setShowLangDropdown] = useState(false);
+    const [mobileViewportHeight, setMobileViewportHeight] = useState(null);
 
-    // Tự động hiển thị Bong bóng chào đón thông minh (Proactive Callout Bubble) sau 3.5s
+    // Đồng bộ chiều cao thực tế khi bàn phím ảo iOS/Android mở (visualViewport)
     useEffect(() => {
+        if (!isOpen || typeof window === 'undefined' || !window.visualViewport) {
+            setMobileViewportHeight(null);
+            return undefined;
+        }
+        const updateHeight = () => {
+            if (window.innerWidth < 640 && window.visualViewport) {
+                setMobileViewportHeight(Math.round(window.visualViewport.height));
+            } else {
+                setMobileViewportHeight(null);
+            }
+        };
+        updateHeight();
+        window.visualViewport.addEventListener('resize', updateHeight);
+        window.visualViewport.addEventListener('scroll', updateHeight);
+        return () => {
+            window.visualViewport?.removeEventListener('resize', updateHeight);
+            window.visualViewport?.removeEventListener('scroll', updateHeight);
+        };
+    }, [isOpen]);
+
+    // Tự động hiển thị Bong bóng chào đón thông minh (chỉ tự hiện trên màn hình >= sm để tránh che nội dung mobile)
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 640) return undefined;
         let hasDismissed = false;
         try {
             hasDismissed = sessionStorage.getItem('ta_chatbot_bubble_dismissed') === 'true';
         } catch {
             // ignore
         }
-        if (hasDismissed) return;
+        if (hasDismissed) return undefined;
 
         const timer = setTimeout(() => {
-            if (!isOpen) {
+            if (!isOpen && (typeof window === 'undefined' || window.innerWidth >= 640)) {
                 setShowCalloutBubble(true);
             }
         }, 3500);
@@ -1082,7 +1106,11 @@ export default function AIChatbotWidget() {
             }
         }
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, []);
 
     const scrollToBottom = (smooth = true) => {
@@ -1161,9 +1189,12 @@ export default function AIChatbotWidget() {
                     setTimeout(() => scrollToLastInteraction(false), 50);
                 });
             }
-            setTimeout(() => {
-                inputRef.current?.focus({ preventScroll: true });
-            }, 100);
+            // Chỉ tự focus ô nhập trên màn hình >= sm để tránh bật bàn phím ảo iOS che lời chào trên mobile
+            if (typeof window === 'undefined' || window.innerWidth >= 640) {
+                setTimeout(() => {
+                    inputRef.current?.focus({ preventScroll: true });
+                }, 100);
+            }
         }
     }, [isOpen]);
 
@@ -1575,15 +1606,16 @@ export default function AIChatbotWidget() {
                 <div
                     className="fixed z-[9999] flex flex-col bg-white shadow-2xl border border-sky-100 overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300 inset-x-0 top-0 h-[100dvh] max-h-[100dvh] rounded-none sm:rounded-2xl sm:inset-auto sm:bottom-20 sm:right-6 sm:w-[410px] sm:h-[550px] sm:max-h-[calc(100vh-6rem)]"
                     style={{
-                        boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)'
+                        boxShadow: '0 20px 45px -12px rgba(14, 165, 233, 0.16), 0 8px 20px -6px rgba(15, 23, 42, 0.08)',
+                        ...(mobileViewportHeight ? { height: `${mobileViewportHeight}px`, maxHeight: `${mobileViewportHeight}px` } : {})
                     }}
                 >
                     {/* A. HEADER TÔNG XANH PASTEL & TRẮNG NGỌC TRAI DỊU MẮT */}
                     <header
-                        className="bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/90 text-slate-800 px-4 py-3 border-b border-sky-100/90 flex items-center justify-between shadow-2xs select-none"
-                        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
+                        className="bg-gradient-to-r from-sky-50/95 via-white to-cyan-50/90 text-slate-800 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-sky-100/90 flex items-center justify-between gap-2 shadow-2xs select-none"
+                        style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top, 0.625rem))' }}
                     >
-                        <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                             <div className="relative flex-shrink-0">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-500 via-blue-500 to-cyan-500 p-0.5 shadow-xs">
                                     <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-sky-600">
@@ -1598,7 +1630,7 @@ export default function AIChatbotWidget() {
                                     <h2 className="text-sm font-bold text-slate-800 tracking-tight font-sans m-0 whitespace-nowrap">
                                         Trợ Lý AI {starCount}★
                                     </h2>
-                                    <span className="text-[9px] bg-sky-100/80 text-sky-700 border border-sky-200 px-1.5 py-0.2 rounded font-semibold tracking-wider flex-shrink-0 uppercase">
+                                    <span className="hidden sm:inline-block text-[9px] bg-sky-100/80 text-sky-700 border border-sky-200 px-1.5 py-0.2 rounded font-semibold tracking-wider flex-shrink-0 uppercase">
                                         Concierge
                                     </span>
                                 </div>
@@ -1615,7 +1647,7 @@ export default function AIChatbotWidget() {
                             <div className="relative">
                                 <button
                                     onClick={() => setShowLangDropdown(!showLangDropdown)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-white hover:bg-sky-50 text-slate-700 border border-sky-200/80 shadow-2xs transition-all cursor-pointer active:scale-95"
+                                    className="flex items-center gap-1 px-2.5 min-h-[38px] sm:min-h-0 py-1.5 sm:py-1 rounded-lg text-xs font-semibold bg-white hover:bg-sky-50 text-slate-700 border border-sky-200/80 shadow-2xs transition-all cursor-pointer active:scale-95"
                                     title="Chọn ngôn ngữ / Select language"
                                     aria-label="Chọn ngôn ngữ giao tiếp"
                                 >
@@ -1679,12 +1711,12 @@ export default function AIChatbotWidget() {
                                     {currentDict.inhouse_badge(activeStayInfo.room_number)}
                                 </span>
                             </div>
-                            <div className="flex flex-wrap items-center gap-1 flex-shrink-0">
+                            <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
                                 <button
                                     type="button"
                                     disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.folio_query)}
-                                    className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold cursor-pointer transition disabled:opacity-50"
+                                    className="px-2.5 py-1.5 sm:py-0.5 min-h-[32px] sm:min-h-0 rounded-lg bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] sm:text-[10px] font-semibold cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_folio}
                                 </button>
@@ -1692,7 +1724,7 @@ export default function AIChatbotWidget() {
                                     type="button"
                                     disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.clean_query)}
-                                    className="px-2 py-0.5 rounded bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
+                                    className="px-2.5 py-1.5 sm:py-0.5 min-h-[32px] sm:min-h-0 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-[11px] sm:text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_clean}
                                 </button>
@@ -1700,7 +1732,7 @@ export default function AIChatbotWidget() {
                                     type="button"
                                     disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.issue_query)}
-                                    className="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
+                                    className="px-2.5 py-1.5 sm:py-0.5 min-h-[32px] sm:min-h-0 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-[11px] sm:text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_issue}
                                 </button>
@@ -1708,7 +1740,7 @@ export default function AIChatbotWidget() {
                                     type="button"
                                     disabled={isLoading}
                                     onClick={() => handleSendMessage(currentDict.lost_found_query)}
-                                    className="px-2 py-0.5 rounded bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
+                                    className="px-2.5 py-1.5 sm:py-0.5 min-h-[32px] sm:min-h-0 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[11px] sm:text-[10px] font-medium cursor-pointer transition disabled:opacity-50"
                                 >
                                     {currentDict.btn_lost_found}
                                 </button>
@@ -2181,27 +2213,27 @@ export default function AIChatbotWidget() {
                                                                     <div className="space-y-1.5">
                                                                         <div className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
                                                                             <span className="font-medium">{dict.svc_qty_label}</span>
-                                                                            <div className="inline-flex items-center gap-1.5 bg-white border border-emerald-200 rounded-lg px-1 py-0.5">
+                                                                            <div className="inline-flex items-center gap-1.5 bg-white border border-emerald-200 rounded-lg p-0.5">
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={() => updateQty(-1)}
                                                                                     disabled={isActLoading || currentQty <= 1}
-                                                                                    className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
+                                                                                    className="w-9 h-9 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
                                                                                     aria-label="Giảm số lượng"
                                                                                 >
-                                                                                    <Minus className="w-3 h-3" />
+                                                                                    <Minus className="w-3.5 h-3.5" />
                                                                                 </button>
-                                                                                <span className="min-w-[1.5rem] text-center font-bold text-slate-800 text-xs tabular-nums">
+                                                                                <span className="min-w-[1.75rem] text-center font-bold text-slate-800 text-xs tabular-nums">
                                                                                     {currentQty}
                                                                                 </span>
                                                                                 <button
                                                                                     type="button"
                                                                                     onClick={() => updateQty(1)}
                                                                                     disabled={isActLoading || currentQty >= 20}
-                                                                                    className="w-6 h-6 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
+                                                                                    className="w-9 h-9 sm:w-7 sm:h-7 rounded-md flex items-center justify-center text-emerald-800 hover:bg-emerald-50 disabled:opacity-40 cursor-pointer"
                                                                                     aria-label="Tăng số lượng"
                                                                                 >
-                                                                                    <Plus className="w-3 h-3" />
+                                                                                    <Plus className="w-3.5 h-3.5" />
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -2227,7 +2259,7 @@ export default function AIChatbotWidget() {
                                                                 <button
                                                                     onClick={() => handleConfirmPendingAction(msg.id, act)}
                                                                     disabled={isDone || isActLoading}
-                                                                    className={`w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                                                                    className={`w-full min-h-[38px] sm:min-h-0 py-2 sm:py-1.5 px-3 rounded-lg text-xs sm:text-[11px] font-semibold transition-all cursor-pointer ${
                                                                         isDone
                                                                             ? 'bg-emerald-100 text-emerald-800 cursor-default'
                                                                             : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 disabled:opacity-60'
@@ -2381,7 +2413,7 @@ export default function AIChatbotWidget() {
                                                                                 setIsOpen(false);
                                                                                 navigate(`/rooms/${room.id}`);
                                                                             }}
-                                                                            className="flex-1 py-1.5 px-1 text-[10px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                                                                            className="flex-1 min-h-[36px] sm:min-h-0 py-2 sm:py-1.5 px-1 text-[11px] sm:text-[10px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                                                                             title="Xem chi tiết hạng phòng"
                                                                         >
                                                                             <Eye className="w-3 h-3 text-slate-500" />
@@ -2405,7 +2437,7 @@ export default function AIChatbotWidget() {
                                                                                 }
                                                                             }}
                                                                             disabled={!isAvailable}
-                                                                            className={`flex-1 py-1.5 px-1 text-[10px] font-bold rounded-lg transition-all text-center cursor-pointer flex items-center justify-center gap-1 ${
+                                                                            className={`flex-1 min-h-[36px] sm:min-h-0 py-2 sm:py-1.5 px-1 text-[11px] sm:text-[10px] font-bold rounded-lg transition-all text-center cursor-pointer flex items-center justify-center gap-1 ${
                                                                                 isAvailable
                                                                                     ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white shadow-xs active:scale-95'
                                                                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
@@ -2502,7 +2534,7 @@ export default function AIChatbotWidget() {
                                                                             }
                                                                         );
                                                                     }}
-                                                                    className="w-full mt-2.5 py-1.5 px-2 text-[10px] font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                                                                    className="w-full mt-2.5 min-h-[36px] sm:min-h-0 py-2 sm:py-1.5 px-2 text-[11px] sm:text-[10px] font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300/80 rounded-lg transition-colors text-center cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                                                                     title="Xem thực đơn và gửi yêu cầu dịch vụ"
                                                                 >
                                                                     <Utensils className="w-3 h-3 text-amber-700" />
@@ -2522,11 +2554,11 @@ export default function AIChatbotWidget() {
                                             }`}
                                         >
                                             {isBot ? (
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center flex-wrap gap-1.5">
                                                     <button
                                                         type="button"
                                                         onClick={() => toggleSpeakMessage(msg)}
-                                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                        className={`min-h-[32px] sm:min-h-0 flex items-center gap-1.5 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full text-[11px] sm:text-[10px] font-medium transition-all cursor-pointer ${
                                                             speakingMsgId === msg.id
                                                                 ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs'
                                                                 : 'text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 border border-slate-200/60 hover:border-amber-300'
@@ -2535,12 +2567,12 @@ export default function AIChatbotWidget() {
                                                     >
                                                         {speakingMsgId === msg.id ? (
                                                             <>
-                                                                <VolumeX className="w-3 h-3 text-amber-700" />
+                                                                <VolumeX className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-amber-700" />
                                                                 <span className="font-semibold text-amber-900">{dict.stop_speak}</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Volume2 className="w-3 h-3 text-slate-500" />
+                                                                <Volume2 className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-slate-500" />
                                                                 <span>{dict.speak_btn}</span>
                                                             </>
                                                         )}
@@ -2549,7 +2581,7 @@ export default function AIChatbotWidget() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleCopyMessage(msg)}
-                                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                        className={`min-h-[32px] sm:min-h-0 flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full text-[11px] sm:text-[10px] font-medium transition-all cursor-pointer ${
                                                             copiedMsgId === msg.id
                                                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs font-semibold'
                                                                 : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200/60'
@@ -2559,23 +2591,23 @@ export default function AIChatbotWidget() {
                                                     >
                                                         {copiedMsgId === msg.id ? (
                                                             <>
-                                                                <Check className="w-3 h-3 text-emerald-600" />
+                                                                <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" />
                                                                 <span>{dict.copied_btn}</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Copy className="w-3 h-3 text-slate-400" />
+                                                                <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-slate-400" />
                                                                 <span>{dict.copy_btn}</span>
                                                             </>
                                                         )}
                                                     </button>
 
                                                     {msg.interaction_id && (
-                                                        <div className="flex items-center gap-0.5 ml-0.5">
+                                                        <div className="flex items-center gap-1 sm:gap-0.5 ml-0.5">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleFeedback(msg.id, msg.interaction_id, 'helpful')}
-                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                                                                className={`w-8 h-8 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
                                                                     msg.user_feedback === 'helpful'
                                                                         ? 'bg-emerald-50 text-emerald-600 border-emerald-300'
                                                                         : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50/70 border-transparent hover:border-emerald-200'
@@ -2583,12 +2615,12 @@ export default function AIChatbotWidget() {
                                                                 title={dict.feedback_helpful}
                                                                 aria-label={dict.feedback_helpful}
                                                             >
-                                                                <ThumbsUp className="w-3 h-3" />
+                                                                <ThumbsUp className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleFeedback(msg.id, msg.interaction_id, 'unhelpful')}
-                                                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                                                                className={`w-8 h-8 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
                                                                     msg.user_feedback === 'unhelpful'
                                                                         ? 'bg-rose-50 text-rose-600 border-rose-300'
                                                                         : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50/70 border-transparent hover:border-rose-200'
@@ -2596,7 +2628,7 @@ export default function AIChatbotWidget() {
                                                                 title={dict.feedback_unhelpful}
                                                                 aria-label={dict.feedback_unhelpful}
                                                             >
-                                                                <ThumbsDown className="w-3 h-3" />
+                                                                <ThumbsDown className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                             </button>
                                                         </div>
                                                     )}
@@ -2605,7 +2637,7 @@ export default function AIChatbotWidget() {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleCopyMessage(msg)}
-                                                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium transition-all cursor-pointer ${
+                                                    className={`min-h-[32px] sm:min-h-0 flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-full text-[11px] sm:text-[10px] font-medium transition-all cursor-pointer ${
                                                         copiedMsgId === msg.id
                                                             ? 'bg-sky-200/40 text-white font-semibold'
                                                             : 'text-sky-100/80 hover:text-white hover:bg-white/10'

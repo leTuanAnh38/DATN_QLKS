@@ -978,34 +978,36 @@ export default function DetailRoom() {
                             />
 
                             {/* Lớp gradient bóng mờ và tiêu đề ảnh */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-4 sm:p-6 text-white pointer-events-none pb-14 sm:pb-6">
-                                <span className="text-[11px] uppercase tracking-widest text-sky-300 font-bold mb-1">
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent flex flex-col justify-end p-4 sm:p-6 text-white pointer-events-none pb-14 sm:pb-6">
+                                <span className="hidden sm:inline-block text-[11px] uppercase tracking-widest text-sky-300 font-bold mb-1">
                                     {gallery.length === 1 ? 'Hình ảnh phòng' : `Góc nhìn ${safeImageIndex + 1} / ${gallery.length}`}
                                 </span>
-                                <p className="font-serif text-base sm:text-xl font-bold pr-24 sm:pr-28 line-clamp-1">
+                                <p className="font-serif text-sm sm:text-xl font-bold pr-24 sm:pr-28 line-clamp-1">
                                     {gallery[safeImageIndex]?.title || room.name}
                                 </p>
                             </div>
 
                             {/* Badge đếm số thứ tự ảnh góc trên bên trái */}
-                            <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 shadow">
+                            <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 shadow">
                                 <Camera className="w-3.5 h-3.5 text-sky-300" />
                                 <span>{safeImageIndex + 1} / {gallery.length}</span>
                             </div>
 
                             {/* Nút Phóng to ảnh góc trên bên phải */}
-                            <div
-                                className="absolute top-4 right-4 z-10 bg-black/40 backdrop-blur-md p-2 rounded-full text-white cursor-pointer hover:bg-black/60 transition"
+                            <button
+                                type="button"
+                                className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 bg-black/45 backdrop-blur-md w-10 h-10 sm:w-9 sm:h-9 rounded-full text-white cursor-pointer hover:bg-black/65 transition flex items-center justify-center border border-white/15"
                                 title="Xem toàn màn hình"
+                                aria-label="Xem ảnh toàn màn hình"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     openLightbox(safeImageIndex);
                                 }}
                             >
                                 <ZoomIn className="w-4 h-4 text-white" />
-                            </div>
+                            </button>
 
-                            {/* Nút Mũi tên chuyển ảnh Trái / Phải trên ảnh chính */}
+                            {/* Nút Mũi tên chuyển ảnh Trái / Phải (ẩn < sm vì mobile đã hỗ trợ vuốt tay mượt) */}
                             {gallery.length > 1 && (
                                 <>
                                     <button
@@ -1015,7 +1017,7 @@ export default function DetailRoom() {
                                              handlePrevImage();
                                         }}
                                         onTouchStart={(e) => e.stopPropagation()}
-                                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
+                                        className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
                                         aria-label="Ảnh trước"
                                     >
                                         <ChevronLeft className="w-5 h-5" />
@@ -1027,7 +1029,7 @@ export default function DetailRoom() {
                                             handleNextImage();
                                         }}
                                         onTouchStart={(e) => e.stopPropagation()}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-black/45 hover:bg-black/75 text-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
+                                        className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white items-center justify-center backdrop-blur-md transition-all active:scale-95 shadow-lg border border-white/20 cursor-pointer"
                                         aria-label="Ảnh tiếp theo"
                                     >
                                         <ChevronRight className="w-5 h-5" />

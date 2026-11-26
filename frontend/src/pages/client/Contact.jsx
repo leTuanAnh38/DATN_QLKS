@@ -283,8 +283,8 @@ export default function ContactPage() {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 w-full">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                    {/* LEFT: INTERACTIVE CONTACT FORM */}
-                    <div id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
+                    {/* LEFT (DESKTOP) / DƯỚI (MOBILE): INTERACTIVE CONTACT FORM */}
+                    <div id="contact-form-card" className="order-2 lg:order-1 lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
                         <div className="flex items-center justify-between pb-4 sm:pb-6 border-b border-slate-100">
                             <div>
                                 <span className="text-[10px] sm:text-[11px] font-bold text-sky-700 uppercase tracking-wider block">
@@ -447,8 +447,8 @@ export default function ContactPage() {
                         </form>
                     </div>
 
-                    {/* RIGHT: HEADQUARTERS & SPECIALIZED DEPARTMENTS */}
-                    <div className="lg:col-span-5 space-y-5">
+                    {/* RIGHT (DESKTOP) / ĐẦU TIÊN (MOBILE): HEADQUARTERS, HOTLINE 24/7 & DEPARTMENTS */}
+                    <div className="order-1 lg:order-2 lg:col-span-5 space-y-5">
 
                         {/* Flagship Address Box */}
                         <div className="bg-white rounded-3xl border border-slate-200/90 p-5 sm:p-6 shadow-sm">
@@ -494,16 +494,16 @@ export default function ContactPage() {
                                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotelInfo.address)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="px-4 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
+                                    className="flex-1 sm:flex-initial justify-center min-h-[40px] px-4 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 text-xs font-bold rounded-xl flex items-center gap-1.5 transition shadow-2xs"
                                 >
-                                    <Compass className="w-3.5 h-3.5" />
+                                    <Compass className="w-3.5 h-3.5 shrink-0" />
                                     <span>Mở Google Maps</span>
-                                    <ExternalLink className="w-3 h-3 opacity-60" />
+                                    <ExternalLink className="w-3 h-3 opacity-60 shrink-0" />
                                 </a>
                                 <button
                                     type="button"
                                     onClick={handleCopyAddress}
-                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
+                                    className="flex-1 sm:flex-initial justify-center min-h-[40px] px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition cursor-pointer"
                                 >
                                     {copiedAddress ? (
                                         <>
@@ -536,7 +536,7 @@ export default function ContactPage() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
                                 {/* 1. Reservations */}
                                 <button
                                     type="button"
@@ -700,20 +700,31 @@ export default function ContactPage() {
                             </div>
                         </div>
 
-                        {/* Bottom Left CTA Link to Google Maps (tránh đè lên nút zoom góc dưới phải của iframe) */}
+                        {/* Bottom Left CTA Link to Google Maps (trên desktop đè góc trái, trên mobile tách riêng bên dưới map để không chạm logo Google) */}
                         <a
                             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelInfo.address)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 flex items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto group"
+                            className="hidden sm:flex absolute bottom-4 left-4 bg-white/95 backdrop-blur-md hover:bg-white text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-xl shadow-lg border border-white/60 items-center gap-2 transition hover:scale-105 active:scale-95 pointer-events-auto group"
                         >
                             <Navigation className="w-4 h-4 text-sky-600 group-hover:rotate-12 transition-transform" />
                             <span>Mở chỉ đường Google Maps</span>
                         </a>
                     </div>
 
-                    {/* 4 TRAVEL TIME CARDS */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                    {/* Nút chỉ đường Google Maps riêng cho Mobile (ngay dưới bản đồ, dễ bấm 1 tay) */}
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(hotelInfo.address)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="sm:hidden mt-3 w-full min-h-[44px] bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs px-4 py-3 rounded-2xl border border-sky-200/90 flex items-center justify-center gap-2 transition active:scale-95"
+                    >
+                        <Navigation className="w-4 h-4 text-sky-600" />
+                        <span>Mở chỉ đường Google Maps</span>
+                    </a>
+
+                    {/* 4 TRAVEL TIME CARDS (2 cột gọn trên mobile) */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6 mt-6 sm:mt-8">
                         <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">

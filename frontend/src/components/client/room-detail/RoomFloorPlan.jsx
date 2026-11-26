@@ -117,10 +117,10 @@ export default function RoomFloorPlan({
                 <div className="flex flex-col gap-2 h-[230px] sm:h-[245px]">
                     {/* Dải trên cùng: Sky Terrace / Ban công Panorama + Jacuzzi */}
                     <div className="h-[58px] rounded-lg border border-dashed border-blue-300 bg-blue-100/55 flex items-center justify-between px-3">
-                        <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-blue-700">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
                             {roomHasBalcony ? `SKY TERRACE • ${viewShort}` : `KÍNH PANORAMA • ${viewShort}`}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/90 border border-blue-300 text-[8.5px] font-extrabold text-blue-700 uppercase">
+                        <span className="px-2 py-0.5 rounded-full bg-white/90 border border-blue-300 text-[10px] font-extrabold text-blue-700 uppercase">
                             {roomHasJacuzzi ? 'JACUZZI / LOUNGE' : 'GHẾ THƯ GIÃN'}
                         </span>
                     </div>
@@ -128,25 +128,25 @@ export default function RoomFloorPlan({
                     {/* Gian giữa & dưới: Phòng khách lớn + Master Bedroom + Phòng tắm Spa */}
                     <div className="flex-1 grid grid-cols-12 gap-2">
                         <div className="col-span-5 rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                 PHÒNG KHÁCH &amp; BÀN ĂN
                             </span>
-                            <span className="text-[8.5px] text-slate-400 mt-0.5">Khu tiếp đãi riêng</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5">Khu tiếp đãi riêng</span>
                         </div>
                         <div className="col-span-4 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-700">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 MASTER BEDROOM
                             </span>
                             {renderBedVisual(false)}
                         </div>
                         <div className="col-span-3 grid grid-rows-2 gap-2">
                             <div className="rounded-lg border border-slate-200/90 bg-blue-50/50 flex items-center justify-center p-1 text-center">
-                                <span className="text-[8.5px] font-extrabold uppercase text-blue-700 leading-tight">
+                                <span className="text-[10px] font-extrabold uppercase text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'SPA & JACUZZI' : 'PHÒNG TẮM'}
                                 </span>
                             </div>
                             <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1 text-center">
-                                <span className="text-[8.5px] font-bold uppercase text-slate-500 leading-tight">
+                                <span className="text-[10px] font-bold uppercase text-slate-500 leading-tight">
                                     CLOSET &amp; SẢNH
                                 </span>
                             </div>
@@ -161,20 +161,20 @@ export default function RoomFloorPlan({
             return (
                 <div className="grid grid-cols-12 gap-2 h-[225px] sm:h-[240px]">
                     <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1.5">
-                        <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `KÍNH ${viewShort}`}
                         </span>
                     </div>
 
                     <div className="col-span-5 grid grid-rows-2 gap-2">
                         <div className="rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-600">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
                                 PHÒNG KHÁCH
                             </span>
-                            <span className="text-[8.5px] text-slate-400 mt-0.5">Sofa &amp; bàn trà</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5">Sofa &amp; bàn trà</span>
                         </div>
                         <div className="rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-700">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 PHÒNG NGỦ
                             </span>
                             {renderBedVisual()}
@@ -184,13 +184,13 @@ export default function RoomFloorPlan({
                     <div className="col-span-4 grid grid-rows-2 gap-2">
                         <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2">
                             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-blue-500/80 bg-blue-100/75 flex items-center justify-center text-center px-1 shadow-2xs">
-                                <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'JACUZZI' : 'PHÒNG TẮM'}
                                 </span>
                             </div>
                         </div>
                         <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
                                 WALK-IN CLOSET
                             </span>
                         </div>
@@ -204,7 +204,7 @@ export default function RoomFloorPlan({
             return (
                 <div className="flex flex-col gap-2 h-[225px] sm:h-[240px]">
                     <div className="h-[42px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-3">
-                        <span className="text-[9.5px] font-bold uppercase tracking-[0.15em] text-blue-700">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `CỬA SỔ LỚN • ${viewShort}`}
                         </span>
                     </div>
@@ -212,13 +212,13 @@ export default function RoomFloorPlan({
                     <div className="flex-1 grid grid-cols-12 gap-2">
                         <div className="col-span-8 flex flex-col gap-2">
                             <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                                <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-700">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                     KHU NGỦ GIA ĐÌNH ({capacity} KHÁCH)
                                 </span>
                                 {renderBedVisual(true)}
                             </div>
                             <div className="h-[46px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 text-center">
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     KHU SINH HOẠT CHUNG &amp; BÀN TRÀ
                                 </span>
                             </div>
@@ -226,12 +226,12 @@ export default function RoomFloorPlan({
 
                         <div className="col-span-4 grid grid-rows-2 gap-2">
                             <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'PHÒNG TẮM & BỒN TẮM' : 'PHÒNG TẮM LỚN'}
                                 </span>
                             </div>
                             <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
                                     TỦ ĐỒ &amp; LỐI VÀO
                                 </span>
                             </div>
@@ -246,20 +246,20 @@ export default function RoomFloorPlan({
             return (
                 <div className="grid grid-cols-12 gap-2 h-[220px] sm:h-[235px]">
                     <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1.5">
-                        <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-[0.14em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `KÍNH ${viewShort}`}
                         </span>
                     </div>
 
                     <div className="col-span-5 flex flex-col gap-2">
                         <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-700">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 PHÒNG NGỦ CHÍNH
                             </span>
                             {renderBedVisual()}
                         </div>
                         <div className="h-[52px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                 GÓC THƯ GIÃN &amp; BÀN LÀM VIỆC
                             </span>
                         </div>
@@ -267,12 +267,12 @@ export default function RoomFloorPlan({
 
                     <div className="col-span-4 grid grid-rows-2 gap-2">
                         <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
                                 {roomHasJacuzzi ? 'BỒN TẮM & WC' : 'PHÒNG TẮM KÍNH'}
                             </span>
                         </div>
                         <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
                                 TỦ ĐỒ &amp; LỐI VÀO
                             </span>
                         </div>
@@ -285,7 +285,7 @@ export default function RoomFloorPlan({
         return (
             <div className="flex flex-col gap-2 h-[215px] sm:h-[230px]">
                 <div className="h-[38px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-3">
-                    <span className="text-[9.5px] font-bold uppercase tracking-[0.15em] text-blue-700">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
                         CỬA SỔ ĐÓN SÁNG • {viewShort}
                     </span>
                 </div>
@@ -293,13 +293,13 @@ export default function RoomFloorPlan({
                 <div className="flex-1 grid grid-cols-12 gap-2">
                     <div className="col-span-7 flex flex-col gap-2">
                         <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-700">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 KHÔNG GIAN NGỦ
                             </span>
                             {renderBedVisual()}
                         </div>
                         <div className="h-[44px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 text-center">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                 BÀN LÀM VIỆC &amp; MINIBAR
                             </span>
                         </div>
@@ -307,12 +307,12 @@ export default function RoomFloorPlan({
 
                     <div className="col-span-5 grid grid-rows-2 gap-2">
                         <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
                                 PHÒNG TẮM KÍNH
                             </span>
                         </div>
                         <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
                                 TỦ ĐỒ &amp; LỐI VÀO
                             </span>
                         </div>
@@ -343,8 +343,8 @@ export default function RoomFloorPlan({
             <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/70 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.07)]">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
                     {/* CỘT TRÁI: BẢN VẼ FLOOR PLAN WIREFRAME THEO PHÂN KHÚC PHÒNG */}
-                    <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-3 sm:p-5 overflow-x-auto no-scrollbar">
-                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2 sm:p-2.5 bg-white/50 min-w-[290px]">
+                    <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-2.5 sm:p-5 overflow-x-auto no-scrollbar">
+                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2 sm:p-2.5 bg-white/50 w-full min-w-0">
                             <div className="absolute -top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-white shadow-sm border border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 {layoutMeta.badge}
                             </div>

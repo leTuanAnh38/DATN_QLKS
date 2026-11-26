@@ -87,8 +87,8 @@ export default function RoomBookingWidget({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                             Thời gian lưu trú
                         </label>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2.5 xs:gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-                            <div className="border-b xs:border-b-0 xs:border-r border-slate-200 pb-2 xs:pb-0 xs:pr-2 min-w-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+                            <div className="border-b sm:border-b-0 sm:border-r border-slate-200 pb-2 sm:pb-0 sm:pr-2 min-w-0">
                                 <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                                     Nhận phòng
                                 </span>
@@ -106,7 +106,7 @@ export default function RoomBookingWidget({
                                     className="w-full bg-transparent text-base sm:text-xs font-bold text-slate-900 focus:outline-none cursor-pointer mt-0.5"
                                 />
                             </div>
-                            <div className="xs:pl-2 min-w-0">
+                            <div className="sm:pl-2 min-w-0">
                                 <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                                     Trả phòng
                                 </span>
@@ -147,16 +147,16 @@ export default function RoomBookingWidget({
                                 <button
                                     type="button"
                                     onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
-                                    className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                                     aria-label="Giảm số khách"
                                 >
                                     -
                                 </button>
-                                <span className="text-xs font-bold min-w-[16px] text-center">{guestCount}</span>
+                                <span className="text-xs font-bold min-w-[20px] text-center">{guestCount}</span>
                                 <button
                                     type="button"
                                     onClick={() => setGuestCount(Math.min(room.capacity || 4, guestCount + 1))}
-                                    className="w-9 h-9 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                                    className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                                     aria-label="Tăng số khách"
                                 >
                                     +

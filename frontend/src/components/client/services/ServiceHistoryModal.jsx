@@ -56,7 +56,7 @@ export default function ServiceHistoryModal({
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
             <div
-                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-3xl w-full h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up z-10"
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-3xl w-full max-h-[92dvh] sm:max-h-[90dvh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-scale-up z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header: Tối ưu nhỏ gọn, cân đối, không bị lệch trên mobile */}
@@ -87,7 +87,7 @@ export default function ServiceHistoryModal({
                             type="button"
                             onClick={() => fetchOrderHistory()}
                             disabled={isLoadingHistory}
-                            className="w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            className="w-10 h-10 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                             title="Làm mới trạng thái"
                         >
                             <RotateCw
@@ -101,7 +101,7 @@ export default function ServiceHistoryModal({
                             <button
                                 type="button"
                                 onClick={handleClearGuestSession}
-                                className="w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer"
+                                className="w-10 h-10 sm:w-auto sm:h-auto sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 flex items-center justify-center gap-1 transition cursor-pointer"
                                 title="Xóa phiên lưu trữ mã phòng này trên thiết bị này"
                             >
                                 <Trash2 className="w-3.5 h-3.5 text-rose-500" />
@@ -136,7 +136,7 @@ export default function ServiceHistoryModal({
                                 key={tab.key}
                                 type="button"
                                 onClick={() => setHistoryFilter(tab.key)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
+                                className={`px-3 py-2 min-h-[38px] sm:min-h-0 sm:py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap cursor-pointer shrink-0 ${
                                     isActive
                                         ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-sm ring-1 ring-sky-500'
                                         : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -512,7 +512,7 @@ export default function ServiceHistoryModal({
                 </div>
 
                 {/* Modal Footer */}
-                <div className="bg-slate-50 px-3.5 sm:px-6 py-2 sm:py-3.5 border-t border-slate-200 flex items-center justify-between gap-3 text-xs shrink-0">
+                <div className="bg-slate-50 px-3.5 sm:px-6 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:py-3.5 border-t border-slate-200 flex items-center justify-between gap-3 text-xs shrink-0">
                     <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
                         <PhoneCall className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                         <span>

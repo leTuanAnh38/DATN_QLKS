@@ -361,7 +361,7 @@ export default function ServiceDetailModal({
                 </div>
 
                 {/* STICKY FOOTER ACTIONS */}
-                <div className="px-4 py-3.5 sm:px-6 sm:py-4 bg-white border-t border-slate-200/80 shrink-0 space-y-3">
+                <div className="px-4 pt-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-4 bg-white border-t border-slate-200/80 shrink-0 space-y-3">
                     {showCartControls && (
                         <div className="flex items-center justify-between gap-3">
                             {/* Bộ chọn số lượng */}

@@ -44,8 +44,8 @@ function ScrollToTop() {
 
 function CustomerChatbot() {
   const { pathname } = useLocation();
-  // Ẩn Trợ lý AI trên các trang quản trị backend /admin
-  if (pathname.startsWith('/admin')) {
+  // Ẩn Trợ lý AI trên các trang quản trị backend /admin và trang đăng nhập /login
+  if (pathname.startsWith('/admin') || pathname === '/login') {
     return null;
   }
   return (

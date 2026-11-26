@@ -45,7 +45,7 @@ export default function ConfirmDialog({
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto transform transition-all"
+                className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-100 max-h-[90dvh] overflow-y-auto transform transition-all"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="p-4 sm:p-6">
@@ -71,12 +71,12 @@ export default function ConfirmDialog({
                     </div>
                 </div>
 
-                <div className="bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <div className="bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 border-t border-slate-100">
                     <button
                         type="button"
                         disabled={isLoading}
                         onClick={onClose}
-                        className="px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200/80 rounded-xl transition cursor-pointer"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white sm:bg-transparent border border-slate-200 sm:border-transparent hover:bg-slate-200/80 rounded-xl transition cursor-pointer flex items-center justify-center"
                     >
                         {cancelText}
                     </button>
@@ -84,7 +84,7 @@ export default function ConfirmDialog({
                         type="button"
                         disabled={isLoading || confirmDisabled}
                         onClick={onConfirm}
-                        className={`px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 ${btnMap[type] || btnMap.danger}`}
+                        className={`w-full sm:w-auto min-h-[44px] sm:min-h-0 px-5 py-2.5 text-sm font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${btnMap[type] || btnMap.danger}`}
                     >
                         {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                         {confirmText}

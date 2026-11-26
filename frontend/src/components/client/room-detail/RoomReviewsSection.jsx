@@ -537,11 +537,11 @@ export default function RoomReviewsSection({
                     </div>
 
                     {/* Nút gửi */}
-                    <div className="flex items-center justify-end gap-3 pt-2">
+                    <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-2">
                         <button
                             type="button"
                             onClick={() => setBookingToReview(null)}
-                            className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
+                            className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
                         >
                             Hủy bỏ
                         </button>
@@ -549,7 +549,7 @@ export default function RoomReviewsSection({
                             type="button"
                             onClick={handleSubmitReview}
                             disabled={isSubmittingReview}
-                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition shadow-md shadow-sky-900/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                            className="w-full sm:w-auto justify-center min-h-[44px] sm:min-h-0 px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition shadow-md shadow-sky-900/20 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                         >
                             {isSubmittingReview ? (
                                 <>
@@ -616,7 +616,7 @@ export default function RoomReviewsSection({
                                         key={tab.id}
                                         type="button"
                                         onClick={() => setSelectedStarFilter(tab.id)}
-                                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                                        className={`px-3.5 py-2 min-h-[38px] sm:min-h-0 sm:py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
                                             selectedStarFilter === tab.id
                                                 ? 'bg-slate-900 text-white shadow-xs'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'

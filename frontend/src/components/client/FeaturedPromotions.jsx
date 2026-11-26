@@ -171,11 +171,11 @@ export default function FeaturedPromotions() {
                     </div>
                 ) : (
                     <div
-                        className={`grid grid-cols-1 md:grid-cols-2 ${
+                        className={`flex sm:grid sm:grid-cols-2 ${
                             displayPromos.length >= 4
                                 ? 'lg:grid-cols-4'
                                 : 'lg:grid-cols-3'
-                        } gap-6`}
+                        } gap-4 sm:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar`}
                     >
                         {displayPromos.map((promo) => {
                             const isPercentage = promo.discount_type === 'percentage';
@@ -184,7 +184,7 @@ export default function FeaturedPromotions() {
                             return (
                                 <div
                                     key={promo.id || promo.code}
-                                    className="relative bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400 p-6 flex flex-col justify-between shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                                    className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center relative bg-white rounded-3xl border border-slate-200/90 hover:border-amber-400 p-5 sm:p-6 flex flex-col justify-between shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                                 >
                                     {/* Răng cưa vé (Perforated ticket cutout circle) đồng bộ trang Ưu đãi */}
                                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-white rounded-full border-b border-slate-200" />

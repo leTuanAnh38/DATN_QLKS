@@ -217,7 +217,7 @@ export default function RoomsAndSuitesPage() {
             </div>
 
             {/* 1. HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
-            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-6 sm:py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 {/* 1. Ảnh nền sắc nét 100% không blur, không giảm opacity */}
                 <img
                     src={bannerRoomsImg}
@@ -230,7 +230,7 @@ export default function RoomsAndSuitesPage() {
 
                 {/* 3. Nội dung chữ nổi bật tuyệt đối (relative z-10) */}
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                    <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 sm:gap-6">
                         <div className="max-w-3xl flex flex-col items-start text-left">
                             <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-sm">
                                 Không Gian Nghỉ Dưỡng <br className="hidden sm:inline" />
@@ -238,19 +238,19 @@ export default function RoomsAndSuitesPage() {
                                     Bên Bờ Biển Mỹ Khê
                                 </span>
                             </h1>
-                            <p className="text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
+                            <p className="text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs">
                                 Khám phá các hạng phòng và suites chuẩn {settings?.stars || 3} sao tầm nhìn hướng biển, tiện nghi hiện đại tại {hotelName}.
                             </p>
                         </div>
 
-                        <div className="mt-2 lg:mt-0 shrink-0">
+                        <div className="mt-1 lg:mt-0 shrink-0">
                             <Link
                                 to="/corporate-booking"
-                                className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-amber-300/40 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group"
+                                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 min-h-[42px] rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-amber-300/40 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group"
                             >
-                                <Building2 className="w-4 h-4 text-amber-400" />
-                                <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
-                                <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+                                <Building2 className="w-4 h-4 text-amber-400 shrink-0" />
+                                <span>Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
+                                <ArrowRight className="w-4 h-4 text-amber-400 shrink-0 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
                     </div>
@@ -258,11 +258,11 @@ export default function RoomsAndSuitesPage() {
             </header>
 
             {/* 2. FILTER & SEARCH TOOLBAR */}
-            <section className="bg-white border-b border-slate-200 py-3.5 shadow-xs">
+            <section className="bg-white border-b border-slate-200 py-3 sm:py-3.5 shadow-xs">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                        {/* Tab Pills */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+                        {/* Tab Pills (tràn lề ngang mượt trên mobile) */}
+                        <div className="flex items-center gap-2 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 md:pb-0 scrollbar-none">
                             {[
                                 { id: 'all', label: 'Tất Cả Hạng Phòng' },
                                 { id: 'deluxe', label: 'Deluxe Hướng Biển' },
@@ -273,7 +273,7 @@ export default function RoomsAndSuitesPage() {
                                     key={tab.id}
                                     type="button"
                                     onClick={() => setSelectedTab(tab.id)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                                    className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                                         selectedTab === tab.id
                                             ? 'bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 scale-[1.02]'
                                             : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900'
@@ -286,7 +286,7 @@ export default function RoomsAndSuitesPage() {
                                 <button
                                     type="button"
                                     onClick={() => setSelectedTab('all')}
-                                    className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 flex items-center gap-1.5"
+                                    className="px-3.5 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer shrink-0 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white shadow-md shadow-sky-900/20 flex items-center gap-1.5"
                                     title="Bấm để bỏ chọn hạng phòng này"
                                 >
                                     <span>{selectedCategoryLabel}</span>
@@ -391,7 +391,7 @@ export default function RoomsAndSuitesPage() {
                                 <button
                                     type="button"
                                     onClick={handleClearSearch}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition cursor-pointer"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 min-h-[40px] sm:min-h-0 sm:py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition cursor-pointer"
                                 >
                                     <RotateCcw className="w-3.5 h-3.5" />
                                     <span>Xóa bộ lọc</span>

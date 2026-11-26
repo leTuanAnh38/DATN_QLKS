@@ -793,7 +793,7 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('all')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'all'
+                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'all'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
@@ -803,7 +803,7 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('individual')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'individual'
+                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'individual'
                                                     ? 'bg-white text-slate-900 shadow-xs'
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
@@ -817,7 +817,7 @@ export default function BookingHistory() {
                                         <button
                                             type="button"
                                             onClick={() => setBookingTypeFilter('group')}
-                                            className={`px-2.5 sm:px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'group'
+                                            className={`min-h-[38px] sm:min-h-0 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition flex items-center gap-1 sm:gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${bookingTypeFilter === 'group'
                                                     ? 'bg-indigo-600 text-white shadow-xs'
                                                     : 'text-indigo-700 hover:bg-indigo-50/60'
                                                 }`}
@@ -887,7 +887,7 @@ export default function BookingHistory() {
                                         key={tab.key}
                                         type="button"
                                         onClick={() => setStatusFilter(tab.key)}
-                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${statusFilter === tab.key
+                                        className={`min-h-[38px] sm:min-h-0 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 whitespace-nowrap cursor-pointer shrink-0 ${statusFilter === tab.key
                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                             }`}
@@ -1442,16 +1442,16 @@ export default function BookingHistory() {
                                                             </div>
                                                         )}
 
-                                                        {/* NÚT THAO TÁC (Nút phụ bên trái, nút hành động chính ngoài cùng bên phải) */}
-                                                        <div className="flex flex-col sm:flex-row sm:flex-wrap lg:justify-end items-center gap-2 w-full sm:w-auto">
+                                                        {/* NÚT THAO TÁC (Trên mobile: CTA chính full-width lên đầu, nút phụ xếp lưới 2 cột gọn) */}
+                                                        <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap lg:justify-end items-center gap-2 w-full sm:w-auto">
                                                             {/* Nút xem Hóa đơn */}
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setInvoiceModalBooking(booking)}
-                                                                className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 text-slate-700 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 text-slate-700 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 title="Xem bảng kê chi tiết hóa đơn"
                                                             >
-                                                                <Receipt className="w-3.5 h-3.5 text-sky-600" />
+                                                                <Receipt className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                                 <span>Hóa đơn</span>
                                                             </button>
 
@@ -1460,19 +1460,19 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenCancelModal(booking)}
-                                                                    className={`w-full sm:w-auto px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${isGroupDeposited
+                                                                    className={`order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${isGroupDeposited
                                                                             ? 'border-amber-300 bg-amber-50/70 text-amber-800 hover:bg-amber-100'
                                                                             : 'border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300'
                                                                         }`}
                                                                 >
-                                                                    <XCircle className={`w-3.5 h-3.5 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-500'}`} />
-                                                                    <span>
+                                                                    <XCircle className={`w-3.5 h-3.5 shrink-0 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-500'}`} />
+                                                                    <span className="truncate">
                                                                         {hasPendingGroupCancelRequest
-                                                                            ? 'Xem / Cập nhật YC hủy đoàn'
+                                                                            ? 'Xem YC hủy đoàn'
                                                                             : isGroupDeposited
-                                                                                ? 'Yêu cầu hủy đoàn & Hoàn cọc'
+                                                                                ? 'YC hủy & hoàn cọc'
                                                                                 : groupInfo.isGroup
-                                                                                    ? 'Hủy phòng / Hủy đoàn'
+                                                                                    ? 'Hủy phòng / đoàn'
                                                                                     : 'Hủy đặt phòng'}
                                                                     </span>
                                                                 </button>
@@ -1483,9 +1483,9 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenExtendModal(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
-                                                                    <CalendarPlus className="w-3.5 h-3.5 text-sky-600" />
+                                                                    <CalendarPlus className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                                     <span>Gia hạn phòng</span>
                                                                 </button>
                                                             )}
@@ -1495,9 +1495,9 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenViewReviewModal(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 >
-                                                                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                                                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                                                                     <span>Xem đánh giá</span>
                                                                 </button>
                                                             )}
@@ -1506,14 +1506,14 @@ export default function BookingHistory() {
                                                             {booking.status === 'completed' && (booking.category_id || booking.room_category?.id || booking.category) && (
                                                                 <Link
                                                                     to={`/checkout/${booking.category_id || booking.room_category?.id || booking.category}`}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:border-sky-300 bg-slate-50 hover:bg-sky-50/60 text-slate-800 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:border-sky-300 bg-slate-50 hover:bg-sky-50/60 text-slate-800 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
-                                                                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                                                                    <RefreshCw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                                                                     <span>Đặt lại</span>
                                                                 </Link>
                                                             )}
 
-                                                            {/* ĐƠN HOÀN TẤT (CHƯA ĐÁNH GIÁ): NÚT CHÍNH NGOÀI CÙNG BÊN PHẢI */}
+                                                            {/* ĐƠN HOÀN TẤT (CHƯA ĐÁNH GIÁ): CTA CHÍNH LÊN ĐẦU TRÊN MOBILE, NGOÀI CÙNG BÊN PHẢI TRÊN DESKTOP */}
                                                             {booking.status === 'completed' && !booking.review && (
                                                                 <button
                                                                     type="button"
@@ -1527,22 +1527,22 @@ export default function BookingHistory() {
                                                                             handleOpenReviewModal(booking);
                                                                         }
                                                                     }}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-sky-900/20 active:scale-95"
+                                                                    className="order-1 col-span-2 sm:order-none min-h-[44px] sm:min-h-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-sky-900/20 active:scale-95"
                                                                 >
-                                                                    <Star className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
+                                                                    <Star className="w-3.5 h-3.5 fill-amber-200 text-amber-200 shrink-0" />
                                                                     <span>Đánh giá</span>
                                                                 </button>
                                                             )}
 
-                                                            {/* Nút Thanh toán ngay (VietQR) đặt ngoài cùng bên phải */}
+                                                            {/* Nút Thanh toán ngay (VietQR): CTA CHÍNH LÊN ĐẦU TRÊN MOBILE */}
                                                             {booking.status === 'pending' && !isPaid && (!groupInfo.isGroup || !groupInfo.isMasterBilled) && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => setSelectedPaymentBooking(booking)}
-                                                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-sky-900/20 active:scale-95"
+                                                                    className="order-1 col-span-2 sm:order-none min-h-[44px] sm:min-h-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-sky-900/20 active:scale-95"
                                                                     title="Mở mã QR quét thanh toán chuyển khoản"
                                                                 >
-                                                                    <QrCode className="w-3.5 h-3.5" />
+                                                                    <QrCode className="w-3.5 h-3.5 shrink-0" />
                                                                     <span>Thanh toán ngay (VietQR)</span>
                                                                 </button>
                                                             )}
@@ -1653,7 +1653,7 @@ export default function BookingHistory() {
                                             {booking.note && !booking.note.includes('Đoàn thuộc Đoàn #') && (
                                                 <div className="bg-slate-50/50 px-5 sm:px-7 py-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex items-start gap-2">
                                                     <span className="font-bold text-slate-400 shrink-0">Ghi chú:</span>
-                                                    <span className="truncate">{booking.note}</span>
+                                                    <span className="line-clamp-2 break-words">{booking.note}</span>
                                                 </div>
                                             )}
                                         </div>

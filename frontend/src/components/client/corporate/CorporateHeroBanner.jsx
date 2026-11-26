@@ -7,17 +7,17 @@ import { Percent, Receipt, Headphones } from 'lucide-react';
 export default function CorporateHeroBanner({ settings }) {
     return (
         <header className="relative w-full overflow-hidden bg-gradient-to-br from-slate-50 via-white to-sky-50/50 border-b border-slate-200/90 shadow-xs">
-            {/* Ảnh resort sáng nét, phủ nhẹ ở nửa bên phải (md:w-1/2) */}
-            <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-55 md:opacity-95">
+            {/* Ảnh resort sáng nét, phủ nhẹ ở nửa bên phải (md:w-1/2), làm dịu trên mobile để chữ tương phản tốt */}
+            <div className="absolute right-0 top-0 bottom-0 w-full md:w-1/2 overflow-hidden pointer-events-none opacity-25 md:opacity-95">
                 <img
                     src={settings?.banner_corporate || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=85"}
                     alt="Đặt phòng theo đoàn khách sạn TA Đà Nẵng"
                     className="w-full h-full object-cover object-center"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/55 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 md:via-white/55 to-white/40 md:to-transparent" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-14">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-12 lg:py-14">
                 <div className="space-y-5 max-w-2xl lg:max-w-3xl">
                     <div className="space-y-3">
                         <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-sky-700">

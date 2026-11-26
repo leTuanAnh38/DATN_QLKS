@@ -120,26 +120,27 @@ export default function MembershipCard({ user }) {
 
                         {/* Top: Hotel Brand & Tier Badge */}
                         <div className="flex justify-between items-start gap-2 z-10">
-                            <div className="min-w-0">
-                                <span className="text-[9.5px] tracking-[0.14em] font-extrabold uppercase opacity-85 block text-white/90 whitespace-nowrap truncate">
-                                    TA ĐÀ NẴNG LUXURY RESORT & RETREAT
+                            <div className="min-w-0 flex-1">
+                                <span className="text-[9px] sm:text-[9.5px] tracking-[0.12em] sm:tracking-[0.14em] font-extrabold uppercase opacity-85 block text-white/90 whitespace-nowrap truncate">
+                                    <span className="sm:hidden">TA CLUB • ĐÀ NẴNG</span>
+                                    <span className="hidden sm:inline">TA ĐÀ NẴNG LUXURY RESORT &amp; RETREAT</span>
                                 </span>
-                                <h3 className="text-base font-black tracking-wider flex items-center gap-1.5 mt-0.5 uppercase drop-shadow-sm">
-                                    <Crown className="w-4 h-4 text-amber-300" />
-                                    {currentTier.name}
+                                <h3 className="text-sm sm:text-base font-black tracking-wide sm:tracking-wider flex items-center gap-1.5 mt-0.5 uppercase drop-shadow-sm min-w-0">
+                                    <Crown className="w-4 h-4 text-amber-300 shrink-0" />
+                                    <span className="truncate">{currentTier.name}</span>
                                 </h3>
                             </div>
 
                             {/* Chip ATM giả lập mạ kim loại */}
-                            <div className="flex items-center gap-2">
-                                <div className={`w-11 h-8 rounded-md bg-gradient-to-tr ${theme.chip} border flex items-center justify-center shadow-md relative overflow-hidden`}>
-                                    <div className="w-7 h-5 border border-black/20 rounded-xs grid grid-cols-2 gap-0.5 p-0.5">
+                            <div className="flex items-center gap-2 shrink-0">
+                                <div className={`w-10 h-7 sm:w-11 sm:h-8 rounded-md bg-gradient-to-tr ${theme.chip} border flex items-center justify-center shadow-md relative overflow-hidden`}>
+                                    <div className="w-6 h-4 sm:w-7 sm:h-5 border border-black/20 rounded-xs grid grid-cols-2 gap-0.5 p-0.5">
                                         <div className="bg-black/10 rounded-xs" />
                                         <div className="bg-black/10 rounded-xs" />
                                     </div>
                                 </div>
-                                {/* Biểu tượng sóng Contactless */}
-                                <div className="text-white/60">
+                                {/* Biểu tượng sóng Contactless (ẩn < xs 384px để thẻ rộng thoáng trên 375px) */}
+                                <div className="hidden xs:block text-white/60">
                                     <svg className="w-5 h-5 rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <path d="M12 2a10 10 0 0 1 10 10" />
                                         <path d="M12 6a6 6 0 0 1 6 6" />

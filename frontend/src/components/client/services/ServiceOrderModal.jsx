@@ -38,7 +38,7 @@ export default function ServiceOrderModal({
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
             <div
-                className="relative bg-white rounded-3xl max-w-lg w-full max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10"
+                className="relative bg-white rounded-3xl max-w-lg w-full max-h-[92dvh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -287,7 +287,7 @@ export default function ServiceOrderModal({
                                                     const d = new Date(Date.now() + item.mins * 60 * 1000);
                                                     setScheduledDateTime(formatToLocalDateTimeString(d));
                                                 }}
-                                                className="px-2 py-1 rounded-lg bg-white hover:bg-sky-100 border border-slate-200 text-slate-700 text-[10px] font-semibold transition cursor-pointer"
+                                                className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-white hover:bg-sky-100 border border-slate-200 text-slate-700 text-[11px] sm:text-[10px] font-semibold transition cursor-pointer"
                                             >
                                                 {item.label}
                                             </button>

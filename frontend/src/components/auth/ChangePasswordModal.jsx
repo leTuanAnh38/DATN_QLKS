@@ -87,7 +87,10 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={() => { if (!isLoading) onClose?.(); }}
+        >
             {/* Modal Card */}
             <div
                 className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90dvh] animate-in zoom-in-95 duration-200 text-left"
@@ -213,18 +216,21 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                     </div>
 
                     {/* 3. Actions (Sticky Bottom) */}
-                    <div className="shrink-0 px-6 py-4 bg-slate-50/90 backdrop-blur-xs flex items-center justify-end gap-2.5 border-t border-slate-200">
+                    <div
+                        className="shrink-0 px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-50/90 backdrop-blur-xs flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-2 sm:gap-2.5 border-t border-slate-200"
+                        style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom, 0.875rem))' }}
+                    >
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
+                            className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer text-center"
                         >
                             Hủy bỏ
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-75 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95"
+                            className="w-full sm:w-auto justify-center min-h-[44px] sm:min-h-0 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-75 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/30 transition flex items-center gap-2 cursor-pointer active:scale-95"
                         >
                             {isLoading ? (
                                 <>

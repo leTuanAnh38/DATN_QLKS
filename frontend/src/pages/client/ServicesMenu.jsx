@@ -976,22 +976,22 @@ export default function ServicesMenu() {
                             ))}
                         </div>
 
-                        {/* Ô tìm kiếm món & Bộ sắp xếp giá (luôn nằm chung 1 hàng gọn đẹp kể cả trên điện thoại) */}
-                        <div className="flex flex-row items-center gap-2 w-full md:w-auto shrink-0">
+                        {/* Ô tìm kiếm món & Bộ sắp xếp giá (xếp dọc thoáng trên < sm, 1 hàng trên >= sm) */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto shrink-0">
                             <div className="relative flex-1 min-w-0 md:w-64">
                                 <input
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="Tìm món, spa..."
-                                    className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
+                                    placeholder="Tìm món ăn, spa, đồ uống..."
+                                    className="w-full pl-9 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition"
                                 />
                                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery('')}
-                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100 transition cursor-pointer"
+                                        className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition cursor-pointer"
                                         title="Xóa tìm kiếm"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -1003,7 +1003,7 @@ export default function ServicesMenu() {
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 aria-label="Sắp xếp theo giá"
-                                className="flex-1 sm:flex-none sm:w-44 min-w-0 px-3 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
+                                className="w-full sm:w-44 min-w-0 px-3 sm:px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
                             >
                                 <option value="default">Mặc định</option>
                                 <option value="price_asc">Giá: Thấp → Cao</option>
@@ -1094,8 +1094,8 @@ export default function ServicesMenu() {
                                                     </span>
                                                 )}
 
-                                                {/* Nhãn xem chi tiết */}
-                                                <span className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+                                                {/* Nhãn xem chi tiết (chỉ hiện khi hover trên desktop để không che ảnh mobile) */}
+                                                <span className="hidden sm:flex absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md text-slate-800 text-[10.5px] font-bold shadow-sm border border-white/60 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                     <Eye className="w-3 h-3 text-sky-600" />
                                                     <span>Xem chi tiết</span>
                                                 </span>

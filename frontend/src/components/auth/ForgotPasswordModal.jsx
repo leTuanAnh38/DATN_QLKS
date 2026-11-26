@@ -172,13 +172,16 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn"
+            onClick={() => { if (!isLoading) onClose?.(); }}
+        >
             <div
-                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-[90dvh] overflow-y-auto"
+                className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 max-h-[90dvh] flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header Modal */}
-                <div className="relative px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
+                <div className="shrink-0 relative px-4 sm:px-6 pt-4 sm:pt-6 pb-3.5 sm:pb-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
                     <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shadow-xs">
@@ -227,7 +230,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                 </div>
 
                 {/* Body Modal */}
-                <div className="p-4 sm:p-6">
+                <div className="p-4 sm:p-6 flex-1 min-h-0 overflow-y-auto">
                     {/* Thông báo lỗi */}
                     {errorMessage && (
                         <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-start gap-2.5">
@@ -308,7 +311,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                         setStep(1);
                                         setErrorMessage(null);
                                     }}
-                                    className="text-amber-700 hover:text-amber-800 text-[11px] font-bold hover:underline cursor-pointer flex-shrink-0 ml-2"
+                                    className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-1 sm:py-0 text-amber-700 hover:text-amber-800 text-xs sm:text-[11px] font-bold hover:underline cursor-pointer flex-shrink-0 ml-2 rounded-lg"
                                 >
                                     Đổi email
                                 </button>
@@ -331,7 +334,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                                 type="button"
                                                 onClick={handleResendOtp}
                                                 disabled={resendLoading}
-                                                className="text-amber-600 hover:text-amber-700 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+                                                className="min-h-[36px] sm:min-h-0 px-2 py-1.5 sm:px-0 sm:py-0 text-amber-600 hover:text-amber-700 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
                                             >
                                                 <RotateCcw className={`w-3 h-3 ${resendLoading ? 'animate-spin' : ''}`} />
                                                 <span>Gửi lại mã</span>
@@ -342,12 +345,15 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                 <div className="relative">
                                     <input
                                         type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        autoComplete="one-time-code"
                                         maxLength={6}
                                         required
                                         value={otpCode}
                                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                                         placeholder="Nhập 6 chữ số (VD: 682914)"
-                                        className="w-full text-center tracking-[6px] font-mono text-base font-bold py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-slate-900 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs transition outline-none"
+                                        className="w-full text-center tracking-[8px] font-mono text-lg sm:text-base font-bold py-3 sm:py-2.5 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white rounded-xl text-slate-900 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs transition outline-none"
                                     />
                                 </div>
                             </div>

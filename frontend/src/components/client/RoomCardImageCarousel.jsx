@@ -235,7 +235,7 @@ export default function RoomCardImageCarousel({
                         type="button"
                         onClick={handlePrev}
                         aria-label="Ảnh trước"
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-slate-950/55 hover:bg-slate-950/80 text-white border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-md transition-all duration-200 opacity-85 sm:opacity-0 sm:group-hover/gallery:opacity-100 cursor-pointer active:scale-95"
+                        className="absolute left-2.5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-9 sm:h-9 rounded-full bg-slate-950/55 hover:bg-slate-950/80 text-white border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-md transition-all duration-200 opacity-85 sm:opacity-0 sm:group-hover/gallery:opacity-100 cursor-pointer active:scale-95"
                     >
                         <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -243,16 +243,16 @@ export default function RoomCardImageCarousel({
                         type="button"
                         onClick={handleNext}
                         aria-label="Ảnh tiếp theo"
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-slate-950/55 hover:bg-slate-950/80 text-white border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-md transition-all duration-200 opacity-85 sm:opacity-0 sm:group-hover/gallery:opacity-100 cursor-pointer active:scale-95"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-9 sm:h-9 rounded-full bg-slate-950/55 hover:bg-slate-950/80 text-white border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-md transition-all duration-200 opacity-85 sm:opacity-0 sm:group-hover/gallery:opacity-100 cursor-pointer active:scale-95"
                     >
                         <ChevronRight className="w-4 h-4" />
                     </button>
                 </>
             )}
 
-            {/* Chấm chuyển ảnh nhanh ngay dưới đáy ảnh */}
+            {/* Chấm chuyển ảnh nhanh ngay dưới đáy ảnh (tăng vùng chạm) */}
             {canSlide && (
-                <div className="absolute bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10 px-2.5 py-1.5 rounded-full bg-slate-950/45 backdrop-blur-xs max-w-[85%]">
+                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-0.5 z-10 px-2 py-0.5 rounded-full bg-slate-950/45 backdrop-blur-xs max-w-[85%]">
                     {safeImages.slice(0, 7).map((_, imgIdx) => (
                         <button
                             key={imgIdx}
@@ -263,12 +263,16 @@ export default function RoomCardImageCarousel({
                                 setIndex(imgIdx);
                             }}
                             aria-label={`Xem ảnh ${imgIdx + 1}`}
-                            className={`rounded-full transition-all cursor-pointer ${
-                                index === imgIdx
-                                    ? 'w-5 h-1.5 bg-white'
-                                    : 'w-1.5 h-1.5 bg-white/55 hover:bg-white/85'
-                            }`}
-                        />
+                            className="p-1.5 flex items-center justify-center cursor-pointer"
+                        >
+                            <span
+                                className={`block rounded-full transition-all ${
+                                    index === imgIdx
+                                        ? 'w-5 h-1.5 bg-white'
+                                        : 'w-1.5 h-1.5 bg-white/55 hover:bg-white/85'
+                                }`}
+                            />
+                        </button>
                     ))}
                 </div>
             )}

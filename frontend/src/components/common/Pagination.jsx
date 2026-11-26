@@ -173,14 +173,16 @@ export default function Pagination({
                     type="button"
                     onClick={handlePrev}
                     disabled={activePage <= 1}
-                    className={`inline-flex items-center justify-center gap-1 min-h-[40px] sm:min-h-[32px] px-3 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                    title="Trang trước"
+                    aria-label="Trang trước"
+                    className={`inline-flex items-center justify-center gap-1 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-[32px] px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         activePage <= 1
                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 cursor-pointer shadow-2xs'
                     }`}
                 >
-                    <span>‹</span>
-                    <span>Trước</span>
+                    <span className="text-sm sm:text-xs leading-none">‹</span>
+                    <span className="hidden sm:inline">Trước</span>
                 </button>
 
                 {/* Các nút số trang [1], [2], [3]... */}
@@ -220,14 +222,16 @@ export default function Pagination({
                     type="button"
                     onClick={handleNext}
                     disabled={activePage >= effectiveTotalPages}
-                    className={`inline-flex items-center justify-center gap-1 min-h-[40px] sm:min-h-[32px] px-3 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                    title="Trang tiếp"
+                    aria-label="Trang tiếp"
+                    className={`inline-flex items-center justify-center gap-1 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-[32px] px-2.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
                         activePage >= effectiveTotalPages
                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-300 cursor-pointer shadow-2xs'
                     }`}
                 >
-                    <span>Tiếp</span>
-                    <span>›</span>
+                    <span className="hidden sm:inline">Tiếp</span>
+                    <span className="text-sm sm:text-xs leading-none">›</span>
                 </button>
 
                 {/* Nút [» Trang cuối] */}

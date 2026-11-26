@@ -86,12 +86,12 @@ export default function LogoutConfirmModal({
                 </div>
 
                 {/* Nút thao tác */}
-                <div className="mt-6 flex items-center justify-end gap-2.5">
+                <div className="mt-5 sm:mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5">
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isLoading}
-                        className="px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition cursor-pointer disabled:opacity-50"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 sm:px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs sm:text-sm transition cursor-pointer disabled:opacity-50 flex items-center justify-center"
                     >
                         Hủy bỏ
                     </button>
@@ -100,7 +100,7 @@ export default function LogoutConfirmModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isLoading}
-                        className="px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/30 transition flex items-center gap-2 cursor-pointer disabled:opacity-70"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-5 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
                     >
                         {isLoading ? (
                             <>

@@ -74,6 +74,8 @@ export default function Checkout() {
     const [room, setRoom] = useState(null);
     const [loadingRoom, setLoadingRoom] = useState(true);
     const [roomError, setRoomError] = useState(null);
+    const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
+    const errorBannerRef = useRef(null);
 
     // 2. State Ngày Check-in & Check-out
     const [searchParams] = useSearchParams();
@@ -170,6 +172,13 @@ export default function Checkout() {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [preparedPayload, setPreparedPayload] = useState(null);
     const [modalError, setModalError] = useState('');
+
+    // Tự động cuộn lên thông báo lỗi khi khách bấm nút Đặt phòng ở thanh sticky đáy mobile
+    useEffect(() => {
+        if (bookingError && errorBannerRef.current) {
+            errorBannerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [bookingError]);
 
     // 7. Quản lý kiểm tra tình trạng phòng trống (Chống Overbooking)
     const [availability, setAvailability] = useState(null);
@@ -913,13 +922,24 @@ export default function Checkout() {
                     className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-2xl shadow-slate-900/10 px-4 py-3 flex items-center gap-3"
                     style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                 >
-                    <div className="flex-1 min-w-0">
-                        <div className="text-[11px] text-slate-500 truncate">{room.name} · {nights} đêm</div>
-                        <div className="font-black text-lg text-rose-600 leading-tight">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMobileSummaryOpen(true);
+                            document.getElementById('mobile-order-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="flex-1 min-w-0 text-left cursor-pointer"
+                        title="Xem chi tiết bảng giá"
+                    >
+                        <div className="text-[11px] text-slate-500 truncate flex items-center gap-1">
+                            <span className="truncate">{room.name} · {nights} đêm</span>
+                            <ChevronUp className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        </div>
+                        <div className="font-black text-lg text-rose-600 leading-tight tabular-nums">
                             {finalTotal.toLocaleString('vi-VN')}
                             <span className="text-[11px] font-semibold text-slate-500 ml-1">VND</span>
                         </div>
-                    </div>
+                    </button>
                     <button
                         type="button"
                         disabled={isSubmitting || availability?.is_sold_out}
@@ -990,16 +1010,82 @@ export default function Checkout() {
                         {/* ========================================================================= */}
                         {/* CỘT TRÁI: FORM NHẬP LIỆU (8 COLS) */}
                         {/* ========================================================================= */}
-                        <div className="lg:col-span-8 space-y-6">
-                            {/* Banner báo lỗi validate nổi bật ngay đầu form (dễ thấy trên cả mobile & desktop) */}
+                        <div className="lg:col-span-8 space-y-5 sm:space-y-6">
+                            {/* TÓM TẮT ĐƠN GỌN ĐẦU TRANG RIÊNG CHO MOBILE (< lg) */}
+                            <div id="mobile-order-summary" className="lg:hidden bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden scroll-mt-20">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileSummaryOpen((prev) => !prev)}
+                                    className="w-full p-4 flex items-center justify-between gap-3 text-left cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        {primaryImage && (
+                                            <img
+                                                src={primaryImage}
+                                                alt={room.name}
+                                                className="w-14 h-12 rounded-xl object-cover shrink-0 border border-slate-100"
+                                            />
+                                        )}
+                                        <div className="min-w-0">
+                                            <div className="font-serif font-bold text-sm text-slate-900 truncate">{room.name}</div>
+                                            <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                                {formatDateDisplay(checkInDate)} → {formatDateDisplay(checkOutDate)} · {nights} đêm
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <div className="text-right">
+                                            <div className="text-[10px] font-semibold text-slate-400">Tổng dự kiến</div>
+                                            <div className="text-sm font-black text-rose-600 tabular-nums">
+                                                {finalTotal.toLocaleString('vi-VN')}đ
+                                            </div>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                                            {mobileSummaryOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                        </div>
+                                    </div>
+                                </button>
+                                {mobileSummaryOpen && (
+                                    <div className="px-4 pb-4 pt-3 border-t border-slate-100 bg-slate-50/70 space-y-2 text-xs">
+                                        <div className="flex justify-between text-slate-600">
+                                            <span>Tiền phòng ({nights} đêm × {pricePerNight.toLocaleString('vi-VN')}đ)</span>
+                                            <strong className="text-slate-900 tabular-nums">{subtotal.toLocaleString('vi-VN')}đ</strong>
+                                        </div>
+                                        {totalServicesAmount > 0 && (
+                                            <div className="flex justify-between text-slate-600">
+                                                <span>Dịch vụ đi kèm ({selectedServicesArray.length})</span>
+                                                <strong className="text-slate-900 tabular-nums">+{totalServicesAmount.toLocaleString('vi-VN')}đ</strong>
+                                            </div>
+                                        )}
+                                        {tierDiscountAmount > 0 && (
+                                            <div className="flex justify-between text-emerald-700">
+                                                <span>Ưu đãi hội viên ({tierDiscountPercent}%)</span>
+                                                <strong className="tabular-nums">-{tierDiscountAmount.toLocaleString('vi-VN')}đ</strong>
+                                            </div>
+                                        )}
+                                        {discountAmount > 0 && (
+                                            <div className="flex justify-between text-emerald-700">
+                                                <span>Mã giảm giá ({appliedPromo?.code})</span>
+                                                <strong className="tabular-nums">-{discountAmount.toLocaleString('vi-VN')}đ</strong>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between pt-2 border-t border-slate-200/80 font-bold text-slate-900">
+                                            <span>Tổng thanh toán</span>
+                                            <span className="text-rose-600 tabular-nums">{finalTotal.toLocaleString('vi-VN')} VND</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Banner báo lỗi validate nổi bật ngay đầu form (tự cuộn lên khi có lỗi) */}
                             {bookingError && (
-                                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-xs">
+                                <div ref={errorBannerRef} className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-semibold flex items-start gap-2.5 shadow-xs scroll-mt-24">
                                     <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                                     <span className="flex-1">{bookingError}</span>
                                     <button
                                         type="button"
                                         onClick={() => setBookingError('')}
-                                        className="text-rose-400 hover:text-rose-700 p-0.5 cursor-pointer"
+                                        className="text-rose-400 hover:text-rose-700 p-1 cursor-pointer"
                                         aria-label="Đóng thông báo lỗi"
                                     >
                                         <X className="w-4 h-4" />
@@ -1482,7 +1568,7 @@ export default function Checkout() {
                                                             if (isMaxCapacityReached) return;
                                                             setActualGuests(prev => [...prev, { full_name: '', id_type: 'CCCD', identity_card: '', phone_number: '', is_primary: false }]);
                                                         }}
-                                                        className={`px-3 py-1.5 font-bold text-[11px] rounded-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                                                        className={`min-h-[40px] sm:min-h-0 px-3 py-2 sm:py-1.5 font-bold text-xs sm:text-[11px] rounded-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                                                             isMaxCapacityReached
                                                                 ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed opacity-70'
                                                                 : 'bg-white hover:bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs'
@@ -1755,7 +1841,7 @@ export default function Checkout() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, -1)}
-                                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Giảm số lượng"
                                                                         >
                                                                             -
@@ -1766,7 +1852,7 @@ export default function Checkout() {
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, 1)}
-                                                                            className="w-9 h-9 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Tăng số lượng"
                                                                         >
                                                                             +
@@ -1879,7 +1965,7 @@ export default function Checkout() {
                                                     key={code}
                                                     type="button"
                                                     onClick={() => setPromoInput(code)}
-                                                    className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold border border-sky-200/80 transition cursor-pointer"
+                                                    className="min-h-[36px] sm:min-h-0 px-3 py-1.5 sm:py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold border border-sky-200/80 transition cursor-pointer"
                                                 >
                                                     {code} (-10%)
                                                 </button>
@@ -1957,7 +2043,7 @@ export default function Checkout() {
                                                     setNote(note ? `${note}, ${tag}` : tag);
                                                 }
                                             }}
-                                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-200 text-slate-600 text-[11px] font-medium transition border border-transparent cursor-pointer"
+                                            className="min-h-[36px] sm:min-h-0 px-3 py-1.5 sm:py-1 rounded-lg bg-slate-100 hover:bg-sky-50 hover:text-sky-800 hover:border-sky-200 text-slate-600 text-[11px] font-medium transition border border-transparent cursor-pointer"
                                         >
                                             + {tag}
                                         </button>

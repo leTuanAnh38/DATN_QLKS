@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Check, Copy, Clock, AlertCircle } from 'lucide-react';
+import { Building2, Check, Copy, Clock, AlertCircle, Download } from 'lucide-react';
 import { BANK_NAMES_BY_BIN } from '../../common/PaymentModal';
 
 /**
@@ -69,9 +69,27 @@ export default function CorporateSuccessModal({
         }
     };
 
+    const handleDownloadQr = async () => {
+        if (!qrImageSrc) return;
+        try {
+            const response = await fetch(qrImageSrc, { mode: 'cors' });
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `VietQR-Doan-${createdGroup?.group_code || 'TAHotel'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+        } catch {
+            window.open(qrImageSrc, '_blank', 'noopener,noreferrer');
+        }
+    };
+
     return (
-        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-white text-slate-900 rounded-3xl p-4 sm:p-8 max-w-lg w-full text-center space-y-4 sm:space-y-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-2.5 sm:p-4 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-white text-slate-900 rounded-3xl p-4 sm:p-8 max-w-lg w-full text-center space-y-4 sm:space-y-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[92dvh] overflow-y-auto">
                 {isPaidSuccess ? (
                     /* MÀN HÌNH TỰ ĐỘNG XÁC NHẬN THANH TOÁN THÀNH CÔNG */
                     <div className="space-y-5 animate-in zoom-in-95 duration-200">
@@ -173,17 +191,27 @@ export default function CorporateSuccessModal({
                             </div>
 
                             {qrImageError ? (
-                                <div className="w-48 h-48 mx-auto rounded-xl bg-white border border-dashed border-amber-300 flex flex-col items-center justify-center p-4 text-center text-xs text-slate-500 gap-2">
+                                <div className="w-52 h-52 mx-auto rounded-xl bg-white border border-dashed border-amber-300 flex flex-col items-center justify-center p-4 text-center text-xs text-slate-500 gap-2">
                                     <AlertCircle className="w-6 h-6 text-amber-500" />
                                     <span>Không thể tải ảnh QR. Quý khách vui lòng chuyển khoản thủ công theo thông tin bên dưới.</span>
                                 </div>
                             ) : (
-                                <img
-                                    src={qrImageSrc}
-                                    alt="VietQR Payment"
-                                    onError={() => setFailedQrSrc(qrImageSrc)}
-                                    className="w-48 h-48 mx-auto rounded-xl object-contain shadow-xs bg-white p-1"
-                                />
+                                <div className="flex flex-col items-center gap-2">
+                                    <img
+                                        src={qrImageSrc}
+                                        alt="VietQR Payment"
+                                        onError={() => setFailedQrSrc(qrImageSrc)}
+                                        className="w-full max-w-[230px] h-auto max-h-[270px] mx-auto rounded-xl object-contain shadow-xs bg-white p-1.5"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadQr}
+                                        className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition cursor-pointer active:scale-95"
+                                    >
+                                        <Download className="w-3.5 h-3.5" />
+                                        <span>Lưu ảnh QR về máy</span>
+                                    </button>
+                                </div>
                             )}
 
                             {/* Trạng thái lắng nghe giao dịch realtime */}
@@ -205,7 +233,7 @@ export default function CorporateSuccessModal({
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(bankConfig.account_no, 'acc')}
-                                            className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
+                                            className="min-h-[40px] sm:min-h-0 px-3 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
                                             title="Sao chép số tài khoản"
                                         >
                                             {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}
@@ -226,7 +254,7 @@ export default function CorporateSuccessModal({
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(qrNote, 'note')}
-                                            className="min-h-[36px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
+                                            className="min-h-[40px] sm:min-h-0 px-3 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
                                             title="Sao chép nội dung chuyển khoản"
                                         >
                                             {copiedField === 'note' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}

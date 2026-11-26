@@ -413,7 +413,7 @@ export default function TADaNangHotelLanding() {
                             </div>
 
                             {/* Field 2 & 3: Check-in & Check-out */}
-                            <div className="grid grid-cols-1 xs:grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
                                 {/* Field 2: Check-in */}
                                 <div
                                     onClick={() => {
@@ -502,7 +502,7 @@ export default function TADaNangHotelLanding() {
                             <button
                                 type="submit"
                                 title={Number(guests) >= 5 ? 'Chuyển sang Cổng Đặt Phòng Đoàn & Doanh Nghiệp' : 'Tìm kiếm phòng trống phù hợp'}
-                                className="w-full lg:w-auto px-6 lg:px-7 h-10 sm:h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer"
+                                className="w-full lg:w-auto px-6 lg:px-7 min-h-[44px] h-11 lg:h-[58px] bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl sm:rounded-2xl shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)] hover:shadow-[0_12px_24px_-6px_rgba(2,132,199,0.55)] ring-1 ring-inset ring-white/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 cursor-pointer"
                             >
                                 {Number(guests) >= 5 ? (
                                     <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -526,10 +526,10 @@ export default function TADaNangHotelLanding() {
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="w-full sm:w-auto justify-center font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 px-3.5 py-2 sm:py-1.5 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
+                            className="w-full sm:w-auto justify-center font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 min-h-[40px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
                         >
-                            <span>Cổng Đặt Phòng Đoàn & Hợp Đồng B2B</span>
-                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            <span>Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
+                            <ArrowRight className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                     </div>
                 </div>
@@ -553,10 +553,10 @@ export default function TADaNangHotelLanding() {
             <GuestTestimonials />
 
             {/* 7. TIN TỨC & CẨM NANG NGHỈ DƯỠNG MỚI NHẤT */}
-            <section id="tin-tuc" className="bg-white py-14 sm:py-18">
+            <section id="tin-tuc" className="bg-white py-10 sm:py-18">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Tiêu đề */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-11 gap-5 sm:gap-6">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-11 gap-4 sm:gap-6">
                     <div>
                         <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-3">
                             TIN TỨC &amp; CẨM NANG
@@ -603,11 +603,11 @@ export default function TADaNangHotelLanding() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+                    <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar">
                         {latestPosts.slice(0, 3).map((post) => (
                             <article
                                 key={post.id}
-                                className="bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.14)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
+                                className="w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.14)] hover:border-sky-200/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
                             >
                                 <div>
                                     {/* Ảnh bìa */}

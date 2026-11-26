@@ -33,7 +33,7 @@ export default function ModalDialog({
             onClick={closeOnBackdrop ? onClose : undefined}
         >
             <div
-                className={`bg-white rounded-2xl w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform transition-all ${className}`}
+                className={`bg-white rounded-2xl w-full ${maxWidth} max-h-[90dvh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transform transition-all ${className}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {(title || onClose) && (
@@ -45,7 +45,7 @@ export default function ModalDialog({
                                 </div>
                             )}
                             <div className="min-w-0">
-                                {title && <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{title}</h3>}
+                                {title && <h3 className="text-base sm:text-lg font-bold text-slate-900 line-clamp-2 sm:truncate">{title}</h3>}
                                 {subtitle && <p className="text-xs text-slate-500 mt-0.5 truncate">{subtitle}</p>}
                             </div>
                         </div>

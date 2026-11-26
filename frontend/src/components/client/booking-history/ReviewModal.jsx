@@ -123,7 +123,7 @@ export default function ReviewModal({
                                             key={star}
                                             type="button"
                                             onClick={() => criterion.set(star)}
-                                            className="w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-amber-50 hover:scale-110 transition-transform select-none cursor-pointer"
+                                            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-amber-50 hover:scale-110 transition-transform select-none cursor-pointer"
                                             title={`${star}/5 sao`}
                                         >
                                             <Star
@@ -162,12 +162,21 @@ export default function ReviewModal({
                 </div>
 
                 {/* Nút thao tác */}
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-col-reverse sm:flex-row items-center gap-2.5 sm:gap-3 pt-2">
+                    <button
+                        type="button"
+                        disabled={isSubmittingReview}
+                        onClick={onClose}
+                        className="w-full sm:w-1/2 min-h-[44px] py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
+                    >
+                        Để sau
+                    </button>
+
                     <button
                         type="button"
                         disabled={isSubmittingReview}
                         onClick={onSubmit}
-                        className="w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                        className="w-full sm:w-1/2 min-h-[44px] py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
                     >
                         {isSubmittingReview ? (
                             <>
@@ -180,15 +189,6 @@ export default function ReviewModal({
                                 <span>Gửi Đánh Giá</span>
                             </>
                         )}
-                    </button>
-
-                    <button
-                        type="button"
-                        disabled={isSubmittingReview}
-                        onClick={onClose}
-                        className="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition text-center cursor-pointer"
-                    >
-                        Để sau
                     </button>
                 </div>
             </div>

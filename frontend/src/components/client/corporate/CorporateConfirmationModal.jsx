@@ -41,15 +41,10 @@ export default function CorporateConfirmationModal({
 
     return (
         <div
-            onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                    onClose();
-                }
-            }}
-            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
             onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onClose?.(); }}
+            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
         >
-            <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-2xl w-full h-[92dvh] sm:h-auto sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200/80 max-w-2xl w-full max-h-[92dvh] sm:max-h-[88dvh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="bg-white border-b border-slate-100 p-3.5 sm:p-6 relative flex items-center justify-between gap-3 shrink-0">
                     <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
@@ -259,11 +254,14 @@ export default function CorporateConfirmationModal({
                 </div>
 
                 {/* Modal Actions */}
-                <div className="p-3.5 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 shrink-0">
+                <div
+                    className="p-3.5 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 shrink-0"
+                    style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom, 0.875rem))' }}
+                >
                     <button
                         type="button"
                         onClick={onClose}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition cursor-pointer"
                     >
                         Kiểm tra lại
                     </button>
@@ -271,7 +269,7 @@ export default function CorporateConfirmationModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isSubmitting}
-                        className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                     >
                         {isSubmitting ? (
                             <>
