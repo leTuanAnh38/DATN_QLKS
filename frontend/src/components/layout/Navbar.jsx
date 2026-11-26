@@ -225,13 +225,13 @@ export default function Navbar({
                         {settings?.logo_url ? (
                             <div
                                 className={`${
-                                    isScrolled ? 'w-9 h-9 sm:w-10 sm:h-10' : 'w-9 h-9 sm:w-12 sm:h-12'
-                                } rounded-full bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300`}
+                                    isScrolled ? 'w-10 h-10 sm:w-11 sm:h-11' : 'w-10 h-10 sm:w-12 sm:h-12'
+                                } rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300`}
                             >
                                 <img
                                     src={resolveMediaUrl(settings.logo_url)}
                                     alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
-                                    className="w-full h-full object-contain"
+                                    className="w-full h-full object-cover object-center scale-[1.22]"
                                 />
                             </div>
                         ) : (

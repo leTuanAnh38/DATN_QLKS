@@ -84,11 +84,11 @@ export default function Footer() {
                     <div className="lg:col-span-4 space-y-3.5 sm:space-y-4">
                         <Link to="/" className="inline-flex items-center space-x-3 group">
                             {hotelInfo?.logo_url ? (
-                                <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center p-0.5 overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300">
+                                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-105 transition-all duration-300">
                                     <img
                                         src={resolveMediaUrl(hotelInfo.logo_url)}
                                         alt={hotelName}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-cover object-center scale-[1.22]"
                                     />
                                 </div>
                             ) : (
