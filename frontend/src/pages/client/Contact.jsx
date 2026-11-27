@@ -252,7 +252,7 @@ export default function ContactPage() {
             </div>
 
             {/* HERO BANNER CHUẨN LUXURY HOTEL & RESORT */}
-            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-6 sm:py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 <img
                     src={hotelInfo.banner_contact || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=90"}
                     alt="Khách Sạn TA Đà Nẵng Luxury Resort & Concierge"
@@ -277,7 +277,7 @@ export default function ContactPage() {
                         </h1>
 
                         <p
-                            className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md"
+                            className="animate-hero-up text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-md"
                             style={{ animationDelay: '160ms' }}
                         >
                             Đội ngũ Lễ tân & Chăm sóc Khách hàng luôn sẵn sàng tư vấn đặt phòng và hỗ trợ Quý khách 24/7.
@@ -287,8 +287,8 @@ export default function ContactPage() {
             </header>
 
             {/* MAIN SECTION: FORM (LEFT) + DIRECT CONTACT CARD (RIGHT) */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-16 w-full">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 sm:pt-10 sm:pb-16 w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-start">
 
                     {/* LEFT (DESKTOP) / ĐẦU TIÊN (MOBILE): INTERACTIVE CONTACT FORM */}
                     <Reveal id="contact-form-card" className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/90 shadow-md p-4 sm:p-8 space-y-4 sm:space-y-6 scroll-mt-24">
@@ -543,12 +543,12 @@ export default function ContactPage() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3 text-[11.5px] sm:text-xs">
                                 {/* 1. Reservations */}
                                 <button
                                     type="button"
                                     onClick={() => handleSelectDepartment('reservations')}
-                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                    className={`p-2.5 sm:p-3 rounded-2xl border transition flex flex-col sm:flex-row items-start gap-1.5 sm:gap-2.5 text-left cursor-pointer ${
                                         formData.department === 'reservations'
                                             ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
                                             : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
@@ -557,9 +557,9 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-xl bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/60">
                                         <Building2 className="w-4 h-4" />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 w-full">
                                         <strong className="text-slate-900 font-bold block leading-snug">Đặt Phòng (Reservations)</strong>
-                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 1 · Phục vụ 24/7</span>
+                                        <span className="text-sky-700 font-semibold text-[10.5px] sm:text-[11px] block mt-0.5">Ext 1 · Phục vụ 24/7</span>
                                     </div>
                                 </button>
 
@@ -567,7 +567,7 @@ export default function ContactPage() {
                                 <button
                                     type="button"
                                     onClick={() => handleSelectDepartment('dining')}
-                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                    className={`p-2.5 sm:p-3 rounded-2xl border transition flex flex-col sm:flex-row items-start gap-1.5 sm:gap-2.5 text-left cursor-pointer ${
                                         formData.department === 'dining'
                                             ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
                                             : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
@@ -576,9 +576,9 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-xl bg-sky-100/80 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/60">
                                         <UtensilsCrossed className="w-4 h-4" />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 w-full">
                                         <strong className="text-slate-900 font-bold block leading-snug">Ẩm Thực & Bar (F&B)</strong>
-                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 2 · 06:00 - 23:00</span>
+                                        <span className="text-sky-700 font-semibold text-[10.5px] sm:text-[11px] block mt-0.5">Ext 2 · 06:00 - 23:00</span>
                                     </div>
                                 </button>
 
@@ -586,7 +586,7 @@ export default function ContactPage() {
                                 <button
                                     type="button"
                                     onClick={() => handleSelectDepartment('spa')}
-                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                    className={`p-2.5 sm:p-3 rounded-2xl border transition flex flex-col sm:flex-row items-start gap-1.5 sm:gap-2.5 text-left cursor-pointer ${
                                         formData.department === 'spa'
                                             ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
                                             : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
@@ -595,9 +595,9 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
                                         <Flower2 className="w-4 h-4" />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 w-full">
                                         <strong className="text-slate-900 font-bold block leading-snug">Spa & Wellness</strong>
-                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 3 · 09:00 - 21:00</span>
+                                        <span className="text-sky-700 font-semibold text-[10.5px] sm:text-[11px] block mt-0.5">Ext 3 · 09:00 - 21:00</span>
                                     </div>
                                 </button>
 
@@ -605,7 +605,7 @@ export default function ContactPage() {
                                 <button
                                     type="button"
                                     onClick={() => handleSelectDepartment('mice')}
-                                    className={`p-3 rounded-2xl border transition flex items-start gap-2.5 text-left cursor-pointer ${
+                                    className={`p-2.5 sm:p-3 rounded-2xl border transition flex flex-col sm:flex-row items-start gap-1.5 sm:gap-2.5 text-left cursor-pointer ${
                                         formData.department === 'mice'
                                             ? 'bg-sky-50/70 border-sky-400 ring-1 ring-sky-400/20'
                                             : 'bg-slate-50/80 border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'
@@ -614,9 +614,9 @@ export default function ContactPage() {
                                     <div className="w-8 h-8 rounded-xl bg-indigo-100/70 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-200/50">
                                         <Users className="w-4 h-4" />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 w-full">
                                         <strong className="text-slate-900 font-bold block leading-snug">Đoàn & Sự Kiện M.I.C.E</strong>
-                                        <span className="text-sky-700 font-semibold text-[11px] block mt-0.5">Ext 4 · 08:00 - 18:00</span>
+                                        <span className="text-sky-700 font-semibold text-[10.5px] sm:text-[11px] block mt-0.5">Ext 4 · 08:00 - 18:00</span>
                                     </div>
                                 </button>
                             </div>
@@ -731,86 +731,86 @@ export default function ContactPage() {
                     </a>
 
                     {/* 4 TRAVEL TIME CARDS (2 cột gọn trên mobile) */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6 mt-6 sm:mt-8">
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
-                                    <Plane className="w-5 h-5" />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mt-5 sm:mt-8">
+                        <div className="bg-slate-50/80 rounded-2xl p-3.5 sm:p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
+                            <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center shrink-0">
+                                    <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
+                                <span className="font-mono text-[10.5px] sm:text-xs font-bold text-sky-800 bg-sky-50 px-2 sm:px-2.5 py-0.5 rounded-full border border-sky-200/70 whitespace-nowrap">
                                     15 phút
                                 </span>
                             </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Sân Bay Quốc Tế (DAD)</h4>
-                            <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 7.5 km</span>
-                            <p className="text-xs text-slate-600 leading-relaxed">
+                            <h4 className="font-serif font-bold text-slate-900 text-xs sm:text-sm mb-0.5 sm:mb-1 leading-snug">Sân Bay Quốc Tế (DAD)</h4>
+                            <span className="text-[10.5px] sm:text-[11px] text-slate-400 block mb-1.5 sm:mb-2 font-medium">Khoảng cách: 7.5 km</span>
+                            <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-3 sm:line-clamp-none">
                                 Di chuyển thuận tiện bằng dịch vụ xe đưa đón sân bay của khách sạn hoặc taxi dọc tuyến cầu Rồng & Nguyễn Văn Linh.
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
-                                    <Train className="w-5 h-5" />
+                        <div className="bg-slate-50/80 rounded-2xl p-3.5 sm:p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
+                            <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center shrink-0">
+                                    <Train className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
+                                <span className="font-mono text-[10.5px] sm:text-xs font-bold text-sky-800 bg-sky-50 px-2 sm:px-2.5 py-0.5 rounded-full border border-sky-200/70 whitespace-nowrap">
                                     12 phút
                                 </span>
                             </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Ga Xe Lửa Đà Nẵng</h4>
-                            <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 5.8 km</span>
-                            <p className="text-xs text-slate-600 leading-relaxed">
+                            <h4 className="font-serif font-bold text-slate-900 text-xs sm:text-sm mb-0.5 sm:mb-1 leading-snug">Ga Xe Lửa Đà Nẵng</h4>
+                            <span className="text-[10.5px] sm:text-[11px] text-slate-400 block mb-1.5 sm:mb-2 font-medium">Khoảng cách: 5.8 km</span>
+                            <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-3 sm:line-clamp-none">
                                 Tuyến đường nhanh qua trung tâm thành phố và Cầu Sông Hàn, thuận tiện đón quý khách từ các chuyến tàu hỏa di sản.
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
-                                    <Landmark className="w-5 h-5" />
+                        <div className="bg-slate-50/80 rounded-2xl p-3.5 sm:p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
+                            <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center shrink-0">
+                                    <Landmark className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
+                                <span className="font-mono text-[10.5px] sm:text-xs font-bold text-sky-800 bg-sky-50 px-2 sm:px-2.5 py-0.5 rounded-full border border-sky-200/70 whitespace-nowrap">
                                     25 phút
                                 </span>
                             </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Phố Cổ Hội An</h4>
-                            <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 22 km</span>
-                            <p className="text-xs text-slate-600 leading-relaxed">
+                            <h4 className="font-serif font-bold text-slate-900 text-xs sm:text-sm mb-0.5 sm:mb-1 leading-snug">Phố Cổ Hội An</h4>
+                            <span className="text-[10.5px] sm:text-[11px] text-slate-400 block mb-1.5 sm:mb-2 font-medium">Khoảng cách: 22 km</span>
+                            <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-3 sm:line-clamp-none">
                                 Cung đường biển thơ mộng Trường Sa - Lạc Long Quân đưa Quý khách đến Di sản Thế giới UNESCO Hội An dễ dàng.
                             </p>
                         </div>
 
-                        <div className="bg-slate-50/80 rounded-2xl p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center">
-                                    <Mountain className="w-5 h-5" />
+                        <div className="bg-slate-50/80 rounded-2xl p-3.5 sm:p-5 border border-slate-200/90 hover:border-sky-200 hover:shadow-md transition">
+                            <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-200/70 flex items-center justify-center shrink-0">
+                                    <Mountain className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
-                                <span className="font-mono text-xs font-bold text-sky-800 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200/70">
+                                <span className="font-mono text-[10.5px] sm:text-xs font-bold text-sky-800 bg-sky-50 px-2 sm:px-2.5 py-0.5 rounded-full border border-sky-200/70 whitespace-nowrap">
                                     15 phút
                                 </span>
                             </div>
-                            <h4 className="font-serif font-bold text-slate-900 text-sm mb-1">Sơn Trà & Chùa Linh Ứng</h4>
-                            <span className="text-[11px] text-slate-400 block mb-2 font-medium">Khoảng cách: 10 km</span>
-                            <p className="text-xs text-slate-600 leading-relaxed">
+                            <h4 className="font-serif font-bold text-slate-900 text-xs sm:text-sm mb-0.5 sm:mb-1 leading-snug">Sơn Trà & Chùa Linh Ứng</h4>
+                            <span className="text-[10.5px] sm:text-[11px] text-slate-400 block mb-1.5 sm:mb-2 font-medium">Khoảng cách: 10 km</span>
+                            <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-3 sm:line-clamp-none">
                                 Trải nghiệm bán đảo Sơn Trà, viếng tượng Phật Bà Quán Âm và ngắm toàn cảnh vịnh biển Đà Nẵng.
                             </p>
                         </div>
                     </div>
 
                     {/* AIRPORT TRANSFER & TOUR CAR BANNER (SÁT THỰC TẾ KHÁCH SẠN 3 SAO) */}
-                    <div className="mt-10 bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 border border-sky-500/25 text-white rounded-3xl p-6 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 shadow-xl">
+                    <div className="mt-6 sm:mt-10 bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 border border-sky-500/25 text-white rounded-3xl p-4 sm:p-10 flex flex-col lg:flex-row items-center justify-between gap-5 sm:gap-8 shadow-xl">
                         <div className="max-w-xl">
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-sky-200 bg-sky-500/20 border border-sky-400/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-3">
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-sky-200 bg-sky-500/20 border border-sky-400/30 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-2.5 sm:mb-3">
                                 <Car className="w-3.5 h-3.5 text-sky-300" />
                                 <span>Hỗ trợ di chuyển tiện lợi</span>
                             </span>
-                            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white mb-3">
+                            <h3 className="font-serif text-xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">
                                 Dịch Vụ Đưa Đón Sân Bay & Đặt Xe Tham Quan
                             </h3>
-                            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5 font-light">
+                            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-3.5 sm:mb-5 font-light">
                                 Bộ phận Lễ tân hỗ trợ đặt xe đưa đón hai chiều sân bay quốc tế Đà Nẵng (DAD) và xe tham quan các điểm du lịch nổi tiếng với mức giá minh bạch, tài xế đúng giờ và chu đáo.
                             </p>
-                            <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-200 mb-6">
+                            <div className="flex flex-wrap gap-2 sm:gap-4 text-xs font-semibold text-slate-200 mb-4 sm:mb-6">
                                 <span className="flex items-center gap-1.5">
                                     <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
                                     <span>Xe 4 – 16 chỗ đời mới, máy lạnh</span>
@@ -833,7 +833,7 @@ export default function ContactPage() {
                                 <Send className="w-3.5 h-3.5" />
                             </button>
                         </div>
-                        <div className="w-full lg:w-96 h-56 rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-white/10">
+                        <div className="w-full lg:w-96 h-40 sm:h-56 rounded-2xl overflow-hidden shadow-2xl shrink-0 border border-white/10">
                             <img
                                 src="https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=600&q=80"
                                 alt="Dịch vụ xe đưa đón sân bay khách sạn TA Đà Nẵng"
@@ -847,8 +847,8 @@ export default function ContactPage() {
             </section>
 
             {/* FAQ SECTION */}
-            <section className="py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                <div className="text-center mb-10">
+            <section className="py-10 sm:py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div className="text-center mb-6 sm:mb-10">
                     <span className="text-xs uppercase font-bold tracking-widest text-sky-700">
                         Giải đáp nhanh
                     </span>

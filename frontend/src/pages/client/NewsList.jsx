@@ -163,7 +163,7 @@ export default function NewsList() {
             </div>
 
             {/* HERO BANNER CHUẨN LUXURY RESORT */}
-            <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
+            <header className="relative bg-slate-950 overflow-hidden py-6 sm:py-10 lg:py-14 border-b border-slate-800 shadow-md">
                 <img
                     src={settings?.banner_news || "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=2000&q=85"}
                     alt="Khách Sạn TA Đà Nẵng Resort"
@@ -188,7 +188,7 @@ export default function NewsList() {
                         </h1>
 
                         <p
-                            className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
+                            className="animate-hero-up text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
                             style={{ animationDelay: '160ms' }}
                         >
                             Cập nhật cẩm nang du lịch Đà Nẵng, nghệ thuật ẩm thực và các sự kiện nổi bật tại {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}.
@@ -265,7 +265,7 @@ export default function NewsList() {
                     <Reveal className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden hover:shadow-xl hover:border-sky-200/80 transition-all duration-300 group">
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                             {/* Cột ảnh bìa */}
-                            <div className="lg:col-span-7 relative h-56 sm:h-80 lg:h-full lg:min-h-[320px] overflow-hidden bg-slate-100">
+                            <div className="lg:col-span-7 relative h-48 sm:h-80 lg:h-full lg:min-h-[320px] overflow-hidden bg-slate-100">
                                 {featuredPost.thumbnail_url ? (
                                     <img
                                         src={featuredPost.thumbnail_url}
@@ -279,7 +279,7 @@ export default function NewsList() {
                                         <ImageIcon className="w-16 h-16 stroke-1" />
                                     </div>
                                 )}
-                                <span className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white font-bold text-[11px] uppercase tracking-wider shadow-lg shadow-sky-900/25 flex items-center gap-1.5 backdrop-blur-xs">
+                                <span className="absolute top-3 left-3 sm:top-4 sm:left-4 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 text-white font-bold text-[10.5px] sm:text-[11px] uppercase tracking-wider shadow-lg shadow-sky-900/25 flex items-center gap-1.5 backdrop-blur-xs">
                                     <Flame className="w-3.5 h-3.5 text-sky-200" />
                                     <span>Bài viết nổi bật</span>
                                 </span>
@@ -287,17 +287,17 @@ export default function NewsList() {
 
                             {/* Cột nội dung */}
                             <div className="lg:col-span-5 p-4 sm:p-8 lg:p-10 flex flex-col justify-between">
-                                <div className="space-y-3.5">
-                                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold">
+                                <div className="space-y-3 sm:space-y-3.5">
+                                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-slate-500 font-semibold">
                                         <span className="px-2.5 py-0.5 rounded-lg bg-sky-50 text-sky-800 border border-sky-200/80">
                                             {featuredPost.category_display || featuredPost.category}
                                         </span>
-                                        <span className="text-slate-300">•</span>
+                                        <span className="hidden sm:inline text-slate-300">•</span>
                                         <span className="flex items-center gap-1 text-slate-500">
                                             <Calendar className="w-3.5 h-3.5 text-slate-400" />
                                             <span>{formatDate(featuredPost.created_at)}</span>
                                         </span>
-                                        <span className="text-slate-300">•</span>
+                                        <span className="hidden sm:inline text-slate-300">•</span>
                                         <span className="flex items-center gap-1 text-slate-500">
                                             <Eye className="w-3.5 h-3.5 text-slate-400" />
                                             <span>{featuredPost.view_count || 0} lượt xem</span>
@@ -305,7 +305,7 @@ export default function NewsList() {
                                     </div>
 
                                     <Link to={`/news/${featuredPost.slug}`}>
-                                        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 group-hover:text-sky-700 transition leading-snug">
+                                        <h2 className="font-serif text-xl sm:text-3xl font-bold text-slate-900 group-hover:text-sky-700 transition leading-snug">
                                             {featuredPost.title}
                                         </h2>
                                     </Link>
@@ -315,7 +315,7 @@ export default function NewsList() {
                                     </p>
                                 </div>
 
-                                <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between">
+                                <div className="pt-4 mt-4 sm:pt-6 sm:mt-6 border-t border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-2.5">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-xs">
                                             <User className="w-4 h-4" />
@@ -407,7 +407,7 @@ export default function NewsList() {
                         ) : (
                             <div
                                 key={`${selectedCategory}-${sortBy}-${safeCurrentPage}`}
-                                className="animate-tab-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                                className="animate-tab-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
                             >
                                 {paginatedPosts.map((post) => (
                                     <article
@@ -416,7 +416,7 @@ export default function NewsList() {
                                     >
                                         <div>
                                             {/* Ảnh bìa */}
-                                            <Link to={`/news/${post.slug}`} className="block relative h-48 overflow-hidden bg-slate-100">
+                                            <Link to={`/news/${post.slug}`} className="block relative h-44 sm:h-48 overflow-hidden bg-slate-100">
                                                 {post.thumbnail_url ? (
                                                     <img
                                                         src={post.thumbnail_url}
@@ -437,7 +437,7 @@ export default function NewsList() {
                                             </Link>
 
                                             {/* Nội dung tóm tắt */}
-                                            <div className="p-5 space-y-2">
+                                            <div className="p-4 sm:p-5 space-y-2">
                                                 <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="w-3 h-3 text-slate-400" />
@@ -465,7 +465,7 @@ export default function NewsList() {
                                         </div>
 
                                         {/* Footer thẻ */}
-                                        <div className="px-5 pb-5 pt-3 flex items-center justify-between border-t border-slate-100 text-xs">
+                                        <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-3 flex items-center justify-between border-t border-slate-100 text-xs">
                                             <span className="text-[11px] text-slate-600 font-semibold truncate max-w-[150px] flex items-center gap-1.5">
                                                 <User className="w-3.5 h-3.5 text-slate-400" />
                                                 <span>{post.author || 'Ban Biên Tập'}</span>
@@ -485,7 +485,7 @@ export default function NewsList() {
 
                         {/* THANH ĐIỀU HƯỚNG PHÂN TRANG (PAGINATION) */}
                         {!isLoading && totalPages > 1 && (
-                            <div className="mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200/80">
+                            <div className="mt-7 pt-5 sm:mt-12 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 border-t border-slate-200/80">
                                 {/* Thông tin số trang & bài viết */}
                                 <div className="text-xs text-slate-500 font-medium">
                                     Đang xem trang <span className="font-bold text-sky-700">{safeCurrentPage}</span> / <span className="font-bold text-slate-800">{totalPages}</span> (Tổng cộng <span className="font-semibold text-slate-700">{regularSourcePosts.length}</span> bài viết)

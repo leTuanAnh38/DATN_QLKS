@@ -1158,54 +1158,54 @@ export default function DetailRoom() {
             </section>
 
             {/* KHU VỰC THÔNG TIN CHÍNH & STICKY BOOKING WIDGET */}
-            <section className="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <section className="py-5 sm:py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
                     {/* CỘT TRÁI: THÔNG TIN CHI TIẾT (8 COLS) */}
-                    <div className="lg:col-span-8 space-y-12 min-w-0">
+                    <div className="lg:col-span-8 space-y-5 sm:space-y-10 lg:space-y-12 min-w-0">
                         {/* THÔNG SỐ CƠ BẢN: Map Diện tích (size), Sức chứa (capacity), Giường ngủ (bed_type) */}
-                        <Reveal className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <Maximize2 className="w-5 h-5" />
+                        <Reveal className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <span className="block text-[11px] text-slate-400 uppercase font-semibold">Diện tích</span>
-                                    <strong className="text-sm text-slate-900 block truncate" title={room.size ? `${room.size} m²` : '45 m²'}>
+                                    <span className="block text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Diện tích</span>
+                                    <strong className="text-xs sm:text-sm text-slate-900 block truncate" title={room.size ? `${room.size} m²` : '45 m²'}>
                                         {room.size ? `${room.size} m²` : '45 m²'}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <Compass className="w-5 h-5" />
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <Compass className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <span className="block text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
-                                    <strong className="text-sm text-slate-900 block truncate" title={roomViewText}>
+                                    <span className="block text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Tầm nhìn</span>
+                                    <strong className="text-xs sm:text-sm text-slate-900 block truncate" title={roomViewText}>
                                         {roomViewText}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <Users className="w-5 h-5" />
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <span className="block text-[11px] text-slate-400 uppercase font-semibold">Sức chứa</span>
-                                    <strong className="text-sm text-slate-900 block truncate" title={room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}>
+                                    <span className="block text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Sức chứa</span>
+                                    <strong className="text-xs sm:text-sm text-slate-900 block truncate" title={room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}>
                                         {room.capacity ? `${room.capacity} Người lớn` : '2 Người lớn'}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <BedDouble className="w-5 h-5" />
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
+                                    <BedDouble className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <span className="block text-[11px] text-slate-400 uppercase font-semibold">Giường ngủ</span>
+                                    <span className="block text-[10px] sm:text-[11px] text-slate-400 uppercase font-semibold">Giường ngủ</span>
                                     <strong
                                         className="text-xs sm:text-[13px] font-bold text-slate-900 block leading-tight break-words"
                                         title={room.bed_type || '1 Giường Đôi King'}
@@ -1276,20 +1276,20 @@ export default function DetailRoom() {
 
                             {/* 1. Tiện ích riêng biệt của Hạng phòng lấy từ API */}
                             {room.amenities && room.amenities.length > 0 && (
-                                <div className="mb-6 sm:mb-8">
-                                    <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-3">
+                                <div className="mb-5 sm:mb-8">
+                                    <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-2.5 sm:mb-3">
                                         Tiện ích đặc trưng của hạng phòng này:
                                     </h4>
-                                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
                                         {room.amenities.map((amenity, idx) => (
                                             <div
                                                 key={amenity.id || idx}
-                                                className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 rounded-2xl bg-sky-50/45 border border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 transition group min-w-0"
+                                                className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3.5 rounded-2xl bg-sky-50/45 border border-sky-100 hover:border-sky-300 hover:bg-sky-50/80 transition group min-w-0"
                                             >
-                                                <span className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-base sm:text-lg flex-shrink-0 group-hover:scale-110 transition border border-sky-100/80 select-none">
+                                                <span className="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-white shadow-xs flex items-center justify-center text-sm sm:text-lg flex-shrink-0 group-hover:scale-110 transition border border-sky-100/80 select-none">
                                                     {amenity.icon || getAmenityIcon(amenity)}
                                                 </span>
-                                                <span className="text-xs font-bold text-slate-800 group-hover:text-sky-800 transition leading-snug">
+                                                <span className="text-[11.5px] sm:text-xs font-bold text-slate-800 group-hover:text-sky-800 transition leading-snug">
                                                     {amenity.name}
                                                 </span>
                                             </div>
@@ -1299,7 +1299,7 @@ export default function DetailRoom() {
                             )}
 
                             {/* 2. Tiện ích tiêu chuẩn phân theo nhóm */}
-                            <div className="space-y-4 pt-6 border-t border-slate-100">
+                            <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-slate-100">
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-xs uppercase font-bold tracking-wider text-slate-400">
                                         Tiện nghi tiêu chuẩn trang bị sẵn trong phòng:
@@ -1309,29 +1309,29 @@ export default function DetailRoom() {
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
                                     {STANDARD_AMENITY_GROUPS.map((group, idx) => {
                                         const GroupIcon = group.icon;
                                         return (
                                             <div
                                                 key={idx}
-                                                className="bg-slate-50/80 hover:bg-slate-50 rounded-2xl border border-slate-200/80 p-5 sm:p-6 transition shadow-2xs hover:shadow-xs space-y-4"
+                                                className="bg-slate-50/80 hover:bg-slate-50 rounded-2xl border border-slate-200/80 p-3.5 sm:p-6 transition shadow-2xs hover:shadow-xs space-y-2.5 sm:space-y-4"
                                             >
-                                                <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200/70 text-sky-700 flex items-center justify-center shrink-0">
+                                                <div className="flex items-center justify-between gap-2 pb-2 sm:pb-3 border-b border-slate-200/70">
+                                                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-50 border border-sky-200/70 text-sky-700 flex items-center justify-center shrink-0">
                                                             <GroupIcon className="w-4 h-4" />
                                                         </div>
-                                                        <h4 className="font-serif font-bold text-base text-slate-900 tracking-tight">
+                                                        <h4 className="font-serif font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate">
                                                             {group.title}
                                                         </h4>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-3xs">
+                                                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-3xs whitespace-nowrap shrink-0">
                                                         {group.items.length} tiện nghi
                                                     </span>
                                                 </div>
 
-                                                <ul className="space-y-2.5">
+                                                <ul className="space-y-1.5 sm:space-y-2.5">
                                                     {group.items.map((item, itemIdx) => (
                                                         <li key={itemIdx} className="flex items-start gap-2.5 text-xs text-slate-700 leading-relaxed font-normal">
                                                             <div className="w-4 h-4 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 shadow-3xs">

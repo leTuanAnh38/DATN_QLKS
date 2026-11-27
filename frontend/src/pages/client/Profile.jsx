@@ -394,7 +394,7 @@ export default function Profile() {
             </header>
 
             {/* 3. MAIN TAB CONTENT */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 w-full flex-1">
                 {/* Alerts Feedback */}
                 {successMessage && (
                     <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm rounded-2xl flex items-center gap-3 shadow-xs animate-fadeIn">
@@ -545,7 +545,7 @@ export default function Profile() {
                         {/* Trên mobile hiển thị vị trí 2 (ngay dưới Avatar), trên desktop hiển thị cột phải */}
                         <div className="lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
                             {/* Card Header with Quick Edit Trigger Button */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-6 border-b border-slate-100">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3.5 sm:pb-5 mb-4 sm:mb-6 border-b border-slate-100">
                                 <div>
                                     <div className="flex items-center gap-2.5 flex-wrap">
                                         <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
@@ -573,7 +573,7 @@ export default function Profile() {
                                     <button
                                         type="button"
                                         onClick={() => setIsEditing(true)}
-                                        className="self-start sm:self-auto px-4 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                                        className="self-start sm:self-auto px-4 py-2 sm:py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 cursor-pointer shrink-0"
                                     >
                                         <Edit3 className="w-3.5 h-3.5" />
                                         <span>Chỉnh Sửa Hồ Sơ</span>
@@ -583,11 +583,11 @@ export default function Profile() {
 
                             {/* CHẾ ĐỘ XEM (VIEW MODE) - GIAO DIỆN SẠCH SẼ, SANG TRỌNG */}
                             {!isEditing ? (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-4">
                                         {/* Họ và tên */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <User className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0">
@@ -601,8 +601,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Số điện thoại */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Phone className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -629,8 +629,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Email */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Mail className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -651,8 +651,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Giấy tờ định danh */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <CreditCard className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -672,8 +672,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Ngày sinh */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <Calendar className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">
@@ -704,8 +704,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Giới tính */}
-                                        <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <UserCheck className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0">
@@ -719,8 +719,8 @@ export default function Profile() {
                                         </div>
 
                                         {/* Địa chỉ thường trú */}
-                                        <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-3">
-                                            <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
+                                        <div className="sm:col-span-2 p-3 sm:p-4 rounded-2xl bg-slate-50/70 border border-slate-200/60 hover:border-sky-200/80 transition-colors flex items-start gap-2.5 sm:gap-3">
+                                            <div className="p-2 sm:p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                                 <MapPin className="w-4 h-4" />
                                             </div>
                                             <div className="min-w-0 flex-1">

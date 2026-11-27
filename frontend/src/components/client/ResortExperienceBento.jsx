@@ -230,8 +230,8 @@ export default function ResortExperienceBento() {
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                            <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
-                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
+                            <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3">
+                                <span className="inline-flex items-center gap-1 max-w-full px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
                                     <UtensilsCrossed className="w-3 h-3 shrink-0" />
                                     <span className="truncate">{BENTO_GALLERY.fineDining.badge}</span>
                                 </span>
@@ -255,8 +255,8 @@ export default function ResortExperienceBento() {
                                 loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
-                            <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3">
-                                <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
+                            <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3">
+                                <span className="inline-flex items-center gap-1 max-w-full px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
                                     <Car className="w-3 h-3 shrink-0" />
                                     <span className="truncate">{BENTO_GALLERY.coastalView.badge}</span>
                                 </span>

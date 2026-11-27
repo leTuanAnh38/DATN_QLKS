@@ -481,7 +481,7 @@ export default function ServicesMenu() {
 
     // Danh sách số trang hiển thị (có dấu ... khi quá nhiều trang)
     const pageNumbers = useMemo(() => {
-        if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+        if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
         const pages = [1];
         const start = Math.max(2, safePage - 1);
         const end = Math.min(totalPages - 1, safePage + 1);
@@ -855,7 +855,7 @@ export default function ServicesMenu() {
                 </div>
 
                 {/* HERO BANNER CHUẨN LUXURY HOTEL (ẢNH SẮC NÉT + GRADIENT OVERLAY) */}
-                <header className="relative bg-slate-950 overflow-hidden py-10 lg:py-14 border-b border-slate-800 shadow-md">
+                <header className="relative bg-slate-950 overflow-hidden py-6 sm:py-10 lg:py-14 border-b border-slate-800 shadow-md">
                     {/* 1. Ảnh nền sắc nét 100% với Ken Burns phóng chậm mượt */}
                     <img
                         src={bannerServicesImg}
@@ -879,7 +879,7 @@ export default function ServicesMenu() {
                                 </span>
                             </h1>
                             <p
-                                className="animate-hero-up text-sm sm:text-base text-gray-200 mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
+                                className="animate-hero-up text-xs sm:text-base text-gray-200 mt-2.5 sm:mt-4 leading-relaxed font-normal max-w-2xl drop-shadow-xs"
                                 style={{ animationDelay: '160ms' }}
                             >
                                 Ẩm thực thượng hạng, trà chiều, liệu trình spa và tiện ích buồng phòng chuẩn {starCount} sao phục vụ tận phòng 24/7.
@@ -887,7 +887,7 @@ export default function ServicesMenu() {
 
                             {/* Thông tin phòng đang lưu trú của khách */}
                             {isAuthenticated && activeBookings.length > 0 && (
-                                <div className="animate-hero-up mt-6 flex flex-wrap items-center gap-3" style={{ animationDelay: '260ms' }}>
+                                <div className="animate-hero-up mt-3.5 sm:mt-6 flex flex-wrap items-center gap-2 sm:gap-3" style={{ animationDelay: '260ms' }}>
                                     <div className="inline-flex flex-wrap items-center gap-2 p-2.5 px-4 rounded-2xl bg-white/90 backdrop-blur-md border border-amber-200/80 text-xs shadow-xs">
                                         <span className="text-amber-900 font-bold flex items-center gap-1.5">
                                             <BedDouble className="w-4 h-4 text-amber-600" />
@@ -1052,7 +1052,7 @@ export default function ServicesMenu() {
                         <div
                             id="services-menu-grid"
                             key={`${selectedCategory}-${sortBy}-${safePage}`}
-                            className="animate-tab-reveal scroll-mt-24 min-h-[60vh] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                            className="animate-tab-reveal scroll-mt-24 min-h-[60vh] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6"
                         >
                             {paginatedItems.map((item) => {
                                 const itemImg =
@@ -1081,7 +1081,7 @@ export default function ServicesMenu() {
                                             title="Bấm để xem chi tiết & thành phần dịch vụ"
                                         >
                                             {/* Ảnh dịch vụ */}
-                                            <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
+                                            <div className="relative aspect-[16/9] sm:aspect-4/3 overflow-hidden bg-slate-100">
                                                 <img
                                                     src={itemImg}
                                                     alt={item.name}
@@ -1112,14 +1112,14 @@ export default function ServicesMenu() {
                                             </div>
 
                                             {/* Nội dung thông tin */}
-                                            <div className="p-5">
-                                                <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-sky-700 transition-colors leading-snug line-clamp-2 min-h-[2.75rem]">
+                                            <div className="p-3.5 sm:p-5">
+                                                <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-sky-700 transition-colors leading-snug line-clamp-2 sm:min-h-[2.75rem]">
                                                     {item.name}
                                                 </h3>
-                                                <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed font-normal min-h-[2.4rem]">
+                                                <p className="text-xs text-slate-500 mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed font-normal sm:min-h-[2.4rem]">
                                                     {item.description || `Dịch vụ chuẩn ${starCount} sao phục vụ trực tiếp tại phòng nghỉ.`}
                                                 </p>
-                                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 group-hover:text-sky-700 mt-2">
+                                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 group-hover:text-sky-700 mt-1.5 sm:mt-2">
                                                     <span>Xem mô tả & thành phần</span>
                                                     <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                                                 </span>
@@ -1127,7 +1127,7 @@ export default function ServicesMenu() {
                                         </div>
 
                                         {/* Phần chân Card: Giá & Nút đặt */}
-                                        <div className="px-5 pb-5 pt-3.5 border-t border-slate-100 space-y-2.5">
+                                        <div className="px-3.5 pb-3.5 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3.5 border-t border-slate-100 space-y-2 sm:space-y-2.5">
                                             {/* Hàng 1: Đơn giá */}
                                             <div className="flex items-baseline justify-between gap-2">
                                                 <div>
@@ -1223,20 +1223,20 @@ export default function ServicesMenu() {
                                 <strong className="text-slate-800">{filteredItems.length}</strong> dịch vụ
                             </p>
 
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5">
                                 <button
                                     type="button"
                                     onClick={() => handlePageChange(safePage - 1)}
                                     disabled={safePage === 1}
                                     aria-label="Trang trước"
-                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                 </button>
 
                                 {pageNumbers.map((p) =>
                                     typeof p === 'string' ? (
-                                        <span key={p} className="w-8 sm:w-9 h-10 sm:h-9 flex items-center justify-center text-slate-400 text-xs select-none">
+                                        <span key={p} className="w-7 sm:w-9 h-9 flex items-center justify-center text-slate-400 text-xs select-none">
                                             …
                                         </span>
                                     ) : (
@@ -1245,7 +1245,7 @@ export default function ServicesMenu() {
                                             type="button"
                                             onClick={() => handlePageChange(p)}
                                             aria-current={p === safePage ? 'page' : undefined}
-                                            className={`w-10 h-10 sm:w-9 sm:h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                                            className={`w-9 h-9 rounded-xl text-xs font-bold transition cursor-pointer border ${
                                                 p === safePage
                                                     ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white border-sky-600 shadow-md shadow-sky-900/20'
                                                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -1261,7 +1261,7 @@ export default function ServicesMenu() {
                                     onClick={() => handlePageChange(safePage + 1)}
                                     disabled={safePage === totalPages}
                                     aria-label="Trang sau"
-                                    className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                                    className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-bold flex items-center justify-center transition cursor-pointer hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                                 >
                                     <ChevronRight className="w-4 h-4" />
                                 </button>

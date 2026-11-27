@@ -5,16 +5,10 @@ import {
     MapPin,
     Phone,
     Mail,
-    Clock,
     Star,
     Send,
     CheckCircle2,
     ShieldCheck,
-    Award,
-    Compass,
-    ChevronRight,
-    Building2,
-    CreditCard,
     Loader2,
     FileText
 } from 'lucide-react';
@@ -88,7 +82,7 @@ export default function Footer() {
                                     <img
                                         src={resolveMediaUrl(hotelInfo.logo_url)}
                                         alt={hotelName}
-                                        className="w-full h-full object-cover object-center scale-[1.22]"
+                                        className="w-full h-full object-contain object-center scale-[1.08]"
                                     />
                                 </div>
                             ) : (
@@ -123,30 +117,23 @@ export default function Footer() {
                             {hotelInfo?.description || `Kiệt tác nghỉ dưỡng ${starsCount} sao giao hòa giữa vẻ đẹp di sản truyền thống và kiến trúc hiện đại chuẩn quốc tế. Nơi tái định nghĩa chuẩn mực sang trọng và sự thư thái tinh khiết.`}
                         </p>
 
-                        {/* Huy hiệu giải thưởng & MST: Lưới 2 cột đều nhau trên mobile */}
+                        {/* Huy hiệu giải thưởng & MST: Lưới 2 cột đều nhau, tối giản không icon thừa */}
                         <div className="pt-1 grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3">
-                            <div className="px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                                <Award className="w-4 h-4 text-sky-600 shrink-0" />
-                                <div className="min-w-0">
-                                    <span className="font-bold text-slate-900 text-[10.5px] sm:text-[11px] block leading-tight truncate">WINNER 2024–2026</span>
-                                    <span className="text-[9.5px] sm:text-[10px] text-slate-500 block truncate">World Luxury Hotel Awards</span>
-                                </div>
+                            <div className="px-3 py-2 bg-white rounded-xl border border-slate-200/90 shadow-2xs min-w-0">
+                                <span className="font-bold text-slate-900 text-[10.5px] sm:text-[11px] block leading-tight truncate">WINNER 2024–2026</span>
+                                <span className="text-[9.5px] sm:text-[10px] text-slate-500 block truncate mt-0.5">World Luxury Hotel Awards</span>
                             </div>
-                            <div className="px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
-                                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                                <div className="min-w-0">
-                                    <span className="font-bold text-slate-800 text-[10.5px] sm:text-[11px] block leading-tight">Mã Số Thuế</span>
-                                    <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 block truncate">{taxCode}</span>
-                                </div>
+                            <div className="px-3 py-2 bg-white rounded-xl border border-slate-200/90 shadow-2xs min-w-0">
+                                <span className="font-bold text-slate-800 text-[10.5px] sm:text-[11px] block leading-tight">Mã Số Thuế</span>
+                                <span className="text-[9.5px] sm:text-[10px] font-mono text-slate-500 block truncate mt-0.5">{taxCode}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* CỘT 2: THÔNG TIN LIÊN HỆ & ĐÓN TIẾP (lg:col-span-3) */}
                     <div className="lg:col-span-3 space-y-3 sm:space-y-3.5 text-xs">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 mb-3 sm:mb-4">
-                            <Building2 className="w-4 h-4 text-sky-600" />
-                            <span>Liên Hệ & Đón Tiếp</span>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 sm:mb-4">
+                            Liên Hệ &amp; Đón Tiếp
                         </h4>
 
                         <div className="flex items-start gap-2.5 text-slate-600">
@@ -154,23 +141,25 @@ export default function Footer() {
                             <span className="leading-relaxed">{address}</span>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
-                            <Phone className="w-4 h-4 text-sky-600 shrink-0" />
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-400 font-medium">Tổng đài CSKH 24/7:</span>
-                                <a href={`tel:${cleanPhone(hotline)}`} className="text-sky-700 hover:text-sky-800 font-bold transition">
-                                    {hotline}
-                                </a>
+                        <div className="grid grid-cols-2 sm:grid-cols-1 gap-2.5 sm:gap-3.5">
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                <Phone className="w-4 h-4 text-sky-600 shrink-0" />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] text-slate-400 font-medium truncate">Tổng đài 24/7:</span>
+                                    <a href={`tel:${cleanPhone(hotline)}`} className="text-sky-700 hover:text-sky-800 font-bold transition truncate">
+                                        {hotline}
+                                    </a>
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="flex items-center gap-2.5">
-                            <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                            <div className="flex flex-col">
-                                <span className="text-[10px] text-slate-400 font-medium">Lễ tân & Đặt phòng:</span>
-                                <a href={`tel:${cleanPhone(phoneNumber)}`} className="text-slate-800 hover:text-sky-700 font-semibold transition">
-                                    {phoneNumber}
-                                </a>
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] text-slate-400 font-medium truncate">Lễ tân & Đặt phòng:</span>
+                                    <a href={`tel:${cleanPhone(phoneNumber)}`} className="text-slate-800 hover:text-sky-700 font-semibold transition truncate">
+                                        {phoneNumber}
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
@@ -185,70 +174,53 @@ export default function Footer() {
                         </div>
 
                         {/* Thẻ Check-in / Check-out: Thiết kế 2 cột nền trắng tinh gọn */}
-                        <div className="p-2.5 sm:p-3 bg-white rounded-xl border border-slate-200/90 grid grid-cols-2 divide-x divide-slate-200/80 gap-2 mt-2 text-[11px] text-slate-800 shadow-2xs">
-                            <div className="flex items-center gap-2 pr-1">
-                                <div className="w-6 h-6 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <Clock className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="text-[9.5px] text-sky-700 font-bold block uppercase tracking-wider">Check-in</span>
-                                    <strong className="text-slate-900 font-extrabold">{checkInTime}</strong>
-                                </div>
+                        <div className="px-3 py-2.5 bg-white rounded-xl border border-slate-200/90 grid grid-cols-2 divide-x divide-slate-200/80 gap-2 mt-2 text-[11px] text-slate-800 shadow-2xs">
+                            <div className="min-w-0 pr-1">
+                                <span className="text-[9.5px] text-sky-700 font-bold block uppercase tracking-wider">Check-in</span>
+                                <strong className="text-slate-900 font-extrabold text-xs">{checkInTime}</strong>
                             </div>
-                            <div className="flex items-center gap-2 pl-3">
-                                <div className="w-6 h-6 rounded-lg bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center shrink-0">
-                                    <Clock className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                    <span className="text-[9.5px] text-sky-700 font-bold block uppercase tracking-wider">Check-out</span>
-                                    <strong className="text-slate-900 font-extrabold">{checkOutTime}</strong>
-                                </div>
+                            <div className="min-w-0 pl-3">
+                                <span className="text-[9.5px] text-sky-700 font-bold block uppercase tracking-wider">Check-out</span>
+                                <strong className="text-slate-900 font-extrabold text-xs">{checkOutTime}</strong>
                             </div>
                         </div>
                     </div>
 
                     {/* CỘT 3: KHÁM PHÁ & DỊCH VỤ (lg:col-span-2) */}
                     <div className="lg:col-span-2 space-y-3">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 mb-3 sm:mb-4">
-                            <Compass className="w-4 h-4 text-sky-600" />
-                            <span>Khám Phá & Dịch Vụ</span>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-3 sm:mb-4">
+                            Khám Phá &amp; Dịch Vụ
                         </h4>
                         {/* Lưới 2 cột trên điện thoại để tiết kiệm 50% chiều dài trang */}
-                        <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-1 sm:gap-y-2 text-xs text-slate-600">
+                        <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-3 gap-y-1 sm:gap-y-2.5 text-xs text-slate-600">
                             <li>
-                                <Link to="/rooms" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Phòng Nghỉ & Suites</span>
+                                <Link to="/rooms" className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Phòng Nghỉ &amp; Suites
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/services" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Ẩm Thực & Dịch Vụ</span>
+                                <Link to="/services" className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Ẩm Thực &amp; Dịch Vụ
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/promotions" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Ưu Đãi Đặc Quyền</span>
+                                <Link to="/promotions" className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Ưu Đãi Đặc Quyền
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/corporate-booking" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Khách Đoàn & MICE</span>
+                                <Link to="/corporate-booking" className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Khách Đoàn &amp; MICE
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/news" className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Tin Tức & Cẩm Nang</span>
+                                <Link to="/news" className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Tin Tức &amp; Cẩm Nang
                                 </Link>
                             </li>
                             <li>
-                                <Link to={isAuthenticated ? '/profile?tab=membership' : '/login'} className="py-1.5 sm:py-0 hover:text-sky-700 transition flex items-center gap-1.5 group">
-                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                                    <span className="truncate">Hội Viên TA Club</span>
+                                <Link to={isAuthenticated ? '/profile?tab=membership' : '/login'} className="py-1.5 sm:py-0 hover:text-sky-700 transition block truncate">
+                                    Hội Viên TA Club
                                 </Link>
                             </li>
                         </ul>
@@ -256,9 +228,8 @@ export default function Footer() {
 
                     {/* CỘT 4: BẢN TIN ĐẶC QUYỀN & MẠNG XÃ HỘI (lg:col-span-3) */}
                     <div className="lg:col-span-3 space-y-3.5 sm:space-y-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 mb-2">
-                            <Send className="w-4 h-4 text-sky-600" />
-                            <span>Bản Tin Đặc Quyền</span>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 mb-2">
+                            Bản Tin Đặc Quyền
                         </h4>
                         <p className="text-xs text-slate-500 leading-relaxed font-normal">
                             Đăng ký nhận thông tin độc quyền về các gói nghỉ dưỡng giới hạn và ưu đãi dành riêng cho hội viên VIP.
@@ -366,11 +337,10 @@ export default function Footer() {
                 </Reveal>
 
                 {/* THANH PHƯƠNG THỨC THANH TOÁN (PAYMENT BADGES) */}
-                <div className="py-4 sm:py-6 border-b border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-xs">
-                    <div className="flex items-center gap-2 text-slate-600 font-medium">
-                        <CreditCard className="w-4 h-4 text-sky-600 shrink-0" />
-                        <span>Phương thức thanh toán chấp nhận:</span>
-                    </div>
+                <div className="py-4 sm:py-6 border-b border-slate-200/80 flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-4 text-xs">
+                    <span className="text-slate-500 font-medium">
+                        Phương thức thanh toán chấp nhận:
+                    </span>
                     <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
                         {['VietQR', 'VNPay', 'Visa', 'MasterCard', 'JCB', 'MoMo', 'Tiền mặt'].map((method) => (
                             <span
@@ -386,7 +356,7 @@ export default function Footer() {
                 {/* DÒNG BẢN QUYỀN & LIÊN KẾT PHÁP LÝ */}
                 <div className="pt-4 sm:pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2.5 sm:gap-3 text-center sm:text-left">
                     <p>© {currentYear} {hotelName}. Tất cả quyền được bảo lưu.</p>
-                    <div className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-1">
+                    <div className="flex flex-wrap items-center justify-center gap-x-3 sm:gap-x-5 gap-y-0.5 text-[11px] sm:text-xs">
                         <button
                             type="button"
                             onClick={() => setLegalModal('terms')}
@@ -394,7 +364,7 @@ export default function Footer() {
                         >
                             Điều khoản dịch vụ
                         </button>
-                        <span className="text-slate-300">•</span>
+                        <span className="hidden sm:inline text-slate-300">•</span>
                         <button
                             type="button"
                             onClick={() => setLegalModal('privacy')}
@@ -402,7 +372,7 @@ export default function Footer() {
                         >
                             Chính sách bảo mật
                         </button>
-                        <span className="text-slate-300">•</span>
+                        <span className="hidden sm:inline text-slate-300">•</span>
                         <Link to="/contact" className="py-1.5 sm:py-0 hover:text-sky-700 transition">Sơ đồ & Chỉ đường</Link>
                     </div>
                 </div>

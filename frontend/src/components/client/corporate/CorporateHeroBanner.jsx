@@ -17,11 +17,11 @@ export default function CorporateHeroBanner({ settings }) {
                 <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 md:via-white/55 to-white/40 md:to-transparent" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-12 lg:py-14">
-                <div className="space-y-5 max-w-2xl lg:max-w-3xl">
-                    <div className="space-y-3">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 lg:py-14">
+                <div className="space-y-4 sm:space-y-5 max-w-2xl lg:max-w-3xl">
+                    <div className="space-y-2 sm:space-y-3">
                         <span
-                            className="animate-hero-up inline-block text-xs font-bold uppercase tracking-[0.2em] text-sky-700"
+                            className="animate-hero-up inline-block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-sky-700"
                             style={{ animationDelay: '40ms' }}
                         >
                             DỊCH VỤ DOANH NGHIỆP & HỘI THẢO
@@ -36,51 +36,51 @@ export default function CorporateHeroBanner({ settings }) {
                             </span>
                         </h1>
                         <p
-                            className="animate-hero-up text-slate-600 text-sm sm:text-base leading-relaxed font-normal max-w-2xl"
+                            className="animate-hero-up text-slate-600 text-xs sm:text-base leading-relaxed font-normal max-w-2xl"
                             style={{ animationDelay: '210ms' }}
                         >
                             Giải pháp lưu trú chuyên nghiệp cho công tác, hội thảo và du lịch tập thể với quy trình đặt nhiều phòng nhanh chóng.
                         </p>
                     </div>
 
-                    {/* Các tiện ích & đặc quyền dành riêng cho đoàn */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4 border-t border-slate-200/80 max-w-2xl">
+                    {/* Các tiện ích & đặc quyền dành riêng cho đoàn (3 cột gọn ngang trên Mobile) */}
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3.5 pt-3 sm:pt-4 border-t border-slate-200/80 max-w-2xl">
                         <div
-                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            className="animate-hero-up flex flex-col sm:flex-row items-center text-center sm:text-left gap-1.5 sm:gap-3 bg-white/95 backdrop-blur-xs p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
                             style={{ animationDelay: '280ms' }}
                         >
-                            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
-                                <Percent className="w-5 h-5 text-sky-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                <Percent className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                             </div>
                             <div className="min-w-0">
-                                <h4 className="text-xs font-bold text-slate-900">Chiết Khấu B2B</h4>
-                                <p className="text-[11px] text-slate-500">Ưu đãi theo hợp đồng</p>
+                                <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">Chiết Khấu B2B</h4>
+                                <p className="hidden sm:block text-[11px] text-slate-500">Ưu đãi theo hợp đồng</p>
                             </div>
                         </div>
 
                         <div
-                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            className="animate-hero-up flex flex-col sm:flex-row items-center text-center sm:text-left gap-1.5 sm:gap-3 bg-white/95 backdrop-blur-xs p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
                             style={{ animationDelay: '360ms' }}
                         >
-                            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/70 shadow-2xs">
-                                <Receipt className="w-5 h-5 text-emerald-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/70 shadow-2xs">
+                                <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                             </div>
                             <div className="min-w-0">
-                                <h4 className="text-xs font-bold text-slate-900">Hóa Đơn VAT</h4>
-                                <p className="text-[11px] text-slate-500">Xuất hóa đơn hợp lệ</p>
+                                <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">Hóa Đơn VAT</h4>
+                                <p className="hidden sm:block text-[11px] text-slate-500">Xuất hóa đơn hợp lệ</p>
                             </div>
                         </div>
 
                         <div
-                            className="animate-hero-up flex items-center gap-3 bg-white/95 backdrop-blur-xs p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
+                            className="animate-hero-up flex flex-col sm:flex-row items-center text-center sm:text-left gap-1.5 sm:gap-3 bg-white/95 backdrop-blur-xs p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-sky-300 hover:shadow-sm hover:-translate-y-0.5 transition-all"
                             style={{ animationDelay: '440ms' }}
                         >
-                            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
-                                <Headphones className="w-5 h-5 text-sky-600" />
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 border border-sky-200/70 shadow-2xs">
+                                <Headphones className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                             </div>
                             <div className="min-w-0">
-                                <h4 className="text-xs font-bold text-slate-900">Trợ Lý Đoàn</h4>
-                                <p className="text-[11px] text-slate-500">Hỗ trợ check-in 24/7</p>
+                                <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">Trợ Lý Đoàn</h4>
+                                <p className="hidden sm:block text-[11px] text-slate-500">Hỗ trợ check-in 24/7</p>
                             </div>
                         </div>
                     </div>

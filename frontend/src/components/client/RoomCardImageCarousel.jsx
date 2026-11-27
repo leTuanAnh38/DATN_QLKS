@@ -162,7 +162,7 @@ export default function RoomCardImageCarousel({
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
             onMouseDown={handleMouseDown}
-            className={`group/gallery relative w-full lg:w-[40%] xl:w-[39%] h-60 sm:h-72 lg:h-auto lg:min-h-[290px] overflow-hidden bg-slate-900 shrink-0 select-none touch-pan-y ${
+            className={`group/gallery relative w-full lg:w-[40%] xl:w-[39%] h-48 sm:h-72 lg:h-auto lg:min-h-[290px] overflow-hidden bg-slate-900 shrink-0 select-none touch-pan-y ${
                 canSlide ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
             }`}
         >

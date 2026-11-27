@@ -264,7 +264,7 @@ export default function TADaNangHotelLanding() {
                 onTouchStart={handleBannerTouchStart}
                 onTouchMove={handleBannerTouchMove}
                 onTouchEnd={handleBannerTouchEnd}
-                className="relative w-full min-h-[440px] lg:h-[470px] xl:h-[520px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
+                className="relative w-full min-h-[350px] sm:min-h-[440px] lg:h-[470px] xl:h-[520px] flex items-center justify-center bg-slate-950 overflow-hidden group touch-pan-y select-none"
             >
                 {/* Danh sách ảnh nền chạy luân phiên với hiệu ứng Ken Burns + Crossfade mềm mại */}
                 {bannerImages.map((b, idx) => {
@@ -294,10 +294,10 @@ export default function TADaNangHotelLanding() {
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(15,23,42,0.38)_0%,transparent_70%)] z-1 pointer-events-none" />
 
                 {/* Hero Content nổi bật trên cùng (relative z-10) - Chữ động nối tiếp theo từng slide */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-14 text-center text-white pt-8 pb-16 sm:pb-20">
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-14 text-center text-white pt-6 pb-12 sm:pt-8 sm:pb-20">
                     <div key={currentBanner}>
                         <h1
-                            className="animate-hero-up font-serif text-2xl xs:text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.2] mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]"
+                            className="animate-hero-up font-serif text-2xl xs:text-3xl sm:text-4xl lg:text-[52px] font-bold tracking-tight text-white leading-[1.2] mb-2.5 sm:mb-4 drop-shadow-[0_4px_16px_rgba(0,0,0,0.45)]"
                             style={{ animationDelay: '60ms' }}
                         >
                             {bannerImages[currentBanner].title} <br />
@@ -307,7 +307,7 @@ export default function TADaNangHotelLanding() {
                         </h1>
 
                         <p
-                            className="animate-hero-up text-sm sm:text-base text-white/95 max-w-xl mx-auto mb-6 font-normal leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                            className="animate-hero-up text-xs sm:text-base text-white/95 max-w-xl mx-auto mb-4 sm:mb-6 font-normal leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
                             style={{ animationDelay: '180ms' }}
                         >
                             {bannerImages[currentBanner].desc}
@@ -386,10 +386,10 @@ export default function TADaNangHotelLanding() {
             >
                 <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-[0_20px_50px_-12px_rgba(15,23,42,0.16)] hover:shadow-[0_24px_56px_-12px_rgba(15,23,42,0.2)] focus-within:shadow-[0_24px_56px_-12px_rgba(2,132,199,0.22)] border border-slate-200/75 focus-within:border-sky-300/80 ring-1 ring-slate-900/5 focus-within:ring-2 focus-within:ring-sky-500/15 overflow-hidden transition-all duration-300">
                     {/* Form Fields: 4 Input fields ngăn cách bằng đường kẻ mảnh + Nút Tìm phòng */}
-                    <form onSubmit={handleSearchRooms} className="p-2.5 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center gap-2 lg:gap-0">
-                        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                    <form onSubmit={handleSearchRooms} className="p-2 sm:p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center gap-1.5 sm:gap-2 lg:gap-0">
+                        <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-1.5 sm:gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
                             {/* Field 1: Hạng phòng */}
-                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
+                            <div className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
                                 <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                     <BedDouble className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <span>Hạng phòng</span>
@@ -430,7 +430,7 @@ export default function TADaNangHotelLanding() {
                             </div>
 
                             {/* Field 2 & 3: Check-in & Check-out */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-2 gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-2 gap-1.5 sm:gap-2 lg:gap-0 lg:divide-x lg:divide-slate-200/80">
                                 {/* Field 2: Check-in */}
                                 <div
                                     onClick={() => {
@@ -440,7 +440,7 @@ export default function TADaNangHotelLanding() {
                                             checkInRef.current?.focus();
                                         }
                                     }}
-                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -454,7 +454,7 @@ export default function TADaNangHotelLanding() {
                                         onChange={handleCheckInChange}
                                         className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
                                     />
-                                    <div className="text-[10px] sm:text-[10.5px] text-amber-800/90 font-semibold truncate mt-0.5">
+                                    <div className="hidden sm:block text-[10.5px] text-amber-800/90 font-semibold truncate mt-0.5">
                                         {getWeekdayName(checkInDate)} (từ {settings?.check_in_time || '14:00'})
                                     </div>
                                 </div>
@@ -468,7 +468,7 @@ export default function TADaNangHotelLanding() {
                                             checkOutRef.current?.focus();
                                         }
                                     }}
-                                    className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
+                                    className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group cursor-pointer min-w-0"
                                 >
                                     <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors cursor-pointer">
                                         <CalendarDays className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -482,14 +482,14 @@ export default function TADaNangHotelLanding() {
                                         onChange={handleCheckOutChange}
                                         className="w-full bg-transparent text-base sm:text-sm font-bold text-slate-900 focus:outline-none cursor-pointer min-w-0 leading-snug tabular-nums"
                                     />
-                                    <div className="text-[10px] sm:text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
+                                    <div className="hidden sm:block text-[10.5px] text-emerald-700 font-semibold truncate mt-0.5">
                                         {getWeekdayName(checkOutDate)} ({calculateNights()} đêm)
                                     </div>
                                 </div>
                             </div>
 
                             {/* Field 4: Guests & Rooms */}
-                            <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
+                            <div className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-slate-50/70 lg:bg-transparent hover:bg-sky-50/40 focus-within:bg-sky-50/60 focus-within:ring-1 focus-within:ring-inset focus-within:ring-sky-300/80 border border-slate-200/70 lg:border-0 rounded-xl lg:rounded-2xl transition-all duration-200 group">
                                 <label className="text-[9.5px] sm:text-[10px] font-bold text-slate-400 group-hover:text-sky-700 uppercase tracking-wider mb-0.5 flex items-center gap-1.5 transition-colors">
                                     <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                     <span>Khách & Phòng</span>
@@ -533,19 +533,21 @@ export default function TADaNangHotelLanding() {
                         </div>
                     </form>
 
-                    {/* Quick banner: Khách đoàn & Doanh nghiệp (Tích hợp liền khối thanh thoát) */}
-                    <div className="px-3.5 sm:px-5 py-2.5 bg-gradient-to-r from-slate-50/90 via-amber-50/35 to-slate-50/90 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs leading-snug">
+                    {/* Quick banner: Khách đoàn & Doanh nghiệp (Tích hợp liền khối gọn 1 hàng trên Mobile) */}
+                    <div className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-slate-50/90 via-amber-50/35 to-slate-50/90 border-t border-slate-100 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-slate-600 text-[11px] sm:text-xs leading-snug min-w-0">
                             <span className="p-1 rounded-lg bg-amber-100/90 text-amber-800 flex items-center justify-center shrink-0">
                                 <Building2 className="w-3.5 h-3.5" />
                             </span>
-                            <span>Quý khách đặt phòng cho <strong className="text-slate-800">Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
+                            <span className="sm:hidden truncate">Đặt cho <strong className="text-slate-800">Công ty / Đoàn</strong>?</span>
+                            <span className="hidden sm:inline">Quý khách đặt phòng cho <strong className="text-slate-800">Công ty, Doanh nghiệp hoặc Đoàn đông người</strong>?</span>
                         </div>
                         <Link
                             to="/corporate-booking"
-                            className="w-full sm:w-auto justify-center font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 min-h-[40px] sm:min-h-0 px-3.5 py-2 sm:py-1.5 rounded-full shadow-2xs transition-all inline-flex items-center gap-1.5 cursor-pointer text-[11px] sm:text-xs group"
+                            className="shrink-0 justify-center font-bold text-amber-800 hover:text-amber-950 bg-white/90 hover:bg-amber-50 border border-amber-200/90 min-h-[34px] sm:min-h-0 px-2.5 sm:px-3.5 py-1.5 rounded-full shadow-2xs transition-all inline-flex items-center gap-1 sm:gap-1.5 cursor-pointer text-[11px] sm:text-xs whitespace-nowrap group"
                         >
-                            <span>Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
+                            <span className="sm:hidden">Đặt đoàn B2B</span>
+                            <span className="hidden sm:inline">Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
                             <ArrowRight className="w-3 h-3 shrink-0 group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                     </div>

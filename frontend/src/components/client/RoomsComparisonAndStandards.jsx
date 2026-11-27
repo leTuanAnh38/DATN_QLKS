@@ -90,17 +90,17 @@ export default function RoomsComparisonAndStandards({
     }
 
     return (
-        <section className="py-16 sm:py-20 bg-[#f4f7fc] border-t border-slate-200/70 w-full">
+        <section className="py-10 sm:py-20 bg-[#f4f7fc] border-t border-slate-200/70 w-full">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
-                <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-                    <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-2.5">
+                <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-12">
+                    <span className="block text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-amber-700 mb-2 sm:mb-2.5">
                         MINH BẠCH &amp; RÕ RÀNG
                     </span>
-                    <h2 className="font-serif text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+                    <h2 className="font-serif text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight">
                         Bảng So Sánh Các Hạng Phòng
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 mt-2.5 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-2 sm:mt-2.5 leading-relaxed">
                         Đối chiếu trực tiếp diện tích, sức chứa, mức giá và các tiện nghi thực tế giữa các phân khúc phòng nghỉ tại {hotelName}.
                     </p>
                 </div>
@@ -112,10 +112,10 @@ export default function RoomsComparisonAndStandards({
                         <ArrowRight className="w-3.5 h-3.5 text-sky-600 animate-pulse" />
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[600px] sm:min-w-[680px] border-collapse text-left">
+                        <table className="w-full min-w-[520px] sm:min-w-[680px] border-collapse text-left">
                             <thead>
                                 <tr className="border-b border-slate-200/80">
-                                    <th className="sticky left-0 z-10 py-3.5 sm:py-5 px-2.5 sm:px-6 text-[11px] sm:text-sm font-bold text-slate-900 bg-slate-50 w-[124px] min-w-[124px] sm:w-[28%] shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                    <th className="sticky left-0 z-10 py-3 sm:py-5 px-2.5 sm:px-6 text-[11px] sm:text-sm font-bold text-slate-900 bg-slate-50 w-[118px] min-w-[118px] sm:w-[28%] shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         Thông Số &amp; Tiện Nghi
                                     </th>
                                     {comparedRooms.map((room, idx) => {
@@ -124,7 +124,7 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <th
                                                 key={room.id}
-                                                className={`py-5 px-5 text-center text-xs sm:text-sm font-bold ${
+                                                className={`py-3 px-3 sm:py-5 sm:px-5 text-center text-xs sm:text-sm font-bold ${
                                                     isMiddle
                                                         ? 'bg-sky-50/80 text-blue-700'
                                                         : isTop
@@ -139,12 +139,12 @@ export default function RoomsComparisonAndStandards({
                                 </tr>
                             </thead>
 
-                            <tbody className="divide-y divide-slate-100 text-xs sm:text-[13px]">
+                            <tbody className="divide-y divide-slate-100 text-[11.5px] sm:text-[13px]">
                                 {/* Dòng 1: Giá mỗi đêm */}
                                 <tr>
-                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-2.5">
-                                            <Banknote className="w-4 h-4 text-sky-600 shrink-0" />
+                                    <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
+                                            <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
                                             <span>Giá phòng / đêm</span>
                                         </span>
                                     </td>
@@ -158,12 +158,12 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <td
                                                 key={room.id}
-                                                className={`py-4 px-5 text-center tabular-nums ${
+                                                className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center tabular-nums ${
                                                     isMiddle ? 'bg-sky-50/45' : ''
                                                 }`}
                                             >
                                                 {hasPromo && (
-                                                    <span className="block text-[10.5px] line-through text-slate-400">
+                                                    <span className="block text-[10px] sm:text-[10.5px] line-through text-slate-400">
                                                         {Number(room.base_price).toLocaleString('vi-VN')} đ
                                                     </span>
                                                 )}
@@ -185,9 +185,9 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 2: Diện tích */}
                                 <tr>
-                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-2.5">
-                                            <Maximize2 className="w-4 h-4 text-sky-600 shrink-0" />
+                                    <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
+                                            <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
                                             <span>Diện tích sàn</span>
                                         </span>
                                     </td>
@@ -196,7 +196,7 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <td
                                                 key={room.id}
-                                                className={`py-4 px-5 text-center font-semibold text-slate-700 ${
+                                                className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center font-semibold text-slate-700 ${
                                                     isMiddle ? 'bg-sky-50/45 text-slate-900' : ''
                                                 }`}
                                             >
@@ -208,9 +208,9 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 3: Tiêu chuẩn giường */}
                                 <tr>
-                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-2.5">
-                                            <BedDouble className="w-4 h-4 text-sky-600 shrink-0" />
+                                    <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
+                                            <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
                                             <span>Tiêu chuẩn giường</span>
                                         </span>
                                     </td>
@@ -219,7 +219,7 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <td
                                                 key={room.id}
-                                                className={`py-4 px-5 text-center font-medium text-slate-700 ${
+                                                className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center font-medium text-slate-700 ${
                                                     isMiddle ? 'bg-sky-50/45 text-blue-800 font-semibold' : ''
                                                 }`}
                                             >
@@ -231,10 +231,10 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng 4: Sức chứa tối đa */}
                                 <tr>
-                                    <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-2.5">
-                                            <Users className="w-4 h-4 text-sky-600 shrink-0" />
-                                            <span>Sức chứa tiêu chuẩn</span>
+                                    <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
+                                            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                            <span>Sức chứa</span>
                                         </span>
                                     </td>
                                     {comparedRooms.map((room, idx) => {
@@ -242,7 +242,7 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <td
                                                 key={room.id}
-                                                className={`py-4 px-5 text-center font-medium text-slate-700 ${
+                                                className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center font-medium text-slate-700 ${
                                                     isMiddle ? 'bg-sky-50/45' : ''
                                                 }`}
                                             >
@@ -257,9 +257,9 @@ export default function RoomsComparisonAndStandards({
                                     const AmenityIcon = getAmenityIcon(amenityName);
                                     return (
                                         <tr key={amenityName}>
-                                            <td className="sticky left-0 z-10 bg-white py-3.5 sm:py-4 px-3 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                                <span className="inline-flex items-center gap-2.5">
-                                                    <AmenityIcon className="w-4 h-4 text-sky-600 shrink-0" />
+                                            <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                                <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
+                                                    <AmenityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
                                                     <span>{amenityName}</span>
                                                 </span>
                                             </td>
@@ -270,13 +270,13 @@ export default function RoomsComparisonAndStandards({
                                                 return (
                                                     <td
                                                         key={room.id}
-                                                        className={`py-4 px-5 text-center ${
+                                                        className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center ${
                                                             isMiddle ? 'bg-sky-50/45' : ''
                                                         }`}
                                                     >
                                                         {hasAmenity ? (
                                                             <CheckCircle2
-                                                                className={`w-5 h-5 mx-auto ${
+                                                                className={`w-4 h-4 sm:w-5 sm:h-5 mx-auto ${
                                                                     isTop
                                                                         ? 'text-amber-600'
                                                                         : 'text-blue-600'
@@ -294,7 +294,7 @@ export default function RoomsComparisonAndStandards({
 
                                 {/* Dòng liên kết xem chi tiết từng hạng phòng */}
                                 <tr className="bg-slate-50/40">
-                                    <td className="sticky left-0 z-10 bg-slate-50 py-3.5 sm:py-4 px-2.5 sm:px-6 text-[11px] sm:text-xs font-medium text-slate-500 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
+                                    <td className="sticky left-0 z-10 bg-slate-50 py-2.5 sm:py-4 px-2.5 sm:px-6 text-[11px] sm:text-xs font-medium text-slate-500 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
                                         Chi tiết hạng phòng
                                     </td>
                                     {comparedRooms.map((room, idx) => {
@@ -302,7 +302,7 @@ export default function RoomsComparisonAndStandards({
                                         return (
                                             <td
                                                 key={room.id}
-                                                className={`py-4 px-5 text-center ${
+                                                className={`py-2.5 px-3 sm:py-4 sm:px-5 text-center ${
                                                     isMiddle ? 'bg-sky-50/45' : ''
                                                 }`}
                                             >

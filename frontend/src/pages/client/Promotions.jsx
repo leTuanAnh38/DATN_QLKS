@@ -492,7 +492,7 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 1. HERO SPOTLIGHT: ĐẬM CHẤT MARKETING NỀN SÁNG CAO CẤP VỚI COUNTDOWN */}
                 {/* ============================================================== */}
-                <header className="relative pt-12 pb-16 overflow-hidden border-b border-slate-200/80">
+                <header className="relative pt-7 pb-9 sm:pt-12 sm:pb-16 overflow-hidden border-b border-slate-200/80">
                     {/* Background Dynamic Banner with refined light overlay */}
                     <div className="absolute inset-0 z-0">
                         <img
@@ -548,7 +548,7 @@ export default function PromotionsPage() {
                             {/* FLASH SALE COUNTDOWN TIMER HOẶC LIVE STATUS */}
                             {showCountdown ? (
                                 <div
-                                    className="animate-hero-up mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60"
+                                    className="animate-hero-up mt-5 sm:mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60"
                                     style={{ animationDelay: '310ms' }}
                                 >
                                     <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider sm:tracking-widest mb-3 text-center">
@@ -719,7 +719,7 @@ export default function PromotionsPage() {
                     ) : (
                         <div
                             key={`${activePromoTab}-${sortBy}`}
-                            className="animate-tab-reveal grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                            className="animate-tab-reveal grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
                         >
                             {filteredDbPromotions.map((promo) => {
                                 const isPercentage = promo.discount_type === 'percentage';
@@ -728,7 +728,7 @@ export default function PromotionsPage() {
                                 return (
                                     <div
                                         key={promo.id || promo.code}
-                                        className="relative bg-white rounded-3xl border border-slate-200 hover:border-amber-400 p-6 flex flex-col justify-between shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
+                                        className="relative bg-white rounded-3xl border border-slate-200 hover:border-amber-400 p-4 sm:p-6 flex flex-col justify-between shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden"
                                     >
                                         {/* Perforated ticket cutout circle (notch effect) */}
                                         <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 bg-slate-50 rounded-full border-b border-slate-200" />
@@ -983,51 +983,51 @@ export default function PromotionsPage() {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6">
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
-                                    <Gem className="w-6 h-6 text-amber-600" />
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
+                            <div className="bg-slate-50/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Gem className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
                                     Cam Kết Giá Tốt Nhất
                                 </h3>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
                                     Best Rate Guarantee: Bồi hoàn 100% phần chênh lệch và giảm thêm 10% nếu quý khách tìm thấy giá rẻ hơn trên bất kỳ đại lý nào.
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
-                                    <Clock className="w-6 h-6 text-amber-600" />
+                            <div className="bg-slate-50/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Clock className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
                                     Nhận Sớm & Trả Muộn
                                 </h3>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
                                     Linh hoạt nhận phòng sớm từ 10:00 sáng và trả phòng trễ đến 15:00 chiều không phụ thu (ưu tiên phụ thuộc tình trạng phòng).
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
-                                    <Wine className="w-6 h-6 text-amber-600" />
+                            <div className="bg-slate-50/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <Wine className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
                                     Đón Tiếp Chuẩn {starCount} Sao Cá Nhân Hóa
                                 </h3>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
                                     Nước trái cây hữu cơ chào đón pha chế riêng, đĩa hoa quả nhiệt đới tươi mới mỗi ngày và quyền chọn hướng phòng đẹp nhất.
                                 </p>
                             </div>
 
-                            <div className="bg-slate-50/80 rounded-3xl p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
-                                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
-                                    <CalendarCheck className="w-6 h-6 text-amber-600" />
+                            <div className="bg-slate-50/80 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 border border-slate-200/80 hover:border-amber-300 hover:shadow-md transition group">
+                                <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
+                                    <CalendarCheck className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-base mb-2 group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
                                     Hủy Phòng Linh Hoạt {freeCancelHours}H
                                 </h3>
-                                <p className="text-xs text-slate-600 leading-relaxed">
+                                <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
                                     Dễ dàng thay đổi lịch trình và hủy đơn miễn phí trước {freeCancelHours} giờ nhận phòng cho các đơn đặt trực tiếp trên website chính thức.
                                 </p>
                             </div>
@@ -1038,8 +1038,8 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 6. HƯỚNG DẪN 3 BƯỚC ÁP DỤNG MÃ (HOW IT WORKS) */}
                 {/* ============================================================== */}
-                <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/80">
-                    <div className="text-center max-w-2xl mx-auto mb-10">
+                <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/80">
+                    <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-10">
                         <span className="text-xs font-bold text-amber-700 uppercase tracking-widest block mb-1">
                             TIỆN LỢI & NHANH CHÓNG
                         </span>
@@ -1048,35 +1048,41 @@ export default function PromotionsPage() {
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex sm:block items-start gap-3.5 text-left sm:text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 sm:mx-auto mb-0 sm:mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 1
                             </div>
-                            <h3 className="font-bold text-slate-900 text-base mb-1.5">Sao Chép Mã Ưu Đãi</h3>
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                                Chọn chương trình phù hợp trên trang này và bấm nút <strong>"Chép"</strong> để lưu mã voucher vào bộ nhớ tạm.
-                            </p>
+                            <div className="min-w-0">
+                                <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-1.5">Sao Chép Mã Ưu Đãi</h3>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    Chọn chương trình phù hợp trên trang này và bấm nút <strong>"Chép"</strong> để lưu mã voucher vào bộ nhớ tạm.
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex sm:block items-start gap-3.5 text-left sm:text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 sm:mx-auto mb-0 sm:mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 2
                             </div>
-                            <h3 className="font-bold text-slate-900 text-base mb-1.5">Chọn Phòng Yêu Thích</h3>
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                                Truy cập danh sách phòng, lựa chọn hạng phòng Suite và số đêm lưu trú lý tưởng cho kỳ nghỉ của quý khách.
-                            </p>
+                            <div className="min-w-0">
+                                <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-1.5">Chọn Phòng Yêu Thích</h3>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    Truy cập danh sách phòng, lựa chọn hạng phòng Suite và số đêm lưu trú lý tưởng cho kỳ nghỉ của quý khách.
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm text-center relative hover:shadow-md hover:border-sky-200 transition">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-xl flex items-center justify-center mx-auto mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
+                        <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm flex sm:block items-start gap-3.5 text-left sm:text-center relative hover:shadow-md hover:border-sky-200 transition">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white font-serif font-bold text-lg sm:text-xl flex items-center justify-center shrink-0 sm:mx-auto mb-0 sm:mb-4 shadow-[0_8px_20px_-6px_rgba(2,132,199,0.45)]">
                                 3
                             </div>
-                            <h3 className="font-bold text-slate-900 text-base mb-1.5">Dán Mã & Nhận Chiết Khấu</h3>
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                                Dán mã tại ô <strong>"Mã khuyến mãi"</strong> ở bước thanh toán để được trừ tiền trực tiếp vào hóa đơn phòng.
-                            </p>
+                            <div className="min-w-0">
+                                <h3 className="font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-1.5">Dán Mã & Nhận Chiết Khấu</h3>
+                                <p className="text-xs text-slate-600 leading-relaxed">
+                                    Dán mã tại ô <strong>"Mã khuyến mãi"</strong> ở bước thanh toán để được trừ tiền trực tiếp vào hóa đơn phòng.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1084,8 +1090,8 @@ export default function PromotionsPage() {
                 {/* ============================================================== */}
                 {/* 7. FAQ ACCORDION & CONCIERGE 24/7 */}
                 {/* ============================================================== */}
-                <section className="py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/80">
-                    <div className="text-center mb-8">
+                <section className="py-10 sm:py-16 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/80">
+                    <div className="text-center mb-6 sm:mb-8">
                         <span className="text-xs font-bold text-rose-600 uppercase tracking-widest block mb-1">
                             HỖ TRỢ KHÁCH HÀNG
                         </span>

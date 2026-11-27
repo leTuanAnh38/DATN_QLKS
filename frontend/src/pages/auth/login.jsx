@@ -37,7 +37,22 @@ import { authService } from '../../services/authService';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings, DEFAULT_BANNERS } from '../../store/hotelSettingStore';
 import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
+import Reveal from '../../components/common/Reveal';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
+
+// Đánh giá độ mạnh mật khẩu nhẹ cho tab Đăng ký
+const getPasswordStrength = (pwd) => {
+    if (!pwd) return { score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-400' };
+    let score = 0;
+    if (pwd.length >= 8) score += 1;
+    if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 1;
+    if (/\d/.test(pwd)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pwd) || pwd.length >= 12) score += 1;
+    if (score <= 1) return { score: 1, label: 'Yếu', color: 'bg-rose-500', textColor: 'text-rose-600' };
+    if (score === 2) return { score: 2, label: 'Trung bình', color: 'bg-amber-500', textColor: 'text-amber-600' };
+    if (score === 3) return { score: 3, label: 'Khá mạnh', color: 'bg-sky-500', textColor: 'text-sky-600' };
+    return { score: 4, label: 'Rất mạnh', color: 'bg-emerald-500', textColor: 'text-emerald-600' };
+};
 
 // Helper chuẩn hóa URL hình ảnh (hỗ trợ cả link tuyệt đối và file upload local media)
 const resolveBannerUrl = (url) => resolveMediaUrl(url, '');
@@ -96,7 +111,7 @@ export default function AuthBookingPage() {
     const { settings } = useHotelSettings();
 
     const hotelName = settings?.hotel_name || 'Khách Sạn TA Đà Nẵng';
-    const starCount = settings?.stars || 5;
+    const starCount = settings?.stars || 3;
     const hotline = settings?.hotline || '1900 8899';
     const bannerLoginUrl = resolveBannerUrl(settings?.banner_login || DEFAULT_BANNERS?.banner_login || 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=2070&q=85');
 
@@ -134,6 +149,7 @@ export default function AuthBookingPage() {
 
     const demoCheckIn = formatDemoDate(7);
     const demoCheckOut = formatDemoDate(10);
+    const passwordStrength = getPasswordStrength(registerForm.password);
 
     const faqs = [
         {
@@ -355,42 +371,45 @@ export default function AuthBookingPage() {
                 </div>
             </div>
 
-            {/* MAIN AUTH SECTION (CHUẨN RESORT LUXURY 5 SAO) */}
+            {/* MAIN AUTH SECTION (CHUẨN RESORT LUXURY VỚI LUXURY MOTION) */}
             <main className="relative py-6 sm:py-12 lg:py-16 overflow-hidden flex items-center bg-slate-950 border-b border-slate-800">
-                {/* 1. Ảnh nền Resort thư thái, sang trọng */}
+                {/* 1. Ảnh nền Resort phóng chậm Ken Burns mượt mà */}
                 <img
                     src={bannerLoginUrl}
                     alt={`${hotelName} Luxury Collection`}
-                    className="absolute inset-0 w-full h-full object-cover object-center"
+                    className="animate-ken-burns absolute inset-0 w-full h-full object-cover object-center"
                 />
 
                 {/* 2. Lớp phủ Gradient sâu lắng, dịu mắt với tone slate hoàng gia */}
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-slate-950/95 backdrop-blur-[1.5px]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-950/92 via-slate-900/86 to-slate-950/92 backdrop-blur-[1.5px]" />
 
-                {/* Ánh sáng nền khuếch tán mềm (Amber & Orange Glow) */}
-                <div className="absolute top-1/4 left-10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-10 right-10 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+                {/* Ánh sáng nền khuếch tán chuyển động êm (GPU-composited) */}
+                <div className="animate-ambient-drift absolute top-1/4 left-10 w-96 h-96 bg-amber-500/12 rounded-full blur-3xl pointer-events-none" />
+                <div className="animate-ambient-drift-reverse absolute bottom-10 right-10 w-96 h-96 bg-sky-500/12 rounded-full blur-3xl pointer-events-none" />
 
                 {/* 3. Nội dung form & thông tin relative z-10 */}
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 lg:gap-10 items-stretch">
                         
                         {/* CỘT TRÁI: QUẢN LÝ KỲ NGHỈ & THẺ VÉ VIP MOCKUP */}
-                        <div className="order-2 lg:order-1 lg:col-span-6 bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden">
+                        <div
+                            className="animate-hero-up order-2 lg:order-1 lg:col-span-6 bg-slate-900/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-4 sm:p-9 text-white shadow-2xl flex flex-col justify-between relative overflow-hidden"
+                            style={{ animationDelay: '130ms' }}
+                        >
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider mb-4 shadow-xs max-w-full">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider mb-3 sm:mb-4 shadow-xs max-w-full">
                                     <Award className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                                     <span className="leading-snug">Cổng Hội Viên Khách Hàng Thân Thiết</span>
                                 </div>
-                                <h1 className="font-serif text-2xl sm:text-4xl font-bold leading-tight mb-3">
-                                    Quản lý kỳ nghỉ dễ dàng & tiện lợi
+                                <h1 className="font-serif text-xl sm:text-4xl font-bold leading-tight mb-2 sm:mb-3">
+                                    Quản lý kỳ nghỉ dễ dàng &amp; tiện lợi
                                 </h1>
-                                <p className="text-slate-300/90 text-xs sm:text-sm font-light leading-relaxed mb-6">
+                                <p className="text-slate-300/90 text-xs sm:text-sm font-light leading-relaxed mb-4 sm:mb-6">
                                     Đăng nhập để xem lịch sử lưu trú, lưu sẵn thông tin check-in, nhận ưu đãi độc quyền dành cho hội viên và thay đổi lịch trình linh hoạt.
                                 </p>
 
                                 {/* MOCKUP BOOKING CONFIRMATION TICKET (ẨN TRÊN MOBILE NHỎ ĐỂ TRÁNH DÀI TRANG) */}
-                                <div className="hidden sm:block bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-md border border-white/15 rounded-2xl p-5 mb-6 shadow-xl relative overflow-hidden group">
+                                <div className="hidden sm:block bg-gradient-to-b from-white/12 to-white/5 backdrop-blur-md border border-white/15 hover:border-amber-300/30 rounded-2xl p-5 mb-6 shadow-xl hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
                                     {/* Họa tiết ánh sáng hổ phách */}
                                     <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -468,51 +487,51 @@ export default function AuthBookingPage() {
                                     </div>
                                 </div>
 
-                                {/* 4 LỢI THẾ CỐT LÕI (VECTO ICONS LUCIDE CAO CẤP) */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                                    <div className="flex items-start gap-3 bg-white/5 hover:bg-white/10 p-3.5 rounded-2xl border border-white/10 transition-colors">
+                                {/* 4 LỢI THẾ CỐT LÕI (Lưới 2 cột gọn trên cả Mobile & Desktop) */}
+                                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-xs">
+                                    <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 bg-white/5 hover:bg-white/10 p-3 sm:p-3.5 rounded-2xl border border-white/10 transition-colors">
                                         <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
                                             <Search className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <strong className="text-white block font-semibold text-xs mb-0.5">Theo dõi lịch trình 24/7</strong>
-                                            <span className="text-slate-300 text-[11px] leading-relaxed">
+                                        <div className="min-w-0">
+                                            <strong className="text-white block font-semibold text-[11.5px] sm:text-xs mb-0.5 leading-snug">Theo dõi 24/7</strong>
+                                            <span className="text-slate-300 text-[10.5px] sm:text-[11px] leading-snug sm:leading-relaxed line-clamp-2">
                                                 Tra cứu phòng, giờ check-in/out và chứng từ tức thời.
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-start gap-3 bg-white/5 hover:bg-white/10 p-3.5 rounded-2xl border border-white/10 transition-colors">
-                                        <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-300 flex items-center justify-center shrink-0">
+                                    <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 bg-white/5 hover:bg-white/10 p-3 sm:p-3.5 rounded-2xl border border-white/10 transition-colors">
+                                        <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center shrink-0">
                                             <Zap className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <strong className="text-white block font-semibold text-xs mb-0.5">Đặt phòng 1-chạm</strong>
-                                            <span className="text-slate-300 text-[11px] leading-relaxed">
+                                        <div className="min-w-0">
+                                            <strong className="text-white block font-semibold text-[11.5px] sm:text-xs mb-0.5 leading-snug">Đặt phòng 1-chạm</strong>
+                                            <span className="text-slate-300 text-[10.5px] sm:text-[11px] leading-snug sm:leading-relaxed line-clamp-2">
                                                 Tự động điền hồ sơ, tiết kiệm tối đa thời gian.
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-start gap-3 bg-white/5 hover:bg-white/10 p-3.5 rounded-2xl border border-white/10 transition-colors">
+                                    <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 bg-white/5 hover:bg-white/10 p-3 sm:p-3.5 rounded-2xl border border-white/10 transition-colors">
                                         <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
                                             <FileText className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <strong className="text-white block font-semibold text-xs mb-0.5">Hóa đơn điện tử VAT</strong>
-                                            <span className="text-slate-300 text-[11px] leading-relaxed">
-                                                Xuất hóa đơn GTGT nhanh chóng cho cơ quan, đoàn công tác.
+                                        <div className="min-w-0">
+                                            <strong className="text-white block font-semibold text-[11.5px] sm:text-xs mb-0.5 leading-snug">Hóa đơn VAT</strong>
+                                            <span className="text-slate-300 text-[10.5px] sm:text-[11px] leading-snug sm:leading-relaxed line-clamp-2">
+                                                Xuất hóa đơn GTGT nhanh chóng cho cơ quan, công tác.
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-start gap-3 bg-white/5 hover:bg-white/10 p-3.5 rounded-2xl border border-white/10 transition-colors">
+                                    <div className="flex flex-col sm:flex-row items-start gap-2 sm:gap-3 bg-white/5 hover:bg-white/10 p-3 sm:p-3.5 rounded-2xl border border-white/10 transition-colors">
                                         <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
                                             <RefreshCw className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <strong className="text-white block font-semibold text-xs mb-0.5">Đổi lịch linh hoạt 24h</strong>
-                                            <span className="text-slate-300 text-[11px] leading-relaxed">
+                                        <div className="min-w-0">
+                                            <strong className="text-white block font-semibold text-[11.5px] sm:text-xs mb-0.5 leading-snug">Đổi lịch linh hoạt</strong>
+                                            <span className="text-slate-300 text-[10.5px] sm:text-[11px] leading-snug sm:leading-relaxed line-clamp-2">
                                                 Chủ động chuyển ngày hoặc gửi yêu cầu tiện ích phòng.
                                             </span>
                                         </div>
@@ -534,8 +553,22 @@ export default function AuthBookingPage() {
                         </div>
 
                         {/* CỘT PHẢI: FORM ĐĂNG NHẬP / ĐĂNG KÝ SANG TRỌNG */}
-                        <div className="order-1 lg:order-2 lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-slate-100 shadow-2xl p-5 sm:p-9 flex flex-col justify-between">
+                        <div
+                            className="animate-hero-up order-1 lg:order-2 lg:col-span-6 bg-white/95 backdrop-blur-2xl rounded-3xl border border-white/70 shadow-2xl p-4 sm:p-9 flex flex-col justify-between"
+                            style={{ animationDelay: '50ms' }}
+                        >
                             <div>
+                                {/* Lời chào Serif tinh tế thay đổi mượt theo Tab */}
+                                <div className="mb-4 sm:mb-5">
+                                    <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                        {activeTab === 'login' ? 'Chào mừng quý khách trở lại' : 'Đăng ký hội viên TA Club'}
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {activeTab === 'login'
+                                            ? `Đăng nhập để quản lý đặt phòng và nhận ưu đãi tại ${hotelName}.`
+                                            : 'Khởi tạo tài khoản nhanh để tích điểm và hưởng chiết khấu trực tiếp.'}
+                                    </p>
+                                </div>
                                 {/* BANNER NẾU ĐÃ ĐĂNG NHẬP */}
                                 {isAuthenticated && (
                                     <div className="mb-6 p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80">
@@ -598,8 +631,13 @@ export default function AuthBookingPage() {
                                     </div>
                                 )}
 
-                                {/* BỘ CHUYỂN TAB (TAB SWITCHER) */}
-                                <div className="flex p-1.5 bg-slate-100/90 rounded-2xl mb-7 border border-slate-200/60">
+                                {/* BỘ CHUYỂN TAB (SLIDING PILL MƯỢT MÀ) */}
+                                <div className="relative grid grid-cols-2 p-1.5 bg-slate-100/90 rounded-2xl mb-5 sm:mb-6 border border-slate-200/60">
+                                    <div
+                                        aria-hidden="true"
+                                        className="absolute top-1.5 bottom-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-xl bg-white shadow-sm shadow-slate-200/90 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] pointer-events-none"
+                                        style={{ transform: activeTab === 'register' ? 'translateX(100%)' : 'translateX(0)' }}
+                                    />
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -608,9 +646,9 @@ export default function AuthBookingPage() {
                                             setLoginErrors({});
                                             setRegisterErrors({});
                                         }}
-                                        className={`flex-1 min-h-[42px] py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 cursor-pointer ${
+                                        className={`relative z-10 min-h-[40px] sm:min-h-[42px] py-2 text-xs sm:text-sm font-bold rounded-xl transition-colors duration-200 cursor-pointer ${
                                             activeTab === 'login'
-                                                ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                                                ? 'text-slate-900'
                                                 : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                     >
@@ -624,9 +662,9 @@ export default function AuthBookingPage() {
                                             setLoginErrors({});
                                             setRegisterErrors({});
                                         }}
-                                        className={`flex-1 min-h-[42px] py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        className={`relative z-10 min-h-[40px] sm:min-h-[42px] py-2 text-xs sm:text-sm font-bold rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer ${
                                             activeTab === 'register'
-                                                ? 'bg-white text-slate-900 shadow-sm shadow-slate-200'
+                                                ? 'text-slate-900'
                                                 : 'text-slate-500 hover:text-slate-800'
                                         }`}
                                     >
@@ -641,10 +679,10 @@ export default function AuthBookingPage() {
 
                                 {/* 1. FORM ĐĂNG NHẬP */}
                                 {activeTab === 'login' && (
-                                    <form onSubmit={handleLoginSubmit} noValidate className="space-y-4">
+                                    <form key="login-tab" onSubmit={handleLoginSubmit} noValidate className="animate-tab-reveal space-y-4">
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                                                Tên đăng nhập, Email hoặc Số điện thoại <span className="text-amber-600">*</span>
+                                                Tên đăng nhập, Email hoặc Số điện thoại <span className="text-rose-500">*</span>
                                             </label>
                                             <div className="relative group">
                                                 <input
@@ -659,10 +697,10 @@ export default function AuthBookingPage() {
                                                     className={`w-full pl-11 pr-4 py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                         loginErrors.identifier
                                                             ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                     }`}
                                                 />
-                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.identifier ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.identifier ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                     <User className="w-4 h-4" />
                                                 </div>
                                             </div>
@@ -677,12 +715,12 @@ export default function AuthBookingPage() {
                                         <div>
                                             <div className="flex items-center justify-between mb-1.5">
                                                 <label className="block text-xs font-bold text-slate-700">
-                                                    Mật khẩu truy cập <span className="text-amber-600">*</span>
+                                                    Mật khẩu truy cập <span className="text-rose-500">*</span>
                                                 </label>
                                                 <button
                                                     type="button"
                                                     onClick={() => setIsForgotPasswordOpen(true)}
-                                                    className="py-1.5 px-1 -my-1.5 text-xs text-amber-600 hover:text-amber-700 hover:underline font-semibold cursor-pointer"
+                                                    className="py-1.5 px-1 -my-1.5 text-xs text-sky-700 hover:text-sky-800 hover:underline font-semibold cursor-pointer"
                                                 >
                                                     Quên mật khẩu?
                                                 </button>
@@ -700,10 +738,10 @@ export default function AuthBookingPage() {
                                                     className={`w-full pl-11 pr-11 py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                         loginErrors.password
                                                             ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                     }`}
                                                 />
-                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${loginErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                     <Lock className="w-4 h-4" />
                                                 </div>
                                                 <button
@@ -733,7 +771,7 @@ export default function AuthBookingPage() {
                                                     type="checkbox"
                                                     checked={rememberMe}
                                                     onChange={(e) => setRememberMe(e.target.checked)}
-                                                    className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                                                    className="w-4 h-4 rounded border-slate-300 text-sky-600 accent-sky-600 focus:ring-sky-500 cursor-pointer"
                                                 />
                                                 <span>Ghi nhớ đăng nhập trên thiết bị này</span>
                                             </label>
@@ -743,7 +781,7 @@ export default function AuthBookingPage() {
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                                            className="btn-luxury-shine group w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 ring-1 ring-inset ring-white/20 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                                         >
                                             {isLoading && (
                                                 <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -752,17 +790,17 @@ export default function AuthBookingPage() {
                                                 </svg>
                                             )}
                                             <span>{isLoading ? 'Đang xác thực bảo mật...' : 'Đăng Nhập Tài Khoản'}</span>
-                                            {!isLoading && <ArrowRight className="w-4 h-4" />}
+                                            {!isLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                         </button>
                                     </form>
                                 )}
 
                                 {/* 2. FORM ĐĂNG KÝ */}
                                 {activeTab === 'register' && (
-                                    <form onSubmit={handleRegisterSubmit} noValidate className="space-y-3.5">
+                                    <form key="register-tab" onSubmit={handleRegisterSubmit} noValidate className="animate-tab-reveal space-y-3.5">
                                         <div>
                                             <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                Họ và tên khách lưu trú <span className="text-amber-600">*</span>
+                                                Họ và tên khách lưu trú <span className="text-rose-500">*</span>
                                             </label>
                                             <div className="relative group">
                                                 <input
@@ -777,10 +815,10 @@ export default function AuthBookingPage() {
                                                     className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                         registerErrors.fullName
                                                             ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                            : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                     }`}
                                                 />
-                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.fullName ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.fullName ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                     <User className="w-4 h-4" />
                                                 </div>
                                             </div>
@@ -795,7 +833,7 @@ export default function AuthBookingPage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                    Số điện thoại <span className="text-amber-600">*</span>
+                                                    Số điện thoại <span className="text-rose-500">*</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input
@@ -810,10 +848,10 @@ export default function AuthBookingPage() {
                                                         className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                             registerErrors.phone
                                                                 ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                         }`}
                                                     />
-                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.phone ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.phone ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                         <Phone className="w-4 h-4" />
                                                     </div>
                                                 </div>
@@ -826,7 +864,7 @@ export default function AuthBookingPage() {
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                    Địa chỉ Email <span className="text-amber-600">*</span>
+                                                    Địa chỉ Email <span className="text-rose-500">*</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input
@@ -841,10 +879,10 @@ export default function AuthBookingPage() {
                                                         className={`w-full pl-11 pr-4 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                             registerErrors.email
                                                                 ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                         }`}
                                                     />
-                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.email ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.email ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                         <Mail className="w-4 h-4" />
                                                     </div>
                                                 </div>
@@ -860,7 +898,7 @@ export default function AuthBookingPage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                    Thiết lập mật khẩu <span className="text-amber-600">*</span>
+                                                    Thiết lập mật khẩu <span className="text-rose-500">*</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input
@@ -884,10 +922,10 @@ export default function AuthBookingPage() {
                                                         className={`w-full pl-11 pr-11 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                             registerErrors.password
                                                                 ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                         }`}
                                                     />
-                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.password ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                         <Lock className="w-4 h-4" />
                                                     </div>
                                                     <button
@@ -903,6 +941,26 @@ export default function AuthBookingPage() {
                                                         )}
                                                     </button>
                                                 </div>
+                                                {/* Thanh đo độ mạnh mật khẩu gọn nhẹ */}
+                                                {registerForm.password.length > 0 && (
+                                                    <div className="mt-1.5 flex items-center gap-2">
+                                                        <div className="flex-1 grid grid-cols-4 gap-1">
+                                                            {[1, 2, 3, 4].map((level) => (
+                                                                <span
+                                                                    key={level}
+                                                                    className={`h-1 rounded-full transition-colors duration-300 ${
+                                                                        level <= passwordStrength.score
+                                                                            ? passwordStrength.color
+                                                                            : 'bg-slate-200'
+                                                                    }`}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold whitespace-nowrap ${passwordStrength.textColor}`}>
+                                                            {passwordStrength.label}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {registerErrors.password && (
                                                     <p className="mt-1 text-[11px] font-medium text-rose-600 flex items-center gap-1">
                                                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -913,7 +971,7 @@ export default function AuthBookingPage() {
 
                                             <div>
                                                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                                                    Nhập lại mật khẩu <span className="text-amber-600">*</span>
+                                                    Nhập lại mật khẩu <span className="text-rose-500">*</span>
                                                 </label>
                                                 <div className="relative group">
                                                     <input
@@ -935,10 +993,10 @@ export default function AuthBookingPage() {
                                                         className={`w-full pl-11 pr-11 py-2.5 sm:py-3 border rounded-xl text-base sm:text-sm text-slate-900 placeholder:text-slate-400 transition outline-none ${
                                                             registerErrors.confirmPassword
                                                                 ? 'bg-rose-50/40 border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15'
-                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-amber-500 focus:ring-4 focus:ring-amber-500/15 focus:bg-white'
+                                                                : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/15 focus:bg-white'
                                                         }`}
                                                     />
-                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.confirmPassword ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-amber-500'}`}>
+                                                    <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${registerErrors.confirmPassword ? 'text-rose-500' : 'text-slate-400 group-focus-within:text-sky-600'}`}>
                                                         <Lock className="w-4 h-4" />
                                                     </div>
                                                     <button
@@ -975,7 +1033,7 @@ export default function AuthBookingPage() {
                                                             setRegisterErrors((prev) => ({ ...prev, agreeTerms: '' }));
                                                         }
                                                     }}
-                                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 cursor-pointer shrink-0"
+                                                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sky-600 accent-sky-600 focus:ring-sky-500 cursor-pointer shrink-0"
                                                 />
                                                 <span>
                                                     Tôi đồng ý với{' '}
@@ -986,7 +1044,7 @@ export default function AuthBookingPage() {
                                                             e.stopPropagation();
                                                             setLegalModal('terms');
                                                         }}
-                                                        className="text-amber-600 font-semibold hover:underline cursor-pointer"
+                                                        className="text-sky-700 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Điều khoản dịch vụ
                                                     </button>{' '}
@@ -998,7 +1056,7 @@ export default function AuthBookingPage() {
                                                             e.stopPropagation();
                                                             setLegalModal('privacy');
                                                         }}
-                                                        className="text-amber-600 font-semibold hover:underline cursor-pointer"
+                                                        className="text-sky-700 font-semibold hover:underline cursor-pointer"
                                                     >
                                                         Chính sách bảo mật
                                                     </button>{' '}
@@ -1017,7 +1075,7 @@ export default function AuthBookingPage() {
                                         <button
                                             type="submit"
                                             disabled={isLoading}
-                                            className="w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+                                            className="btn-luxury-shine group w-full py-3.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 disabled:opacity-75 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-sky-900/20 hover:shadow-sky-500/30 ring-1 ring-inset ring-white/20 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                                         >
                                             {isLoading && (
                                                 <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
@@ -1026,7 +1084,7 @@ export default function AuthBookingPage() {
                                                 </svg>
                                             )}
                                             <span>{isLoading ? 'Đang khởi tạo tài khoản...' : 'Hoàn Tất Đăng Ký Tài Khoản'}</span>
-                                            {!isLoading && <ArrowRight className="w-4 h-4" />}
+                                            {!isLoading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
                                         </button>
                                     </form>
                                 )}
@@ -1081,10 +1139,10 @@ export default function AuthBookingPage() {
             </main>
 
             {/* 3 BƯỚC TRẢI NGHIỆM TIỆN ÍCH KHI CÓ TÀI KHOẢN (GIAO DIỆN SÁNG, DỊU MẮT) */}
-            <section className="py-10 sm:py-16 bg-white border-b border-slate-200">
+            <section className="py-8 sm:py-14 bg-white border-b border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-2xl mx-auto mb-12">
-                        <span className="text-xs uppercase font-extrabold tracking-widest text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200/80">
+                    <Reveal className="text-center max-w-2xl mx-auto mb-6 sm:mb-10">
+                        <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200/80">
                             Trải Nghiệm Liền Mạch
                         </span>
                         <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-3">
@@ -1093,118 +1151,124 @@ export default function AuthBookingPage() {
                         <p className="text-xs sm:text-sm text-slate-500 mt-2">
                             Toàn bộ lịch sử hành trình và quyền lợi của quý khách được đồng bộ tự động, an toàn và sẵn sàng phục vụ 24/7.
                         </p>
-                    </div>
+                    </Reveal>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-                        <div className="bg-gradient-to-b from-slate-50 to-white rounded-3xl p-7 border border-slate-200/90 hover:border-amber-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center text-lg font-bold mb-5 shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-6 lg:gap-8">
+                        <Reveal delay={40} className="bg-gradient-to-b from-slate-50 to-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/90 hover:border-sky-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex sm:block items-start gap-3.5 group">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white flex items-center justify-center text-base sm:text-lg font-bold shrink-0 mb-0 sm:mb-5 shadow-md shadow-sky-900/15 group-hover:scale-105 transition-transform">
                                 01
                             </div>
-                            <h3 className="font-serif font-bold text-slate-900 text-base mb-2">
-                                Đặt phòng tức thì trong 30 giây
-                            </h3>
-                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                Tự động điền họ tên, CCCD, thói quen kê thêm gối nệm và ưu tiên tầng cao mà không cần nhập lại mỗi chuyến đi.
-                            </p>
-                        </div>
+                            <div className="min-w-0">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2">
+                                    Đặt phòng tức thì trong 30 giây
+                                </h3>
+                                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                    Tự động điền họ tên, CCCD, thói quen kê thêm gối nệm và ưu tiên tầng cao mà không cần nhập lại mỗi chuyến đi.
+                                </p>
+                            </div>
+                        </Reveal>
 
-                        <div className="bg-gradient-to-b from-slate-50 to-white rounded-3xl p-7 border border-slate-200/90 hover:border-amber-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center text-lg font-bold mb-5 shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform">
+                        <Reveal delay={110} className="bg-gradient-to-b from-slate-50 to-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/90 hover:border-sky-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex sm:block items-start gap-3.5 group">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white flex items-center justify-center text-base sm:text-lg font-bold shrink-0 mb-0 sm:mb-5 shadow-md shadow-sky-900/15 group-hover:scale-105 transition-transform">
                                 02
                             </div>
-                            <h3 className="font-serif font-bold text-slate-900 text-base mb-2">
-                                Tra cứu mã voucher & hóa đơn VAT
-                            </h3>
-                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                Xuất trình mã xác nhận Booking ID ngay trên điện thoại khi đến quầy check-in và tải hóa đơn điện tử về máy bất kỳ lúc nào.
-                            </p>
-                        </div>
+                            <div className="min-w-0">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2">
+                                    Tra cứu mã voucher &amp; hóa đơn VAT
+                                </h3>
+                                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                    Xuất trình mã xác nhận Booking ID ngay trên điện thoại khi đến quầy check-in và tải hóa đơn điện tử về máy bất kỳ lúc nào.
+                                </p>
+                            </div>
+                        </Reveal>
 
-                        <div className="bg-gradient-to-b from-slate-50 to-white rounded-3xl p-7 border border-slate-200/90 hover:border-amber-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-600 to-yellow-600 text-white flex items-center justify-center text-lg font-bold mb-5 shadow-md shadow-amber-600/20 group-hover:scale-105 transition-transform">
+                        <Reveal delay={180} className="bg-gradient-to-b from-slate-50 to-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/90 hover:border-sky-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex sm:block items-start gap-3.5 group">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-sky-600 via-blue-600 to-cyan-700 text-white flex items-center justify-center text-base sm:text-lg font-bold shrink-0 mb-0 sm:mb-5 shadow-md shadow-sky-900/15 group-hover:scale-105 transition-transform">
                                 03
                             </div>
-                            <h3 className="font-serif font-bold text-slate-900 text-base mb-2">
-                                Dịch vụ chăm sóc quản gia ưu tiên
-                            </h3>
-                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                Đặt xe Mercedes đón sân bay, set trà chiều hoàng gia hay yêu cầu trang trí phòng trăng mật được quản gia xác nhận ưu tiên.
-                            </p>
-                        </div>
+                            <div className="min-w-0">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2">
+                                    Hỗ trợ dịch vụ &amp; lễ tân ưu tiên
+                                </h3>
+                                <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                    Hỗ trợ đặt xe đưa đón sân bay, gọi ẩm thực tại phòng hay yêu cầu chuẩn bị phòng kỷ niệm được lễ tân xác nhận ưu tiên.
+                                </p>
+                            </div>
+                        </Reveal>
                     </div>
                 </div>
             </section>
 
             {/* CÂU HỎI THƯỜNG GẶP (FAQ) & BANNER DOANH NGHIỆP */}
-            <section className="py-10 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            <section className="py-8 sm:py-14 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 items-start">
                     {/* FAQ Accordion */}
-                    <div className="lg:col-span-7 space-y-4">
+                    <Reveal className="lg:col-span-7 space-y-4">
                         <div>
-                            <span className="text-xs uppercase font-extrabold tracking-widest text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200/80">
+                            <span className="text-[11px] sm:text-xs uppercase font-extrabold tracking-widest text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200/80">
                                 Giải đáp thắc mắc
                             </span>
-                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-2.5 mb-6">
+                            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 mt-2.5 mb-4 sm:mb-6">
                                 Câu hỏi thường gặp về tài khoản đặt phòng
                             </h2>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-2.5 sm:space-y-3">
                             {faqs.map((faq, idx) => (
-                                <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:border-amber-300 transition-colors">
+                                <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:border-sky-300 transition-colors">
                                     <button
                                         type="button"
                                         onClick={() => setActiveFaq(activeFaq === idx ? -1 : idx)}
-                                        className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-amber-700 transition cursor-pointer"
+                                        className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-semibold text-xs sm:text-sm text-slate-800 hover:text-sky-700 transition cursor-pointer"
                                     >
                                         <span>{faq.q}</span>
                                         <ChevronDown
                                             className={`w-4 h-4 shrink-0 transition-transform duration-300 ${
-                                                activeFaq === idx ? 'rotate-180 text-amber-600' : 'text-slate-400'
+                                                activeFaq === idx ? 'rotate-180 text-sky-600' : 'text-slate-400'
                                             }`}
                                         />
                                     </button>
                                     {activeFaq === idx && (
-                                        <div className="px-5 pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3 bg-amber-50/20 animate-fadeIn">
+                                        <div className="px-4 sm:px-5 pb-4 sm:pb-5 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-3 bg-sky-50/25 animate-tab-reveal">
                                             {faq.a}
                                         </div>
                                     )}
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Reveal>
 
                     {/* Banner Khách Hàng Doanh Nghiệp */}
-                    <div className="lg:col-span-5 bg-gradient-to-br from-slate-950 via-slate-900 to-stone-900 rounded-3xl p-7 sm:p-8 text-white shadow-2xl flex flex-col justify-between border border-amber-500/20 relative overflow-hidden">
-                        {/* Glow trang trí */}
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+                    <Reveal delay={100} className="lg:col-span-5 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 rounded-3xl p-5 sm:p-8 text-white shadow-2xl flex flex-col justify-between border border-sky-500/20 relative overflow-hidden">
+                        {/* Glow trang trí chuyển động êm */}
+                        <div className="animate-ambient-drift absolute top-0 right-0 w-48 h-48 bg-amber-500/12 rounded-full blur-2xl pointer-events-none" />
 
                         <div className="relative z-10">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-4 border border-amber-400/30">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-3.5 sm:mb-4 border border-amber-400/30">
                                 <Building2 className="w-3.5 h-3.5" />
-                                <span>Dành Cho Doanh Nghiệp & Đoàn M.I.C.E</span>
+                                <span>Dành Cho Doanh Nghiệp &amp; Đoàn M.I.C.E</span>
                             </div>
-                            <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight mb-3">
+                            <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight mb-2.5 sm:mb-3">
                                 Chương Trình Hội Viên Doanh Nghiệp {hotelName} Corporate
                             </h3>
-                            <p className="text-slate-300 text-xs leading-relaxed mb-6 font-light">
+                            <p className="text-slate-300 text-xs leading-relaxed mb-5 sm:mb-6 font-light">
                                 Chính sách chiết khấu phòng hội nghị, buồng phòng cao cấp và hợp đồng thanh toán công nợ chuyên biệt dành cho quý đối tác và doanh nghiệp.
                             </p>
                         </div>
-                        <div className="relative z-10 space-y-4 pt-5 border-t border-white/10">
+                        <div className="relative z-10 space-y-3.5 sm:space-y-4 pt-4 sm:pt-5 border-t border-white/10">
                             <div className="text-xs">
-                                <span className="text-slate-400 block text-[11px] mb-0.5">Hotline hỗ trợ đoàn & công ty:</span>
+                                <span className="text-slate-400 block text-[11px] mb-0.5">Hotline hỗ trợ đoàn &amp; công ty:</span>
                                 <strong className="text-amber-300 text-base">{hotline} (Phím 2)</strong>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => navigate('/corporate-booking')}
-                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2"
+                                className="btn-luxury-shine group w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-2"
                             >
-                                <span>Đăng Ký Đặt Phòng Đoàn & Doanh Nghiệp</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
+                                <span>Đăng Ký Đặt Phòng Đoàn &amp; Doanh Nghiệp</span>
+                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                             </button>
                         </div>
-                    </div>
+                    </Reveal>
                 </div>
             </section>
 

@@ -972,7 +972,7 @@ export default function Checkout() {
             )}
 
             {/* MAIN CONTENT: 2 CỘT CHUẨN TRAVELOKA / AGODA */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28 lg:pb-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-10 pb-28 lg:pb-10">
                 {/* Lỗi không tìm thấy phòng */}
                 {!loadingRoom && roomError && (
                     <div className="bg-white rounded-3xl border border-rose-200 p-10 text-center max-w-lg mx-auto shadow-sm my-10">
@@ -1831,35 +1831,36 @@ export default function Checkout() {
 
                                                         {/* Khu vực Tùy chỉnh số lượng khi đã chọn */}
                                                         {isSelected && (
-                                                            <div className="mt-3 pt-3 border-t border-sky-200/70 flex items-center justify-between text-xs animate-in fade-in duration-200">
-                                                                <span className="text-[11px] font-semibold text-slate-600">
-                                                                    Số lượng sử dụng:
+                                                            <div className="mt-2.5 sm:mt-3 pt-2.5 sm:pt-3 border-t border-sky-200/70 flex items-center justify-between gap-2 text-xs animate-in fade-in duration-200">
+                                                                <span className="text-[11px] font-semibold text-slate-600 whitespace-nowrap">
+                                                                    <span className="sm:hidden">Số lượng:</span>
+                                                                    <span className="hidden sm:inline">Số lượng sử dụng:</span>
                                                                 </span>
 
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="inline-flex items-center bg-white border border-sky-300 rounded-xl shadow-xs overflow-hidden">
+                                                                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                                                    <div className="inline-flex items-center bg-white border border-sky-300 rounded-xl shadow-xs overflow-hidden shrink-0">
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, -1)}
-                                                                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Giảm số lượng"
                                                                         >
                                                                             -
                                                                         </button>
-                                                                        <span className="w-8 text-center font-bold text-slate-900 text-xs">
+                                                                        <span className="w-7 sm:w-8 text-center font-bold text-slate-900 text-xs tabular-nums">
                                                                             {currentQty}
                                                                         </span>
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleUpdateServiceQty(svc.id, 1)}
-                                                                            className="w-10 h-10 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
+                                                                            className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center font-bold text-slate-600 hover:bg-sky-50 active:bg-sky-100 transition cursor-pointer"
                                                                             title="Tăng số lượng"
                                                                         >
                                                                             +
                                                                         </button>
                                                                     </div>
 
-                                                                    <span className="text-[11px] font-extrabold text-slate-900 ml-1">
+                                                                    <span className="text-[11px] font-extrabold text-slate-900 whitespace-nowrap tabular-nums">
                                                                         = {(priceNum * currentQty).toLocaleString('vi-VN')} ₫
                                                                     </span>
                                                                 </div>

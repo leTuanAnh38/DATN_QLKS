@@ -378,50 +378,50 @@ export default function RoomsAndSuitesPage() {
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     aria-label="Sắp xếp hạng phòng"
-                                    className="sm:hidden w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 py-2 text-base font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="sm:hidden w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 py-1.5 text-base font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
-                                    <option value="featured">Sắp xếp: Đề xuất</option>
-                                    <option value="price-asc">Giá: Thấp → Cao</option>
-                                    <option value="price-desc">Giá: Cao → Thấp</option>
-                                    <option value="size-desc">Diện tích lớn nhất</option>
-                                    <option value="capacity-desc">Sức chứa nhiều nhất</option>
+                                    <option value="featured">Đề xuất</option>
+                                    <option value="price-asc">Giá thấp → cao</option>
+                                    <option value="price-desc">Giá cao → thấp</option>
+                                    <option value="size-desc">Diện tích lớn</option>
+                                    <option value="capacity-desc">Sức chứa lớn</option>
                                 </select>
 
                                 <select
                                     value={priceRange}
                                     onChange={(e) => setPriceRange(e.target.value)}
                                     aria-label="Lọc theo khoảng giá"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi mức giá</option>
-                                    <option value="under-2m">Dưới 2.000.000đ / đêm</option>
-                                    <option value="2m-4m">2.000.000đ – 4.000.000đ</option>
-                                    <option value="over-4m">Trên 4.000.000đ / đêm</option>
+                                    <option value="under-2m">&lt; 2 triệu / đêm</option>
+                                    <option value="2m-4m">2 – 4 triệu</option>
+                                    <option value="over-4m">&gt; 4 triệu / đêm</option>
                                 </select>
 
                                 <select
                                     value={capacityFilter}
                                     onChange={(e) => setCapacityFilter(e.target.value)}
                                     aria-label="Lọc theo sức chứa"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi sức chứa</option>
-                                    <option value="1">Từ 1 người lớn</option>
-                                    <option value="2">Từ 2 người lớn</option>
-                                    <option value="3">Từ 3 người lớn</option>
-                                    <option value="4">Từ 4 người lớn</option>
-                                    <option value="6">Từ 6 người lớn</option>
+                                    <option value="1">Từ 1 khách</option>
+                                    <option value="2">Từ 2 khách</option>
+                                    <option value="3">Từ 3 khách</option>
+                                    <option value="4">Từ 4 khách</option>
+                                    <option value="6">Từ 6 khách</option>
                                 </select>
 
                                 <select
                                     value={viewFilter}
                                     onChange={(e) => setViewFilter(e.target.value)}
                                     aria-label="Lọc theo hướng nhìn"
-                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2.5 sm:px-3 py-2 sm:py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
+                                    className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi hướng nhìn</option>
-                                    <option value="sea">Hướng biển / Mỹ Khê</option>
-                                    <option value="city">Hướng thành phố / Sông Hàn</option>
+                                    <option value="sea">View biển</option>
+                                    <option value="city">View phố / sông</option>
                                 </select>
                             </div>
 
@@ -441,7 +441,7 @@ export default function RoomsAndSuitesPage() {
             </section>
 
             {/* 3. MAIN CONTENT: GRID LAYOUT CHUẨN (grid grid-cols-1 md:grid-cols-3 gap-6) */}
-            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-10 w-full">
                 {/* Active Search Banner nếu có tham số tìm kiếm từ trang chủ */}
                 {hasActiveSearch && (
                     <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-amber-50/40 border border-amber-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
@@ -543,7 +543,7 @@ export default function RoomsAndSuitesPage() {
                 {!loading && !error && sortedCategories.length > 0 && (
                     <div
                         key={`${selectedTab}-${priceRange}-${capacityFilter}-${viewFilter}-${sortBy}`}
-                        className="animate-tab-reveal space-y-6"
+                        className="animate-tab-reveal space-y-4 sm:space-y-6"
                     >
                         {sortedCategories.map((room) => {
                             const fallbackImg =
@@ -627,15 +627,15 @@ export default function RoomsAndSuitesPage() {
                                     />
 
                                     {/* CỘT PHẢI: THÔNG TIN CHI TIẾT, THÔNG SỐ, TIỆN ÍCH & GIÁ */}
-                                    <div className="flex-1 p-5 sm:p-7 flex flex-col justify-between gap-5">
-                                        <div className="space-y-4">
+                                    <div className="flex-1 p-4 sm:p-7 flex flex-col justify-between gap-3.5 sm:gap-5">
+                                        <div className="space-y-2.5 sm:space-y-4">
                                             {/* Tầng 1: Phân hạng + Tên phòng Serif + Huy hiệu sao */}
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <span className="block text-[10.5px] font-bold uppercase tracking-[0.16em] text-amber-700 mb-1">
+                                                    <span className="block text-[10.5px] font-bold uppercase tracking-[0.16em] text-amber-700 mb-0.5 sm:mb-1">
                                                         {tierLabel}
                                                     </span>
-                                                    <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-sky-700 transition-colors leading-snug">
+                                                    <h3 className="font-serif text-lg sm:text-2xl font-bold text-slate-900 group-hover:text-sky-700 transition-colors leading-snug">
                                                         <Link
                                                             to={`/rooms/${room.id}`}
                                                             state={{ checkInDate: effectiveCheckIn, checkOutDate: effectiveCheckOut, guestCount: effectiveGuests }}
@@ -655,7 +655,7 @@ export default function RoomsAndSuitesPage() {
                                             </div>
 
                                             {/* Tầng 2A: Thanh thông số nền xanh phấn nhạt (Diện tích • Giường • Sức chứa) */}
-                                            <div className="bg-[#f4f7fc] border border-slate-200/60 rounded-2xl px-3 sm:px-4 py-2.5 flex flex-wrap sm:grid sm:grid-cols-3 gap-x-3.5 gap-y-2 sm:gap-2 text-[11.5px] sm:text-xs font-semibold text-slate-700">
+                                            <div className="bg-[#f4f7fc] border border-slate-200/60 rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 flex flex-wrap sm:grid sm:grid-cols-3 gap-x-3 gap-y-1.5 sm:gap-2 text-[11.5px] sm:text-xs font-semibold text-slate-700">
                                                 <span className="flex items-center gap-1.5 min-w-0">
                                                     <Maximize2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                     <span className="truncate">{room.size || 35} m²</span>
@@ -670,10 +670,10 @@ export default function RoomsAndSuitesPage() {
                                                 </span>
                                             </div>
 
-                                            {/* Tầng 2B: 4 Tiện ích nổi bật (xếp 2 cột thoáng mắt, không cắt chữ) */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600">
+                                            {/* Tầng 2B: 4 Tiện ích nổi bật (xếp 2 cột gọn gàng ngay cả trên Mobile) */}
+                                            <div className="grid grid-cols-2 gap-x-2.5 sm:gap-x-4 gap-y-1.5 sm:gap-y-2 text-[11px] sm:text-xs text-slate-600">
                                                 {highlights.map((hl, idx) => (
-                                                    <span key={idx} className="flex items-center gap-2 min-w-0">
+                                                    <span key={idx} className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                                                         <CheckCircle2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                         <span className="truncate">{hl}</span>
                                                     </span>
@@ -682,7 +682,7 @@ export default function RoomsAndSuitesPage() {
                                         </div>
 
                                         {/* Tầng 3: Giá tiền & 2 Nút hành động (Mobile tự chia 50/50) */}
-                                        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-auto">
+                                        <div className="pt-3 sm:pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 mt-auto">
                                             <div>
                                                 {hasPromo ? (
                                                     <>
@@ -690,7 +690,7 @@ export default function RoomsAndSuitesPage() {
                                                             {formattedBasePrice} VND
                                                         </span>
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <span className="text-2xl font-black text-rose-600 tracking-tight tabular-nums">
+                                                            <span className="text-xl sm:text-2xl font-black text-rose-600 tracking-tight tabular-nums">
                                                                 {formattedPromoPrice}
                                                             </span>
                                                             <span className="text-xs font-bold text-slate-500">
@@ -700,7 +700,7 @@ export default function RoomsAndSuitesPage() {
                                                     </>
                                                 ) : (
                                                     <div className="flex items-baseline gap-1.5">
-                                                        <span className="text-2xl font-black text-slate-900 tracking-tight tabular-nums">
+                                                        <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
                                                             {formattedBasePrice}
                                                         </span>
                                                         <span className="text-xs font-bold text-slate-500">

@@ -171,12 +171,12 @@ export default function GuestTestimonials() {
                             return (
                                 <article
                                     key={rev.id || idx}
-                                    className={`${reviewsGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl p-5 sm:p-8 border border-slate-100 hover:border-amber-200/70 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between`}
+                                    className={`${reviewsGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[84vw] max-w-[330px] sm:w-auto sm:max-w-none shrink-0 snap-center bg-white rounded-3xl p-4 sm:p-8 border border-slate-100 hover:border-amber-200/70 shadow-[0_10px_30px_-15px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_40px_-15px_rgba(15,23,42,0.12)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between`}
                                     style={reviewsGridVisible ? { animationDelay: `${idx * 110}ms` } : undefined}
                                 >
                                     <div>
                                         {/* 5 Ngôi sao vàng nâu sang trọng ở trên cùng */}
-                                        <div className="flex items-center gap-1.5 mb-5">
+                                        <div className="flex items-center gap-1.5 mb-3 sm:mb-5">
                                             {[1, 2, 3, 4, 5].map((s) => (
                                                 <Star
                                                     key={s}
@@ -190,13 +190,13 @@ export default function GuestTestimonials() {
                                         </div>
 
                                         {/* Trích dẫn in nghiêng trong ngoặc kép */}
-                                        <p className="text-slate-600 italic text-xs sm:text-[13.5px] leading-[1.75] mb-7">
+                                        <p className="text-slate-600 italic text-xs sm:text-[13.5px] leading-[1.75] mb-4 sm:mb-7">
                                             "{cleanComment}"
                                         </p>
                                     </div>
 
                                     {/* Đường kẻ mảnh + Avatar chữ viết tắt + Tên & Chức danh/Hạng phòng */}
-                                    <div className="pt-5 border-t border-slate-100 flex items-center gap-3.5 mt-auto">
+                                    <div className="pt-3.5 sm:pt-5 border-t border-slate-100 flex items-center gap-3 sm:gap-3.5 mt-auto">
                                         {avatarUrl ? (
                                             <img
                                                 src={avatarUrl}

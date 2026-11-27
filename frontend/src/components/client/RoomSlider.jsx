@@ -203,23 +203,23 @@ export default function RoomSlider({ rooms = [] }) {
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Header thanh điều hướng: Nút mũi tên < và > */}
-            <div className="flex items-center justify-between gap-3 mb-6">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        <span className="hidden sm:inline">Trượt</span>
-                        <span className="sm:hidden">Vuốt</span> để xem thêm các hạng phòng ({currentIndex + 1}/{maxIndex + 1})
+            <div className="flex items-center justify-between gap-2 sm:gap-3 mb-3 sm:mb-6">
+                <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                        <span className="sm:hidden">Vuốt xem ({currentIndex + 1}/{maxIndex + 1})</span>
+                        <span className="hidden sm:inline">Trượt để xem thêm các hạng phòng ({currentIndex + 1}/{maxIndex + 1})</span>
                     </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <button
                         type="button"
                         onClick={handlePrev}
                         onTouchStart={(e) => e.stopPropagation()}
                         aria-label="Phòng trước đó"
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
-                        <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
 
                     <button
@@ -227,9 +227,9 @@ export default function RoomSlider({ rooms = [] }) {
                         onClick={handleNext}
                         onTouchStart={(e) => e.stopPropagation()}
                         aria-label="Phòng tiếp theo"
-                        className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white hover:border-sky-600 shadow-sm transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
                     >
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                 </div>
             </div>
@@ -292,7 +292,7 @@ export default function RoomSlider({ rooms = [] }) {
                                     style={sliderVisible && roomIdx < 3 ? { animationDelay: `${roomIdx * 100}ms` } : undefined}
                                 >
                                     {/* Ảnh đại diện chính thoáng mắt, không che ảnh bằng nhiều nhãn */}
-                                    <div className="relative h-60 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
+                                    <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-slate-900 shrink-0">
                                         <Link to={`/rooms/${room.id}`} className="block w-full h-full">
                                             <img
                                                 src={primaryImage}
@@ -330,7 +330,7 @@ export default function RoomSlider({ rooms = [] }) {
                                     </div>
 
                                     {/* Thân thẻ thông tin */}
-                                    <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                                    <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between space-y-3 sm:space-y-4">
                                         <div>
                                             <h3 className="font-serif text-lg sm:text-xl font-bold text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-1 min-h-[1.75rem]">
                                                 <Link to={`/rooms/${room.id}`}>{room.name}</Link>
@@ -361,7 +361,7 @@ export default function RoomSlider({ rooms = [] }) {
                                                 )}
                                             </div>
 
-                                            <p className="mt-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal min-h-[2.5rem]">
+                                            <p className="mt-2 sm:mt-2.5 text-xs text-slate-500 line-clamp-2 leading-relaxed font-normal sm:min-h-[2.5rem]">
                                                 {room.short_description ||
                                                     room.description?.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim() ||
                                                     `Không gian nghỉ dưỡng sang trọng view biển trọn vẹn, trang bị đầy đủ tiện nghi cao cấp ${starCount} sao.`}

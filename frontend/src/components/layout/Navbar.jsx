@@ -231,7 +231,7 @@ export default function Navbar({
                                 <img
                                     src={resolveMediaUrl(settings.logo_url)}
                                     alt={settings.hotel_name || 'Khách Sạn TA Đà Nẵng'}
-                                    className="w-full h-full object-cover object-center scale-[1.22]"
+                                    className="w-full h-full object-contain object-center scale-[1.08]"
                                 />
                             </div>
                         ) : (
@@ -478,7 +478,7 @@ export default function Navbar({
                 >
                         {/* Mobile User Status */}
                         {isAuthenticated && (
-                            <div className="p-3.5 bg-slate-50 rounded-2xl mb-3 border border-slate-200/90 space-y-2.5 shadow-xs">
+                            <div className="p-2.5 sm:p-3.5 bg-slate-50 rounded-2xl mb-2 sm:mb-3 border border-slate-200/90 space-y-2 sm:space-y-2.5 shadow-xs">
                                 <div className="flex items-center justify-between gap-2">
                                     <Link
                                         to="/profile"
@@ -508,7 +508,7 @@ export default function Navbar({
                                         <button
                                             type="button"
                                             onClick={handleRequestLogout}
-                                            className="px-3 py-1.5 min-h-[38px] text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                            className="px-2.5 sm:px-3 py-1.5 min-h-[34px] sm:min-h-[38px] text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
                                         >
                                             Thoát
                                         </button>
@@ -516,29 +516,29 @@ export default function Navbar({
                                 </div>
 
                                 {/* Menu tắt trên Mobile dành riêng cho khách hàng */}
-                                <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2 text-xs">
+                                <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-1.5 sm:gap-2 text-xs">
                                     <Link
                                         to="/booking-history"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2.5 min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
+                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
                                     >
-                                        <CalendarClock className="w-4 h-4 text-amber-600 shrink-0" />
+                                        <CalendarClock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                                         <span className="truncate">Lịch sử đặt phòng</span>
                                     </Link>
                                     <Link
                                         to="/profile"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2.5 min-h-[42px] rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition"
+                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition"
                                     >
-                                        <User className="w-4 h-4 text-slate-600 shrink-0" />
+                                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 shrink-0" />
                                         <span className="truncate">Hồ sơ cá nhân</span>
                                     </Link>
                                     <Link
                                         to="/promotions"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2.5 min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
+                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
                                     >
-                                        <Tag className="w-4 h-4 text-amber-600 shrink-0" />
+                                        <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
                                         <span className="truncate">Mã ưu đãi của tôi</span>
                                     </Link>
                                     <button
@@ -547,34 +547,36 @@ export default function Navbar({
                                             setMobileMenuOpen(false);
                                             setIsChangePasswordOpen(true);
                                         }}
-                                        className="flex items-center gap-1.5 p-2.5 min-h-[42px] rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition text-left cursor-pointer"
+                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition text-left cursor-pointer"
                                     >
-                                        <KeyRound className="w-4 h-4 text-slate-600 shrink-0" />
+                                        <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 shrink-0" />
                                         <span className="truncate">Đổi mật khẩu</span>
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {navItems.map((item) => {
-                            const active = item.isActive(location.pathname);
-                            return (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className={`flex items-center min-h-[42px] px-3 py-2.5 rounded-lg text-sm font-medium ${
-                                        active
-                                            ? 'bg-amber-50 text-amber-800 font-bold border-l-4 border-amber-600'
-                                            : 'text-slate-700 hover:bg-amber-50/50 hover:text-amber-800'
-                                    }`}
-                                >
-                                    {item.name}
-                                </Link>
-                            );
-                        })}
+                        <div className="grid grid-cols-2 gap-1.5 sm:block sm:space-y-1">
+                            {navItems.map((item) => {
+                                const active = item.isActive(location.pathname);
+                                return (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={`flex items-center min-h-[38px] sm:min-h-[42px] px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-lg text-[13px] sm:text-sm font-medium transition ${
+                                            active
+                                                ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200/90 sm:border-0 sm:border-l-4 sm:border-amber-600'
+                                                : 'bg-slate-50/70 sm:bg-transparent text-slate-700 hover:bg-amber-50/50 hover:text-amber-800 border border-slate-100 sm:border-0'
+                                        }`}
+                                    >
+                                        <span className="truncate">{item.name}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
 
-                        <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+                        <div className="pt-2.5 sm:pt-3 border-t border-slate-100 flex flex-col gap-1.5 sm:gap-2">
                             <Link
                                 to={actionLink}
                                 onClick={(e) => {
