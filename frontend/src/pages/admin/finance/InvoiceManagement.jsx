@@ -729,7 +729,7 @@ export default function InvoiceManagement() {
             ) : activeTab === 'CASHOUTS' ? (
                 <CashOutVoucherList
                     refreshKey={cashOutRefreshKey}
-                    canCashOut={canCashOut}
+                    canCashOut={canCreateCashOut || Boolean(currentUser?.is_superuser)}
                     onOpenCreateCashOut={() => setIsCashOutOpen(true)}
                 />
             ) : (
