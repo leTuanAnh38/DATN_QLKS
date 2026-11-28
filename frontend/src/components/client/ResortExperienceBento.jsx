@@ -38,7 +38,7 @@ function GoldenStatCard({ stat, isVisible, delay }) {
                 <div className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-tight tabular-nums">
                     {animatedNum}{stat.suffix}
                 </div>
-                <div className="text-[11px] sm:text-xs font-bold text-amber-800 mt-0.5 leading-snug">
+                <div className="text-[11px] sm:text-xs font-bold text-amber-800 mt-0.5 leading-snug min-h-[1.875rem] sm:min-h-0">
                     {stat.label}
                 </div>
                 <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-none">
@@ -237,8 +237,9 @@ export default function ResortExperienceBento() {
                                 </span>
                             </div>
                             <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white group-hover:-translate-y-0.5 transition-transform duration-500 ease-out">
-                                <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
-                                    {BENTO_GALLERY.fineDining.title}
+                                <h4 className="font-serif text-[13px] sm:text-base font-bold leading-snug line-clamp-2">
+                                    <span className="sm:hidden">Nhà Hàng Á - Âu</span>
+                                    <span className="hidden sm:inline">{BENTO_GALLERY.fineDining.title}</span>
                                 </h4>
                             </div>
                         </div>
@@ -258,12 +259,14 @@ export default function ResortExperienceBento() {
                             <div className="absolute top-2.5 left-2.5 right-2.5 sm:top-3 sm:left-3 sm:right-3">
                                 <span className="inline-flex items-center gap-1 max-w-full px-2 sm:px-2.5 py-0.5 rounded-full bg-slate-950/60 backdrop-blur-md border border-white/15 text-amber-300 text-[9.5px] sm:text-[10px] font-bold">
                                     <Car className="w-3 h-3 shrink-0" />
-                                    <span className="truncate">{BENTO_GALLERY.coastalView.badge}</span>
+                                    <span className="truncate sm:hidden">Biển &amp; Xe VIP</span>
+                                    <span className="truncate hidden sm:inline">{BENTO_GALLERY.coastalView.badge}</span>
                                 </span>
                             </div>
                             <div className="absolute bottom-3 left-3 right-3 sm:bottom-3.5 sm:left-3.5 sm:right-3.5 text-white group-hover:-translate-y-0.5 transition-transform duration-500 ease-out">
-                                <h4 className="font-serif text-sm sm:text-base font-bold leading-snug line-clamp-2">
-                                    {BENTO_GALLERY.coastalView.title}
+                                <h4 className="font-serif text-[13px] sm:text-base font-bold leading-snug line-clamp-2">
+                                    <span className="sm:hidden">Bình Minh Biển Mỹ Khê</span>
+                                    <span className="hidden sm:inline">{BENTO_GALLERY.coastalView.title}</span>
                                 </h4>
                             </div>
                         </div>

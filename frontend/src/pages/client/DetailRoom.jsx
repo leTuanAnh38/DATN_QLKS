@@ -986,7 +986,7 @@ export default function DetailRoom() {
                                 <span className="hidden sm:inline-block text-[11px] uppercase tracking-widest text-sky-300 font-bold mb-1">
                                     {gallery.length === 1 ? 'Hình ảnh phòng' : `Góc nhìn ${safeImageIndex + 1} / ${gallery.length}`}
                                 </span>
-                                <p className="font-serif text-sm sm:text-xl font-bold pr-24 sm:pr-28 line-clamp-1">
+                                <p className="font-serif text-sm sm:text-xl font-bold sm:pr-28 line-clamp-1">
                                     {gallery[safeImageIndex]?.title || room.name}
                                 </p>
                             </div>
@@ -1317,17 +1317,17 @@ export default function DetailRoom() {
                                                 key={idx}
                                                 className="bg-slate-50/80 hover:bg-slate-50 rounded-2xl border border-slate-200/80 p-3.5 sm:p-6 transition shadow-2xs hover:shadow-xs space-y-2.5 sm:space-y-4"
                                             >
-                                                <div className="flex items-center justify-between gap-2 pb-2 sm:pb-3 border-b border-slate-200/70">
-                                                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                                                <div className="flex items-start sm:items-center justify-between gap-2 pb-2 sm:pb-3 border-b border-slate-200/70">
+                                                    <div className="flex items-start sm:items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
                                                         <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-50 border border-sky-200/70 text-sky-700 flex items-center justify-center shrink-0">
                                                             <GroupIcon className="w-4 h-4" />
                                                         </div>
-                                                        <h4 className="font-serif font-bold text-sm sm:text-base text-slate-900 tracking-tight truncate">
+                                                        <h4 className="font-serif font-bold text-sm sm:text-base text-slate-900 tracking-tight leading-snug">
                                                             {group.title}
                                                         </h4>
                                                     </div>
-                                                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-3xs whitespace-nowrap shrink-0">
-                                                        {group.items.length} tiện nghi
+                                                    <span className="text-[10px] font-bold text-slate-600 bg-white px-2 py-0.5 rounded-full border border-slate-200/80 shadow-3xs whitespace-nowrap shrink-0 mt-0.5 sm:mt-0">
+                                                        {group.items.length} <span className="sm:hidden">mục</span><span className="hidden sm:inline">tiện nghi</span>
                                                     </span>
                                                 </div>
 

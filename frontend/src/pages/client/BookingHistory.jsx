@@ -175,6 +175,7 @@ export default function BookingHistory() {
     const [refundBankName, setRefundBankName] = useState('');
     const [refundAccountNumber, setRefundAccountNumber] = useState('');
     const [refundAccountHolder, setRefundAccountHolder] = useState('');
+    const [refundBankError, setRefundBankError] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
     // 4. State sao chép mã
@@ -401,9 +402,17 @@ export default function BookingHistory() {
         const isGroupDeposited = Boolean(
             groupInfo.isGroup && (booking.is_group_deposit_paid || booking.group_status === 'confirmed')
         );
+        const isSinglePaid = Boolean(
+            !groupInfo.isGroup && (
+                ['paid', 'PAID'].includes(booking.status) ||
+                booking.is_paid ||
+                Number(booking.paid_amount || 0) > 0
+            )
+        );
         const existingReq = booking.group_cancel_request;
         setCancelModalBooking(booking);
         setCancelScope(isGroupDeposited ? 'group' : 'single');
+        setRefundBankError('');
         if (isGroupDeposited && existingReq && existingReq.status === 'pending') {
             const presetReasons = [
                 'Thay đổi lịch trình chuyến đi',
@@ -425,7 +434,7 @@ export default function BookingHistory() {
             setCustomReason('');
             setRefundBankName('');
             setRefundAccountNumber('');
-            setRefundAccountHolder('');
+            setRefundAccountHolder(isSinglePaid ? (booking.guest_name || user?.full_name || '').toUpperCase() : '');
         }
     };
 
@@ -497,18 +506,56 @@ export default function BookingHistory() {
                 }
             } else {
                 // Hủy riêng phòng này
-                const res = await bookingService.cancelBooking(cancelModalBooking.id, finalReason);
+                const isSinglePaid = Boolean(
+                    !groupInfo.isGroup && (
+                        ['paid', 'PAID'].includes(cancelModalBooking.status) ||
+                        cancelModalBooking.is_paid ||
+                        Number(cancelModalBooking.paid_amount || 0) > 0
+                    )
+                );
+                let refundBankPayload = null;
+                if (isSinglePaid) {
+                    const bankNameTrim = refundBankName.trim();
+                    const accNoTrim = refundAccountNumber.trim();
+                    const accHolderTrim = refundAccountHolder.trim();
+                    if (!bankNameTrim || !accNoTrim || !accHolderTrim) {
+                        setRefundBankError('Vui lòng nhập đầy đủ Tên ngân hàng, Số tài khoản và Tên chủ tài khoản để nhận hoàn tiền.');
+                        setIsCancelling(false);
+                        return;
+                    }
+                    refundBankPayload = {
+                        refund_bank_name: bankNameTrim,
+                        refund_account_number: accNoTrim,
+                        refund_account_holder: accHolderTrim.toUpperCase()
+                    };
+                }
+
+                const res = await bookingService.cancelBooking(cancelModalBooking.id, finalReason, refundBankPayload);
                 if (res && (res.success || res.status === 'cancelled')) {
-                    showToast('success', `Đã hủy đơn ${cancelModalBooking.booking_code} thành công.`);
+                    showToast(
+                        'success',
+                        isSinglePaid
+                            ? `Đã hủy đơn ${cancelModalBooking.booking_code} và gửi thông tin tài khoản nhận hoàn tiền tới Thu ngân.`
+                            : `Đã hủy đơn ${cancelModalBooking.booking_code} thành công.`
+                    );
                     setBookings((prev) =>
                         prev.map((b) =>
                             b.id === cancelModalBooking.id
-                                ? { ...b, status: 'cancelled', status_display: 'Đã Hủy' }
+                                ? {
+                                    ...b,
+                                    status: 'cancelled',
+                                    status_display: 'Đã Hủy',
+                                    refund_bank_info: res.refund_bank_info || b.refund_bank_info
+                                }
                                 : b
                         )
                     );
                     setCancelModalBooking(null);
                     setCustomReason('');
+                    setRefundBankName('');
+                    setRefundAccountNumber('');
+                    setRefundAccountHolder('');
+                    setRefundBankError('');
                     setCancelScope('single');
                 } else {
                     showToast('error', res?.message || 'Không thể hủy đơn đặt phòng. Vui lòng thử lại sau.');
@@ -738,7 +785,7 @@ export default function BookingHistory() {
                 {/* TOAST THÔNG BÁO NỔI (Căn chỉnh an toàn trên màn hình điện thoại) */}
                 {toastMessage && (
                     <div
-                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-[150] max-w-md px-5 py-3.5 rounded-2xl shadow-2xl border flex items-center gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toastMessage.type === 'success'
+                        className={`fixed top-20 left-4 right-4 sm:left-auto sm:right-6 z-[150] max-w-md px-4 sm:px-5 py-3.5 rounded-2xl shadow-2xl border flex items-start gap-2.5 text-xs font-bold transition transform animate-in slide-in-from-top duration-300 ${toastMessage.type === 'success'
                                 ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20'
                                 : toastMessage.type === 'error'
                                     ? 'bg-rose-600 text-white border-rose-500 shadow-rose-500/20'
@@ -746,13 +793,13 @@ export default function BookingHistory() {
                             }`}
                     >
                         {toastMessage.type === 'success' ? (
-                            <Check className="w-4 h-4 text-white" />
+                            <Check className="w-4 h-4 text-white shrink-0 mt-0.5" />
                         ) : toastMessage.type === 'error' ? (
-                            <AlertCircle className="w-4 h-4 text-white" />
+                            <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
                         ) : (
-                            <Info className="w-4 h-4 text-amber-400" />
+                            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         )}
-                        <span>{toastMessage.text}</span>
+                        <span className="leading-snug">{toastMessage.text}</span>
                     </div>
                 )}
 
@@ -858,7 +905,7 @@ export default function BookingHistory() {
                                         )}
                                     </div>
 
-                                    <div className="w-[138px] sm:w-auto flex items-center gap-1 sm:gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-2 shrink-0 sm:order-1">
+                                    <div className="w-[152px] sm:w-auto flex items-center gap-1 sm:gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2 sm:px-2.5 py-2 shrink-0 sm:order-1">
                                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
                                         <select
                                             value={sortBy}
@@ -866,9 +913,9 @@ export default function BookingHistory() {
                                             aria-label="Sắp xếp đơn đặt phòng"
                                             className="bg-transparent text-base sm:text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer w-full sm:w-auto truncate"
                                         >
-                                            <option value="upcoming_first">Chuyến sắp tới</option>
+                                            <option value="upcoming_first">Sắp tới nhất</option>
                                             <option value="newest">Mới đặt nhất</option>
-                                            <option value="check_in_asc">Ngày nhận sớm</option>
+                                            <option value="check_in_asc">Nhận sớm nhất</option>
                                         </select>
                                     </div>
                                 </div>
@@ -1409,11 +1456,11 @@ export default function BookingHistory() {
                                                                                 </span>
                                                                             )}
                                                                             {(paidAmountNum > 0 || booking.status === 'checked_in') && (
-                                                                                <div className="mt-1 flex items-center justify-between lg:justify-end gap-1.5 text-xs font-bold">
+                                                                                <div className="mt-1 flex flex-wrap items-center justify-between lg:justify-end gap-1.5 text-xs font-bold">
                                                                                     <span className="text-amber-800">
                                                                                         {booking.status === 'checked_in' ? 'Cần thanh toán khi Check-out:' : 'Cần thanh toán:'}
                                                                                     </span>
-                                                                                    <span className="font-black text-amber-600">
+                                                                                    <span className="font-black text-amber-600 whitespace-nowrap shrink-0 tabular-nums">
                                                                                         +{remainingBalanceNum.toLocaleString('vi-VN')} VND
                                                                                     </span>
                                                                                 </div>
@@ -1450,7 +1497,7 @@ export default function BookingHistory() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setInvoiceModalBooking(booking)}
-                                                                className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 text-slate-700 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                className="order-2 last:odd:col-span-2 sm:last:odd:col-span-1 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-sky-50/60 hover:border-sky-300 text-slate-700 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 title="Xem bảng kê chi tiết hóa đơn"
                                                             >
                                                                 <Receipt className="w-3.5 h-3.5 text-sky-600 shrink-0" />
@@ -1462,7 +1509,7 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenCancelModal(booking)}
-                                                                    className={`order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${isGroupDeposited
+                                                                    className={`order-2 last:odd:col-span-2 sm:last:odd:col-span-1 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-2.5 sm:px-3.5 py-2.5 rounded-xl border font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95 ${isGroupDeposited
                                                                             ? 'border-amber-300 bg-amber-50/70 text-amber-800 hover:bg-amber-100'
                                                                             : 'border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300'
                                                                         }`}
@@ -1470,11 +1517,11 @@ export default function BookingHistory() {
                                                                     <XCircle className={`w-3.5 h-3.5 shrink-0 ${isGroupDeposited ? 'text-amber-600' : 'text-rose-500'}`} />
                                                                     <span className="truncate">
                                                                         {hasPendingGroupCancelRequest
-                                                                            ? 'Xem YC hủy đoàn'
+                                                                            ? 'YC hủy đoàn'
                                                                             : isGroupDeposited
-                                                                                ? 'YC hủy & hoàn cọc'
+                                                                                ? 'Hủy & hoàn cọc'
                                                                                 : groupInfo.isGroup
-                                                                                    ? 'Hủy phòng / đoàn'
+                                                                                    ? 'Hủy phòng'
                                                                                     : 'Hủy đặt phòng'}
                                                                     </span>
                                                                 </button>
@@ -1485,7 +1532,7 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenExtendModal(booking)}
-                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="order-2 last:odd:col-span-2 sm:last:odd:col-span-1 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
                                                                     <CalendarPlus className="w-3.5 h-3.5 text-sky-600 shrink-0" />
                                                                     <span>Gia hạn phòng</span>
@@ -1497,7 +1544,7 @@ export default function BookingHistory() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleOpenViewReviewModal(booking)}
-                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                                                                    className="order-2 last:odd:col-span-2 sm:last:odd:col-span-1 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                                                                 >
                                                                     <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400 shrink-0" />
                                                                     <span>Xem đánh giá</span>
@@ -1508,7 +1555,7 @@ export default function BookingHistory() {
                                                             {booking.status === 'completed' && (booking.category_id || booking.room_category?.id || booking.category) && (
                                                                 <Link
                                                                     to={`/checkout/${booking.category_id || booking.room_category?.id || booking.category}`}
-                                                                    className="order-2 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:border-sky-300 bg-slate-50 hover:bg-sky-50/60 text-slate-800 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                                                                    className="order-2 last:odd:col-span-2 sm:last:odd:col-span-1 sm:order-none min-h-[42px] sm:min-h-0 w-full sm:w-auto px-3 sm:px-4 py-2.5 rounded-xl border border-slate-200 hover:border-sky-300 bg-slate-50 hover:bg-sky-50/60 text-slate-800 hover:text-sky-800 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
                                                                 >
                                                                     <RefreshCw className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                                                                     <span>Đặt lại</span>
@@ -1635,18 +1682,19 @@ export default function BookingHistory() {
                                             {/* BANNER THÔNG TIN HỢP ĐỒNG ĐOÀN CHO PHÒNG THUỘC ĐOÀN B2B */}
                                             {groupInfo.isGroup && (
                                                 <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/60 to-indigo-50/90 px-4 sm:px-7 py-3 border-t border-indigo-100/90 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs">
-                                                    <div className="text-[11px] text-indigo-800 font-medium flex items-center gap-1.5">
-                                                        <Info className="w-3.5 h-3.5 text-indigo-600" />
-                                                        <span>
+                                                    <div className="text-[11px] text-indigo-800 font-medium flex items-start gap-1.5">
+                                                        <Info className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                                                        <span className="leading-snug">
                                                             {groupInfo.isMasterBilled
                                                                 ? 'Tiền phòng thanh toán tập trung theo HĐ đoàn. Khách chỉ thanh toán dịch vụ riêng khi trả phòng.'
                                                                 : 'Phòng thuộc danh sách phân bổ của đoàn.'}
                                                         </span>
                                                     </div>
                                                     {hasPendingGroupCancelRequest && (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold">
-                                                            <Clock className="w-3 h-3 text-amber-700" />
-                                                            <span>Đã gửi YC hủy đoàn &amp; hoàn cọc — Chờ Lễ tân xử lý</span>
+                                                        <span className="inline-flex items-start sm:items-center gap-1.5 px-2.5 py-1 rounded-xl sm:rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold">
+                                                            <Clock className="w-3 h-3 text-amber-700 shrink-0 mt-0.5 sm:mt-0" />
+                                                            <span className="sm:hidden">Đã gửi YC hủy đoàn • Chờ xử lý</span>
+                                                            <span className="hidden sm:inline">Đã gửi YC hủy đoàn &amp; hoàn cọc — Chờ Lễ tân xử lý</span>
                                                         </span>
                                                     )}
                                                 </div>
@@ -1704,6 +1752,8 @@ export default function BookingHistory() {
                 setRefundAccountNumber={setRefundAccountNumber}
                 refundAccountHolder={refundAccountHolder}
                 setRefundAccountHolder={setRefundAccountHolder}
+                refundBankError={refundBankError}
+                setRefundBankError={setRefundBankError}
                 cancellationFreeHours={settings?.cancellation_free_hours || 48}
                 getGroupBookingInfo={getGroupBookingInfo}
                 formatDateDisplay={formatDateDisplay}

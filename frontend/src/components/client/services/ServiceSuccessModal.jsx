@@ -54,25 +54,28 @@ export default function ServiceSuccessModal({ orderInfo, onClose }) {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex justify-between items-center">
-                            <span className="text-slate-400">Dịch vụ / Món gọi:</span>
-                            <span className="font-semibold text-slate-800">
+                        <div className="flex justify-between items-start gap-3">
+                            <span className="text-slate-400 shrink-0">Dịch vụ / Món gọi:</span>
+                            <span className="font-semibold text-slate-800 text-right min-w-0 break-words">
                                 {orderInfo.serviceName} (x{orderInfo.quantity})
                             </span>
                         </div>
                     )}
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                        <span className="text-slate-500">Tạm tính (vào hóa đơn phòng):</span>
-                        <strong className="text-rose-600 font-bold text-sm">
+                    <div className="flex justify-between items-center gap-2 pt-2 border-t border-slate-200">
+                        <span className="text-slate-500 min-w-0">
+                            <span className="sm:hidden">Tạm tính (hóa đơn phòng):</span>
+                            <span className="hidden sm:inline">Tạm tính (vào hóa đơn phòng):</span>
+                        </span>
+                        <strong className="text-rose-600 font-bold text-sm shrink-0 whitespace-nowrap tabular-nums">
                             {orderInfo.totalPrice.toLocaleString('vi-VN')} VND
                         </strong>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-slate-500 bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/60">
+                    <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                     <span>Thời gian dự kiến phục vụ:</span>
-                    <strong className="text-slate-800">15 – 30 phút</strong>
+                    <strong className="text-slate-800 whitespace-nowrap">15 – 30 phút</strong>
                 </div>
 
                 <button

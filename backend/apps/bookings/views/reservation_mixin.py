@@ -136,14 +136,14 @@ class BookingReservationMixin:
         nights = max(1, (check_out_date - check_in_date).days)
 
         # Kiểm tra xung đột lịch: Phòng này có đơn nào đã đặt trước hoặc đang giữ chỗ trong khoảng thời gian khách Walk-in lưu trú không
-        hold_cutoff = timezone.now() - timedelta(minutes=15)
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
         conflict_walkin = Booking.objects.filter(
             room=target_room,
             check_in_date__lt=check_out_date,
             check_out_date__gt=check_in_date
         ).filter(
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(status='pending', created_at__gte=hold_cutoff)
+            build_active_inventory_q()
         ).first()
 
         if conflict_walkin:

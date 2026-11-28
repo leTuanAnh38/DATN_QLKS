@@ -108,12 +108,12 @@ export default function OrderSummarySidebar({
                     {/* 2. Dịch vụ tiện ích gợi ý đi kèm (Liệt kê chi tiết từng món x số lượng) */}
                     {selectedServicesArray.length > 0 && (
                         <div className="pt-2 pb-1 space-y-1.5 bg-sky-50/50 p-2.5 rounded-xl border border-sky-200/70">
-                            <div className="flex items-center justify-between text-[11px] font-bold text-sky-900">
-                                <span className="flex items-center gap-1.5">
-                                    <BellRing className="w-3.5 h-3.5 text-sky-600" />
-                                    <span>Dịch vụ đi kèm ({selectedServicesArray.length}):</span>
+                            <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-sky-900">
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                    <BellRing className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                    <span className="truncate">Dịch vụ đi kèm ({selectedServicesArray.length}):</span>
                                 </span>
-                                <span className="text-sky-700 font-extrabold">
+                                <span className="text-sky-700 font-extrabold whitespace-nowrap shrink-0">
                                     +{totalServicesAmount.toLocaleString('vi-VN')} VND
                                 </span>
                             </div>
@@ -163,23 +163,23 @@ export default function OrderSummarySidebar({
                     </div>
 
                     {/* Tổng cộng cần thanh toán */}
-                    <div className="flex justify-between items-baseline pt-3 border-t border-slate-200">
-                        <div>
-                            <span className="font-bold text-slate-900 text-sm block">
+                    <div className="flex justify-between items-baseline gap-3 pt-3 border-t border-slate-200">
+                        <div className="min-w-0">
+                            <span className="font-bold text-slate-900 text-sm block leading-snug">
                                 Tổng cộng cần thanh toán
                             </span>
                             <span className="text-[10px] text-slate-400">
                                 (Phòng + Dịch vụ đi kèm)
                             </span>
                         </div>
-                        <div className="text-right">
-                            <span className="font-black text-2xl text-rose-600">
+                        <div className="text-right shrink-0">
+                            <span className="font-black text-xl sm:text-2xl text-rose-600 whitespace-nowrap">
                                 {finalTotal.toLocaleString('vi-VN')}
                             </span>
                             <span className="text-[11px] font-bold text-slate-500 block">VND</span>
                             {tierDiscountAmount > 0 && (
-                                <span className="text-[10px] font-semibold text-emerald-600 block mt-0.5">
-                                    (Đã tiết kiệm {tierDiscountAmount.toLocaleString('vi-VN')} VND)
+                                <span className="text-[10px] font-semibold text-emerald-600 block mt-0.5 whitespace-nowrap">
+                                    (Tiết kiệm {tierDiscountAmount.toLocaleString('vi-VN')} đ)
                                 </span>
                             )}
                         </div>
@@ -231,8 +231,8 @@ export default function OrderSummarySidebar({
 
                 {/* Cam kết tin cậy */}
                 <div className="space-y-1.5 pt-2 text-[11px] text-slate-500">
-                    <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="flex items-start gap-2 text-emerald-700 font-medium">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <span>Chính sách hủy: {room?.cancellation_policy ? 'Áp dụng theo quy định riêng của hạng phòng' : `Miễn phí hủy trước ${hotelSettings.cancellation_free_hours || 24} giờ`}</span>
                     </div>
                     <div className="flex items-center gap-2">

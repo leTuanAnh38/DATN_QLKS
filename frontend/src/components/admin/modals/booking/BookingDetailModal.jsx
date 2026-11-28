@@ -18,12 +18,18 @@ import {
     DoorOpen, 
     UserX, 
     Receipt, 
-    Plus 
+    Plus,
+    Banknote,
+    Landmark,
+    Copy
 } from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
 import { hotelService } from '../../../../services/hotelService';
+import paymentService from '../../../../services/paymentService';
+import { useAuth } from '../../../../store/authStore';
 import ExtendStayModal from './ExtendStayModal';
 import DeleteServiceModal from './DeleteServiceModal';
+import CreateCashOutModal from '../shift/CreateCashOutModal';
 
 export default function BookingDetailModal({
     isOpen,
@@ -59,6 +65,37 @@ export default function BookingDetailModal({
     // Xóa dịch vụ
     const [serviceToDelete, setServiceToDelete] = useState(null);
 
+    // Lập phiếu chi hoàn tiền nhanh cho đơn lẻ đã hủy có thanh toán
+    const { user: currentUser } = useAuth();
+    const canCashOut = Boolean(
+        currentUser?.is_superuser ||
+        ['admin', 'owner', 'manager', 'cashier'].includes(String(currentUser?.role || currentUserRole || '').toLowerCase())
+    );
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+    const [activeShift, setActiveShift] = useState(null);
+    const [localRefundedExtra, setLocalRefundedExtra] = useState(0);
+    const [copiedRefundAcc, setCopiedRefundAcc] = useState(false);
+
+    const handleCopyRefundAccount = (text) => {
+        if (!text || !navigator?.clipboard) return;
+        navigator.clipboard.writeText(text).then(() => {
+            setCopiedRefundAcc(true);
+            showToast?.('success', `Đã sao chép số tài khoản: ${text}`);
+            setTimeout(() => setCopiedRefundAcc(false), 2000);
+        }).catch(() => {});
+    };
+
+    const handleOpenSingleRefund = async () => {
+        try {
+            const shiftRes = await paymentService.getCurrentShift();
+            const shiftObj = shiftRes?.data || shiftRes?.shift || (shiftRes?.id ? shiftRes : null);
+            setActiveShift(shiftObj);
+        } catch {
+            setActiveShift(null);
+        }
+        setIsRefundModalOpen(true);
+    };
+
     const formatDateTime = (dt) => (formatDateTimeDisplay ? formatDateTimeDisplay(dt) : (dt || '—'));
     const formatDate = (d) => (formatDateDisplay ? formatDateDisplay(d) : (d || '—'));
 
@@ -68,6 +105,8 @@ export default function BookingDetailModal({
         setInternalNoteInput(booking.internal_note || '');
         setShowExtendConfirmModal(false);
         setServiceToDelete(null);
+        setIsRefundModalOpen(false);
+        setLocalRefundedExtra(0);
 
         if (booking.status === 'checked_in' && booking.check_out_date) {
             setAdminExtendConflictError(null);
@@ -288,6 +327,92 @@ export default function BookingDetailModal({
                                 </div>
                             </div>
                         </div>
+
+                        {/* CẢNH BÁO HOÀN TIỀN CHO ĐƠN LẺ ĐÃ HỦY CÓ THANH TOÁN */}
+                        {booking.status === 'cancelled' && !booking.group_booking && Number(booking.paid_amount || 0) > 0 && (() => {
+                            const paidVal = Number(booking.paid_amount || 0);
+                            const refundedVal = Number(booking.refunded_amount || 0) + localRefundedExtra;
+                            const remainingRefund = Math.max(0, paidVal - refundedVal);
+                            const refundBank = booking.refund_bank_info;
+                            return (
+                                <div className={`p-4 rounded-2xl border space-y-3 ${
+                                    remainingRefund > 0 ? 'bg-amber-50/90 border-amber-200' : 'bg-emerald-50/80 border-emerald-200'
+                                }`}>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className={`font-black text-xs flex items-center gap-1.5 ${remainingRefund > 0 ? 'text-amber-950' : 'text-emerald-900'}`}>
+                                                {remainingRefund > 0 ? (
+                                                    <Banknote className="w-4 h-4 text-amber-700 shrink-0" />
+                                                ) : (
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                )}
+                                                <span>
+                                                    {remainingRefund > 0
+                                                        ? `Đơn đã hủy có thanh toán ${paidVal.toLocaleString('vi-VN')} VND${refundedVal > 0 ? ` (Đã hoàn: ${refundedVal.toLocaleString('vi-VN')} VND)` : ''}`
+                                                        : `Đã lập phiếu chi hoàn tiền đầy đủ (${refundedVal.toLocaleString('vi-VN')} VND)`}
+                                                </span>
+                                            </div>
+                                            {remainingRefund > 0 && (
+                                                <p className="text-[11px] text-amber-800 leading-relaxed">
+                                                    {canCashOut
+                                                        ? 'Đối soát thông tin tài khoản bên dưới, chuyển khoản hoàn tiền rồi bấm lập Phiếu chi (REFUND_CANCEL). Hệ thống sẽ tự động báo về tài khoản khách.'
+                                                        : 'Vui lòng báo Thu ngân / Quản lý lập Phiếu chi hoàn tiền cho đơn này.'}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {canCashOut && remainingRefund > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenSingleRefund}
+                                                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition inline-flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                                            >
+                                                <Banknote className="w-3.5 h-3.5 shrink-0" />
+                                                <span>Lập Phiếu Chi Hoàn Tiền</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Hộp thông tin ngân hàng nhận hoàn tiền do khách cung cấp */}
+                                    {refundBank && (refundBank.bank_name || refundBank.account_number || refundBank.account_holder) ? (
+                                        <div className="p-3 rounded-xl bg-white/90 border border-indigo-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                                                    <Landmark className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                                    <span>Tài khoản nhận hoàn tiền của khách</span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-800">
+                                                    {refundBank.bank_name && (
+                                                        <span>NH: <strong className="text-slate-900">{refundBank.bank_name}</strong></span>
+                                                    )}
+                                                    {refundBank.account_number && (
+                                                        <span>STK: <strong className="font-mono text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded">{refundBank.account_number}</strong></span>
+                                                    )}
+                                                    {refundBank.account_holder && (
+                                                        <span>Chủ TK: <strong className="uppercase text-slate-900">{refundBank.account_holder}</strong></span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {refundBank.account_number && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCopyRefundAccount(refundBank.account_number)}
+                                                    className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-[11px] inline-flex items-center justify-center gap-1 transition cursor-pointer shrink-0"
+                                                    title="Sao chép số tài khoản"
+                                                >
+                                                    {copiedRefundAcc ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                                    <span>{copiedRefundAcc ? 'Đã sao chép' : 'Copy STK'}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : remainingRefund > 0 && (
+                                        <div className="px-3 py-2 rounded-xl bg-white/70 border border-amber-200/80 text-[11px] text-amber-900 flex items-center gap-1.5">
+                                            <Landmark className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                            <span>Khách chưa nhập STK nhận hoàn tiền — vui lòng liên hệ SĐT <strong>{booking.guest_phone || 'của khách'}</strong> để xác nhận trước khi chuyển khoản.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* KHỐI 2: THÔNG TIN KHÁCH HÀNG & PHÁP LÝ CCCD */}
                         <div className="p-4 rounded-2xl border border-slate-200/80 space-y-3">
@@ -830,6 +955,26 @@ export default function BookingDetailModal({
                 booking={booking}
                 onClose={() => setServiceToDelete(null)}
                 onConfirm={executeRemoveExtraService}
+            />
+
+            {/* Sub-modal Lập phiếu chi hoàn tiền nhanh cho đơn lẻ */}
+            <CreateCashOutModal
+                isOpen={isRefundModalOpen}
+                onClose={() => setIsRefundModalOpen(false)}
+                activeShift={activeShift}
+                initialBooking={booking}
+                initialVoucherType="REFUND_CANCEL"
+                initialAmount={Math.max(0, Number(booking.paid_amount || 0) - (Number(booking.refunded_amount || 0) + localRefundedExtra))}
+                initialPaymentMethod="TRANSFER"
+                initialReason={`Hoàn tiền hủy đơn phòng #${booking.booking_code} (${booking.guest_name || 'Khách hàng'})`}
+                onCashOutCreated={(voucher) => {
+                    const added = Number(voucher?.amount || 0);
+                    setLocalRefundedExtra((prev) => prev + added);
+                    if (showToast) {
+                        showToast('success', `Đã lập phiếu chi hoàn tiền #${voucher?.voucher_code || ''} (${added.toLocaleString('vi-VN')} đ) và gửi thông báo về tài khoản khách!`);
+                    }
+                    if (onBookingUpdated) onBookingUpdated(booking);
+                }}
             />
         </>
     );

@@ -433,10 +433,42 @@ class ShiftListView(APIView):
         if user_id:
             queryset = queryset.filter(user_id=user_id)
 
+        total_count = queryset.count()
+        page_param = request.query_params.get('page')
+        page_size_param = request.query_params.get('page_size')
+
+        if page_param is not None or page_size_param is not None:
+            try:
+                page = max(1, int(page_param or 1))
+            except (ValueError, TypeError):
+                page = 1
+            try:
+                page_size = min(100, max(1, int(page_size_param or 10)))
+            except (ValueError, TypeError):
+                page_size = 10
+
+            total_pages = max(1, (total_count + page_size - 1) // page_size)
+            if page > total_pages:
+                page = total_pages
+            start_idx = (page - 1) * page_size
+            page_qs = queryset[start_idx:start_idx + page_size]
+            serializer = CashierShiftSerializer(page_qs, many=True)
+            return Response({
+                'success': True,
+                'count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'results': serializer.data,
+                'data': serializer.data,
+                'shifts': serializer.data,
+            }, status=status.HTTP_200_OK)
+
         serializer = CashierShiftSerializer(queryset, many=True)
         return Response({
             'success': True,
-            'count': queryset.count(),
+            'count': total_count,
+            'results': serializer.data,
             'data': serializer.data,
             'shifts': serializer.data
         }, status=status.HTTP_200_OK)

@@ -112,7 +112,7 @@ export default function ViewReviewModal({
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                         Nội dung nhận xét:
                     </span>
-                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed font-normal">
+                    <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs sm:text-sm text-slate-800 leading-relaxed font-normal break-words">
                         "{review.comment}"
                     </div>
                     <span className="text-[10px] text-slate-400 block pt-0.5">
@@ -123,17 +123,17 @@ export default function ViewReviewModal({
                 {/* Phản hồi từ khách sạn (theo thiết kế viền trái hổ phách) */}
                 {review.admin_reply ? (
                     <div className="p-4 bg-amber-50/40 border-l-4 border-amber-500 rounded-r-2xl space-y-1.5 shadow-2xs">
-                        <span className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                            <Hotel className="w-3.5 h-3.5 text-amber-600" />
-                            <span>{hotelName} phản hồi:</span>
+                        <span className="font-bold text-slate-900 text-xs flex items-start gap-1.5">
+                            <Hotel className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                            <span className="min-w-0 break-words">{hotelName} phản hồi:</span>
                         </span>
-                        <p className="text-xs text-slate-700 leading-relaxed font-normal">
+                        <p className="text-xs text-slate-700 leading-relaxed font-normal break-words">
                             {review.admin_reply}
                         </p>
                     </div>
                 ) : (
-                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-slate-500 italic flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-[11px] text-slate-500 italic flex items-start gap-2">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                         <span>Khách sạn đã ghi nhận đánh giá của quý khách và sẽ sớm phản hồi.</span>
                     </div>
                 )}

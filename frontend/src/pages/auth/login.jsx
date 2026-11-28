@@ -397,9 +397,10 @@ export default function AuthBookingPage() {
                             style={{ animationDelay: '130ms' }}
                         >
                             <div className="relative z-10">
-                                <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] sm:text-xs font-bold uppercase tracking-wider mb-3 sm:mb-4 shadow-xs max-w-full">
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10.5px] sm:text-xs font-bold uppercase tracking-wide sm:tracking-wider mb-3 sm:mb-4 shadow-xs max-w-full">
                                     <Award className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                                    <span className="leading-snug">Cổng Hội Viên Khách Hàng Thân Thiết</span>
+                                    <span className="leading-snug sm:hidden">Hội Viên Khách Hàng Thân Thiết</span>
+                                    <span className="hidden sm:inline leading-snug">Cổng Hội Viên Khách Hàng Thân Thiết</span>
                                 </div>
                                 <h1 className="font-serif text-xl sm:text-4xl font-bold leading-tight mb-2 sm:mb-3">
                                     Quản lý kỳ nghỉ dễ dàng &amp; tiện lợi
@@ -1243,9 +1244,10 @@ export default function AuthBookingPage() {
                         <div className="animate-ambient-drift absolute top-0 right-0 w-48 h-48 bg-amber-500/12 rounded-full blur-2xl pointer-events-none" />
 
                         <div className="relative z-10">
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-bold uppercase tracking-wider mb-3.5 sm:mb-4 border border-amber-400/30">
-                                <Building2 className="w-3.5 h-3.5" />
-                                <span>Dành Cho Doanh Nghiệp &amp; Đoàn M.I.C.E</span>
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-[11px] font-bold uppercase tracking-wide sm:tracking-wider mb-3.5 sm:mb-4 border border-amber-400/30 max-w-full">
+                                <Building2 className="w-3.5 h-3.5 shrink-0" />
+                                <span className="sm:hidden">Doanh Nghiệp &amp; Đoàn M.I.C.E</span>
+                                <span className="hidden sm:inline">Dành Cho Doanh Nghiệp &amp; Đoàn M.I.C.E</span>
                             </div>
                             <h3 className="font-serif text-xl sm:text-2xl font-bold leading-tight mb-2.5 sm:mb-3">
                                 Chương Trình Hội Viên Doanh Nghiệp {hotelName} Corporate
@@ -1262,10 +1264,10 @@ export default function AuthBookingPage() {
                             <button
                                 type="button"
                                 onClick={() => navigate('/corporate-booking')}
-                                className="btn-luxury-shine group w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-2"
+                                className="btn-luxury-shine group w-full px-4 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 ring-1 ring-inset ring-white/20 transition cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <span>Đăng Ký Đặt Phòng Đoàn &amp; Doanh Nghiệp</span>
-                                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                                <ArrowRight className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-1 transition-transform" />
                             </button>
                         </div>
                     </Reveal>

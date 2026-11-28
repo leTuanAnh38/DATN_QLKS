@@ -182,16 +182,16 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
             >
                 {/* Header Modal */}
                 <div className="shrink-0 relative px-4 sm:px-6 pt-4 sm:pt-6 pb-3.5 sm:pb-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/60 via-white to-amber-50/30">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shadow-xs">
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                            <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shadow-xs shrink-0">
                                 <KeyRound className="w-5 h-5" />
                             </div>
-                            <div>
-                                <h3 className="font-sans font-bold text-lg text-slate-800">
+                            <div className="min-w-0">
+                                <h3 className="font-sans font-bold text-base sm:text-lg text-slate-800 leading-snug">
                                     Khôi Phục Mật Khẩu
                                 </h3>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-500 leading-snug mt-0.5">
                                     Lấy lại quyền truy cập tài khoản khách hàng
                                 </p>
                             </div>
@@ -200,7 +200,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer flex items-center justify-center"
+                            className="shrink-0 min-w-[40px] min-h-[40px] sm:min-w-[32px] sm:min-h-[32px] p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer flex items-center justify-center"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -277,17 +277,17 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full min-h-[44px] px-4 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                                         <span>Đang gửi mã xác thực...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <span>Tiếp Tục & Nhận Mã OTP</span>
-                                        <ArrowRight className="w-4 h-4" />
+                                        <span>Tiếp Tục &amp; Nhận Mã OTP</span>
+                                        <ArrowRight className="w-4 h-4 shrink-0" />
                                     </>
                                 )}
                             </button>
@@ -319,14 +319,14 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
 
                             {/* Ô nhập mã OTP 6 số */}
                             <div>
-                                <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                                     <label className="block text-xs font-bold text-slate-700">
                                         Mã xác thực OTP (6 chữ số) <span className="text-amber-600">*</span>
                                     </label>
-                                    <div className="text-[11px] text-slate-500">
+                                    <div className="text-[11px] text-slate-500 shrink-0 whitespace-nowrap">
                                         {countdown > 0 ? (
-                                            <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
-                                                <Clock className="w-3 h-3" />
+                                            <span className="inline-flex items-center gap-1 text-amber-700 font-semibold whitespace-nowrap">
+                                                <Clock className="w-3 h-3 shrink-0" />
                                                 Gửi lại sau {countdown}s
                                             </span>
                                         ) : (
@@ -334,9 +334,9 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                                 type="button"
                                                 onClick={handleResendOtp}
                                                 disabled={resendLoading}
-                                                className="min-h-[36px] sm:min-h-0 px-2 py-1.5 sm:px-0 sm:py-0 text-amber-600 hover:text-amber-700 font-bold hover:underline cursor-pointer inline-flex items-center gap-1"
+                                                className="min-h-[36px] sm:min-h-0 px-2 py-1.5 sm:px-0 sm:py-0 text-amber-600 hover:text-amber-700 font-bold hover:underline cursor-pointer inline-flex items-center gap-1 whitespace-nowrap"
                                             >
-                                                <RotateCcw className={`w-3 h-3 ${resendLoading ? 'animate-spin' : ''}`} />
+                                                <RotateCcw className={`w-3 h-3 shrink-0 ${resendLoading ? 'animate-spin' : ''}`} />
                                                 <span>Gửi lại mã</span>
                                             </button>
                                         )}
@@ -417,16 +417,16 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full min-h-[44px] px-4 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span>Đang xác thực & Đổi mật khẩu...</span>
+                                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                        <span>Đang xác thực &amp; Đổi mật khẩu...</span>
                                     </>
                                 ) : (
                                     <>
-                                        <ShieldCheck className="w-4 h-4" />
+                                        <ShieldCheck className="w-4 h-4 shrink-0" />
                                         <span>Xác Nhận Đặt Lại Mật Khẩu</span>
                                     </>
                                 )}
@@ -447,7 +447,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                     Đặt Lại Mật Khẩu Thành Công!
                                 </h4>
                                 <p className="text-xs text-slate-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
-                                    Mật khẩu mới cho tài khoản <strong>{email}</strong> đã được cập nhật an toàn. Quý khách có thể đăng nhập ngay bây giờ.
+                                    Mật khẩu mới cho tài khoản <strong className="break-all">{email}</strong> đã được cập nhật an toàn. Quý khách có thể đăng nhập ngay bây giờ.
                                 </p>
                             </div>
                             <button
@@ -456,10 +456,10 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }) {
                                     onClose();
                                     if (onSuccess) onSuccess(email);
                                 }}
-                                className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center justify-center gap-2"
+                                className="w-full min-h-[44px] px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center justify-center gap-2"
                             >
                                 <span>Đăng Nhập Ngay Với Mật Khẩu Mới</span>
-                                <ArrowRight className="w-4 h-4" />
+                                <ArrowRight className="w-4 h-4 shrink-0" />
                             </button>
                         </div>
                     )}

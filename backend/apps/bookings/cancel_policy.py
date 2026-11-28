@@ -5,6 +5,7 @@ from datetime import datetime, time
 from django.utils import timezone
 
 _CANCEL_REQ_PATTERN = re.compile(r'\[CANCEL_REQ_JSON\](.*?)\[/CANCEL_REQ_JSON\]', re.DOTALL)
+_REFUND_BANK_PATTERN = re.compile(r'\[REFUND_BANK_JSON\](.*?)\[/REFUND_BANK_JSON\]', re.DOTALL)
 
 
 def get_cancellation_free_hours():
@@ -119,4 +120,67 @@ def mark_group_cancel_request_approved(group, resolved_by=None):
         existing['resolved_by'] = resolved_by
     upsert_group_cancel_request(group, existing)
     return True
+
+
+def strip_refund_bank_tag(raw_note):
+    """Loại bỏ thẻ JSON thông tin tài khoản hoàn tiền khỏi ghi chú nội bộ hiển thị."""
+    if not raw_note:
+        return ''
+    return _REFUND_BANK_PATTERN.sub('', str(raw_note)).strip()
+
+
+def parse_booking_refund_bank_info(booking):
+    """Đọc thông tin ngân hàng nhận hoàn tiền của đơn đặt phòng lẻ từ internal_note."""
+    if not booking:
+        return None
+    raw = getattr(booking, 'internal_note', None) or ''
+    match = _REFUND_BANK_PATTERN.search(raw)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1).strip())
+        if not isinstance(data, dict):
+            return None
+        bank_name = str(data.get('bank_name') or '').strip()
+        account_number = str(data.get('account_number') or '').strip()
+        account_holder = str(data.get('account_holder') or '').strip()
+        if not (bank_name or account_number or account_holder):
+            return None
+        parts = [p for p in [bank_name, account_number, account_holder] if p]
+        return {
+            'bank_name': bank_name,
+            'account_number': account_number,
+            'account_holder': account_holder,
+            'summary': ' - '.join(parts),
+            'submitted_at': data.get('submitted_at'),
+        }
+    except Exception:
+        return None
+
+
+def upsert_booking_refund_bank_info(booking, bank_name='', account_number='', account_holder=''):
+    """
+    Lưu thông tin tài khoản ngân hàng nhận hoàn tiền vào internal_note của Booking
+    mà vẫn giữ nguyên nội dung ghi chú nội bộ khác (không cần sửa schema DB).
+    """
+    b_name = str(bank_name or '').strip()
+    acc_no = str(account_number or '').strip()
+    acc_holder = str(account_holder or '').strip()
+    if not (b_name or acc_no or acc_holder):
+        return None
+
+    parts = [p for p in [b_name, acc_no, acc_holder] if p]
+    payload = {
+        'bank_name': b_name,
+        'account_number': acc_no,
+        'account_holder': acc_holder,
+        'summary': ' - '.join(parts),
+        'submitted_at': timezone.now().isoformat(),
+    }
+    raw = getattr(booking, 'internal_note', None) or ''
+    cleaned = strip_refund_bank_tag(raw)
+    tag = f"[REFUND_BANK_JSON]{json.dumps(payload, ensure_ascii=False)}[/REFUND_BANK_JSON]"
+    booking.internal_note = f"{cleaned}\n{tag}".strip() if cleaned else tag
+    return payload
+
 

@@ -143,8 +143,8 @@ export default function RoomsComparisonAndStandards({
                                 {/* Dòng 1: Giá mỗi đêm */}
                                 <tr>
                                     <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
-                                            <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                        <span className="inline-flex items-start gap-1.5 sm:gap-2.5">
+                                            <Banknote className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0 mt-0.5" />
                                             <span>Giá phòng / đêm</span>
                                         </span>
                                     </td>
@@ -168,7 +168,7 @@ export default function RoomsComparisonAndStandards({
                                                     </span>
                                                 )}
                                                 <strong
-                                                    className={`font-extrabold ${
+                                                    className={`font-extrabold whitespace-nowrap ${
                                                         hasPromo
                                                             ? 'text-rose-600'
                                                             : isMiddle
@@ -186,8 +186,8 @@ export default function RoomsComparisonAndStandards({
                                 {/* Dòng 2: Diện tích */}
                                 <tr>
                                     <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
-                                            <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                        <span className="inline-flex items-start gap-1.5 sm:gap-2.5">
+                                            <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0 mt-0.5" />
                                             <span>Diện tích sàn</span>
                                         </span>
                                     </td>
@@ -209,8 +209,8 @@ export default function RoomsComparisonAndStandards({
                                 {/* Dòng 3: Tiêu chuẩn giường */}
                                 <tr>
                                     <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
-                                            <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                        <span className="inline-flex items-start gap-1.5 sm:gap-2.5">
+                                            <BedDouble className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0 mt-0.5" />
                                             <span>Tiêu chuẩn giường</span>
                                         </span>
                                     </td>
@@ -232,8 +232,8 @@ export default function RoomsComparisonAndStandards({
                                 {/* Dòng 4: Sức chứa tối đa */}
                                 <tr>
                                     <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                        <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
-                                            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                        <span className="inline-flex items-start gap-1.5 sm:gap-2.5">
+                                            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0 mt-0.5" />
                                             <span>Sức chứa</span>
                                         </span>
                                     </td>
@@ -258,8 +258,8 @@ export default function RoomsComparisonAndStandards({
                                     return (
                                         <tr key={amenityName}>
                                             <td className="sticky left-0 z-10 bg-white py-2.5 sm:py-4 px-2.5 sm:px-6 font-semibold text-slate-800 shadow-[2px_0_6px_-2px_rgba(15,23,42,0.06)]">
-                                                <span className="inline-flex items-center gap-1.5 sm:gap-2.5">
-                                                    <AmenityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0" />
+                                                <span className="inline-flex items-start gap-1.5 sm:gap-2.5">
+                                                    <AmenityIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-600 shrink-0 mt-0.5" />
                                                     <span>{amenityName}</span>
                                                 </span>
                                             </td>
@@ -313,10 +313,10 @@ export default function RoomsComparisonAndStandards({
                                                         checkOutDate: effectiveCheckOut,
                                                         guestCount: effectiveGuests
                                                     }}
-                                                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 transition"
+                                                    className="inline-flex items-center gap-1 text-xs font-bold text-sky-700 hover:text-sky-900 transition whitespace-nowrap"
                                                 >
                                                     <span>Xem phòng</span>
-                                                    <ArrowRight className="w-3.5 h-3.5" />
+                                                    <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                                                 </Link>
                                             </td>
                                         );

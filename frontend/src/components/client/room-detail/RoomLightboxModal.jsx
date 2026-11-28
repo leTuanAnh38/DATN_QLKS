@@ -74,21 +74,21 @@ export default function RoomLightboxModal({
         >
             {/* Thanh tiêu đề trên cùng: Đếm số ảnh & nút đóng */}
             <div
-                className="flex items-center justify-between text-white z-10 w-full max-w-5xl mx-auto"
+                className="shrink-0 flex items-center justify-between gap-2 text-white z-10 w-full max-w-5xl mx-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center gap-2">
-                    <span className="text-amber-400 font-bold text-sm sm:text-base flex items-center gap-1.5">
-                        <Camera className="w-4 h-4 text-amber-400" /> Ảnh {lightboxIndex + 1} / {gallery.length}
+                <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-amber-400 font-bold text-sm sm:text-base flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                        <Camera className="w-4 h-4 text-amber-400 shrink-0" /> Ảnh {lightboxIndex + 1} / {gallery.length}
                     </span>
-                    <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline">
+                    <span className="text-slate-400 text-xs sm:text-sm hidden sm:inline truncate">
                         • {gallery[lightboxIndex]?.title}
                     </span>
                 </div>
                 <button
                     type="button"
                     onClick={onClose}
-                    className="bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center transition active:scale-95 cursor-pointer"
+                    className="shrink-0 bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center transition active:scale-95 cursor-pointer"
                     aria-label="Đóng"
                 >
                     <X className="w-5 h-5" />
@@ -97,7 +97,7 @@ export default function RoomLightboxModal({
 
             {/* Vùng ảnh chính với vuốt cảm ứng và nút Mũi tên */}
             <div
-                className="relative flex-1 flex items-center justify-center my-2 max-w-5xl mx-auto w-full overflow-hidden touch-pan-y"
+                className="relative flex-1 min-h-0 flex items-center justify-center my-2 max-w-5xl mx-auto w-full overflow-hidden touch-pan-y"
                 onClick={(e) => e.stopPropagation()}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -107,7 +107,7 @@ export default function RoomLightboxModal({
                     key={lightboxIndex}
                     src={gallery[lightboxIndex]?.url}
                     alt={gallery[lightboxIndex]?.title || 'Ảnh phóng to'}
-                    className="max-w-full max-h-[75dvh] object-contain rounded-xl shadow-2xl transition duration-300"
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl transition duration-300"
                 />
 
                 {gallery.length > 1 && (
@@ -141,7 +141,7 @@ export default function RoomLightboxModal({
             {/* Dải thumbnail xem nhanh bên dưới modal Lightbox */}
             {gallery.length > 1 && (
                 <div
-                    className="w-full max-w-5xl mx-auto z-10 flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-2 px-1"
+                    className="shrink-0 w-full max-w-5xl mx-auto z-10 flex items-center justify-start sm:justify-center gap-2 overflow-x-auto no-scrollbar py-2 px-1"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {gallery.map((img, idx) => (

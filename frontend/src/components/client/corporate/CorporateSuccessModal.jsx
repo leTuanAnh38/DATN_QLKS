@@ -19,22 +19,24 @@ export default function CorporateSuccessModal({
 }) {
     const navigate = useNavigate();
     const [copiedField, setCopiedField] = useState(null);
-    const [timerState, setTimerState] = useState({ code: null, left: 900 }); // 15 phút giữ phòng đoàn
+    const holdMinutes = Math.max(1, Number(hotelSettings.auto_cancel_minutes) || 30);
+    const initialHoldSeconds = holdMinutes * 60;
+    const [timerState, setTimerState] = useState({ code: null, left: initialHoldSeconds });
     const [failedQrSrc, setFailedQrSrc] = useState('');
 
     const currentGroupCode = createdGroup?.group_code || null;
-    const timeLeft = timerState.code === currentGroupCode ? timerState.left : 900;
+    const timeLeft = timerState.code === currentGroupCode ? timerState.left : initialHoldSeconds;
 
     useEffect(() => {
         if (!currentGroupCode || isPaidSuccess) return;
         const timer = setInterval(() => {
             setTimerState((prev) => {
-                const baseLeft = prev.code === currentGroupCode ? prev.left : 900;
+                const baseLeft = prev.code === currentGroupCode ? prev.left : initialHoldSeconds;
                 return { code: currentGroupCode, left: Math.max(0, baseLeft - 1) };
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [currentGroupCode, isPaidSuccess]);
+    }, [currentGroupCode, isPaidSuccess, initialHoldSeconds]);
 
     if (!createdGroup) return null;
 
@@ -97,10 +99,10 @@ export default function CorporateSuccessModal({
                             <Check className="w-10 h-10" />
                         </div>
                         <div>
-                            <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+                            <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-black uppercase tracking-wider">
                                 Đã Nhận Tiền Thành Công
                             </span>
-                            <h3 className="font-serif text-2xl font-black text-slate-900 mt-2">
+                            <h3 className="font-serif text-xl sm:text-2xl font-black text-slate-900 mt-2">
                                 {isFull ? 'Tất Toán Hợp Đồng Đoàn Thành Công!' : 'Xác Nhận Đặt Cọc Đoàn Thành Công!'}
                             </h3>
                             <p className="text-xs text-slate-500 mt-1">
@@ -108,39 +110,39 @@ export default function CorporateSuccessModal({
                             </p>
                         </div>
 
-                        <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-left text-xs space-y-2 font-sans tabular-nums">
-                            <div className="flex justify-between">
-                                <span className="text-slate-600">Trạng thái hợp đồng:</span>
-                                <strong className="text-emerald-700 font-bold">Đã xác nhận (Confirmed)</strong>
+                        <div className="p-3.5 sm:p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-left text-xs space-y-2 font-sans tabular-nums">
+                            <div className="flex justify-between gap-2">
+                                <span className="text-slate-600 shrink-0">Trạng thái hợp đồng:</span>
+                                <strong className="text-emerald-700 font-bold text-right">Đã xác nhận (Confirmed)</strong>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-600">Quy mô đoàn:</span>
-                                <strong className="text-slate-900">{createdGroup.total_rooms} phòng</strong>
+                            <div className="flex justify-between gap-2">
+                                <span className="text-slate-600 shrink-0">Quy mô đoàn:</span>
+                                <strong className="text-slate-900 whitespace-nowrap shrink-0">{createdGroup.total_rooms} phòng</strong>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-600">Tổng giá trị hợp đồng:</span>
-                                <strong className="text-slate-900">{formatCurrency(createdGroup.total_amount)}</strong>
+                            <div className="flex justify-between gap-2">
+                                <span className="text-slate-600 min-w-0">Tổng giá trị hợp đồng:</span>
+                                <strong className="text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(createdGroup.total_amount)}</strong>
                             </div>
-                            <div className="flex justify-between pt-2 border-t border-emerald-200/80 font-bold">
-                                <span className="text-slate-700">
+                            <div className="flex flex-wrap justify-between items-baseline gap-1.5 pt-2 border-t border-emerald-200/80 font-bold">
+                                <span className="text-slate-700 min-w-0">
                                     {isFull ? 'Số tiền đã tất toán (100%):' : `Số tiền cọc đã thanh toán (${hotelSettings.group_deposit_percent || 50}%):`}
                                 </span>
-                                <strong className="text-emerald-600 text-sm">{formatCurrency(createdGroup.deposit_amount)}</strong>
+                                <strong className="text-emerald-600 text-sm whitespace-nowrap shrink-0 ml-auto">{formatCurrency(createdGroup.deposit_amount)}</strong>
                             </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center gap-3 justify-center pt-2">
+                        <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 justify-center pt-2">
                             <button
                                 type="button"
                                 onClick={() => navigate('/booking-history')}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer"
+                                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/20 transition cursor-pointer"
                             >
                                 Xem Lịch Sử Đặt Phòng
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/')}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                             >
                                 Về Trang Chủ
                             </button>
@@ -161,32 +163,32 @@ export default function CorporateSuccessModal({
                             </p>
                         </div>
 
-                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2 font-sans tabular-nums">
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Quy mô đoàn:</span>
-                                <strong className="text-slate-900">{createdGroup.total_rooms} phòng</strong>
+                        <div className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left text-xs space-y-2 font-sans tabular-nums">
+                            <div className="flex justify-between gap-2">
+                                <span className="text-slate-500 shrink-0">Quy mô đoàn:</span>
+                                <strong className="text-slate-900 whitespace-nowrap shrink-0">{createdGroup.total_rooms} phòng</strong>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-slate-500">Tổng tiền hợp đồng:</span>
-                                <strong className="text-slate-900">{formatCurrency(createdGroup.total_amount)}</strong>
+                            <div className="flex justify-between gap-2">
+                                <span className="text-slate-500 min-w-0">Tổng tiền hợp đồng:</span>
+                                <strong className="text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(createdGroup.total_amount)}</strong>
                             </div>
-                            <div className="flex justify-between pt-2 border-t border-slate-200 font-bold">
-                                <span className="text-slate-700">
-                                    {isFull ? 'Số tiền thanh toán tất cả (100%):' : `Tiền đặt cọc cần thanh toán (${hotelSettings.group_deposit_percent || 50}%):`}
+                            <div className="flex flex-wrap justify-between items-baseline gap-1.5 pt-2 border-t border-slate-200 font-bold">
+                                <span className="text-slate-700 min-w-0">
+                                    {isFull ? 'Số tiền thanh toán (100%):' : `Tiền đặt cọc cần thanh toán (${hotelSettings.group_deposit_percent || 50}%):`}
                                 </span>
-                                <strong className="text-amber-700 text-sm">{formatCurrency(createdGroup.deposit_amount)}</strong>
+                                <strong className="text-amber-700 text-sm whitespace-nowrap shrink-0 ml-auto">{formatCurrency(createdGroup.deposit_amount)}</strong>
                             </div>
                         </div>
 
                         {/* Mã VietQR cọc tự động từ cấu hình hệ thống */}
                         <div className="p-3 bg-amber-50/50 border border-amber-200/80 rounded-2xl inline-block mx-auto max-w-sm w-full">
-                            {/* Đồng hồ đếm ngược giữ chỗ 15 phút */}
-                            <div className="flex items-center justify-center gap-1.5 mb-2.5 text-[11px] font-bold text-amber-900 bg-amber-100/80 border border-amber-200 rounded-xl py-1 px-3">
-                                <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                            {/* Đồng hồ đếm ngược giữ chỗ theo cấu hình hệ thống (auto_cancel_minutes) */}
+                            <div className="flex items-start sm:items-center justify-center gap-1.5 mb-2.5 text-[11px] font-bold text-amber-900 bg-amber-100/80 border border-amber-200 rounded-xl py-1.5 px-3 text-left sm:text-center">
+                                <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5 sm:mt-0" />
                                 <span>
                                     {timeLeft > 0
                                         ? `Thời gian giữ phòng đoàn còn lại: ${formatTimer(timeLeft)}`
-                                        : 'Đã hết thời gian giữ chỗ 15 phút — vui lòng liên hệ lễ tân nếu cần gia hạn'}
+                                        : `Đã hết thời gian giữ chỗ ${holdMinutes} phút — đơn chưa cọc sẽ tự động hủy và nhả phòng`}
                                 </span>
                             </div>
 
@@ -215,9 +217,9 @@ export default function CorporateSuccessModal({
                             )}
 
                             {/* Trạng thái lắng nghe giao dịch realtime */}
-                            <div className="flex items-center justify-center gap-2 py-1.5 px-3 mt-2 text-[11px] text-amber-900 font-bold bg-white rounded-xl border border-amber-200 shadow-2xs">
-                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></div>
-                                <span>Đang chờ nhận tiền chuyển khoản... (Tự động xác nhận)</span>
+                            <div className="flex items-start sm:items-center justify-center gap-2 py-2 px-3 mt-2 text-[11px] text-amber-900 font-bold bg-white rounded-xl border border-amber-200 shadow-2xs text-left sm:text-center">
+                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0 mt-1 sm:mt-0"></div>
+                                <span>Đang chờ chuyển khoản... (Tự động xác nhận)</span>
                             </div>
 
                             {/* Khung chi tiết thông tin chuyển khoản */}
@@ -228,16 +230,16 @@ export default function CorporateSuccessModal({
                                 </div>
                                 <div className="flex flex-wrap items-center justify-between gap-1.5">
                                     <span className="text-slate-500 text-[11px] shrink-0">Số tài khoản:</span>
-                                    <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="flex items-center gap-1.5 min-w-0 ml-auto">
                                         <strong className="font-mono text-amber-700 font-extrabold text-xs break-all">{bankConfig.account_no}</strong>
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(bankConfig.account_no, 'acc')}
-                                            className="min-h-[40px] sm:min-h-0 px-3 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
+                                            className="min-h-[38px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap"
                                             title="Sao chép số tài khoản"
                                         >
-                                            {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}
-                                            <span>{copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}</span>
+                                            {copiedField === 'acc' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />}
+                                            <span>{copiedField === 'acc' ? 'Đã chép' : 'Chép'}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -245,20 +247,20 @@ export default function CorporateSuccessModal({
                                     <span className="text-slate-500 text-[11px] shrink-0">Chủ tài khoản:</span>
                                     <strong className="text-slate-900 uppercase text-[11px] font-bold text-right break-words min-w-0">{bankConfig.account_name}</strong>
                                 </div>
-                                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
                                     <span className="text-slate-500 text-[11px] shrink-0">Nội dung CK:</span>
-                                    <div className="flex flex-wrap items-center justify-end gap-1.5 min-w-0">
-                                        <strong className="font-mono text-amber-800 font-bold text-xs bg-amber-50 px-2 py-1 rounded border border-amber-200 break-all">
+                                    <div className="flex items-center justify-between sm:justify-end gap-1.5 min-w-0 w-full sm:w-auto">
+                                        <strong className="font-mono text-amber-800 font-bold text-xs bg-amber-50 px-2 py-1 rounded border border-amber-200 break-all min-w-0 flex-1 sm:flex-initial text-left sm:text-right">
                                             {qrNote}
                                         </strong>
                                         <button
                                             type="button"
                                             onClick={() => handleCopy(qrNote, 'note')}
-                                            className="min-h-[40px] sm:min-h-0 px-3 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0"
+                                            className="min-h-[38px] sm:min-h-0 px-2.5 py-1.5 sm:px-2 sm:py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[11px] sm:text-[10px] font-bold text-slate-700 cursor-pointer flex items-center gap-1 shrink-0 whitespace-nowrap"
                                             title="Sao chép nội dung chuyển khoản"
                                         >
-                                            {copiedField === 'note' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3" />}
-                                            <span>{copiedField === 'note' ? 'Đã chép' : 'Sao chép'}</span>
+                                            {copiedField === 'note' ? <Check className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0" /> : <Copy className="w-3.5 h-3.5 sm:w-3 sm:h-3 shrink-0" />}
+                                            <span>{copiedField === 'note' ? 'Đã chép' : 'Chép'}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -269,7 +271,7 @@ export default function CorporateSuccessModal({
                             <button
                                 type="button"
                                 onClick={() => navigate('/')}
-                                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
+                                className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer"
                             >
                                 Về Trang Chủ
                             </button>

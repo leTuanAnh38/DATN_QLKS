@@ -29,23 +29,23 @@ export default function ServiceCancelModal({
                     </div>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
-                    <div className="flex justify-between items-center text-slate-600">
-                        <span className="font-medium">Dịch vụ yêu cầu:</span>
-                        <span className="font-bold text-slate-800">
+                <div className="p-3.5 sm:p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
+                    <div className="flex justify-between items-start gap-3 text-slate-600">
+                        <span className="font-medium shrink-0">Dịch vụ yêu cầu:</span>
+                        <span className="font-bold text-slate-800 text-right min-w-0 break-words">
                             {order.service_name || order.custom_service_name || 'Dịch vụ'}
                         </span>
                     </div>
                     {order.quantity && (
-                        <div className="flex justify-between items-center text-slate-600">
-                            <span className="font-medium">Số lượng:</span>
-                            <span className="font-bold text-slate-800">x{order.quantity}</span>
+                        <div className="flex justify-between items-center gap-3 text-slate-600">
+                            <span className="font-medium shrink-0">Số lượng:</span>
+                            <span className="font-bold text-slate-800 whitespace-nowrap shrink-0">x{order.quantity}</span>
                         </div>
                     )}
                     {order.booking_code && (
-                        <div className="flex justify-between items-center text-slate-600">
-                            <span className="font-medium">Mã phòng / đơn:</span>
-                            <span className="font-mono font-bold text-amber-700">#{order.booking_code}</span>
+                        <div className="flex justify-between items-center gap-3 text-slate-600">
+                            <span className="font-medium shrink-0">Mã phòng / đơn:</span>
+                            <span className="font-mono font-bold text-amber-700 whitespace-nowrap shrink-0">#{order.booking_code}</span>
                         </div>
                     )}
                 </div>
@@ -58,12 +58,12 @@ export default function ServiceCancelModal({
                     </span>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-end gap-2.5 sm:gap-3 pt-2">
                     <button
                         type="button"
                         disabled={isCancelling}
                         onClick={onClose}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                        className="min-h-[44px] sm:min-h-0 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
                     >
                         Giữ Lại
                     </button>
@@ -71,7 +71,7 @@ export default function ServiceCancelModal({
                         type="button"
                         disabled={isCancelling}
                         onClick={onConfirm}
-                        className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition cursor-pointer flex items-center gap-1.5"
+                        className="min-h-[44px] sm:min-h-0 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/20 transition cursor-pointer flex items-center gap-1.5"
                     >
                         {isCancelling ? (
                             <>

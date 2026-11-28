@@ -37,15 +37,15 @@ class BookingRoomAssignmentMixin:
         if category_id and not all_categories:
             available_rooms_qs = available_rooms_qs.filter(category_id=category_id)
 
+        # Tự động giải phóng phòng từ các đơn đoàn quá hạn chưa cọc
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
+
         # 2. Loại trừ các phòng ĐÃ ĐƯỢC GÁN cho đơn đặt khác trong khoảng thời gian lưu trú trùng lặp
         check_in = booking.check_in_date
         check_out = booking.check_out_date
 
-        conflicting_status_filter = (
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
-            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
-        )
+        conflicting_status_filter = build_active_inventory_q()
 
         conflicting_room_ids = Booking.objects.filter(
             room__isnull=False,
@@ -137,11 +137,9 @@ class BookingRoomAssignmentMixin:
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 6. Kiểm tra xung đột phòng trong khoảng thời gian lưu trú của đơn
-        conflicting_status_filter = (
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
-            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
-        )
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
+        conflicting_status_filter = build_active_inventory_q()
 
         conflict_booking = Booking.objects.filter(
             room=target_room,
@@ -194,13 +192,11 @@ class BookingRoomAssignmentMixin:
         if check_out <= check_in:
             check_out = check_in + timezone.timedelta(days=1)
 
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
+
         def get_category_availability(cat, c_in, c_out):
-            pending_timeout = timezone.now() - timedelta(minutes=15)
-            active_inventory_q = (
-                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=pending_timeout) |
-                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
-            )
+            active_inventory_q = build_active_inventory_q()
             # Nếu khoảng ngày bao gồm ngày hôm nay: tính cả các phòng vật lý đang bận (occupied, maintenance)
             if c_in <= now < c_out:
                 busy_physical_ids = set(cat.rooms.filter(status__in=['occupied', 'maintenance']).values_list('id', flat=True))

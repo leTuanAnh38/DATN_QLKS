@@ -252,7 +252,7 @@ export default function NewsList() {
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                             aria-label="Sắp xếp bài viết"
-                            className="w-[126px] sm:w-auto px-2.5 sm:px-3 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0 truncate"
+                            className="w-[138px] sm:w-auto px-2.5 sm:px-3 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:border-sky-500 focus:ring-3 focus:ring-sky-500/15 shadow-xs transition cursor-pointer shrink-0 truncate"
                         >
                             <option value="newest">Mới nhất</option>
                             <option value="popular">Xem nhiều</option>
@@ -315,16 +315,16 @@ export default function NewsList() {
                                     </p>
                                 </div>
 
-                                <div className="pt-4 mt-4 sm:pt-6 sm:mt-6 border-t border-slate-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                                <div className="pt-4 mt-4 sm:pt-6 sm:mt-6 border-t border-slate-100 flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center text-xs font-bold shadow-xs shrink-0">
                                             <User className="w-4 h-4" />
                                         </div>
-                                        <div>
-                                            <span className="text-xs font-bold text-slate-800 block">
+                                        <div className="min-w-0">
+                                            <span className="text-xs font-bold text-slate-800 block truncate">
                                                 {featuredPost.author || 'Ban Biên Tập'}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 block">
+                                            <span className="text-[10px] text-slate-400 block truncate">
                                                 {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                             </span>
                                         </div>
@@ -332,10 +332,10 @@ export default function NewsList() {
 
                                     <Link
                                         to={`/news/${featuredPost.slug}`}
-                                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-sky-700 hover:text-sky-800 transition group/btn"
+                                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-sky-700 hover:text-sky-800 transition group/btn whitespace-nowrap shrink-0"
                                     >
                                         <span>Đọc toàn bài</span>
-                                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        <ArrowRight className="w-4 h-4 shrink-0 group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
                             </div>
@@ -346,11 +346,11 @@ export default function NewsList() {
                 {/* GRID CÁC THẺ BÀI VIẾT (CARDS) */}
                 {(isLoading || !featuredPost || regularSourcePosts.length > 0) && (
                     <div id="news-grid-section" className="scroll-mt-24 min-h-[45vh]">
-                        <div className="flex items-center gap-2.5 mb-6">
-                            <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200/70 flex items-center justify-center text-sky-600 shadow-2xs">
+                        <div className="flex items-start sm:items-center gap-2.5 mb-6">
+                            <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-200/70 flex items-center justify-center text-sky-600 shadow-2xs shrink-0">
                                 <BookOpen className="w-4 h-4" />
                             </div>
-                            <h3 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
+                            <h3 className="font-serif text-lg sm:text-2xl font-bold text-slate-900 min-w-0 break-words leading-snug">
                                 {featuredPost ? (
                                     'Bài Viết Mới Nhất'
                                 ) : (
@@ -377,7 +377,7 @@ export default function NewsList() {
                                 ))}
                             </div>
                         ) : regularSourcePosts.length === 0 ? (
-                            <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-4">
+                            <div className="bg-white rounded-3xl p-8 sm:p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-4">
                                 <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-200/70 text-sky-600 flex items-center justify-center mx-auto shadow-2xs">
                                     <Newspaper className="w-7 h-7" />
                                 </div>
@@ -465,17 +465,17 @@ export default function NewsList() {
                                         </div>
 
                                         {/* Footer thẻ */}
-                                        <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-3 flex items-center justify-between border-t border-slate-100 text-xs">
-                                            <span className="text-[11px] text-slate-600 font-semibold truncate max-w-[150px] flex items-center gap-1.5">
-                                                <User className="w-3.5 h-3.5 text-slate-400" />
-                                                <span>{post.author || 'Ban Biên Tập'}</span>
+                                        <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-3 flex items-center justify-between gap-2 border-t border-slate-100 text-xs">
+                                            <span className="text-[11px] text-slate-600 font-semibold min-w-0 flex items-center gap-1.5">
+                                                <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                                <span className="truncate">{post.author || 'Ban Biên Tập'}</span>
                                             </span>
                                             <Link
                                                 to={`/news/${post.slug}`}
-                                                className="font-bold text-sky-700 hover:text-sky-800 transition flex items-center gap-1 group/link"
+                                                className="font-bold text-sky-700 hover:text-sky-800 transition flex items-center gap-1 group/link whitespace-nowrap shrink-0"
                                             >
                                                 <span>Xem tiếp</span>
-                                                <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
+                                                <ArrowRight className="w-3.5 h-3.5 shrink-0 group-hover/link:translate-x-1 transition-transform" />
                                             </Link>
                                         </div>
                                     </article>

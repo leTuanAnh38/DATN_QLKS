@@ -254,10 +254,11 @@ export default function RoomsAndSuitesPage() {
                         <div className="animate-hero-up mt-1 lg:mt-0 shrink-0" style={{ animationDelay: '250ms' }}>
                             <Link
                                 to="/corporate-booking"
-                                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 min-h-[42px] rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-amber-300/40 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group"
+                                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 min-h-[42px] rounded-2xl bg-white/15 hover:bg-white/25 backdrop-blur-md border border-amber-300/40 text-white hover:text-amber-300 font-bold text-xs sm:text-sm transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 group whitespace-nowrap"
                             >
                                 <Building2 className="w-4 h-4 text-amber-400 shrink-0" />
-                                <span>Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
+                                <span className="sm:hidden">Đặt phòng đoàn B2B</span>
+                                <span className="hidden sm:inline">Cổng Đặt Phòng Đoàn &amp; Hợp Đồng B2B</span>
                                 <ArrowRight className="w-4 h-4 text-amber-400 shrink-0 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
@@ -394,9 +395,9 @@ export default function RoomsAndSuitesPage() {
                                     className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
                                     <option value="all">Mọi mức giá</option>
-                                    <option value="under-2m">&lt; 2 triệu / đêm</option>
+                                    <option value="under-2m">Dưới 2 triệu</option>
                                     <option value="2m-4m">2 – 4 triệu</option>
-                                    <option value="over-4m">&gt; 4 triệu / đêm</option>
+                                    <option value="over-4m">Trên 4 triệu</option>
                                 </select>
 
                                 <select
@@ -419,9 +420,9 @@ export default function RoomsAndSuitesPage() {
                                     aria-label="Lọc theo hướng nhìn"
                                     className="w-full sm:w-auto bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl px-2 sm:px-3 py-1.5 text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition cursor-pointer"
                                 >
-                                    <option value="all">Mọi hướng nhìn</option>
+                                    <option value="all">Hướng nhìn</option>
                                     <option value="sea">View biển</option>
-                                    <option value="city">View phố / sông</option>
+                                    <option value="city">View phố/sông</option>
                                 </select>
                             </div>
 
@@ -445,20 +446,21 @@ export default function RoomsAndSuitesPage() {
                 {/* Active Search Banner nếu có tham số tìm kiếm từ trang chủ */}
                 {hasActiveSearch && (
                     <div className="mb-8 p-4 sm:p-5 bg-gradient-to-r from-amber-50/70 via-slate-50 to-amber-50/40 border border-amber-200/90 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                        <div className="flex items-center gap-3.5">
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center font-bold shadow-md shadow-amber-900/20 shrink-0">
+                        <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white flex items-center justify-center font-bold shadow-md shadow-amber-900/20 shrink-0">
                                 <Search className="w-5 h-5 text-white" />
                             </div>
-                            <div>
-                                <div className="text-[11px] text-amber-800 font-extrabold uppercase tracking-wider flex items-center gap-2">
-                                    <span>Yêu cầu tìm kiếm của Quý khách</span>
+                            <div className="min-w-0 flex-1">
+                                <div className="text-[11px] text-amber-800 font-extrabold uppercase tracking-wider flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="sm:hidden">Tìm kiếm của bạn</span>
+                                    <span className="hidden sm:inline">Yêu cầu tìm kiếm của Quý khách</span>
                                     {searchNights > 0 && (
-                                        <span className="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-950 font-bold text-[10px]">
-                                            {searchNights} đêm lưu trú
+                                        <span className="px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-950 font-bold text-[10px] whitespace-nowrap shrink-0">
+                                            {searchNights} đêm<span className="hidden sm:inline"> lưu trú</span>
                                         </span>
                                     )}
                                 </div>
-                                <div className="text-sm sm:text-base font-bold text-slate-900 mt-0.5">
+                                <div className="text-xs sm:text-base font-bold text-slate-900 mt-0.5 leading-snug">
                                     {guestsParam ? `${guestsParam} khách` : 'Tất cả khách'}
                                     {checkInParam && ` • Nhận: ${formatDateDisplay(checkInParam)}`}
                                     {checkOutParam && ` • Trả: ${formatDateDisplay(checkOutParam)}`}

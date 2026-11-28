@@ -1009,7 +1009,7 @@ export default function ServicesMenu() {
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
                                 aria-label="Sắp xếp theo giá"
-                                className="w-[126px] sm:w-44 shrink-0 px-2.5 sm:px-3.5 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
+                                className="w-[138px] sm:w-44 shrink-0 px-2.5 sm:px-3.5 py-2 sm:py-2.5 bg-white border border-slate-200 rounded-xl text-base sm:text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 shadow-2xs transition cursor-pointer truncate"
                             >
                                 <option value="default">Mặc định</option>
                                 <option value="price_asc">Giá tăng</option>
@@ -1091,15 +1091,15 @@ export default function ServicesMenu() {
                                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-black/10 pointer-events-none" />
                                                 
                                                 {/* Badge danh mục */}
-                                                <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/60 backdrop-blur-md text-amber-200 text-[10.5px] font-semibold shadow-xs flex items-center gap-1 border border-white/15">
-                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-3 h-3 text-amber-300')}
-                                                    <span>{item.category_name}</span>
+                                                <span className={`absolute top-3 left-3 px-2.5 py-1 rounded-full bg-slate-950/60 backdrop-blur-md text-amber-200 text-[10.5px] font-semibold shadow-xs flex items-center gap-1 border border-white/15 ${inCart ? 'max-w-[58%]' : 'max-w-[85%]'}`}>
+                                                    {renderCategoryIcon(item.category_name, item.category_icon, 'w-3 h-3 text-amber-300 shrink-0')}
+                                                    <span className="truncate">{item.category_name}</span>
                                                 </span>
 
                                                 {/* Badge trạng thái đã thêm vào giỏ (chỉ hiển thị 1 lần duy nhất tại đây) */}
                                                 {inCart && (
-                                                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 text-white text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 animate-popover">
-                                                        <Check className="w-3 h-3 text-white stroke-[3]" />
+                                                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-gradient-to-r from-sky-600 to-blue-700 text-white text-[10px] font-bold shadow-md border border-white/20 flex items-center gap-1 animate-popover whitespace-nowrap">
+                                                        <Check className="w-3 h-3 text-white stroke-[3] shrink-0" />
                                                         <span>Đã chọn ({inCart.quantity})</span>
                                                     </span>
                                                 )}

@@ -63,12 +63,12 @@ export default function LogoutConfirmModal({
                         <LogOut className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                     </div>
 
-                    <div className="flex-1 pr-4">
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug">
+                    <div className="flex-1 min-w-0 pr-10 sm:pr-8">
+                        <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight leading-snug break-words">
                             {title}
                         </h3>
                         {userName && (
-                            <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                            <p className="text-xs font-semibold text-slate-500 mt-0.5 break-words">
                                 Tài khoản: <span className="text-slate-800 font-bold">{userName}</span>
                                 {role && <span className="text-blue-600 ml-1">({role})</span>}
                             </p>

@@ -17,7 +17,11 @@ from ...users.views import check_role_permission
 from ...services.models import ServiceItem, ServiceRequest
 from ...payments.models import Invoice, Payment
 from ..serializers import BookingSerializer, optimize_booking_queryset
-from ..cancel_policy import get_booking_cancel_eligibility
+from ..cancel_policy import (
+    get_booking_cancel_eligibility,
+    parse_booking_refund_bank_info,
+    upsert_booking_refund_bank_info,
+)
 from ..email_service import send_booking_email_async
 from core_project.pagination import StandardResultsSetPagination
 from .room_assignment_mixin import BookingRoomAssignmentMixin
@@ -25,6 +29,11 @@ from .frontdesk_mixin import BookingFrontDeskMixin
 from .reservation_mixin import BookingReservationMixin
 from .extra_services_mixin import BookingExtraServicesMixin
 from .analytics_mixin import BookingAnalyticsMixin
+from .helpers import (
+    sync_group_financials_after_subbooking_cancel,
+    expire_overdue_tentative_groups,
+    build_active_inventory_q,
+)
 
 
 class BookingViewSet(
@@ -56,6 +65,10 @@ class BookingViewSet(
         user = self.request.user
         if not user.is_authenticated:
             return Booking.objects.none()
+
+        # Tự động dọn đơn đoàn quá hạn chưa cọc khi tải danh sách đặt phòng
+        if getattr(self, 'action', None) == 'list':
+            expire_overdue_tentative_groups()
 
         # Luôn tạo mới QuerySet từ DB (.all()) để tránh lưu cache kết quả cũ trong bộ nhớ (QuerySet._result_cache)
         base_qs = Booking.objects.select_related(
@@ -273,18 +286,16 @@ class BookingViewSet(
                 'message': f'Không tìm thấy thông tin phòng với mã "{room_identifier}".'
             }, status=status.HTTP_404_NOT_FOUND)
 
+        # Tự động giải phóng các đơn đoàn chưa cọc đã quá hạn auto_cancel_minutes trước khi khóa hạng phòng
+        expire_overdue_tentative_groups()
+
         # 2.1 Kiểm tra tình trạng phòng trống và tạo đơn trong transaction.atomic với Pessimistic Lock
         with transaction.atomic():
             # Khóa bi quan hạng phòng để chống overbooking khi nhiều khách cùng đặt tại một thời điểm
             category_instance = RoomCategory.objects.select_for_update().get(pk=category_instance.pk)
 
-            # Tính cả đơn pending chưa quá 15 phút VÀ phòng con đang giữ chỗ thuộc đơn đoàn (tentative/confirmed/checked_in)
-            pending_timeout = timezone.now() - timedelta(minutes=15)
-            active_inventory_q = (
-                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=pending_timeout) |
-                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
-            )
+            # Tính đơn đang giữ quỹ phòng (gồm đơn lẻ pending <= 15p và đoàn tentative còn hạn auto_cancel_minutes)
+            active_inventory_q = build_active_inventory_q()
             total_rooms = category_instance.rooms.exclude(status='maintenance').count()
             booked_rooms = Booking.objects.filter(
                 category=category_instance,
@@ -861,19 +872,39 @@ class BookingViewSet(
             cancel_eligibility = get_booking_cancel_eligibility(booking)
 
         inv_before = getattr(booking, 'invoice', None)
-        was_paid = str(booking.status or '').lower() == 'paid' or (inv_before and inv_before.status == 'paid')
+        was_paid = (
+            str(booking.status or '').lower() == 'paid'
+            or bool(inv_before and inv_before.status == 'paid')
+            or booking.payments.filter(payment_status='COMPLETED').exists()
+        )
+
+        refund_bank_name = str(request.data.get('refund_bank_name') or '').strip()
+        refund_account_number = str(request.data.get('refund_account_number') or '').strip()
+        refund_account_holder = str(request.data.get('refund_account_holder') or '').strip()
 
         booking.status = 'cancelled'
         now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
         acting_name = user.get_full_name() or user.username if is_authenticated else "Khách vãng lai"
         refund_tag = ''
+        refund_bank_payload = None
+        save_fields = ['status', 'note', 'updated_at']
         if was_paid:
+            if refund_bank_name or refund_account_number or refund_account_holder:
+                refund_bank_payload = upsert_booking_refund_bank_info(
+                    booking,
+                    bank_name=refund_bank_name,
+                    account_number=refund_account_number,
+                    account_holder=refund_account_holder,
+                )
+                save_fields.append('internal_note')
             if cancel_eligibility and cancel_eligibility.get('is_free_cancel_eligible'):
                 refund_tag = '\n[Đủ điều kiện hoàn tiền - Chờ thu ngân lập phiếu chi]'
             else:
                 refund_tag = '\n[Hủy quá hạn miễn phí - Cần đối soát chính sách hoàn tiền trước khi lập phiếu chi]'
+            if refund_bank_payload and refund_bank_payload.get('summary'):
+                refund_tag += f"\n[TK nhận hoàn tiền: {refund_bank_payload['summary']}]"
         booking.note = f"{booking.note or ''}\n[Hủy bởi {acting_name} lúc {now_str}]: {reason}{refund_tag}".strip()
-        booking.save(update_fields=['status', 'note', 'updated_at'])
+        booking.save(update_fields=save_fields)
 
         if booking.room and booking.room.status == 'occupied':
             booking.room.status = 'available'
@@ -902,18 +933,10 @@ class BookingViewSet(
         except Exception:
             pass
 
-        # Nếu phòng này thuộc một Đơn Đặt Đoàn (GroupBooking), tự động đồng bộ lại đoàn
+        # Nếu phòng này thuộc một Đơn Đặt Đoàn (GroupBooking), tự động đồng bộ tài chính & Master Invoice
+        group_sync = None
         if booking.group_booking:
-            group = booking.group_booking
-            active_subs = group.sub_bookings.exclude(status='cancelled')
-            if not active_subs.exists():
-                group.status = 'cancelled'
-                group.note = f"{group.note or ''}\n[Toàn bộ phòng trong đoàn đã hủy lúc {now_str}]".strip()
-                group.save(update_fields=['status', 'note', 'updated_at'])
-            else:
-                new_total = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
-                group.total_amount = new_total
-                group.save(update_fields=['total_amount', 'updated_at'])
+            group_sync = sync_group_financials_after_subbooking_cancel(booking.group_booking, now_str=now_str)
 
         # Ghi nhận Nhật ký thao tác hệ thống (Audit Log)
         log_action(
@@ -924,12 +947,19 @@ class BookingViewSet(
             request=request
         )
 
+        overpaid_val = float(group_sync['overpaid_amount']) if group_sync else 0.0
+        msg = f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.'
+        if overpaid_val > 0:
+            msg += f' Đoàn đang dư cọc {overpaid_val:,.0f} VND cần hoàn lại khách.'
+
         return Response({
             'success': True,
-            'message': f'Đơn đặt phòng {booking.booking_code} đã được hủy thành công.',
+            'message': msg,
             'booking_code': booking.booking_code,
             'status': 'cancelled',
-            'refund_pending': bool(was_paid)
+            'refund_pending': bool(was_paid or overpaid_val > 0),
+            'refund_bank_info': refund_bank_payload or parse_booking_refund_bank_info(booking),
+            'group_overpaid_amount': overpaid_val,
         }, status=status.HTTP_200_OK)
 
 
@@ -972,15 +1002,34 @@ class BookingViewSet(
                     return policy_err
 
                 inv_before = getattr(booking, 'invoice', None)
-                was_paid = str(booking.status or '').lower() == 'paid' or (inv_before and inv_before.status == 'paid')
+                was_paid = (
+                    str(booking.status or '').lower() == 'paid'
+                    or bool(inv_before and inv_before.status == 'paid')
+                    or booking.payments.filter(payment_status='COMPLETED').exists()
+                )
+
+                refund_bank_name = str(request.data.get('refund_bank_name') or '').strip()
+                refund_account_number = str(request.data.get('refund_account_number') or '').strip()
+                refund_account_holder = str(request.data.get('refund_account_holder') or '').strip()
 
                 booking.status = 'cancelled'
                 cancel_reason = request.data.get('cancel_reason', 'Khách hàng yêu cầu hủy đặt phòng').strip()
                 now_str = timezone.now().strftime('%d/%m/%Y %H:%M')
                 refund_tag = '\n[Đủ điều kiện hoàn tiền - Chờ thu ngân lập phiếu chi]' if was_paid else ''
+                save_fields = ['status', 'note', 'updated_at']
+                if was_paid and (refund_bank_name or refund_account_number or refund_account_holder):
+                    refund_bank_payload = upsert_booking_refund_bank_info(
+                        booking,
+                        bank_name=refund_bank_name,
+                        account_number=refund_account_number,
+                        account_holder=refund_account_holder,
+                    )
+                    save_fields.append('internal_note')
+                    if refund_bank_payload and refund_bank_payload.get('summary'):
+                        refund_tag += f"\n[TK nhận hoàn tiền: {refund_bank_payload['summary']}]"
                 if cancel_reason or refund_tag:
                     booking.note = f"{booking.note or ''}\n[Khách hủy {now_str}]: {cancel_reason or 'Khách hàng yêu cầu hủy'}{refund_tag}".strip()
-                booking.save(update_fields=['status', 'note', 'updated_at'])
+                booking.save(update_fields=save_fields)
 
                 if booking.room and booking.room.status == 'occupied':
                     booking.room.status = 'available'
@@ -1006,14 +1055,7 @@ class BookingViewSet(
                     pass
 
                 if booking.group_booking:
-                    group = booking.group_booking
-                    active_subs = group.sub_bookings.exclude(status='cancelled')
-                    if not active_subs.exists():
-                        group.status = 'cancelled'
-                        group.save(update_fields=['status', 'updated_at'])
-                    else:
-                        group.total_amount = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
-                        group.save(update_fields=['total_amount', 'updated_at'])
+                    sync_group_financials_after_subbooking_cancel(booking.group_booking, now_str=now_str)
 
                 serializer = self.get_serializer(booking, context={'request': request})
                 return Response({
@@ -1099,7 +1141,15 @@ class BookingViewSet(
             update_fields.append('status')
 
         if 'internal_note' in request.data:
+            existing_refund_bank = parse_booking_refund_bank_info(booking)
             booking.internal_note = request.data.get('internal_note', '').strip()
+            if existing_refund_bank:
+                upsert_booking_refund_bank_info(
+                    booking,
+                    bank_name=existing_refund_bank.get('bank_name', ''),
+                    account_number=existing_refund_bank.get('account_number', ''),
+                    account_holder=existing_refund_bank.get('account_holder', ''),
+                )
             update_fields.append('internal_note')
 
         if 'note' in request.data:
@@ -1132,14 +1182,10 @@ class BookingViewSet(
                 except Exception:
                     pass
                 if booking.group_booking:
-                    group = booking.group_booking
-                    active_subs = group.sub_bookings.exclude(status='cancelled')
-                    if not active_subs.exists():
-                        group.status = 'cancelled'
-                        group.save(update_fields=['status', 'updated_at'])
-                    else:
-                        group.total_amount = sum(Decimal(str(b.total_amount or 0)) for b in active_subs)
-                        group.save(update_fields=['total_amount', 'updated_at'])
+                    sync_group_financials_after_subbooking_cancel(
+                        booking.group_booking,
+                        now_str=timezone.now().strftime('%d/%m/%Y %H:%M'),
+                    )
             elif booking.status == 'no_show':
                 try:
                     ServiceRequest.objects.filter(booking=booking, status__in=['pending', 'in_progress']).update(status='cancelled')

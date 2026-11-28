@@ -38,6 +38,7 @@ import CreateCashOutModal from '../../../components/admin/modals/shift/CreateCas
 import Pagination from '../../../components/common/Pagination';
 import ShiftStatusWidget from '../../../components/admin/shifts/ShiftStatusWidget';
 import ShiftHistoryList from '../../../components/admin/shifts/ShiftHistoryList';
+import CashOutVoucherList from '../../../components/admin/shifts/CashOutVoucherList';
 import OpenShiftModal from '../../../components/admin/modals/shift/OpenShiftModal';
 import CloseShiftModal from '../../../components/admin/modals/shift/CloseShiftModal';
 import ShiftZReportModal from '../../../components/admin/modals/shift/ShiftZReportModal';
@@ -222,7 +223,8 @@ export default function InvoiceManagement() {
     const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
     const [selectedClosingShift, setSelectedClosingShift] = useState(null);
     const [selectedZReportShiftId, setSelectedZReportShiftId] = useState(null);
-    const [activeTab, setActiveTab] = useState('TRANSACTIONS'); // 'TRANSACTIONS' | 'SHIFTS'
+    const [activeTab, setActiveTab] = useState('TRANSACTIONS'); // 'TRANSACTIONS' | 'CASHOUTS' | 'SHIFTS'
+    const [cashOutRefreshKey, setCashOutRefreshKey] = useState(0);
 
     // Lấy thông tin ca làm việc đang mở hiện tại của thu ngân
     const fetchCurrentShift = async () => {
@@ -696,6 +698,19 @@ export default function InvoiceManagement() {
 
                 <button
                     type="button"
+                    onClick={() => setActiveTab('CASHOUTS')}
+                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
+                        activeTab === 'CASHOUTS'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                    }`}
+                >
+                    <ArrowDownCircle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Phiếu Chi &amp; Hoàn Cọc</span>
+                </button>
+
+                <button
+                    type="button"
                     onClick={() => setActiveTab('SHIFTS')}
                     className={`px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer whitespace-nowrap shrink-0 ${
                         activeTab === 'SHIFTS'
@@ -711,6 +726,12 @@ export default function InvoiceManagement() {
             {/* NỘI DUNG THEO TAB */}
             {activeTab === 'SHIFTS' ? (
                 <ShiftHistoryList onRefreshActiveShift={fetchCurrentShift} />
+            ) : activeTab === 'CASHOUTS' ? (
+                <CashOutVoucherList
+                    refreshKey={cashOutRefreshKey}
+                    canCashOut={canCashOut}
+                    onOpenCreateCashOut={() => setIsCashOutOpen(true)}
+                />
             ) : (
                 <>
             {/* THẺ THỐNG KÊ TỔNG QUAN (KPIs) - BẤM ĐỂ LỌC NHANH */}
@@ -1651,6 +1672,7 @@ export default function InvoiceManagement() {
                 onCashOutCreated={(voucher) => {
                     fetchPayments();
                     fetchCurrentShift();
+                    setCashOutRefreshKey((k) => k + 1);
                     showToast('success', `Đã lập phiếu chi #${voucher.voucher_code} (${formatVND(voucher.amount)}) thành công!`);
                 }}
             />

@@ -1,4 +1,6 @@
 """Phiếu chi tiền mặt và hoàn tiền."""
+import json
+import re
 from decimal import Decimal
 from django.db import models, transaction
 from rest_framework.views import APIView
@@ -10,6 +12,59 @@ from ...users.models import log_action
 from ...users.views import check_role_permission
 from ..models import CashierShift, CashOutVoucher
 from ..serializers import CashOutVoucherSerializer
+
+_BANK_TRANSFER_PATTERN = re.compile(r'\[BANK_TRANSFER_JSON\](.*?)\[/BANK_TRANSFER_JSON\]', re.DOTALL)
+
+
+def strip_voucher_bank_tag(raw_reason):
+    """Loại bỏ thẻ JSON ngân hàng khỏi lý do chi hiển thị."""
+    if not raw_reason:
+        return ''
+    return _BANK_TRANSFER_PATTERN.sub('', str(raw_reason)).strip()
+
+
+def parse_voucher_bank_info(raw_reason):
+    """Đọc thông tin tài khoản nhận chuyển khoản từ CashOutVoucher.reason."""
+    if not raw_reason:
+        return None
+    match = _BANK_TRANSFER_PATTERN.search(str(raw_reason))
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(1).strip())
+        if not isinstance(data, dict):
+            return None
+        bank_name = str(data.get('bank_name') or '').strip()
+        account_number = str(data.get('account_number') or '').strip()
+        account_holder = str(data.get('account_holder') or '').strip()
+        if not (bank_name or account_number or account_holder):
+            return None
+        parts = [p for p in [bank_name, account_number, account_holder] if p]
+        return {
+            'bank_name': bank_name,
+            'account_number': account_number,
+            'account_holder': account_holder,
+            'summary': ' - '.join(parts),
+        }
+    except Exception:
+        return None
+
+
+def embed_voucher_bank_info(reason, bank_name='', account_number='', account_holder=''):
+    """Đính kèm thông tin ngân hàng nhận chuyển khoản vào reason mà không cần sửa schema DB."""
+    cleaned = strip_voucher_bank_tag(reason)
+    b_name = str(bank_name or '').strip()
+    acc_no = str(account_number or '').strip()
+    acc_holder = str(account_holder or '').strip()
+    if not (b_name or acc_no or acc_holder):
+        return cleaned
+    payload = {
+        'bank_name': b_name,
+        'account_number': acc_no,
+        'account_holder': acc_holder,
+    }
+    tag = f"[BANK_TRANSFER_JSON]{json.dumps(payload, ensure_ascii=False)}[/BANK_TRANSFER_JSON]"
+    return f"{cleaned}\n{tag}".strip() if cleaned else tag
 
 
 class CreateCashOutView(APIView):
@@ -42,6 +97,9 @@ class CreateCashOutView(APIView):
         amount_raw = request.data.get('amount')
         recipient_name = (request.data.get('recipient_name') or '').strip()
         recipient_phone = (request.data.get('recipient_phone') or '').strip()
+        recipient_bank_name = (request.data.get('recipient_bank_name') or '').strip()
+        recipient_account_number = (request.data.get('recipient_account_number') or '').strip()
+        recipient_account_holder = (request.data.get('recipient_account_holder') or '').strip()
         reason = (request.data.get('reason') or '').strip()
         approved_by = (request.data.get('approved_by') or '').strip()
         booking_id = request.data.get('booking_id')
@@ -96,6 +154,17 @@ class CreateCashOutView(APIView):
                         'message': f"Số tiền mặt trong két hiện tại ({current_cash_in_drawer:,.0f} đ) không đủ để chi số tiền {amount:,.0f} đ!"
                     }, status=status.HTTP_400_BAD_REQUEST)
 
+            stored_reason = (
+                embed_voucher_bank_info(
+                    reason,
+                    bank_name=recipient_bank_name,
+                    account_number=recipient_account_number,
+                    account_holder=recipient_account_holder,
+                )
+                if payment_method == 'TRANSFER'
+                else reason
+            )
+
             voucher = CashOutVoucher.objects.create(
                 shift=active_shift,
                 voucher_type=voucher_type,
@@ -105,7 +174,7 @@ class CreateCashOutView(APIView):
                 group_booking=group_booking_obj,
                 recipient_name=recipient_name,
                 recipient_phone=recipient_phone,
-                reason=reason,
+                reason=stored_reason,
                 user=user,
                 approved_by=approved_by or (user.get_full_name() or user.username)
             )
@@ -167,7 +236,7 @@ class CashOutListView(APIView):
         if payment_method and payment_method != 'ALL':
             queryset = queryset.filter(payment_method=payment_method)
 
-        search = request.query_params.get('search')
+        search = (request.query_params.get('search') or '').strip()
         if search:
             queryset = queryset.filter(
                 models.Q(voucher_code__icontains=search) |
@@ -178,10 +247,72 @@ class CashOutListView(APIView):
                 models.Q(group_booking__group_code__icontains=search)
             )
 
+        date_from = (request.query_params.get('date_from') or '').strip()
+        if date_from:
+            queryset = queryset.filter(created_at__date__gte=date_from[:10])
+
+        date_to = (request.query_params.get('date_to') or '').strip()
+        if date_to:
+            queryset = queryset.filter(created_at__date__lte=date_to[:10])
+
+        # Thống kê tổng hợp trên toàn bộ tập kết quả sau lọc (trước khi cắt trang)
+        agg = queryset.aggregate(
+            total_amount=models.Sum('amount'),
+            refund_cancel_total=models.Sum('amount', filter=models.Q(voucher_type='REFUND_CANCEL')),
+            refund_deposit_total=models.Sum('amount', filter=models.Q(voucher_type='REFUND_DEPOSIT')),
+            petty_cash_total=models.Sum('amount', filter=models.Q(voucher_type='PETTY_CASH')),
+            cash_total=models.Sum('amount', filter=models.Q(payment_method='CASH')),
+            transfer_total=models.Sum('amount', filter=models.Q(payment_method='TRANSFER')),
+            refund_count=models.Count('id', filter=models.Q(voucher_type__in=['REFUND_CANCEL', 'REFUND_DEPOSIT'])),
+        )
+        total_count = queryset.count()
+        summary = {
+            'total_amount': float(agg['total_amount'] or 0),
+            'refund_cancel_total': float(agg['refund_cancel_total'] or 0),
+            'refund_deposit_total': float(agg['refund_deposit_total'] or 0),
+            'petty_cash_total': float(agg['petty_cash_total'] or 0),
+            'cash_total': float(agg['cash_total'] or 0),
+            'transfer_total': float(agg['transfer_total'] or 0),
+            'refund_count': int(agg['refund_count'] or 0),
+        }
+
+        # Hỗ trợ phân trang server-side khi client truyền page / page_size
+        page_param = request.query_params.get('page')
+        page_size_param = request.query_params.get('page_size')
+        if page_param is not None or page_size_param is not None:
+            try:
+                page = max(1, int(page_param or 1))
+            except (ValueError, TypeError):
+                page = 1
+            try:
+                page_size = min(100, max(1, int(page_size_param or 10)))
+            except (ValueError, TypeError):
+                page_size = 10
+
+            total_pages = max(1, (total_count + page_size - 1) // page_size)
+            if page > total_pages:
+                page = total_pages
+            start_idx = (page - 1) * page_size
+            page_qs = queryset[start_idx:start_idx + page_size]
+            serializer = CashOutVoucherSerializer(page_qs, many=True)
+            return Response({
+                'success': True,
+                'count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+                'summary': summary,
+                'results': serializer.data,
+                'data': serializer.data,
+                'vouchers': serializer.data,
+            }, status=status.HTTP_200_OK)
+
         serializer = CashOutVoucherSerializer(queryset, many=True)
         return Response({
             'success': True,
-            'count': queryset.count(),
+            'count': total_count,
+            'summary': summary,
+            'results': serializer.data,
             'data': serializer.data,
-            'vouchers': serializer.data
+            'vouchers': serializer.data,
         }, status=status.HTTP_200_OK)

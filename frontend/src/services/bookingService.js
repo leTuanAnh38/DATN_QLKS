@@ -106,16 +106,25 @@ export const bookingService = {
     },
 
     /**
-     * Hủy đơn đặt phòng khi đang chờ duyệt (PATCH /api/bookings/:id/)
+     * Hủy đơn đặt phòng khi đang chờ duyệt / đã thanh toán (POST /api/bookings/cancel-booking/)
      * @param {number|string} id 
      * @param {string} cancelReason
+     * @param {Object|null} refundBankInfo { refund_bank_name, refund_account_number, refund_account_holder }
      */
-    async cancelBooking(id, cancelReason = '') {
+    async cancelBooking(id, cancelReason = '', refundBankInfo = null) {
+        const bankPayload = refundBankInfo
+            ? {
+                refund_bank_name: (refundBankInfo.refund_bank_name || '').trim(),
+                refund_account_number: (refundBankInfo.refund_account_number || '').trim(),
+                refund_account_holder: (refundBankInfo.refund_account_holder || '').trim()
+            }
+            : {};
         try {
             // Thử gọi endpoint cancel-booking (hỗ trợ cả id lẫn booking_code)
             const response = await api.post('/bookings/cancel-booking/', {
                 booking_id: id,
-                reason: cancelReason || 'Khách hàng yêu cầu hủy đơn'
+                reason: cancelReason || 'Khách hàng yêu cầu hủy đơn',
+                ...bankPayload
             });
             try {
                 localStorage.setItem('pms_last_booking_event', Date.now().toString());
@@ -127,7 +136,8 @@ export const bookingService = {
             try {
                 const response = await api.patch(`/bookings/${id}/`, {
                     status: 'cancelled',
-                    cancel_reason: cancelReason || 'Khách hàng yêu cầu hủy đơn'
+                    cancel_reason: cancelReason || 'Khách hàng yêu cầu hủy đơn',
+                    ...bankPayload
                 });
                 try {
                     localStorage.setItem('pms_last_booking_event', Date.now().toString());

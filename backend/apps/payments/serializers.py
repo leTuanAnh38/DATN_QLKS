@@ -333,6 +333,10 @@ class CashOutVoucherSerializer(serializers.ModelSerializer):
     booking_code = serializers.CharField(source='booking.booking_code', read_only=True)
     group_booking_code = serializers.CharField(source='group_booking.group_code', read_only=True)
     room_number = serializers.SerializerMethodField()
+    recipient_bank_name = serializers.SerializerMethodField()
+    recipient_account_number = serializers.SerializerMethodField()
+    recipient_account_holder = serializers.SerializerMethodField()
+    recipient_bank_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = CashOutVoucher
@@ -353,6 +357,10 @@ class CashOutVoucherSerializer(serializers.ModelSerializer):
             'room_number',
             'recipient_name',
             'recipient_phone',
+            'recipient_bank_name',
+            'recipient_account_number',
+            'recipient_account_holder',
+            'recipient_bank_summary',
             'reason',
             'user',
             'user_name',
@@ -360,6 +368,33 @@ class CashOutVoucherSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['id', 'voucher_code', 'created_at']
+
+    def _get_bank_info(self, obj):
+        from .views.cash_out_views import parse_voucher_bank_info
+        return parse_voucher_bank_info(getattr(obj, 'reason', ''))
+
+    def get_recipient_bank_name(self, obj):
+        info = self._get_bank_info(obj)
+        return info['bank_name'] if info else ''
+
+    def get_recipient_account_number(self, obj):
+        info = self._get_bank_info(obj)
+        return info['account_number'] if info else ''
+
+    def get_recipient_account_holder(self, obj):
+        info = self._get_bank_info(obj)
+        return info['account_holder'] if info else ''
+
+    def get_recipient_bank_summary(self, obj):
+        info = self._get_bank_info(obj)
+        return info['summary'] if info else ''
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        from .views.cash_out_views import strip_voucher_bank_tag
+        if ret.get('reason'):
+            ret['reason'] = strip_voucher_bank_tag(ret['reason'])
+        return ret
 
     def get_user_name(self, obj):
         if not obj.user:

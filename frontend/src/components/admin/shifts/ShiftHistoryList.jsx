@@ -1,24 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Calendar,
-    Clock,
-    User,
-    CheckCircle2,
-    AlertCircle,
     Search,
-    Filter,
-    FileText,
     Printer,
     RefreshCw,
-    Banknote,
     ArrowRight,
-    TrendingUp,
-    ShieldAlert,
     Check
 } from 'lucide-react';
 import paymentService from '../../../services/paymentService';
 import ShiftZReportModal from '../modals/shift/ShiftZReportModal';
 import CloseShiftModal from '../modals/shift/CloseShiftModal';
+import Pagination from '../../common/Pagination';
 import { authStore } from '../../../store/authStore';
 
 export default function ShiftHistoryList({ onRefreshActiveShift }) {
@@ -33,8 +24,15 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
     const [shifts, setShifts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [shiftTypeFilter, setShiftTypeFilter] = useState('ALL');
+
+    // Phân trang server-side
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Modals
     const [selectedReportShiftId, setSelectedReportShiftId] = useState(null);
@@ -52,31 +50,38 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
             d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
     };
 
-    const fetchShifts = async () => {
+    const fetchShifts = useCallback(async () => {
         setLoading(true);
         try {
-            const params = {};
+            const params = {
+                page: currentPage,
+                page_size: pageSize
+            };
             if (statusFilter !== 'ALL') params.status = statusFilter;
             if (shiftTypeFilter !== 'ALL') params.shift_type = shiftTypeFilter;
-            if (searchTerm.trim()) params.search = searchTerm.trim();
+            if (appliedSearch) params.search = appliedSearch;
 
             const res = await paymentService.getShifts(params);
             const list = res.shifts || res.results || res.data || [];
             setShifts(Array.isArray(list) ? list : []);
+            const countVal = Number(res.count ?? list.length ?? 0);
+            setTotalCount(countVal);
+            setTotalPages(Math.max(1, Number(res.total_pages ?? Math.ceil((countVal || 1) / pageSize))));
         } catch (err) {
             console.error('Lỗi khi tải danh sách ca làm việc:', err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, pageSize, statusFilter, shiftTypeFilter, appliedSearch]);
 
     useEffect(() => {
         fetchShifts();
-    }, [statusFilter, shiftTypeFilter]);
+    }, [fetchShifts]);
 
     const handleSearchSubmit = (e) => {
         e.preventDefault();
-        fetchShifts();
+        setCurrentPage(1);
+        setAppliedSearch(searchTerm.trim());
     };
 
     return (
@@ -97,7 +102,7 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
                 <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                     <select
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
+                        onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
                         className="py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none"
                     >
                         <option value="ALL">Tất cả trạng thái</option>
@@ -107,7 +112,7 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
 
                     <select
                         value={shiftTypeFilter}
-                        onChange={(e) => setShiftTypeFilter(e.target.value)}
+                        onChange={(e) => { setShiftTypeFilter(e.target.value); setCurrentPage(1); }}
                         className="py-1.5 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 focus:outline-none"
                     >
                         <option value="ALL">Tất cả loại ca</option>
@@ -301,6 +306,24 @@ export default function ShiftHistoryList({ onRefreshActiveShift }) {
                         </tbody>
                     </table>
                 </div>
+
+                {/* PHÂN TRANG LỊCH SỬ CA TRỰC */}
+                {!loading && totalCount > 0 && (
+                    <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalCount={totalCount}
+                            pageSize={pageSize}
+                            onPageChange={(p) => setCurrentPage(p)}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                            pageSizeOptions={[10, 20, 50]}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Modal In Z-Report */}

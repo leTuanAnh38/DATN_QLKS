@@ -551,8 +551,8 @@ export default function PromotionsPage() {
                                     className="animate-hero-up mt-5 sm:mt-8 w-full max-w-md sm:w-auto sm:max-w-none inline-flex flex-col items-center bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-3.5 sm:p-6 shadow-xl shadow-slate-200/60"
                                     style={{ animationDelay: '310ms' }}
                                 >
-                                    <div className="flex items-center justify-center gap-2 text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider sm:tracking-widest mb-3 text-center">
-                                        <Clock className="w-4 h-4 text-amber-600 animate-spin shrink-0" style={{ animationDuration: '8s' }} />
+                                    <div className="text-[11px] sm:text-xs font-bold text-amber-800 uppercase tracking-wider sm:tracking-widest mb-3 text-center leading-snug">
+                                        <Clock className="w-4 h-4 text-amber-600 animate-spin inline-block align-text-bottom mr-1.5" style={{ animationDuration: '8s' }} />
                                         <span>
                                             {nearestExpiringPromo?.name
                                                 ? `Ưu Đãi "${nearestExpiringPromo.name}" Sắp Kết Thúc:`
@@ -604,8 +604,8 @@ export default function PromotionsPage() {
                     {/* Header kho voucher */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
                         <div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-widest mb-1.5">
-                                <Tag className="w-4 h-4 text-amber-600" />
+                            <div className="flex items-start sm:items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-wider sm:tracking-widest mb-1.5">
+                                <Tag className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
                                 <span>VOUCHER KHUYẾN MÃI ĐANG KÍCH HOẠT</span>
                             </div>
                             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900">
@@ -674,7 +674,7 @@ export default function PromotionsPage() {
                                     )}
                                 </div>
 
-                                <div className="w-[140px] sm:w-auto flex items-center gap-1 bg-white border border-slate-200 rounded-2xl px-2.5 sm:px-3 py-2 shadow-xs shrink-0 sm:order-3">
+                                <div className="w-[152px] sm:w-auto flex items-center gap-1 bg-white border border-slate-200 rounded-2xl px-2.5 sm:px-3 py-2 shadow-xs shrink-0 sm:order-3">
                                     <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0 hidden sm:block" />
                                     <select
                                         value={sortBy}
@@ -854,12 +854,12 @@ export default function PromotionsPage() {
                         </Reveal>
 
                         {/* Thanh giải thích quy tắc tích điểm 100k = 1 pt */}
-                        <div className="max-w-4xl mx-auto mb-10 px-5 py-4 rounded-2xl bg-white border border-slate-200/80 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.1)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
-                            <div className="flex items-center gap-3.5">
+                        <div className="max-w-4xl mx-auto mb-10 px-4 sm:px-5 py-4 rounded-2xl bg-white border border-slate-200/80 shadow-[0_8px_24px_-12px_rgba(15,23,42,0.1)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+                            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                                 <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-blue-700 text-white flex items-center justify-center shrink-0 shadow-sm shadow-sky-900/15">
                                     <Sparkles className="w-4 h-4" />
                                 </span>
-                                <div>
+                                <div className="min-w-0">
                                     <strong className="block text-[13px] font-bold text-slate-900">
                                         Cơ chế tích điểm tự động của hệ thống
                                     </strong>
@@ -988,7 +988,7 @@ export default function PromotionsPage() {
                                 <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
                                     <Gem className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug min-h-[2.45rem] sm:min-h-0 group-hover:text-amber-700 transition-colors">
                                     Cam Kết Giá Tốt Nhất
                                 </h3>
                                 <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
@@ -1000,7 +1000,7 @@ export default function PromotionsPage() {
                                 <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
                                     <Clock className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug min-h-[2.45rem] sm:min-h-0 group-hover:text-amber-700 transition-colors">
                                     Nhận Sớm & Trả Muộn
                                 </h3>
                                 <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
@@ -1012,8 +1012,9 @@ export default function PromotionsPage() {
                                 <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
                                     <Wine className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
-                                    Đón Tiếp Chuẩn {starCount} Sao Cá Nhân Hóa
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug min-h-[2.45rem] sm:min-h-0 group-hover:text-amber-700 transition-colors">
+                                    <span className="sm:hidden">Đón Tiếp Chuẩn {starCount} Sao</span>
+                                    <span className="hidden sm:inline">Đón Tiếp Chuẩn {starCount} Sao Cá Nhân Hóa</span>
                                 </h3>
                                 <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
                                     Nước trái cây hữu cơ chào đón pha chế riêng, đĩa hoa quả nhiệt đới tươi mới mỗi ngày và quyền chọn hướng phòng đẹp nhất.
@@ -1024,7 +1025,7 @@ export default function PromotionsPage() {
                                 <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2.5 sm:mb-4 border border-amber-200/80 shadow-xs group-hover:scale-110 transition-transform">
                                     <CalendarCheck className="w-4 h-4 sm:w-6 sm:h-6 text-amber-600" />
                                 </div>
-                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug group-hover:text-amber-700 transition-colors">
+                                <h3 className="font-serif font-bold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 leading-snug min-h-[2.45rem] sm:min-h-0 group-hover:text-amber-700 transition-colors">
                                     Hủy Phòng Linh Hoạt {freeCancelHours}H
                                 </h3>
                                 <p className="text-[11px] sm:text-xs text-slate-600 leading-snug sm:leading-relaxed line-clamp-4 sm:line-clamp-none">
@@ -1133,8 +1134,8 @@ export default function PromotionsPage() {
                     {/* Concierge Banner */}
                     <Reveal className="mt-10 p-5 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-amber-500/30">
                         <div className="text-left">
-                            <strong className="text-white text-sm sm:text-base font-bold flex items-center gap-2">
-                                <PhoneCall className="w-4 h-4 text-amber-400 shrink-0" />
+                            <strong className="text-white text-sm sm:text-base font-bold flex items-start sm:items-center gap-2 leading-snug">
+                                <PhoneCall className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
                                 <span>Cần hỗ trợ đặt phòng hoặc tư vấn ưu đãi đặc biệt?</span>
                             </strong>
                             <span className="text-xs text-amber-100/70 block mt-1">Đội ngũ Concierge phục vụ 24/7 luôn sẵn sàng hỗ trợ quý khách.</span>

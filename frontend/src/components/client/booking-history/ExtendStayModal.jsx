@@ -97,18 +97,18 @@ export default function ExtendStayModal({
 
                 {/* Xem trước chi phí phát sinh */}
                 {extendCalculation.isValid && (
-                    <div className="p-4 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-slate-50 rounded-2xl border border-amber-200/80 space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-600">Số đêm lưu trú thêm:</span>
-                            <strong className="text-amber-700 font-bold">+{extendCalculation.extraNights} đêm</strong>
+                    <div className="p-3.5 sm:p-4 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-slate-50 rounded-2xl border border-amber-200/80 space-y-2 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-slate-600 min-w-0">Số đêm lưu trú thêm:</span>
+                            <strong className="text-amber-700 font-bold whitespace-nowrap shrink-0">+{extendCalculation.extraNights} đêm</strong>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-slate-600">Đơn giá phòng tham khảo:</span>
-                            <span className="text-slate-800 font-mono">{extendCalculation.nightlyRate.toLocaleString('vi-VN')} đ/đêm</span>
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-slate-600 min-w-0">Đơn giá phòng tham khảo:</span>
+                            <span className="text-slate-800 font-mono whitespace-nowrap shrink-0">{extendCalculation.nightlyRate.toLocaleString('vi-VN')} đ/đêm</span>
                         </div>
-                        <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between">
-                            <span className="font-bold text-slate-900">Số tiền dự kiến tính thêm:</span>
-                            <strong className="text-amber-600 font-mono text-base font-black">
+                        <div className="pt-2 border-t border-amber-200/60 flex flex-wrap items-baseline justify-between gap-1.5">
+                            <span className="font-bold text-slate-900 min-w-0">Số tiền dự kiến tính thêm:</span>
+                            <strong className="text-amber-600 font-mono text-sm sm:text-base font-black whitespace-nowrap shrink-0 ml-auto">
                                 +{extendCalculation.extraAmount.toLocaleString('vi-VN')} đ
                             </strong>
                         </div>

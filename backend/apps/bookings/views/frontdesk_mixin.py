@@ -105,15 +105,15 @@ class BookingFrontDeskMixin:
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # 4.1 Kiểm tra xung đột lịch: Phòng này có bị trùng với bất kỳ đơn nào khác từ hôm nay đến ngày check-out không
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
         stay_end_date = booking.check_out_date
         conflict_booking = Booking.objects.filter(
             room=target_room,
             check_in_date__lt=stay_end_date,
             check_out_date__gt=today
         ).exclude(id=booking.id).filter(
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in']) |
-            Q(status='pending', created_at__gte=timezone.now() - timezone.timedelta(minutes=15))
+            build_active_inventory_q()
         ).first()
 
         if conflict_booking:
@@ -583,13 +583,13 @@ class BookingFrontDeskMixin:
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # Kiểm tra xung đột lịch: Phòng mới có bị khách khác đặt trước trong khoảng từ hôm nay đến check-out không
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
         today = timezone.localdate()
-        hold_cutoff = timezone.now() - timedelta(minutes=15)
         conflict_move = Booking.objects.filter(
             room=new_room
         ).exclude(id=booking.id).filter(
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(status='pending', created_at__gte=hold_cutoff)
+            build_active_inventory_q()
         ).filter(
             check_in_date__lt=booking.check_out_date,
             check_out_date__gt=today
@@ -1342,15 +1342,15 @@ class BookingFrontDeskMixin:
         extra_discount = ((extra_subtotal * discount_pct) / Decimal('100')).quantize(Decimal('1')) if discount_pct > 0 else Decimal('0')
         extra_amount = max(Decimal('0'), extra_subtotal - extra_discount)
 
+        from .helpers import expire_overdue_tentative_groups, build_active_inventory_q
+        expire_overdue_tentative_groups()
+
         with transaction.atomic():
             booking = Booking.objects.select_for_update().get(pk=booking.pk)
-            hold_cutoff = timezone.now() - timedelta(minutes=15)
             conflict_query = Booking.objects.filter(
                 room=room
             ).exclude(id=booking.id).filter(
-                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=hold_cutoff) |
-                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
+                build_active_inventory_q()
             ).filter(
                 check_in_date__lt=new_check_out_date,
                 check_out_date__gt=old_check_out_date

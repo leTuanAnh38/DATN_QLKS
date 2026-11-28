@@ -326,31 +326,88 @@ def notify_on_booking_events(sender, instance, created, **kwargs):
 
         # 2.4. HỦY ĐƠN ĐẶT PHÒNG (status đổi sang 'cancelled')
         elif instance.status == 'cancelled' and prev_status != 'cancelled':
+            # Kiểm tra đơn đã thanh toán trước đó hay chưa (VietQR / Invoice paid / Payment COMPLETED)
+            inv = getattr(instance, 'invoice', None)
+            completed_payments = list(instance.payments.filter(payment_status='COMPLETED'))
+            paid_from_payments = sum(float(p.amount or 0) for p in completed_payments)
+            was_paid = (
+                str(prev_status or '').lower() == 'paid'
+                or bool(inv and inv.status == 'paid')
+                or paid_from_payments > 0
+            )
+            paid_amount = paid_from_payments if paid_from_payments > 0 else float(
+                (inv.total_amount if inv and inv.total_amount else instance.total_amount) or 0
+            )
+            paid_amount_str = f"{paid_amount:,.0f} VND"
+            guest_phone_str = (
+                f" (SĐT: {instance.guest.phone_number})"
+                if instance.guest and getattr(instance.guest, 'phone_number', None)
+                else ""
+            )
+
             # Thông báo cho Khách hàng
+            from ..bookings.cancel_policy import parse_booking_refund_bank_info
+            refund_bank = parse_booking_refund_bank_info(instance) if was_paid else None
+            refund_bank_summary = refund_bank.get('summary') if refund_bank else ''
+
             if instance.guest:
-                Notification.objects.create(
-                    recipient=instance.guest,
-                    title="Hủy đơn đặt phòng thành công!",
-                    message=(
+                bank_confirm_note = (
+                    f" Tài khoản nhận hoàn tiền đã ghi nhận: {refund_bank_summary}."
+                    if refund_bank_summary
+                    else ""
+                )
+                guest_cancel_msg = (
+                    f"Đơn đặt phòng #{instance.booking_code}{room_desc} đã được hủy thành công. "
+                    f"Bộ phận Thu ngân đã nhận được thông báo đối soát hoàn tiền {paid_amount_str} và sẽ thông báo lại ngay khi hoàn tất phiếu chi.{bank_confirm_note}"
+                    if was_paid
+                    else (
                         f"Đơn đặt phòng #{instance.booking_code}{room_desc} đã được hủy thành công. "
                         f"Khách sạn TA Đà Nẵng hy vọng sẽ có cơ hội được đón tiếp quý khách vào dịp lưu trú khác."
-                    ),
-                    notification_type='booking',
+                    )
+                )
+                Notification.objects.create(
+                    recipient=instance.guest,
+                    title="Hủy đơn thành công — Đang chờ hoàn tiền" if was_paid else "Hủy đơn đặt phòng thành công!",
+                    message=guest_cancel_msg,
+                    notification_type='payment' if was_paid else 'booking',
                     action_url=guest_url,
-                    priority='normal'
+                    priority='high' if was_paid else 'normal'
                 )
 
-            # Thông báo cho Quản lý & Lễ tân
-            staff_users = get_staff_and_admin_users(exclude_user_id=instance.guest_id if instance.guest else None, event_type='booking_manage')
+            # Thông báo cho Quản lý, Lễ tân (và Thu ngân nếu đơn đã thanh toán cần hoàn tiền)
+            if was_paid:
+                staff_users = get_finance_and_cashier_users(
+                    exclude_user_id=instance.guest_id if instance.guest else None
+                )
+                bank_staff_note = (
+                    f" TK nhận hoàn tiền: {refund_bank_summary}."
+                    if refund_bank_summary
+                    else " (Khách chưa cung cấp STK — vui lòng liên hệ SĐT khách trước khi hoàn)."
+                )
+                staff_title = f"[CẦN HOÀN TIỀN] Hủy đơn đã thanh toán: #{instance.booking_code}"
+                staff_msg = (
+                    f"Khách {guest_name}{guest_phone_str} đã hủy đơn #{instance.booking_code}{room_desc} "
+                    f"đã thanh toán {paid_amount_str}.{bank_staff_note} Vui lòng đối soát điều kiện hủy và lập Phiếu chi hoàn tiền (REFUND_CANCEL)."
+                )
+                staff_notif_type = 'payment'
+            else:
+                staff_users = get_staff_and_admin_users(
+                    exclude_user_id=instance.guest_id if instance.guest else None,
+                    event_type='booking_manage'
+                )
+                staff_title = f"Đơn đặt phòng đã bị hủy: #{instance.booking_code}"
+                staff_msg = (
+                    f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc} đã được hủy. "
+                    f"Phòng và lịch lưu trú đã được giải phóng trên hệ thống."
+                )
+                staff_notif_type = 'booking'
+
             staff_notifications = [
                 Notification(
                     recipient=staff,
-                    title=f"Đơn đặt phòng đã bị hủy: #{instance.booking_code}",
-                    message=(
-                        f"Đơn đặt phòng #{instance.booking_code} của khách {guest_name}{room_desc} đã được hủy. "
-                        f"Phòng và lịch lưu trú đã được giải phóng trên hệ thống."
-                    ),
-                    notification_type='booking',
+                    title=staff_title,
+                    message=staff_msg,
+                    notification_type=staff_notif_type,
                     action_url=staff_url,
                     priority='high'
                 )
@@ -1003,6 +1060,39 @@ def notify_on_cash_out_voucher(sender, instance, created, **kwargs):
         ]
         if staff_notifications:
             Notification.objects.bulk_create(staff_notifications)
+
+        # Gửi thông báo về tài khoản khách hàng (In-App + tự động Push Mobile) khi lập phiếu chi hoàn tiền / hoàn cọc
+        if instance.voucher_type in ('REFUND_CANCEL', 'REFUND_DEPOSIT'):
+            guest_recipient = None
+            target_label = ''
+            if instance.booking and instance.booking.guest:
+                guest_recipient = instance.booking.guest
+                target_label = f"đơn #{instance.booking.booking_code}"
+            elif instance.group_booking:
+                grp = instance.group_booking
+                target_label = f"đoàn #{grp.group_code}"
+                first_sub = grp.sub_bookings.filter(guest__isnull=False).select_related('guest').first()
+                if first_sub and first_sub.guest:
+                    guest_recipient = first_sub.guest
+                elif grp.leader_email:
+                    guest_recipient = User.objects.filter(role='guest', email__iexact=grp.leader_email.strip()).first()
+                elif grp.leader_phone:
+                    guest_recipient = User.objects.filter(role='guest', phone_number=grp.leader_phone.strip()).first()
+
+            if guest_recipient:
+                method_label = format_payment_method(instance.payment_method)
+                Notification.objects.create(
+                    recipient=guest_recipient,
+                    title=f"Đã hoàn tiền cho {target_label}" if target_label else "Đã hoàn tiền thành công",
+                    message=(
+                        f"Khách sạn TA Đà Nẵng đã lập phiếu chi #{instance.voucher_code} hoàn trả số tiền {amount_str} "
+                        f"({method_label}){f' cho {target_label}' if target_label else ''}. "
+                        f"Lý do: {instance.reason}."
+                    ),
+                    notification_type='payment',
+                    action_url='/booking-history',
+                    priority='high'
+                )
 
     except Exception as e:
         logger.error(f"Lỗi khi gửi thông báo CashOutVoucher #{getattr(instance, 'pk', 'N/A')}: {e}")

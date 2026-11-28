@@ -303,7 +303,7 @@ export default function FeaturedServices() {
                     <div ref={servicesGridRef}>
                         <div
                             key={activeFilter}
-                            className="animate-tab-reveal flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar"
+                            className="animate-tab-reveal flex items-stretch sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-7 overflow-x-auto sm:overflow-visible snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0 no-scrollbar"
                         >
                             {displayedServices.map((item, idx) => {
                                 const imgSrc = item.display_image || item.image_url || 'https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80';
@@ -313,7 +313,7 @@ export default function FeaturedServices() {
                                 return (
                                     <div
                                         key={item.id}
-                                        className={`${servicesGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full`}
+                                        className={`${servicesGridVisible ? 'reveal-card-in' : 'reveal-card-hidden'} w-[82vw] max-w-[320px] sm:w-auto sm:max-w-none shrink-0 snap-center group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.08)] hover:shadow-[0_18px_40px_-14px_rgba(15,23,42,0.16)] hover:border-sky-200/90 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between sm:h-full`}
                                         style={servicesGridVisible ? { animationDelay: `${Math.min(idx, 5) * 75}ms` } : undefined}
                                     >
                                     {/* Image Wrapper: Bấm để xem chi tiết dịch vụ */}
@@ -365,14 +365,14 @@ export default function FeaturedServices() {
                                             }}
                                             className="cursor-pointer focus:outline-none"
                                         >
-                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium mb-1 sm:mb-1.5">
-                                                <Clock className="w-3 h-3 text-amber-600/80" />
-                                                <span>{item.duration || 'Phục vụ tận phòng 24/7'}</span>
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium mb-1 sm:mb-1.5 min-w-0">
+                                                <Clock className="w-3 h-3 text-amber-600/80 shrink-0" />
+                                                <span className="truncate">{item.duration || 'Phục vụ tận phòng 24/7'}</span>
                                             </div>
-                                            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-2 sm:min-h-[3rem] leading-snug mb-1.5 sm:mb-2">
+                                            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 group-hover:text-sky-700 transition-colors line-clamp-2 min-h-[2.75rem] sm:min-h-[3rem] leading-snug mb-1.5 sm:mb-2">
                                                 {item.name}
                                             </h3>
-                                            <p className="text-slate-500 text-xs sm:text-[13px] line-clamp-2 leading-relaxed font-normal sm:min-h-[2.5rem] mb-3 sm:mb-5">
+                                            <p className="text-slate-500 text-xs sm:text-[13px] line-clamp-2 leading-relaxed font-normal min-h-[2.25rem] sm:min-h-[2.5rem] mb-3 sm:mb-5">
                                                 {item.description || `Dịch vụ đẳng cấp được chế tác riêng phục vụ khách hàng lưu trú tại ${hotelName}.`}
                                             </p>
                                         </div>

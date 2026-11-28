@@ -177,11 +177,11 @@ export default function RoomReviewsSection({
             {/* 1. TIÊU ĐỀ & ĐIỂM TỔNG QUAN */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 sm:pb-6 border-b border-slate-100">
                 <div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs uppercase font-bold tracking-widest text-amber-600">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs uppercase font-bold tracking-wider sm:tracking-widest text-amber-600">
                             Trải nghiệm khách hàng
                         </span>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/70 text-emerald-700 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0">
                             ✓ Đã xác thực
                         </span>
                     </div>
@@ -314,18 +314,18 @@ export default function RoomReviewsSection({
 
             {/* 4. FORM VIẾT ĐÁNH GIÁ (KHI CÓ BOOKING CẦN ĐÁNH GIÁ) */}
             {bookingToReview && (
-                <div className="p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-6">
+                <div className="p-4 sm:p-6 bg-white rounded-3xl border border-slate-200 shadow-sm space-y-5 sm:space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs">
+                        <div className="flex items-start sm:items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
                                 <Star className="w-5 h-5 fill-white text-white" />
                             </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-900 text-sm sm:text-base">
+                            <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="font-bold text-slate-900 text-sm sm:text-base leading-snug">
                                         Đánh giá kỳ nghỉ của quý khách
                                     </span>
-                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-[11px] font-bold">
+                                    <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono text-[11px] font-bold whitespace-nowrap shrink-0">
                                         #{bookingToReview.booking_code}
                                     </span>
                                 </div>
@@ -777,11 +777,11 @@ export default function RoomReviewsSection({
                                 {/* Phản hồi từ Ban quản lý khách sạn nếu có */}
                                 {rev.admin_reply && (
                                     <div className="mt-3 p-3.5 sm:p-4 bg-amber-50/60 border border-amber-200/70 rounded-2xl space-y-1.5 ml-0 sm:ml-6">
-                                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                                            <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                        <div className="flex items-start gap-2 text-xs font-bold text-amber-900">
+                                            <div className="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5">
                                                 <Crown className="w-3 h-3 text-white" />
                                             </div>
-                                            <span>
+                                            <span className="leading-snug">
                                                 Phản hồi từ Ban Quản Lý{' '}
                                                 {settings?.hotel_name || 'Khách Sạn TA Đà Nẵng'}
                                             </span>
@@ -803,12 +803,12 @@ export default function RoomReviewsSection({
                             Hiển thị <strong>{(currentPage - 1) * REVIEWS_PER_PAGE + 1} - {Math.min(currentPage * REVIEWS_PER_PAGE, filteredReviews.length)}</strong> trên tổng số <strong>{filteredReviews.length}</strong> đánh giá
                         </span>
 
-                        <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 order-1 sm:order-2">
                             <button
                                 type="button"
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
                                 aria-label="Trang trước"
                                 title="Trang trước"
                             >
@@ -825,7 +825,7 @@ export default function RoomReviewsSection({
                                         key={pageNum}
                                         type="button"
                                         onClick={() => handlePageChange(pageNum)}
-                                        className={`min-w-[40px] h-10 sm:min-w-[32px] sm:h-8 px-2 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
+                                        className={`min-w-[32px] h-8 px-2 rounded-xl font-bold text-xs transition cursor-pointer flex items-center justify-center shrink-0 ${
                                             currentPage === pageNum
                                                 ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-md shadow-sky-900/20'
                                                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
@@ -840,7 +840,7 @@ export default function RoomReviewsSection({
                                 type="button"
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
-                                className="w-10 h-10 sm:w-8 sm:h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
+                                className="w-8 h-8 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40 disabled:pointer-events-none transition cursor-pointer flex items-center justify-center shrink-0"
                                 aria-label="Trang sau"
                                 title="Trang sau"
                             >

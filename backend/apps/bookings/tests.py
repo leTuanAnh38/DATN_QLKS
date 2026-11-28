@@ -988,4 +988,251 @@ class GroupBookingCancellationTests(APITestCase):
         self.assertEqual(res_req.status_code, 200)
         self.assertFalse(res_req.data['cancel_request']['is_free_cancel_eligible'])
 
+    # Kiểm tra hủy lẻ 2/3 phòng đoàn CHƯA cọc còn 1 phòng cuối -> tự tính lại tổng tiền, tiền cọc 50% và Master Invoice
+    def test_tentative_3room_group_partial_cancel_down_to_1_syncs_deposit_and_invoice(self):
+        from ..payments.models import Invoice
+    # Kiểm tra hủy lẻ 2/3 phòng đoàn CHƯA cọc còn 1 phòng cuối -> tự tính lại tổng tiền, tiền cọc 50% và Master Invoice
+    def test_tentative_3room_group_partial_cancel_down_to_1_syncs_deposit_and_invoice(self):
+        from ..payments.models import Invoice
+
+        group, subs = self._create_group_with_subs(is_deposit_paid=False, status='tentative', days_until=5, count=3)
+        group.total_amount = Decimal('6000000')
+        group.deposit_amount = Decimal('3000000')
+        group.save(update_fields=['total_amount', 'deposit_amount'])
+        master_inv = Invoice.objects.create(
+            group_booking=group,
+            room_charge=Decimal('6000000'),
+            service_charge=Decimal('0'),
+            total_amount=Decimal('6000000'),
+            status='pending',
+        )
+
+        self.client.force_authenticate(user=self.leader)
+        res1 = self.client.post('/api/bookings/cancel-booking/', {'booking_id': subs[0].id, 'reason': 'Giảm phòng 1'}, format='json')
+        res2 = self.client.post('/api/bookings/cancel-booking/', {'booking_id': subs[1].id, 'reason': 'Giảm phòng 2'}, format='json')
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res2.status_code, 200)
+
+        group.refresh_from_db()
+        master_inv.refresh_from_db()
+        self.assertEqual(group.status, 'tentative')
+        self.assertEqual(group.total_amount, Decimal('2000000'))
+        self.assertEqual(group.deposit_amount, Decimal('1000000'))
+        self.assertEqual(master_inv.room_charge, Decimal('2000000'))
+        self.assertEqual(master_inv.total_amount, Decimal('2000000'))
+
+    # Kiểm tra lễ tân hủy lẻ 2/3 phòng đoàn ĐÃ cọc 50% còn 1 phòng cuối -> giữ cọc đã thu, đồng bộ Master Invoice và báo dư cọc cần hoàn
+    def test_deposited_3room_group_staff_partial_cancel_down_to_1_flags_overpaid_deposit(self):
+        from ..payments.models import Invoice, CashOutVoucher
+
+        group, subs = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=5, count=3)
+        group.total_amount = Decimal('6000000')
+        group.deposit_amount = Decimal('3000000')
+        group.save(update_fields=['total_amount', 'deposit_amount'])
+        master_inv = Invoice.objects.create(
+            group_booking=group,
+            room_charge=Decimal('6000000'),
+            service_charge=Decimal('0'),
+            total_amount=Decimal('6000000'),
+            status='pending',
+        )
+
+        self.client.force_authenticate(user=self.receptionist)
+        res1 = self.client.post('/api/bookings/cancel-booking/', {'booking_id': subs[0].id, 'reason': 'Giảm phòng 1'}, format='json')
+        res2 = self.client.post('/api/bookings/cancel-booking/', {'booking_id': subs[1].id, 'reason': 'Giảm phòng 2'}, format='json')
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res2.status_code, 200)
+        self.assertEqual(res2.data['group_overpaid_amount'], 1000000.0)
+        self.assertTrue(res2.data['refund_pending'])
+
+        group.refresh_from_db()
+        master_inv.refresh_from_db()
+        self.assertEqual(group.status, 'confirmed')
+        self.assertEqual(group.total_amount, Decimal('2000000'))
+        self.assertEqual(group.deposit_amount, Decimal('3000000'))
+        self.assertEqual(master_inv.room_charge, Decimal('2000000'))
+        self.assertEqual(master_inv.total_amount, Decimal('2000000'))
+
+        # Group detail API reports overpaid_amount = 1,000,000 and remaining_balance = 0
+        res_grp = self.client.get(f'/api/bookings/groups/{group.id}/')
+        self.assertEqual(res_grp.status_code, 200)
+        self.assertEqual(res_grp.data['active_rooms_count'], 1)
+        self.assertEqual(res_grp.data['remaining_balance'], 0.0)
+        self.assertEqual(res_grp.data['overpaid_amount'], 1000000.0)
+        self.assertEqual(res_grp.data['deposit_status'], 'Dư cọc cần hoàn')
+
+        # After cashier creates refund voucher of 1,000,000 -> overpaid_amount drops to 0
+        CashOutVoucher.objects.create(
+            voucher_type='REFUND_DEPOSIT',
+            payment_method='TRANSFER',
+            amount=Decimal('1000000'),
+            group_booking=group,
+            recipient_name='Nguyen Leader',
+            reason='Hoàn cọc dư do giảm 2 phòng đoàn',
+            user=self.receptionist,
+        )
+        res_grp_after = self.client.get(f'/api/bookings/groups/{group.id}/')
+        self.assertEqual(res_grp_after.status_code, 200)
+        self.assertEqual(res_grp_after.data['overpaid_amount'], 0.0)
+
+    # Kiểm tra đơn đoàn chưa cọc quá hạn HotelSetting.auto_cancel_minutes sẽ tự hủy & nhả phòng, còn đoàn đã cọc không bị ảnh hưởng
+    def test_overdue_tentative_group_auto_cancels_by_hotel_setting_and_releases_rooms(self):
+        from ..bookings.models import HotelSetting
+        from ..payments.models import Invoice
+        from ..rooms.models import Room
+
+        setting = HotelSetting.get_settings()
+        setting.auto_cancel_minutes = 20
+        setting.save(update_fields=['auto_cancel_minutes'])
+
+        # Tạo 3 phòng vật lý trong hạng self.cat_std
+        for num in ['301', '302', '303']:
+            Room.objects.create(room_number=num, category=self.cat_std, floor=3, status='available')
+
+        unpaid_group, unpaid_subs = self._create_group_with_subs(is_deposit_paid=False, status='tentative', days_until=6, count=2)
+        unpaid_inv = Invoice.objects.create(
+            group_booking=unpaid_group,
+            room_charge=Decimal('4000000'),
+            service_charge=Decimal('0'),
+            total_amount=Decimal('4000000'),
+            status='pending',
+        )
+        paid_group, paid_subs = self._create_group_with_subs(is_deposit_paid=True, status='confirmed', days_until=6, count=1)
+
+        c_in = unpaid_group.check_in_date.strftime('%Y-%m-%d')
+        c_out = unpaid_group.check_out_date.strftime('%Y-%m-%d')
+
+        # 1. Khi còn trong hạn 20 phút -> 2 phòng unpaid + 1 phòng paid = 3 phòng bận -> còn 0 phòng trống
+        res_before = self.client.get(f'/api/bookings/check-availability/?check_in_date={c_in}&check_out_date={c_out}&category_id={self.cat_std.id}')
+        self.assertEqual(res_before.status_code, 200)
+        self.assertEqual(res_before.data['available_rooms'], 0)
+
+        # 2. Quá hạn 25 phút (> 20 phút) cho cả 2 đoàn -> chỉ đoàn chưa cọc tự hủy và nhả 2 phòng
+        overdue_ts = timezone.now() - timedelta(minutes=25)
+        GroupBooking.objects.filter(pk__in=[unpaid_group.id, paid_group.id]).update(created_at=overdue_ts)
+        Booking.objects.filter(pk__in=[s.id for s in unpaid_subs + paid_subs]).update(created_at=overdue_ts)
+
+        res_after = self.client.get(f'/api/bookings/check-availability/?check_in_date={c_in}&check_out_date={c_out}&category_id={self.cat_std.id}')
+        self.assertEqual(res_after.status_code, 200)
+        self.assertEqual(res_after.data['available_rooms'], 2)
+
+        unpaid_group.refresh_from_db()
+        unpaid_inv.refresh_from_db()
+        paid_group.refresh_from_db()
+        self.assertEqual(unpaid_group.status, 'cancelled')
+        self.assertIn('Tự động hủy', unpaid_group.note)
+        self.assertEqual(unpaid_inv.status, 'cancelled')
+        for s in unpaid_subs:
+            s.refresh_from_db()
+            self.assertEqual(s.status, 'cancelled')
+        # Đoàn đã cọc giữ nguyên confirmed
+        self.assertEqual(paid_group.status, 'confirmed')
+        paid_subs[0].refresh_from_db()
+        self.assertEqual(paid_subs[0].status, 'confirmed')
+
+    # Kiểm tra hủy đơn lẻ đã thanh toán VietQR báo cho Thu ngân/Quản lý và khi lập phiếu chi hoàn tiền sẽ báo về tài khoản khách
+    def test_paid_single_booking_cancel_notifies_cashier_and_cashout_notifies_guest(self):
+        from ..payments.models import Invoice, Payment, CashOutVoucher
+
+        cashier = User.objects.create_user(
+            username='cashier_refund_test',
+            email='cashier_refund@example.com',
+            password='Password123!',
+            role='cashier',
+            is_staff=True,
+        )
+        c_in = self.today + timedelta(days=5)
+        c_out = c_in + timedelta(days=2)
+        bk = Booking.objects.create(
+            guest=self.leader,
+            category=self.cat_std,
+            check_in_date=c_in,
+            check_out_date=c_out,
+            total_amount=Decimal('2500000'),
+            status='paid',
+        )
+        Invoice.objects.create(booking=bk, room_charge=Decimal('2500000'), total_amount=Decimal('2500000'), status='paid')
+        Payment.objects.create(booking=bk, amount=Decimal('2500000'), payment_method='TRANSFER', payment_status='COMPLETED')
+
+        # 1. Khách hủy đơn đã thanh toán (trước >= 48h) kèm STK nhận hoàn tiền -> Thu ngân nhận thông báo [CẦN HOÀN TIỀN] có STK & Khách nhận thông báo chờ hoàn
+        self.client.force_authenticate(user=self.leader)
+        res_cancel = self.client.post(
+            '/api/bookings/cancel-booking/',
+            {
+                'booking_id': bk.id,
+                'reason': 'Đổi kế hoạch',
+                'refund_bank_name': 'MB Bank',
+                'refund_account_number': '0987654321',
+                'refund_account_holder': 'NGUYEN LEADER',
+            },
+            format='json',
+        )
+        self.assertEqual(res_cancel.status_code, 200)
+        self.assertTrue(res_cancel.data['refund_pending'])
+        self.assertEqual(res_cancel.data['refund_bank_info']['bank_name'], 'MB Bank')
+        self.assertEqual(res_cancel.data['refund_bank_info']['account_number'], '0987654321')
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=cashier,
+                title__icontains='CẦN HOÀN TIỀN',
+                message__icontains='0987654321',
+            ).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.leader, title__icontains='chờ hoàn tiền', message__icontains=bk.booking_code).exists()
+        )
+
+        # 1b. Khi nhân viên cập nhật internal_note, thông tin STK nhận hoàn tiền vẫn được bảo toàn & không lộ raw JSON tag
+        manager = User.objects.create_user(
+            username='manager_refund_test',
+            email='manager_refund@example.com',
+            password='Password123!',
+            role='admin',
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.client.force_authenticate(user=manager)
+        res_patch_note = self.client.patch(
+            f'/api/bookings/{bk.id}/',
+            {'internal_note': 'Đã gọi xác nhận STK với khách'},
+            format='json',
+        )
+        self.assertEqual(res_patch_note.status_code, 200)
+        self.assertEqual(res_patch_note.data['internal_note'], 'Đã gọi xác nhận STK với khách')
+        self.assertEqual(res_patch_note.data['refund_bank_info']['account_number'], '0987654321')
+
+        # 2. Thu ngân lập phiếu chi hoàn tiền kèm thông tin STK ngân hàng -> API trả trường ngân hàng sạch, ẩn raw tag & báo về tài khoản khách
+        self.client.force_authenticate(user=cashier)
+        res_co = self.client.post(
+            '/api/payments/cash-outs/',
+            {
+                'voucher_type': 'REFUND_CANCEL',
+                'payment_method': 'TRANSFER',
+                'amount': 2500000,
+                'recipient_name': 'Nguyen Leader',
+                'recipient_bank_name': 'MB Bank',
+                'recipient_account_number': '0987654321',
+                'recipient_account_holder': 'NGUYEN LEADER',
+                'reason': f'Hoàn tiền hủy đơn #{bk.booking_code}',
+                'booking_id': bk.id,
+            },
+            format='json',
+        )
+        self.assertEqual(res_co.status_code, 201)
+        voucher_data = res_co.data['data']
+        self.assertEqual(voucher_data['recipient_bank_name'], 'MB Bank')
+        self.assertEqual(voucher_data['recipient_account_number'], '0987654321')
+        self.assertEqual(voucher_data['recipient_account_holder'], 'NGUYEN LEADER')
+        self.assertEqual(voucher_data['reason'], f'Hoàn tiền hủy đơn #{bk.booking_code}')
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.leader, title__icontains='Đã hoàn tiền', message__icontains=bk.booking_code).exists()
+        )
+
+        res_detail = self.client.get(f'/api/bookings/{bk.id}/')
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertEqual(res_detail.data['refunded_amount'], 2500000.0)
+        self.assertEqual(res_detail.data['refund_bank_info']['summary'], 'MB Bank - 0987654321 - NGUYEN LEADER')
+
+
+
 

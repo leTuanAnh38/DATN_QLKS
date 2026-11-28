@@ -1,7 +1,13 @@
 from rest_framework import serializers
 from django.db.models import Prefetch
 from .models import Booking, BookingExtraService, Promotion, BookingGuest, CorporatePartner, GroupBooking, HotelSetting
-from .cancel_policy import get_cancellation_free_hours, get_group_cancel_eligibility, parse_group_cancel_request
+from .cancel_policy import (
+    get_cancellation_free_hours,
+    get_group_cancel_eligibility,
+    parse_group_cancel_request,
+    parse_booking_refund_bank_info,
+    strip_refund_bank_tag,
+)
 from ..rooms.models import Room, RoomCategory, MinibarCheck
 from ..users.models import User
 import datetime
@@ -22,6 +28,7 @@ def optimize_booking_queryset(qs):
         'extra_services',
         'service_requests__service__category',
         'payments',
+        'cash_outs',
         'guests',
         'category__images',
         'room__category__images',
@@ -148,6 +155,8 @@ class BookingSerializer(serializers.ModelSerializer):
     group_cancel_request = serializers.SerializerMethodField()
     group_cancel_policy = serializers.SerializerMethodField()
     latest_inspection = serializers.SerializerMethodField()
+    refunded_amount = serializers.SerializerMethodField()
+    refund_bank_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -206,6 +215,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'service_charge',
             'total_amount',
             'paid_amount',
+            'refunded_amount',
+            'refund_bank_info',
             'remaining_balance',
             'room_amount',
             'extra_services',
@@ -500,6 +511,25 @@ class BookingSerializer(serializers.ModelSerializer):
             paid += float(paid_svc_total)
 
         return paid
+
+    def get_refunded_amount(self, obj):
+        try:
+            vouchers = [
+                v for v in obj.cash_outs.all()
+                if getattr(v, 'voucher_type', '') in ('REFUND_CANCEL', 'REFUND_DEPOSIT')
+            ]
+            return float(sum(v.amount for v in vouchers))
+        except Exception:
+            return 0.0
+
+    def get_refund_bank_info(self, obj):
+        return parse_booking_refund_bank_info(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('internal_note'):
+            data['internal_note'] = strip_refund_bank_tag(data['internal_note'])
+        return data
 
     def get_is_company_all_inclusive(self, obj):
         return bool(obj.group_booking and getattr(obj.group_booking, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE')
@@ -1027,11 +1057,14 @@ class GroupBookingSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     billing_type_display = serializers.CharField(source='get_billing_type_display', read_only=True)
     total_rooms = serializers.SerializerMethodField()
+    active_rooms_count = serializers.SerializerMethodField()
     sub_bookings = serializers.SerializerMethodField()
     rooms_summary = serializers.SerializerMethodField()
     nights = serializers.SerializerMethodField()
     deposit_status = serializers.SerializerMethodField()
     remaining_balance = serializers.SerializerMethodField()
+    overpaid_amount = serializers.SerializerMethodField()
+    refunded_amount = serializers.SerializerMethodField()
     cancel_request = serializers.SerializerMethodField()
     cancel_policy = serializers.SerializerMethodField()
 
@@ -1042,11 +1075,11 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             'corporate_partner_details', 'leader_name', 'leader_phone',
             'leader_email', 'check_in_date', 'check_out_date', 'nights',
             'total_amount', 'deposit_amount', 'is_deposit_paid',
-            'deposit_status', 'remaining_balance',
+            'deposit_status', 'remaining_balance', 'overpaid_amount', 'refunded_amount',
             'billing_type', 'billing_type_display',
             'status', 'status_display', 'note', 'internal_note',
             'cancel_request', 'cancel_policy',
-            'total_rooms', 'sub_bookings', 'rooms_summary',
+            'total_rooms', 'active_rooms_count', 'sub_bookings', 'rooms_summary',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
@@ -1076,20 +1109,13 @@ class GroupBookingSerializer(serializers.ModelSerializer):
             return len(sub_cache)
         return obj.sub_bookings.count()
 
-    def get_deposit_status(self, obj):
-        if obj.is_deposit_paid:
-            deposit = float(obj.deposit_amount or 0)
-            total = float(obj.total_amount or 0)
-            if total > 0 and deposit >= total:
-                return 'Đã thanh toán 100%'
-            return 'Đã thanh toán cọc'
-        if obj.deposit_amount and obj.deposit_amount > 0:
-            return 'Chờ thanh toán cọc'
-        return 'Chưa yêu cầu cọc'
+    def get_active_rooms_count(self, obj):
+        sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')
+        if sub_cache is not None:
+            return sum(1 for b in sub_cache if b.status != 'cancelled')
+        return obj.sub_bookings.exclude(status='cancelled').count()
 
-    def get_remaining_balance(self, obj):
-        if obj.status == 'completed':
-            return 0.0
+    def _compute_group_financial_snapshot(self, obj):
         paid = 0.0
         if hasattr(obj, 'payments'):
             completed_payments = obj.payments.filter(payment_status='COMPLETED')
@@ -1097,6 +1123,14 @@ class GroupBookingSerializer(serializers.ModelSerializer):
                 paid = float(sum(p.amount for p in completed_payments))
         if paid <= 0 and obj.is_deposit_paid:
             paid = float(obj.deposit_amount or 0)
+
+        refunded = 0.0
+        if hasattr(obj, 'cash_outs'):
+            refunded_vouchers = obj.cash_outs.filter(voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'])
+            if refunded_vouchers.exists():
+                refunded = float(sum(v.amount for v in refunded_vouchers))
+
+        net_paid = max(0.0, paid - refunded)
         extra = 0.0
         if getattr(obj, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
             sub_ids = list(obj.sub_bookings.exclude(status='cancelled').values_list('id', flat=True))
@@ -1106,7 +1140,39 @@ class GroupBookingSerializer(serializers.ModelSerializer):
                     is_paid=False
                 ).exclude(service_name__icontains='[Đặt kèm đoàn]')
                 extra = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
-        return max(0.0, float(obj.total_amount or 0) + extra - paid)
+        contract_total = float(obj.total_amount or 0) + extra
+        return net_paid, contract_total
+
+    def get_deposit_status(self, obj):
+        if obj.is_deposit_paid:
+            net_paid, contract_total = self._compute_group_financial_snapshot(obj)
+            if contract_total > 0 and net_paid > contract_total:
+                return 'Dư cọc cần hoàn'
+            if contract_total > 0 and net_paid >= contract_total:
+                return 'Đã thanh toán 100%'
+            return 'Đã thanh toán cọc'
+        if obj.deposit_amount and obj.deposit_amount > 0:
+            return 'Chờ thanh toán cọc'
+        return 'Chưa yêu cầu cọc'
+
+    def get_remaining_balance(self, obj):
+        if obj.status in ['completed', 'cancelled']:
+            return 0.0
+        net_paid, contract_total = self._compute_group_financial_snapshot(obj)
+        return max(0.0, contract_total - net_paid)
+
+    def get_overpaid_amount(self, obj):
+        if obj.status == 'cancelled':
+            return 0.0
+        net_paid, contract_total = self._compute_group_financial_snapshot(obj)
+        return max(0.0, net_paid - contract_total)
+
+    def get_refunded_amount(self, obj):
+        if hasattr(obj, 'cash_outs'):
+            refunded_vouchers = obj.cash_outs.filter(voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'])
+            if refunded_vouchers.exists():
+                return float(sum(v.amount for v in refunded_vouchers))
+        return 0.0
 
     def get_sub_bookings(self, obj):
         sub_cache = getattr(obj, '_prefetched_objects_cache', {}).get('sub_bookings')

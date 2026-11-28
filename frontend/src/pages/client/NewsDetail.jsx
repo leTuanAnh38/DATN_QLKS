@@ -137,12 +137,12 @@ export default function NewsDetail() {
 
             <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 md:py-12">
                 {isLoading ? (
-                    <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-3">
+                    <div className="bg-white rounded-3xl p-8 sm:p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-3">
                         <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                         <p className="text-xs text-slate-500 font-semibold">Đang tải bài viết...</p>
                     </div>
                 ) : error || !post ? (
-                    <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-4">
+                    <div className="bg-white rounded-3xl p-8 sm:p-16 text-center border border-slate-200 shadow-xs max-w-md mx-auto space-y-4">
                         <div className="w-14 h-14 rounded-2xl bg-sky-50 border border-sky-200/70 text-sky-600 flex items-center justify-center mx-auto shadow-2xs text-2xl font-bold">
                             !
                         </div>

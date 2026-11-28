@@ -109,32 +109,51 @@ class GroupBookingStayMixin:
 
         with transaction.atomic():
             # Cập nhật hoặc tạo Master Invoice thanh toán toàn bộ cho đoàn
-            from ...payments.models import Invoice, Payment, CashierShift
+            from ...payments.models import Invoice, Payment, CashierShift, CashOutVoucher
             from ...payments.methods import normalize_payment_method_code, normalize_invoice_payment_method
             payment_method = request.data.get('payment_method', 'transfer')
             method_code = normalize_payment_method_code(payment_method)
             inv_payment_method = normalize_invoice_payment_method(method_code)
-            
+
+            # Chỉ tính dịch vụ trên các phòng hoạt động (loại trừ phòng đã hủy)
+            active_sub_ids = list(group.sub_bookings.exclude(status='cancelled').values_list('id', flat=True))
+            prebooked_svcs = BookingExtraService.objects.filter(
+                booking_id__in=active_sub_ids,
+                service_name__icontains='[Đặt kèm đoàn]',
+            )
+            active_prebooked_service = float(sum((b.price or 0) * (b.quantity or 1) for b in prebooked_svcs))
+            active_room_charge = max(0.0, float(group.total_amount or 0) - active_prebooked_service)
+
             # Nếu công ty chi trả toàn bộ (ALL_INCLUSIVE):
-            # Tự động quét và gom toàn bộ phụ phí dịch vụ phát sinh chưa thanh toán của tất cả phòng con vào hóa đơn đoàn
+            # Tự động quét và gom toàn bộ phụ phí dịch vụ phát sinh chưa thanh toán của các phòng hoạt động vào hóa đơn đoàn
             unpaid_incidental_services = 0.0
-            sub_ids = list(group.sub_bookings.values_list('id', flat=True))
             unpaid_bes = None
             if getattr(group, 'billing_type', 'ROOM_ONLY') == 'ALL_INCLUSIVE':
                 unpaid_bes = BookingExtraService.objects.filter(
-                    booking_id__in=sub_ids,
+                    booking_id__in=active_sub_ids,
                     is_paid=False
                 ).exclude(service_name__icontains='[Đặt kèm đoàn]')
                 unpaid_incidental_services = float(sum((b.price or 0) * (b.quantity or 1) for b in unpaid_bes))
 
-            # Tính toán chính xác số tiền đã thanh toán (Cọc + các đợt thanh toán trước)
+            # Tính toán chính xác số tiền đã thanh toán thực tế (trừ đi các phiếu chi hoàn cọc nếu đã chi)
             completed_payments = Payment.objects.filter(group_booking=group, payment_status='COMPLETED')
             total_paid = float(sum(p.amount for p in completed_payments)) if completed_payments.exists() else 0.0
             if total_paid <= 0 and group.is_deposit_paid:
                 total_paid = float(group.deposit_amount or 0)
+            refunded_so_far = float(
+                sum(
+                    v.amount
+                    for v in CashOutVoucher.objects.filter(
+                        group_booking=group,
+                        voucher_type__in=['REFUND_DEPOSIT', 'REFUND_CANCEL'],
+                    )
+                )
+            )
+            net_paid = max(0.0, total_paid - refunded_so_far)
 
             total_contract = float(group.total_amount or 0) + unpaid_incidental_services
-            remaining_balance = max(0.0, total_contract - total_paid)
+            remaining_balance = max(0.0, total_contract - net_paid)
+            overpaid_amount = max(0.0, net_paid - total_contract)
 
             corp = group.corporate_partner
             payment_terms_days = getattr(corp, 'payment_terms_days', 0) if corp else 0
@@ -173,7 +192,7 @@ class GroupBookingStayMixin:
             # Đánh dấu các dịch vụ này là đã thanh toán theo hóa đơn đoàn
             if unpaid_bes:
                 unpaid_bes.update(is_paid=True)
-                ServiceRequest.objects.filter(booking_id__in=sub_ids, is_paid=False).update(is_paid=True)
+                ServiceRequest.objects.filter(booking_id__in=active_sub_ids, is_paid=False).update(is_paid=True)
 
             master_inv = getattr(group, 'master_invoice', None)
             if not master_inv:
@@ -193,8 +212,8 @@ class GroupBookingStayMixin:
             if not master_inv:
                 master_inv = Invoice.objects.create(
                     group_booking=group,
-                    room_charge=float(group.total_amount or 0),
-                    service_charge=unpaid_incidental_services,
+                    room_charge=active_room_charge,
+                    service_charge=active_prebooked_service + unpaid_incidental_services,
                     total_amount=total_contract,
                     status=inv_status,
                     payment_method=inv_payment_method,
@@ -206,11 +225,16 @@ class GroupBookingStayMixin:
                     invoice_recipient_email=email
                 )
             else:
-                master_inv.service_charge = float(master_inv.service_charge or 0) + unpaid_incidental_services
-                master_inv.total_amount = total_contract
-                master_inv.status = inv_status
-                master_inv.paid_at = inv_paid_at
-                master_inv.payment_method = inv_payment_method
+                if master_inv.status != 'paid':
+                    master_inv.room_charge = active_room_charge
+                    master_inv.service_charge = active_prebooked_service + unpaid_incidental_services
+                    master_inv.total_amount = total_contract
+                    master_inv.status = inv_status
+                    master_inv.paid_at = inv_paid_at
+                    master_inv.payment_method = inv_payment_method
+                elif unpaid_incidental_services > 0:
+                    master_inv.service_charge = float(master_inv.service_charge or 0) + unpaid_incidental_services
+                    master_inv.total_amount = float(master_inv.total_amount or 0) + unpaid_incidental_services
                 if is_company_invoice:
                     master_inv.is_company_invoice = True
                     master_inv.company_name = comp_name
@@ -251,9 +275,14 @@ class GroupBookingStayMixin:
         except Exception:
             pass
 
+        co_msg = f'Hoàn tất Check-out cho đoàn #{group.group_code}!'
+        if overpaid_amount > 0:
+            co_msg += f' Lưu ý: Đoàn còn dư cọc {overpaid_amount:,.0f} VND cần lập phiếu chi hoàn lại khách.'
+
         return Response({
             'success': True,
-            'message': f'Hoàn tất Check-out cho đoàn #{group.group_code}!',
+            'message': co_msg,
+            'overpaid_amount': overpaid_amount,
             'group_booking': GroupBookingSerializer(group, context={'request': request}).data
         }, status=status.HTTP_200_OK)
 

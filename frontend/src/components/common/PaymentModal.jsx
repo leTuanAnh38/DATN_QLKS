@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { bookingService } from '../../services/bookingService';
+import { useHotelSettings } from '../../store/hotelSettingStore';
 
 /**
  * CẤU HÌNH DỰ PHÒNG THÔNG TIN TÀI KHOẢN NGÂN HÀNG (FALLBACK)
@@ -103,8 +104,12 @@ export default function PaymentModal({
     const [bankConfig, setBankConfig] = useState(() => cachedBankConfig || DEFAULT_BANK_CONFIG);
     const [isLoadingConfig, setIsLoadingConfig] = useState(() => !cachedBankConfig);
 
-    // Đồng hồ đếm ngược giữ phòng 15 phút (900 giây)
-    const [timeLeft, setTimeLeft] = useState(900);
+    const { settings: hotelSettings } = useHotelSettings();
+    const holdMinutes = Math.max(1, Number(hotelSettings?.auto_cancel_minutes) || 30);
+    const initialHoldSeconds = holdMinutes * 60;
+
+    // Đồng hồ đếm ngược giữ phòng đồng bộ theo Cài đặt hệ thống (mặc định 30 phút)
+    const [timeLeft, setTimeLeft] = useState(initialHoldSeconds);
 
     // Hộp thoại xác nhận khi khách bấm Hủy / Thoát
     const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -129,7 +134,7 @@ export default function PaymentModal({
         if (!isOpen) return;
         let isMounted = true;
         setErrorMessage('');
-        setTimeLeft(900);
+        setTimeLeft(initialHoldSeconds);
 
         const fetchBankConfig = async () => {
             if (!cachedBankConfig) {
@@ -167,7 +172,7 @@ export default function PaymentModal({
         return () => {
             isMounted = false;
         };
-    }, [isOpen, bookingId, code]);
+    }, [isOpen, bookingId, code, initialHoldSeconds]);
 
     // Đồng bộ trạng thái loading ảnh QR — nếu ảnh đã có sẵn trong cache trình duyệt thì hiển thị tức thì (0ms)
     useEffect(() => {
@@ -408,9 +413,9 @@ export default function PaymentModal({
                             <QrCode className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div className="min-w-0">
-                            <h2 className="text-sm sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 truncate">
-                                <span>Thanh Toán Chuyển Khoản VietQR</span>
-                                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <h2 className="text-sm sm:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2 min-w-0">
+                                <span className="truncate">Thanh Toán Chuyển Khoản VietQR</span>
+                                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                                     <ShieldCheck className="w-3 h-3" /> Tự động 24/7
                                 </span>
                             </h2>
@@ -693,24 +698,24 @@ export default function PaymentModal({
 
                         {/* Dòng chữ hướng dẫn */}
                         <div className="mt-3 space-y-1">
-                            <p className="text-xs sm:text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5">
-                                <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
+                            <p className="text-xs sm:text-sm font-bold text-slate-900 flex items-start sm:items-center justify-center gap-1.5 text-left sm:text-center">
+                                <Smartphone className="w-4 h-4 text-blue-600 shrink-0 mt-0.5 sm:mt-0" />
                                 <span>Mở app ngân hàng và quét mã để thanh toán nhanh</span>
                             </p>
                             <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
-                                Tự động điền số tiền <strong className="text-slate-800">{formatVND(totalAmount)}</strong> & nội dung chuyển khoản
+                                Tự động điền số tiền <strong className="text-slate-800 whitespace-nowrap">{formatVND(totalAmount)}</strong> & nội dung chuyển khoản
                             </p>
                         </div>
 
                         {/* KHU VỰC TRẠNG THÁI TỰ ĐỘNG CHỜ NHẬN TIỀN (AUTO POLLING) & HÀNH ĐỘNG (DESKTOP) */}
                         <div className="w-full mt-4 sm:mt-6 space-y-3">
-                            <div className="p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-2 text-blue-700 shadow-xs">
+                            <div className="p-2.5 sm:p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/90 rounded-2xl flex items-center justify-center gap-2 text-blue-700 shadow-xs">
                                 <span className="relative flex h-2.5 w-2.5 shrink-0">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
                                 </span>
                                 <RefreshCw className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
-                                <span className="text-xs sm:text-sm font-semibold text-blue-900 animate-pulse tracking-wide">
+                                <span className="text-[11px] sm:text-sm font-semibold text-blue-900 animate-pulse sm:tracking-wide">
                                     Hệ thống đang tự động chờ nhận tiền...
                                 </span>
                             </div>
@@ -759,10 +764,10 @@ export default function PaymentModal({
                         type="button"
                         onClick={handleConfirmPayment}
                         disabled={isLoading}
-                        className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-[0.99] text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-900/20 disabled:opacity-50"
+                        className="w-full min-h-[44px] py-2.5 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-[0.99] text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-sky-900/20 disabled:opacity-50"
                     >
                         {isLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                         ) : (
                             <CheckCircle2 className="w-4 h-4 shrink-0" />
                         )}
@@ -803,9 +808,9 @@ export default function PaymentModal({
                             <button
                                 type="button"
                                 onClick={() => setShowCancelDialog(false)}
-                                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20"
+                                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20"
                             >
-                                <QrCode className="w-4 h-4" />
+                                <QrCode className="w-4 h-4 shrink-0" />
                                 <span>Tiếp tục chuyển khoản</span>
                             </button>
 
@@ -813,9 +818,9 @@ export default function PaymentModal({
                             <button
                                 type="button"
                                 onClick={handleSaveAndExit}
-                                className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                             >
-                                <Save className="w-4 h-4 text-slate-500" />
+                                <Save className="w-4 h-4 text-slate-500 shrink-0" />
                                 <span>Lưu đơn, tôi sẽ thanh toán sau</span>
                             </button>
 
@@ -824,12 +829,12 @@ export default function PaymentModal({
                                 type="button"
                                 onClick={handleCancelBookingEntirely}
                                 disabled={isCancellingBooking}
-                                className="w-full py-2 px-4 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                className="w-full min-h-[44px] py-2.5 px-4 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                                 {isCancellingBooking ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                                 ) : (
-                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
                                 )}
                                 <span>Hủy bỏ hoàn toàn đơn đặt phòng này</span>
                             </button>

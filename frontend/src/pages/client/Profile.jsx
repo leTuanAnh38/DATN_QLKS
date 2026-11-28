@@ -774,8 +774,8 @@ export default function Profile() {
                                         <p className="text-xs text-slate-700 leading-relaxed italic bg-white p-3.5 rounded-2xl border border-slate-200/70">
                                             &ldquo;{formData.preferences || 'Chưa có ghi chú sở thích. Quý khách có thể ghi chú loại gối mềm, phòng tầng cao, view biển hoặc lưu ý ăn uống để đội ngũ khách sạn phục vụ chu đáo nhất.'}&rdquo;
                                         </p>
-                                        <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                                            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                        <span className="text-[11px] text-slate-500 flex items-start gap-1.5">
+                                            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
                                             <span>Đội ngũ khách sạn TA luôn sẵn sàng chuẩn bị phòng chu đáo nhất theo sở thích riêng của quý khách.</span>
                                         </span>
                                     </div>
@@ -1037,13 +1037,13 @@ export default function Profile() {
                         {/* Thẻ hướng dẫn quyền lợi hội viên */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Card 1: Quy chế tích điểm */}
-                            <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                            <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
                                 <div>
-                                    <div className="flex items-center gap-2.5 mb-3">
-                                        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+                                    <div className="flex items-start sm:items-center gap-2.5 mb-3">
+                                        <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 shrink-0">
                                             <Award className="w-5 h-5" />
                                         </div>
-                                        <h3 className="font-serif font-bold text-slate-900 text-lg">
+                                        <h3 className="font-serif font-bold text-slate-900 text-base sm:text-lg leading-snug">
                                             Chính Sách Tích Lũy Điểm
                                         </h3>
                                     </div>
@@ -1051,16 +1051,16 @@ export default function Profile() {
                                         Mỗi <strong>100.000 VNĐ</strong> thanh toán đặt phòng hoặc dịch vụ thành công tại Khách Sạn TA Đà Nẵng, quý khách sẽ được tích lũy <strong>1 điểm (pts)</strong>.
                                     </p>
                                     <div className="mt-4 space-y-2 text-xs text-slate-600">
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <div className="flex items-start gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                             <span>Điểm thưởng tích lũy tự động sau khi trả phòng (Check-out).</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <div className="flex items-start gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                             <span>Điểm được bảo lưu vĩnh viễn và dùng để thăng hạng thẻ tự động.</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <div className="flex items-start gap-2">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                             <span>Thăng hạng thẻ mở khóa chiết khấu phòng trực tiếp vào hóa đơn.</span>
                                         </div>
                                     </div>
@@ -1069,23 +1069,23 @@ export default function Profile() {
                                     <span className="text-slate-500">Tích thêm điểm ngay:</span>
                                     <Link
                                         to="/rooms"
-                                        className="text-sky-600 hover:text-sky-700 font-bold hover:underline flex items-center gap-1"
+                                        className="text-sky-600 hover:text-sky-700 font-bold hover:underline flex items-center gap-1 whitespace-nowrap"
                                     >
                                         <span>Đặt phòng kỳ nghỉ</span>
-                                        <ArrowRight className="w-3.5 h-3.5" />
+                                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                                     </Link>
                                 </div>
                             </div>
 
                             {/* Card 2: Lối tắt ưu đãi */}
-                            <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                            <div className="bg-white rounded-3xl p-4 sm:p-7 shadow-sm border border-slate-200/80 flex flex-col justify-between">
                                 <div>
-                                    <div className="flex items-center gap-2.5 mb-3">
-                                        <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100">
+                                    <div className="flex items-start sm:items-center gap-2.5 mb-3">
+                                        <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 shrink-0">
                                             <Ticket className="w-5 h-5" />
                                         </div>
-                                        <h3 className="font-serif font-bold text-slate-900 text-lg">
-                                            Voucher & Ưu Đãi Dành Riêng
+                                        <h3 className="font-serif font-bold text-slate-900 text-base sm:text-lg leading-snug">
+                                            Voucher &amp; Ưu Đãi Dành Riêng
                                         </h3>
                                     </div>
                                     <p className="text-xs text-slate-500 leading-relaxed">

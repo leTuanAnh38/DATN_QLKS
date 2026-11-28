@@ -10,10 +10,36 @@ import {
     Printer,
     Coins,
     CreditCard,
-    Loader2
+    Loader2,
+    Landmark,
+    Copy,
+    Check
 } from 'lucide-react';
 import paymentService from '../../../../services/paymentService';
 import api from '../../../../services/api';
+
+const POPULAR_VN_BANKS = [
+    'MB Bank',
+    'Vietcombank',
+    'Techcombank',
+    'BIDV',
+    'VietinBank',
+    'ACB',
+    'VPBank',
+    'TPBank',
+    'Sacombank',
+    'Agribank',
+    'HDBank',
+    'VIB',
+    'SHB',
+    'OCB',
+    'MSB',
+    'SeABank',
+    'Eximbank',
+    'LPBank',
+    'Cake by VPBank',
+    'Timo'
+];
 
 /**
  * Modal Lập Phiếu Chi Tiền Mặt / Hoàn Cọc (Cash Out & Refund Voucher)
@@ -27,52 +53,118 @@ export default function CreateCashOutModal({
     onClose,
     activeShift,
     initialBooking = null,
+    initialGroup = null,
+    initialVoucherType = null,
+    initialAmount = '',
+    initialPaymentMethod = null,
+    initialReason = '',
     onCashOutCreated
 }) {
     // 1. Loại phiếu chi
     const [voucherType, setVoucherType] = useState(
-        initialBooking ? 'REFUND_DEPOSIT' : 'REFUND_DEPOSIT'
+        initialVoucherType || (initialGroup ? 'REFUND_CANCEL' : 'REFUND_DEPOSIT')
     );
 
     // 2. Hình thức chi: CASH (Két quầy) | TRANSFER (Chuyển khoản)
-    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [paymentMethod, setPaymentMethod] = useState(
+        initialPaymentMethod || (initialGroup ? 'TRANSFER' : 'CASH')
+    );
 
     // 3. Số tiền chi
-    const [amount, setAmount] = useState('');
+    const [amount, setAmount] = useState(initialAmount ? String(initialAmount) : '');
 
-    // 4. Tìm kiếm & Chọn đơn phòng (nếu là hoàn tiền phòng)
+    // 4. Phạm vi liên kết đơn: 'single' (Đơn lẻ) | 'group' (Đơn đặt đoàn)
+    const [targetScope, setTargetScope] = useState(initialGroup ? 'group' : 'single');
+
+    // 4a. Tìm kiếm & Chọn đơn phòng lẻ
     const [bookingSearch, setBookingSearch] = useState('');
     const [selectedBooking, setSelectedBooking] = useState(initialBooking || null);
     const [searchingBookings, setSearchingBookings] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
 
+    // 4b. Tìm kiếm & Chọn đơn đặt đoàn
+    const [groupSearch, setGroupSearch] = useState('');
+    const [selectedGroup, setSelectedGroup] = useState(initialGroup || null);
+    const [searchingGroups, setSearchingGroups] = useState(false);
+    const [groupSearchResults, setGroupSearchResults] = useState([]);
+
     // 5. Thông tin người nhận & Lý do
     const [recipientName, setRecipientName] = useState(
-        initialBooking?.guest_name || initialBooking?.guest?.get_full_name || ''
+        initialGroup?.leader_name || initialBooking?.guest_name || initialBooking?.guest?.get_full_name || ''
     );
     const [recipientPhone, setRecipientPhone] = useState(
-        initialBooking?.guest_phone || initialBooking?.guest?.phone || ''
+        initialGroup?.leader_phone || initialBooking?.guest_phone || initialBooking?.guest?.phone || ''
     );
-    const [reason, setReason] = useState('');
+    const [recipientBankName, setRecipientBankName] = useState(
+        initialGroup?.cancel_request?.refund_bank_name || initialBooking?.refund_bank_info?.bank_name || ''
+    );
+    const [recipientAccountNumber, setRecipientAccountNumber] = useState(
+        initialGroup?.cancel_request?.refund_account_number || initialBooking?.refund_bank_info?.account_number || ''
+    );
+    const [recipientAccountHolder, setRecipientAccountHolder] = useState(
+        initialGroup?.cancel_request?.refund_account_holder ||
+        initialBooking?.refund_bank_info?.account_holder ||
+        (initialGroup?.leader_name || initialBooking?.guest_name || '').toUpperCase()
+    );
+    const [reason, setReason] = useState(initialReason || '');
     const [approvedBy, setApprovedBy] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [createdVoucher, setCreatedVoucher] = useState(null);
+    const [copiedBankNo, setCopiedBankNo] = useState(false);
 
-    // Đồng bộ khi mở modal hoặc initialBooking thay đổi
+    const handleCopyBankValue = (val) => {
+        if (!val || !navigator?.clipboard) return;
+        navigator.clipboard.writeText(val).then(() => {
+            setCopiedBankNo(true);
+            setTimeout(() => setCopiedBankNo(false), 1800);
+        }).catch(() => {});
+    };
+
+    // Đồng bộ khi mở modal hoặc initialBooking / initialGroup thay đổi
     useEffect(() => {
         if (!isOpen) return;
-        if (initialBooking) {
+        setCreatedVoucher(null);
+        setError(null);
+        if (initialGroup) {
+            setTargetScope('group');
+            setSelectedGroup(initialGroup);
+            setSelectedBooking(null);
+            setRecipientName(initialGroup.leader_name || '');
+            setRecipientPhone(initialGroup.leader_phone || '');
+            setRecipientBankName(initialGroup.cancel_request?.refund_bank_name || '');
+            setRecipientAccountNumber(initialGroup.cancel_request?.refund_account_number || '');
+            setRecipientAccountHolder(
+                initialGroup.cancel_request?.refund_account_holder ||
+                (initialGroup.leader_name || '').toUpperCase()
+            );
+            setVoucherType(initialVoucherType || (Number(initialGroup.overpaid_amount || 0) > 0 ? 'REFUND_DEPOSIT' : 'REFUND_CANCEL'));
+            setPaymentMethod(initialPaymentMethod || 'TRANSFER');
+            setAmount(initialAmount ? String(Math.round(Number(initialAmount))) : '');
+            setReason(initialReason || '');
+        } else if (initialBooking) {
+            setTargetScope('single');
             setSelectedBooking(initialBooking);
+            setSelectedGroup(null);
             setRecipientName(initialBooking.guest_name || initialBooking.guest?.get_full_name || initialBooking.customer_name || '');
             setRecipientPhone(initialBooking.guest_phone || initialBooking.guest?.phone || '');
-            setVoucherType('REFUND_DEPOSIT');
+            setRecipientBankName(initialBooking.refund_bank_info?.bank_name || '');
+            setRecipientAccountNumber(initialBooking.refund_bank_info?.account_number || '');
+            setRecipientAccountHolder(
+                initialBooking.refund_bank_info?.account_holder ||
+                (initialBooking.guest_name || initialBooking.guest?.get_full_name || '').toUpperCase()
+            );
+            setVoucherType(initialVoucherType || 'REFUND_DEPOSIT');
+            if (initialPaymentMethod) setPaymentMethod(initialPaymentMethod);
+            if (initialAmount) setAmount(String(Math.round(Number(initialAmount))));
+            if (initialReason) setReason(initialReason);
         } else {
-            setCreatedVoucher(null);
-            setError(null);
+            setRecipientBankName('');
+            setRecipientAccountNumber('');
+            setRecipientAccountHolder('');
         }
-    }, [isOpen, initialBooking]);
+    }, [isOpen, initialBooking, initialGroup, initialVoucherType, initialAmount, initialPaymentMethod, initialReason]);
 
     // Số dư tiền mặt hiện tại trong két
     const shiftSummary = activeShift?.realtime_summary || activeShift?.current_summary || {};
@@ -144,16 +236,85 @@ export default function CreateCashOutModal({
         return () => clearTimeout(timer);
     }, [bookingSearch, selectedBooking]);
 
+    // Tìm kiếm đơn đặt đoàn khi gõ từ khóa
+    useEffect(() => {
+        const keyword = groupSearch.trim();
+        if (targetScope !== 'group' || !keyword || selectedGroup) {
+            setGroupSearchResults([]);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setSearchingGroups(true);
+            try {
+                const res = await api.get('/bookings/groups/', {
+                    params: { search: keyword, page_size: 8 }
+                });
+                const list = res.data?.results || res.data || [];
+                setGroupSearchResults(Array.isArray(list) ? list : []);
+            } catch (err) {
+                console.warn('Lỗi tìm kiếm đơn đoàn:', err);
+                setGroupSearchResults([]);
+            } finally {
+                setSearchingGroups(false);
+            }
+        }, 200);
+
+        return () => clearTimeout(timer);
+    }, [groupSearch, selectedGroup, targetScope]);
+
     // Khi chọn một đơn từ kết quả tìm kiếm
     const handleSelectBooking = (bk) => {
         setSelectedBooking(bk);
+        setSelectedGroup(null);
         setBookingSearch('');
         setSearchResults([]);
+        const gName = bk.guest_name || bk.guest?.get_full_name || bk.customer_name || '';
         if (!recipientName) {
-            setRecipientName(bk.guest_name || bk.guest?.get_full_name || bk.customer_name || '');
+            setRecipientName(gName);
         }
         if (!recipientPhone) {
             setRecipientPhone(bk.guest_phone || bk.guest?.phone || '');
+        }
+        if (bk.refund_bank_info) {
+            if (bk.refund_bank_info.bank_name) setRecipientBankName(bk.refund_bank_info.bank_name);
+            if (bk.refund_bank_info.account_number) setRecipientAccountNumber(bk.refund_bank_info.account_number);
+            if (bk.refund_bank_info.account_holder) setRecipientAccountHolder(bk.refund_bank_info.account_holder);
+        } else if (!recipientAccountHolder && gName) {
+            setRecipientAccountHolder(gName.toUpperCase());
+        }
+        if (!reason) {
+            setReason(`Hoàn tiền đơn phòng #${bk.booking_code} (${gName || 'Khách hàng'})`);
+        }
+    };
+
+    // Khi chọn một đơn đặt đoàn từ kết quả tìm kiếm
+    const handleSelectGroup = (grp) => {
+        setSelectedGroup(grp);
+        setSelectedBooking(null);
+        setGroupSearch('');
+        setGroupSearchResults([]);
+        setRecipientName(grp.leader_name || '');
+        setRecipientPhone(grp.leader_phone || '');
+        if (grp.cancel_request) {
+            if (grp.cancel_request.refund_bank_name) setRecipientBankName(grp.cancel_request.refund_bank_name);
+            if (grp.cancel_request.refund_account_number) setRecipientAccountNumber(grp.cancel_request.refund_account_number);
+            if (grp.cancel_request.refund_account_holder) {
+                setRecipientAccountHolder(grp.cancel_request.refund_account_holder);
+            } else if (grp.leader_name) {
+                setRecipientAccountHolder(grp.leader_name.toUpperCase());
+            }
+        } else if (grp.leader_name) {
+            setRecipientAccountHolder(grp.leader_name.toUpperCase());
+        }
+        if (!amount) {
+            const suggested = Number(grp.overpaid_amount || 0) > 0
+                ? Math.round(Number(grp.overpaid_amount))
+                : Math.round(Number(grp.deposit_amount || 0));
+            if (suggested > 0) setAmount(String(suggested));
+        }
+        if (!reason) {
+            setReason(`Hoàn cọc đơn đoàn #${grp.group_code} (${grp.group_name || ''})`);
         }
     };
 
@@ -179,6 +340,13 @@ export default function CreateCashOutModal({
             }
         }
 
+        if (paymentMethod === 'TRANSFER') {
+            if (!recipientBankName.trim() || !recipientAccountNumber.trim()) {
+                setError('Vui lòng nhập đầy đủ Tên ngân hàng và Số tài khoản người nhận khi chọn hình thức Chuyển khoản.');
+                return;
+            }
+        }
+
         if (!recipientName.trim()) {
             setError('Vui lòng nhập họ tên người nhận tiền.');
             return;
@@ -199,7 +367,15 @@ export default function CreateCashOutModal({
                 recipient_phone: recipientPhone.trim(),
                 reason: reason.trim(),
                 approved_by: approvedBy.trim(),
-                booking_id: selectedBooking?.id || selectedBooking?.booking_code || null,
+                booking_id: targetScope === 'single' ? (selectedBooking?.id || selectedBooking?.booking_code || null) : null,
+                group_booking_id: targetScope === 'group' ? (selectedGroup?.id || selectedGroup?.group_code || null) : null,
+                ...(paymentMethod === 'TRANSFER'
+                    ? {
+                        recipient_bank_name: recipientBankName.trim(),
+                        recipient_account_number: recipientAccountNumber.trim(),
+                        recipient_account_holder: (recipientAccountHolder.trim() || recipientName.trim()).toUpperCase()
+                    }
+                    : {})
             };
 
             const res = await paymentService.createCashOut(payload);
@@ -300,8 +476,8 @@ export default function CreateCashOutModal({
 
     return (
         <div
-            className="cash-out-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 print:p-0 print:bg-white print:static"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+            className="cash-out-modal-backdrop fixed inset-0 z-[70] flex items-center justify-center p-2.5 sm:p-5 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200 print:p-0 print:bg-white print:static"
+            onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onClose?.(); }}
         >
             {/* CSS in phiếu chi (dự phòng) */}
             <style dangerouslySetInnerHTML={{ __html: `
@@ -418,6 +594,34 @@ export default function CreateCashOutModal({
                                             <span className="font-semibold text-slate-800">#{createdVoucher.booking_code} {createdVoucher.room_number && `(${createdVoucher.room_number})`}</span>
                                         </div>
                                     )}
+                                    {createdVoucher.group_booking_code && (
+                                        <div className="flex justify-between py-1 border-b border-slate-200">
+                                            <span className="text-slate-500">Đơn đặt đoàn:</span>
+                                            <span className="font-semibold text-indigo-700 font-mono">#{createdVoucher.group_booking_code}</span>
+                                        </div>
+                                    )}
+                                    {(createdVoucher.recipient_bank_name || createdVoucher.recipient_account_number) && (
+                                        <>
+                                            {createdVoucher.recipient_bank_name && (
+                                                <div className="flex justify-between py-1 border-b border-slate-200">
+                                                    <span className="text-slate-500">Ngân hàng nhận:</span>
+                                                    <span className="font-bold text-slate-900">{createdVoucher.recipient_bank_name}</span>
+                                                </div>
+                                            )}
+                                            {createdVoucher.recipient_account_number && (
+                                                <div className="flex justify-between py-1 border-b border-slate-200">
+                                                    <span className="text-slate-500">Số tài khoản nhận:</span>
+                                                    <span className="font-mono font-bold text-indigo-800">{createdVoucher.recipient_account_number}</span>
+                                                </div>
+                                            )}
+                                            {createdVoucher.recipient_account_holder && (
+                                                <div className="flex justify-between py-1 border-b border-slate-200">
+                                                    <span className="text-slate-500">Chủ tài khoản:</span>
+                                                    <span className="font-bold text-slate-900 uppercase">{createdVoucher.recipient_account_holder}</span>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                     <div className="flex justify-between py-1 border-b border-slate-200">
                                         <span className="text-slate-500">Lý do chi:</span>
                                         <span className="font-medium text-slate-800 text-right max-w-xs">{createdVoucher.reason}</span>
@@ -523,6 +727,7 @@ export default function CreateCashOutModal({
                                         onClick={() => {
                                             setVoucherType('PETTY_CASH');
                                             setSelectedBooking(null);
+                                            setSelectedGroup(null);
                                         }}
                                         className={`p-2.5 rounded-xl border text-left transition flex flex-col gap-1 cursor-pointer ${
                                             voucherType === 'PETTY_CASH'
@@ -539,30 +744,178 @@ export default function CreateCashOutModal({
                                 </div>
                             </div>
 
-                            {/* 2. Chọn đơn phòng liên quan nếu là Hoàn cọc */}
+                            {/* 2. Chọn đơn phòng lẻ hoặc đơn đặt đoàn liên quan nếu là Hoàn cọc */}
                             {voucherType !== 'PETTY_CASH' && (
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                                        Đơn đặt phòng liên quan
-                                    </label>
-                                    {selectedBooking ? (
-                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                                            <div>
-                                                <div className="font-bold text-xs text-slate-900">
-                                                    #{selectedBooking.booking_code} {selectedBooking.room?.room_number && `(${selectedBooking.room.room_number})`}
-                                                </div>
-                                                <div className="text-[11px] text-slate-500 mt-0.5">
-                                                    Khách: <span className="font-semibold text-slate-700">{selectedBooking.guest_name || selectedBooking.guest?.get_full_name || 'Khách vãng lai'}</span>
-                                                    {' • '}Tổng đơn: <span className="font-mono font-bold text-emerald-600">{formatCurrency(selectedBooking.total_amount)}</span>
-                                                </div>
-                                            </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <label className="block text-xs font-bold text-slate-700">
+                                            Liên kết đơn hoàn tiền
+                                        </label>
+                                        <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-[11px] font-bold">
                                             <button
                                                 type="button"
-                                                onClick={() => setSelectedBooking(null)}
-                                                className="text-xs text-slate-400 hover:text-rose-600 font-semibold px-2 py-1 rounded hover:bg-slate-200 transition cursor-pointer"
+                                                onClick={() => {
+                                                    setTargetScope('single');
+                                                    setSelectedGroup(null);
+                                                }}
+                                                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                                                    targetScope === 'single'
+                                                        ? 'bg-white text-slate-900 shadow-2xs'
+                                                        : 'text-slate-500 hover:text-slate-700'
+                                                }`}
                                             >
-                                                Đổi đơn khác
+                                                Đơn lẻ
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setTargetScope('group');
+                                                    setSelectedBooking(null);
+                                                }}
+                                                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                                                    targetScope === 'group'
+                                                        ? 'bg-white text-indigo-700 shadow-2xs'
+                                                        : 'text-slate-500 hover:text-slate-700'
+                                                }`}
+                                            >
+                                                Đơn đoàn
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {targetScope === 'group' ? (
+                                        selectedGroup ? (
+                                            <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-200 space-y-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <div className="font-bold text-xs text-indigo-950 flex flex-wrap items-center gap-1.5">
+                                                            <span className="font-mono text-indigo-700">#{selectedGroup.group_code}</span>
+                                                            <span className="truncate">{selectedGroup.group_name}</span>
+                                                        </div>
+                                                        <div className="text-[11px] text-slate-600 mt-0.5">
+                                                            Trưởng đoàn: <span className="font-semibold text-slate-800">{selectedGroup.leader_name}</span>
+                                                            {' • '}Đã cọc: <span className="font-mono font-bold text-emerald-700">{formatCurrency(selectedGroup.deposit_amount)}</span>
+                                                            {Number(selectedGroup.overpaid_amount || 0) > 0 && (
+                                                                <> • Dư cọc: <span className="font-mono font-bold text-rose-600">{formatCurrency(selectedGroup.overpaid_amount)}</span></>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedGroup(null)}
+                                                        className="shrink-0 text-xs text-slate-500 hover:text-rose-600 font-semibold px-2 py-1 rounded hover:bg-white transition cursor-pointer"
+                                                    >
+                                                        Đổi đoàn
+                                                    </button>
+                                                </div>
+                                                {selectedGroup.cancel_request?.refund_info && (
+                                                    <div className="pt-2 border-t border-indigo-200/70 flex items-center justify-between gap-2 text-[11px]">
+                                                        <div className="flex items-center gap-1.5 text-indigo-900 min-w-0">
+                                                            <Landmark className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                                            <span className="truncate">
+                                                                TK nhận hoàn: <strong className="font-mono">{selectedGroup.cancel_request.refund_info}</strong>
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCopyBankValue(selectedGroup.cancel_request.refund_account_number || selectedGroup.cancel_request.refund_info)}
+                                                            className="shrink-0 px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            {copiedBankNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                                            <span>{copiedBankNo ? 'Đã copy' : 'Copy STK'}</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="relative">
+                                                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                                <input
+                                                    type="text"
+                                                    value={groupSearch}
+                                                    onChange={(e) => setGroupSearch(e.target.value)}
+                                                    placeholder="Gõ mã đoàn (GRP-...), tên đoàn, tên hoặc SĐT trưởng đoàn..."
+                                                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                                />
+                                                {searchingGroups && (
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 animate-pulse">
+                                                        Đang tìm...
+                                                    </div>
+                                                )}
+                                                {groupSearchResults.length > 0 && (
+                                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-200 z-20 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                                                        {groupSearchResults.map((g) => (
+                                                            <div
+                                                                key={g.id}
+                                                                onClick={() => handleSelectGroup(g)}
+                                                                className="p-2.5 hover:bg-indigo-50/70 cursor-pointer text-xs flex items-center justify-between gap-2 transition"
+                                                            >
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="font-bold text-indigo-700 font-mono">#{g.group_code}</span>
+                                                                        <span className="font-semibold text-slate-800 truncate">{g.group_name}</span>
+                                                                    </div>
+                                                                    <div className="text-[11px] text-slate-500 truncate">
+                                                                        {g.leader_name} {g.leader_phone ? `• ${g.leader_phone}` : ''}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right shrink-0">
+                                                                    <span className="font-mono text-emerald-600 font-bold block">
+                                                                        Cọc: {formatCurrency(g.deposit_amount)}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400">
+                                                                        {g.status_display || g.status}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {groupSearch.trim() && !searchingGroups && groupSearchResults.length === 0 && (
+                                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-20 p-3 text-center text-xs text-slate-400">
+                                                        Không tìm thấy đơn đoàn nào khớp với "{groupSearch}".
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )
+                                    ) : selectedBooking ? (
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div>
+                                                    <div className="font-bold text-xs text-slate-900">
+                                                        #{selectedBooking.booking_code} {selectedBooking.room?.room_number && `(${selectedBooking.room.room_number})`}
+                                                    </div>
+                                                    <div className="text-[11px] text-slate-500 mt-0.5">
+                                                        Khách: <span className="font-semibold text-slate-700">{selectedBooking.guest_name || selectedBooking.guest?.get_full_name || 'Khách vãng lai'}</span>
+                                                        {' • '}Tổng đơn: <span className="font-mono font-bold text-emerald-600">{formatCurrency(selectedBooking.total_amount)}</span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedBooking(null)}
+                                                    className="text-xs text-slate-400 hover:text-rose-600 font-semibold px-2 py-1 rounded hover:bg-slate-200 transition cursor-pointer"
+                                                >
+                                                    Đổi đơn khác
+                                                </button>
+                                            </div>
+                                            {selectedBooking.refund_bank_info?.summary && (
+                                                <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between gap-2 text-[11px]">
+                                                    <div className="flex items-center gap-1.5 text-indigo-900 min-w-0">
+                                                        <Landmark className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                                        <span className="truncate">
+                                                            TK nhận hoàn: <strong className="font-mono">{selectedBooking.refund_bank_info.summary}</strong>
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCopyBankValue(selectedBooking.refund_bank_info.account_number || selectedBooking.refund_bank_info.summary)}
+                                                        className="shrink-0 px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-700 font-bold hover:bg-indigo-100 transition inline-flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        {copiedBankNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                                        <span>{copiedBankNo ? 'Đã copy' : 'Copy STK'}</span>
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="relative">
@@ -710,6 +1063,75 @@ export default function CreateCashOutModal({
                                     </div>
                                 </div>
                             </div>
+
+                            {/* 3b. Thông tin Ngân hàng & Số tài khoản khi chọn Chuyển khoản */}
+                            {paymentMethod === 'TRANSFER' && (
+                                <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-2.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-blue-950">
+                                            <Landmark className="w-4 h-4 text-blue-600 shrink-0" />
+                                            <span>Thông tin Tài khoản Ngân hàng nhận chuyển khoản</span>
+                                        </div>
+                                        {recipientAccountNumber.trim() && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyBankValue(recipientAccountNumber.trim())}
+                                                className="px-2 py-0.5 rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-[11px] inline-flex items-center gap-1 transition cursor-pointer shrink-0"
+                                            >
+                                                {copiedBankNo ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                                <span>{copiedBankNo ? 'Đã copy STK' : 'Copy STK'}</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                                Ngân hàng <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                list="cashout-vn-banks"
+                                                value={recipientBankName}
+                                                onChange={(e) => setRecipientBankName(e.target.value)}
+                                                placeholder="VD: MB Bank, Vietcombank..."
+                                                className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                required
+                                            />
+                                            <datalist id="cashout-vn-banks">
+                                                {POPULAR_VN_BANKS.map((bank) => (
+                                                    <option key={bank} value={bank} />
+                                                ))}
+                                            </datalist>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                                Số tài khoản <span className="text-rose-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={recipientAccountNumber}
+                                                onChange={(e) => setRecipientAccountNumber(e.target.value)}
+                                                placeholder="Nhập số tài khoản"
+                                                className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs font-mono font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                                                Tên chủ tài khoản
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={recipientAccountHolder}
+                                                onChange={(e) => setRecipientAccountHolder(e.target.value)}
+                                                placeholder="NGUYEN VAN A"
+                                                className="w-full px-3 py-2 bg-white border border-blue-200 rounded-xl text-xs uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* 4. Thông tin người nhận & Người duyệt */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -8,8 +8,11 @@ import {
     Zap, FileSpreadsheet, Info
 } from 'lucide-react';
 import { bookingService } from '../../../../services/bookingService';
+import paymentService from '../../../../services/paymentService';
+import { useAuth } from '../../../../store/authStore';
 import api from '../../../../services/api';
 import HotelInvoiceModal from '../shared/HotelInvoiceModal';
+import CreateCashOutModal from '../shift/CreateCashOutModal';
 
 const formatCurrency = (val) => {
     const num = Number(val) || 0;
@@ -30,7 +33,16 @@ const formatDate = (dateStr) => {
 };
 
 export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) {
+    const { user: currentUser } = useAuth();
+    const canCashOut = Boolean(
+        currentUser?.is_superuser ||
+        ['admin', 'owner', 'manager', 'cashier'].includes(String(currentUser?.role || '').toLowerCase())
+    );
+
     const [localGroup, setLocalGroup] = useState(group);
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+    const [refundModalDefaults, setRefundModalDefaults] = useState(null);
+    const [activeShift, setActiveShift] = useState(null);
 
     useEffect(() => {
         if (group) {
@@ -39,6 +51,48 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
     }, [group]);
 
     const groupData = localGroup || group;
+
+    const handleOpenRefundModal = async ({ voucherType = 'REFUND_CANCEL', amount = 0, reason = '' } = {}) => {
+        try {
+            const shiftRes = await paymentService.getCurrentShift();
+            const shiftObj = shiftRes?.data || shiftRes?.shift || (shiftRes?.id ? shiftRes : null);
+            setActiveShift(shiftObj);
+        } catch {
+            setActiveShift(null);
+        }
+        const refundBankInfo = groupData?.cancel_request?.refund_info;
+        const defaultReason = reason || (
+            voucherType === 'REFUND_DEPOSIT'
+                ? `Hoàn tiền cọc dư đoàn #${groupData?.group_code} (${groupData?.group_name})${refundBankInfo ? ` - TK nhận: ${refundBankInfo}` : ''}`
+                : `Hoàn cọc hủy đơn đoàn #${groupData?.group_code} (${groupData?.group_name})${refundBankInfo ? ` - TK nhận: ${refundBankInfo}` : ''}`
+        );
+        setRefundModalDefaults({
+            voucherType,
+            amount: Number(amount) || 0,
+            paymentMethod: 'TRANSFER',
+            reason: defaultReason
+        });
+        setIsRefundModalOpen(true);
+    };
+
+    const handleRefundCreated = async (voucher) => {
+        setActionMessage({
+            type: 'success',
+            text: `Đã lập phiếu chi hoàn cọc #${voucher?.voucher_code || ''} (${formatCurrency(voucher?.amount || 0)}) cho đoàn #${groupData?.group_code} thành công!`
+        });
+        try {
+            const fresh = await api.get(`/bookings/groups/${groupData.id}/`);
+            const updated = fresh.data?.data || fresh.data;
+            if (updated?.id) {
+                setLocalGroup(updated);
+                if (typeof onRefresh === 'function') onRefresh(updated, false);
+                return;
+            }
+        } catch {
+            // fallback refresh
+        }
+        if (typeof onRefresh === 'function') onRefresh(null, false);
+    };
 
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [actionMessage, setActionMessage] = useState(null);
@@ -524,7 +578,13 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
             setIsActionLoading(true);
             const res = await bookingService.cancelBooking(bookingId, `Hủy lẻ phòng ${roomNumber || ''} trong đoàn #${groupData.group_code}`);
             if (res.success || res.status === 'cancelled') {
-                setActionMessage({ type: 'success', text: `Đã hủy phòng ${roomNumber || bookingId} khỏi đoàn. Hệ thống đã tự động tính lại tổng tiền đoàn.` });
+                const overpaid = Number(res.group_overpaid_amount || 0);
+                setActionMessage({
+                    type: 'success',
+                    text: overpaid > 0
+                        ? `Đã hủy phòng ${roomNumber || bookingId} khỏi đoàn. Tổng tiền đoàn đã được cập nhật lại — lưu ý khách đang dư cọc ${formatCurrency(overpaid)}, cần lập phiếu chi hoàn tiền thừa.`
+                        : `Đã hủy phòng ${roomNumber || bookingId} khỏi đoàn. Hệ thống đã tự động tính lại tổng tiền và tiền cọc đoàn.`
+                });
                 if (typeof onRefresh === 'function') onRefresh(null, false);
             } else {
                 setActionMessage({ type: 'error', text: res.message || 'Không thể hủy phòng này.' });
@@ -1013,10 +1073,63 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                 </div>
                             </div>
                             <p className="text-[11px] text-rose-700/90 font-medium">
-                                Sau khi bấm <strong>Duyệt Hủy Toàn Đoàn</strong>, vui lòng vào mục <strong>Quản lý Hóa đơn / Thu ngân</strong> lập Phiếu chi hoàn cọc (<code>REFUND_CANCEL</code>) nếu đoàn đủ điều kiện hoàn {formatCurrency(groupData.deposit_amount)}.
+                                Sau khi bấm <strong>Duyệt Hủy Toàn Đoàn</strong>, Thu ngân / Quản lý có thể bấm <strong>Lập Phiếu Chi Hoàn Cọc</strong> ngay tại đây (hoặc trong mục Hóa đơn &amp; Thu ngân) nếu đoàn đủ điều kiện hoàn {formatCurrency(groupData.deposit_amount)}.
                             </p>
                         </div>
                     )}
+
+                    {/* BANNER HỖ TRỢ LẬP PHIẾU CHI HOÀN CỌC SAU KHI ĐOÀN ĐÃ HỦY (ĐÃ CỌC) */}
+                    {isCancelled && groupData.is_deposit_paid && Number(groupData.deposit_amount || 0) > 0 && (() => {
+                        const deposited = Number(groupData.deposit_amount || 0);
+                        const refunded = Number(groupData.refunded_amount || 0);
+                        const remainingRefundable = Math.max(0, deposited - refunded);
+                        return (
+                            <div className={`p-4 rounded-2xl border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                remainingRefundable > 0 ? 'bg-amber-50/90 border-amber-200' : 'bg-emerald-50/80 border-emerald-200'
+                            }`}>
+                                <div className="space-y-1 text-xs">
+                                    <div className={`font-black flex items-center gap-1.5 ${remainingRefundable > 0 ? 'text-amber-950' : 'text-emerald-900'}`}>
+                                        {remainingRefundable > 0 ? (
+                                            <Banknote className="w-4 h-4 text-amber-700 shrink-0" />
+                                        ) : (
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                        )}
+                                        <span>
+                                            {remainingRefundable > 0
+                                                ? `Đơn đoàn đã hủy — Cọc đã thu: ${formatCurrency(deposited)}${refunded > 0 ? ` (Đã hoàn: ${formatCurrency(refunded)})` : ''}`
+                                                : `Đã lập phiếu chi hoàn cọc đầy đủ (${formatCurrency(refunded)})`}
+                                        </span>
+                                    </div>
+                                    {groupData.cancel_request?.refund_info && remainingRefundable > 0 && (
+                                        <div className="text-[11px] text-slate-700">
+                                            TK nhận hoàn cọc: <strong className="font-mono text-indigo-800">{groupData.cancel_request.refund_info}</strong>
+                                        </div>
+                                    )}
+                                    {remainingRefundable > 0 && (
+                                        <p className="text-[11px] text-amber-800">
+                                            {canCashOut
+                                                ? 'Nếu đoàn đủ điều kiện hoàn cọc, bấm nút bên cạnh để lập Phiếu chi hoàn cọc (REFUND_CANCEL) gắn trực tiếp với đoàn.'
+                                                : 'Vui lòng chuyển thông tin sang Thu ngân / Quản lý để lập Phiếu chi hoàn cọc (REFUND_CANCEL).'}
+                                        </p>
+                                    )}
+                                </div>
+                                {canCashOut && remainingRefundable > 0 && (
+                                    <button
+                                        type="button"
+                                        disabled={isActionLoading}
+                                        onClick={() => handleOpenRefundModal({
+                                            voucherType: 'REFUND_CANCEL',
+                                            amount: remainingRefundable
+                                        })}
+                                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                                    >
+                                        <Banknote className="w-3.5 h-3.5 shrink-0" />
+                                        <span>Lập Phiếu Chi Hoàn Cọc</span>
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* ACTION MESSAGE */}
                     {actionMessage && (
@@ -1083,6 +1196,26 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                                         ) : (groupData.is_deposit_paid ? 'Đã cọc' : 'Chờ cọc')}
                                     </span>
                                 </div>
+                                {Number(groupData.overpaid_amount || 0) > 0 && (
+                                    <div className="mt-1.5 p-2 rounded-lg bg-rose-50 border border-rose-200 space-y-1.5">
+                                        <div className="text-[10.5px] font-bold text-rose-700 leading-snug">
+                                            Dư cọc cần hoàn khách: {formatCurrency(groupData.overpaid_amount)}
+                                        </div>
+                                        {canCashOut && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenRefundModal({
+                                                    voucherType: 'REFUND_DEPOSIT',
+                                                    amount: groupData.overpaid_amount
+                                                })}
+                                                className="w-full px-2 py-1 rounded-md bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] transition cursor-pointer flex items-center justify-center gap-1"
+                                            >
+                                                <Banknote className="w-3 h-3 shrink-0" />
+                                                <span>Lập phiếu chi hoàn dư</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -2119,6 +2252,18 @@ export default function GroupDetailModal({ group, isOpen, onClose, onRefresh }) 
                     </div>
                 )}
 
+                {/* MODAL LẬP PHIẾU CHI HOÀN CỌC TRỰC TIẾP CHO ĐOÀN */}
+                <CreateCashOutModal
+                    isOpen={isRefundModalOpen}
+                    onClose={() => setIsRefundModalOpen(false)}
+                    activeShift={activeShift}
+                    initialGroup={groupData}
+                    initialVoucherType={refundModalDefaults?.voucherType}
+                    initialAmount={refundModalDefaults?.amount}
+                    initialPaymentMethod={refundModalDefaults?.paymentMethod}
+                    initialReason={refundModalDefaults?.reason}
+                    onCashOutCreated={handleRefundCreated}
+                />
             </div>
         </div>
     );

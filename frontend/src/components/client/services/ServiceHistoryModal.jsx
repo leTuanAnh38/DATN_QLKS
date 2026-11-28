@@ -416,11 +416,11 @@ export default function ServiceHistoryModal({
                                                                 : 'bg-amber-50/70 border-amber-200/80 text-amber-950'
                                                         }`}
                                                     >
-                                                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                                        <div className="flex items-start gap-1.5 sm:gap-2 min-w-0">
                                                             {isCompleted ? (
-                                                                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0" />
+                                                                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 shrink-0 mt-0.5" />
                                                             ) : (
-                                                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0 animate-pulse" />
+                                                                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
                                                             )}
                                                             <span className="font-medium text-[11px] sm:text-xs leading-snug">
                                                                 {isPending && labels.pendingMessage}
@@ -513,8 +513,8 @@ export default function ServiceHistoryModal({
 
                 {/* Modal Footer */}
                 <div className="bg-slate-50 px-3.5 sm:px-6 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:py-3.5 border-t border-slate-200 flex items-center justify-between gap-3 text-xs shrink-0">
-                    <div className="flex items-center gap-2 text-slate-600 text-[11px] sm:text-xs">
-                        <PhoneCall className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                    <div className="flex items-start gap-2 text-slate-600 text-[11px] sm:text-xs">
+                        <PhoneCall className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0 mt-0.5" />
                         <span>
                             Cần hỗ trợ khẩn cấp, vui lòng bấm phím <strong className="text-slate-900 font-black">0</strong> trên điện thoại bàn phòng.
                         </span>

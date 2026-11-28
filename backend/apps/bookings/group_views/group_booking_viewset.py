@@ -26,6 +26,7 @@ from ..email_service import send_group_booking_email_async
 from ...notifications.services import send_group_booking_notification
 from core_project.pagination import StandardResultsSetPagination
 from .group_stay_mixin import GroupBookingStayMixin
+from ..views.helpers import expire_overdue_tentative_groups, build_active_inventory_q
 
 
 class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
@@ -54,6 +55,10 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
         user = self.request.user
         if not user.is_authenticated:
             return GroupBooking.objects.none()
+
+        # Tự động hủy các đơn đoàn chưa cọc đã quá thời hạn auto_cancel_minutes khi tải danh sách/chi tiết
+        if getattr(self, 'action', None) in ['list', 'retrieve']:
+            expire_overdue_tentative_groups()
 
         from django.db.models import Prefetch
         from ..serializers import optimize_booking_queryset
@@ -348,6 +353,9 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
                 profile.id_card_number = identity_card
                 profile.save(update_fields=['id_card_number'])
 
+        # Tự động hủy các đơn đoàn chưa cọc đã quá hạn auto_cancel_minutes để nhả quỹ phòng trước khi đặt mới
+        expire_overdue_tentative_groups()
+
         # 4. Kiểm tra phòng trống và tính toán tổng tiền trong Transaction
         with transaction.atomic():
             total_rooms_count = 0
@@ -373,12 +381,7 @@ class GroupBookingViewSet(GroupBookingStayMixin, viewsets.ModelViewSet):
             total_rooms_net_amount = Decimal('0')
             total_services_amount = Decimal('0')
             total_corp_discount = Decimal('0')
-            pending_timeout = timezone.now() - timezone.timedelta(minutes=15)
-            active_inventory_q = (
-                Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-                Q(status='pending', created_at__gte=pending_timeout) |
-                Q(status='pending', group_booking__isnull=False, group_booking__status__in=['tentative', 'confirmed', 'checked_in'])
-            )
+            active_inventory_q = build_active_inventory_q()
             today = timezone.localdate()
             allocated_by_cat = {}
             used_room_ids = set()

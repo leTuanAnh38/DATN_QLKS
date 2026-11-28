@@ -80,29 +80,31 @@ export default function MembershipCard({ user }) {
         <div className="bg-gradient-to-b from-white via-amber-50/15 to-white rounded-3xl p-4 sm:p-7 shadow-xl border border-amber-100/60 relative overflow-hidden mb-8 sm:mb-10">
             {/* Tiêu đề Box */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-amber-100/60 mb-6">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <span className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60">
+                <div className="min-w-0">
+                    <div className="flex items-start sm:items-center gap-2.5">
+                        <span className="p-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60 shrink-0">
                             <Award className="w-5 h-5" />
                         </span>
-                        <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900">
-                            Thẻ Khách Hàng Thân Thiết (Loyalty Club)
+                        <h2 className="font-serif text-lg sm:text-2xl font-bold text-slate-900 leading-snug">
+                            <span className="sm:hidden">Thẻ Khách Hàng Thân Thiết</span>
+                            <span className="hidden sm:inline">Thẻ Khách Hàng Thân Thiết (Loyalty Club)</span>
                         </h2>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1.5 sm:mt-1">
                         Tích 1 điểm cho mỗi 100.000 VNĐ thanh toán thành công. Tự động thăng hạng thẻ và nhận chiết khấu phòng.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {discountVal > 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <Tag className="w-3.5 h-3.5" />
-                            Ưu đãi giảm {discountVal}% phòng
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                            <Tag className="w-3.5 h-3.5 shrink-0" />
+                            <span>Ưu đãi giảm {discountVal}% phòng</span>
                         </span>
                     ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50/80 text-amber-800 border border-amber-200/80">
-                            <Award className="w-3.5 h-3.5 text-amber-600" />
-                            Hội viên khởi đầu • Tích điểm thăng hạng
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-50/80 text-amber-800 border border-amber-200/80 whitespace-nowrap">
+                            <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span className="sm:hidden">Hội viên khởi đầu • Tích điểm</span>
+                            <span className="hidden sm:inline">Hội viên khởi đầu • Tích điểm thăng hạng</span>
                         </span>
                     )}
                 </div>

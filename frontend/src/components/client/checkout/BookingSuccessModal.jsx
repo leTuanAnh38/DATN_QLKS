@@ -92,7 +92,7 @@ export default function BookingSuccessModal({
                     <CheckCircle2 className="w-10 h-10 text-emerald-600" />
                 </div>
 
-                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+                <span className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-bold uppercase tracking-wider leading-snug">
                     {isPaid ? 'Thanh toán & Đặt phòng thành công!' : 'Đặt phòng thành công!'}
                 </span>
 
@@ -105,12 +105,12 @@ export default function BookingSuccessModal({
                 </p>
 
                 {/* Mã đặt phòng & Hộp sao chép */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-6">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 mb-6">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
                         Mã đơn đặt phòng (Booking Code)
                     </span>
-                    <div className="flex items-center justify-center gap-2">
-                        <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 tracking-wider">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                        <span className="font-mono text-lg sm:text-2xl font-black text-amber-600 tracking-wider break-all">
                             {booking.booking_code}
                         </span>
                         <button
@@ -122,17 +122,17 @@ export default function BookingSuccessModal({
                                     setTimeout(() => setCopiedCode(false), 2500);
                                 }
                             }}
-                            className="min-h-[38px] sm:min-h-0 py-1.5 px-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-amber-600 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                            className="shrink-0 whitespace-nowrap min-h-[38px] sm:min-h-0 py-1.5 px-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-600 hover:text-amber-600 transition cursor-pointer flex items-center gap-1 shadow-2xs"
                             title="Sao chép mã"
                         >
                             {copiedCode ? (
                                 <>
-                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                     <span className="text-emerald-700 font-bold">Đã sao chép</span>
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="w-3.5 h-3.5" />
+                                    <Copy className="w-3.5 h-3.5 shrink-0" />
                                     <span>Chép</span>
                                 </>
                             )}
@@ -190,17 +190,17 @@ export default function BookingSuccessModal({
                 </div>
 
                 {/* Nút hành động */}
-                <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3">
                     <Link
                         to="/booking-history"
-                        className="w-full sm:w-1/2 py-3 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 transition transform active:scale-95 text-center flex items-center justify-center gap-1.5"
+                        className="w-full sm:w-1/2 min-h-[44px] py-3 px-4 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-900/20 transition transform active:scale-95 text-center flex items-center justify-center gap-1.5"
                     >
                         <span>Xem lịch sử đặt phòng</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                     </Link>
                     <Link
                         to="/"
-                        className="w-full sm:w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition text-center"
+                        className="w-full sm:w-1/2 min-h-[44px] py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition text-center flex items-center justify-center"
                     >
                         Về Trang chủ
                     </Link>

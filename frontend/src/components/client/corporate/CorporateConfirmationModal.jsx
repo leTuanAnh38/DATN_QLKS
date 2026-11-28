@@ -110,7 +110,7 @@ export default function CorporateConfirmationModal({
                             </div>
                             <div>
                                 <span className="text-slate-400 block text-[11px]">Email nhận hợp đồng:</span>
-                                <strong className="text-slate-800">{leaderEmail || 'Chưa cung cấp'}</strong>
+                                <strong className="text-slate-800 break-all block">{leaderEmail || 'Chưa cung cấp'}</strong>
                             </div>
                         </div>
                     </div>
@@ -142,12 +142,12 @@ export default function CorporateConfirmationModal({
                     </div>
 
                     {/* 3. Danh sách phòng đã chọn */}
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5">
-                        <div className="flex justify-between items-center">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2.5">
+                        <div className="flex justify-between items-center gap-2">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 min-w-0">
                                 Danh sách hạng phòng đoàn
                             </span>
-                            <span className="font-bold text-amber-700 text-xs">
+                            <span className="font-bold text-amber-700 text-xs whitespace-nowrap shrink-0">
                                 Tổng cộng: {totalRoomsCount} phòng
                             </span>
                         </div>
@@ -175,17 +175,17 @@ export default function CorporateConfirmationModal({
 
                     {/* 4. Hóa đơn VAT (nếu có) */}
                     {isCompanyInvoice && (
-                        <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-200/70 space-y-2 text-xs">
-                            <div className="flex items-center gap-1.5 text-blue-900 font-bold uppercase tracking-wider text-[11px]">
-                                <Receipt className="w-3.5 h-3.5" />
+                        <div className="bg-blue-50/50 rounded-2xl p-3.5 sm:p-4 border border-blue-200/70 space-y-2 text-xs">
+                            <div className="flex items-start gap-1.5 text-blue-900 font-bold uppercase tracking-wider text-[11px]">
+                                <Receipt className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                                 <span>Thông tin xuất hóa đơn VAT doanh nghiệp</span>
                             </div>
                             <div className="space-y-1 text-slate-700">
-                                <div>Công ty: <strong className="text-slate-900">{companyName}</strong></div>
+                                <div>Công ty: <strong className="text-slate-900 break-words">{companyName}</strong></div>
                                 <div>Mã số thuế: <strong className="text-slate-900">{companyTaxCode}</strong></div>
-                                <div>Địa chỉ: <span className="text-slate-800">{companyAddress}</span></div>
+                                <div>Địa chỉ: <span className="text-slate-800 break-words">{companyAddress}</span></div>
                                 {invoiceRecipientEmail && (
-                                    <div>Email nhận HĐĐT: <span className="text-slate-800">{invoiceRecipientEmail}</span></div>
+                                    <div>Email nhận HĐĐT: <span className="text-slate-800 break-all">{invoiceRecipientEmail}</span></div>
                                 )}
                             </div>
                         </div>
@@ -269,16 +269,16 @@ export default function CorporateConfirmationModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isSubmitting}
-                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                        className="w-full sm:w-auto min-h-[44px] sm:min-h-0 px-4 sm:px-6 py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-900/20 transition flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                     >
                         {isSubmitting ? (
                             <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0"></div>
                                 <span>Đang xử lý đơn đoàn...</span>
                             </>
                         ) : (
                             <>
-                                <Building2 className="w-4 h-4" />
+                                <Building2 className="w-4 h-4 shrink-0" />
                                 <span>
                                     {paymentOption === 'FULL'
                                         ? `Xác Nhận & Thanh Toán 100% (${totalRoomsCount} phòng)`

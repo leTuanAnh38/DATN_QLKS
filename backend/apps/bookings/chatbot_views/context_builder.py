@@ -27,7 +27,9 @@ def calculate_category_availability(cat, c_in, c_out, now_date=None):
     if not now_date:
         now_date = timezone.localtime(timezone.now()).date() if timezone.is_aware(timezone.now()) else timezone.now().date()
 
-    pending_timeout = timezone.now() - timedelta(minutes=15)
+    from ..views.helpers import expire_overdue_tentative_groups, build_active_inventory_q
+    expire_overdue_tentative_groups()
+    active_inventory_q = build_active_inventory_q()
     total_physical = cat.rooms.count()
 
     if c_in <= now_date < c_out:
@@ -36,10 +38,7 @@ def calculate_category_availability(cat, c_in, c_out, now_date=None):
             category=cat,
             check_in_date__lt=c_out,
             check_out_date__gt=c_in
-        ).filter(
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(status='pending', created_at__gte=pending_timeout)
-        )
+        ).filter(active_inventory_q)
         unassigned_or_clean_bookings = active_bookings.filter(
             Q(room__isnull=True) | ~Q(room_id__in=busy_physical_ids)
         ).count()
@@ -52,10 +51,7 @@ def calculate_category_availability(cat, c_in, c_out, now_date=None):
             category=cat,
             check_in_date__lt=c_out,
             check_out_date__gt=c_in
-        ).filter(
-            Q(status__in=['confirmed', 'checked_in', 'paid', 'PAID']) |
-            Q(status='pending', created_at__gte=pending_timeout)
-        ).count()
+        ).filter(active_inventory_q).count()
         avail = max(0, sellable_total - booked_count)
         return total_physical, booked_count, avail
 

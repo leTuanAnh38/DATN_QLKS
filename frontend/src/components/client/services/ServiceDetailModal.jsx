@@ -350,8 +350,8 @@ export default function ServiceDetailModal({
                             <p className="font-semibold text-slate-800">
                                 Hỗ trợ tùy chỉnh ghi chú & hẹn giờ phục vụ
                             </p>
-                            <p className="text-[11px] sm:text-xs text-slate-600 flex items-center gap-1.5 flex-wrap">
-                                <Receipt className="w-3.5 h-3.5 text-sky-600 inline shrink-0" />
+                            <p className="text-[11px] sm:text-xs text-slate-600 flex items-start gap-1.5">
+                                <Receipt className="w-3.5 h-3.5 text-sky-600 shrink-0 mt-0.5" />
                                 <span>
                                     Quý khách có thể ghi chú khẩu vị, dị ứng thực phẩm hoặc hẹn giờ giao ở bước xác nhận. Chi phí sẽ được gộp tiện lợi vào hóa đơn phòng khi Check-out.
                                 </span>
@@ -365,8 +365,8 @@ export default function ServiceDetailModal({
                     {showCartControls && (
                         <div className="flex items-center justify-between gap-3">
                             {/* Bộ chọn số lượng */}
-                            <div className="flex items-center gap-2.5">
-                                <span className="text-xs font-bold text-slate-600">Số lượng</span>
+                            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                                <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Số lượng</span>
                                 <div className="inline-flex items-center border border-slate-200 rounded-xl bg-slate-50 overflow-hidden">
                                     <button
                                         type="button"
@@ -391,11 +391,11 @@ export default function ServiceDetailModal({
                             </div>
 
                             {/* Tạm tính */}
-                            <div className="text-right">
+                            <div className="text-right min-w-0 shrink-0">
                                 <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
                                     Tạm tính
                                 </span>
-                                <span className="text-base sm:text-lg font-black text-sky-700 tabular-nums">
+                                <span className="text-base sm:text-lg font-black text-sky-700 tabular-nums whitespace-nowrap">
                                     {priceNum === 0 ? 'Miễn phí' : `${subtotal.toLocaleString('vi-VN')} đ`}
                                 </span>
                             </div>

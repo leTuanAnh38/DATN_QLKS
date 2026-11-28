@@ -190,7 +190,7 @@ export default function GuestTestimonials() {
                                         </div>
 
                                         {/* Trích dẫn in nghiêng trong ngoặc kép */}
-                                        <p className="text-slate-600 italic text-xs sm:text-[13.5px] leading-[1.75] mb-4 sm:mb-7">
+                                        <p className="text-slate-600 italic text-xs sm:text-[13.5px] leading-[1.75] mb-4 sm:mb-7 line-clamp-4 sm:line-clamp-5">
                                             "{cleanComment}"
                                         </p>
                                     </div>

@@ -134,7 +134,7 @@ export default function BookingConfirmationModal({
                             </div>
                             <div>
                                 <span className="text-slate-400 block text-[11px]">Email xác nhận:</span>
-                                <span className="font-bold text-slate-800">{guestEmail}</span>
+                                <span className="font-bold text-slate-800 break-all block">{guestEmail}</span>
                             </div>
                             <div>
                                 <span className="text-slate-400 block text-[11px]">CCCD / Hộ chiếu:</span>
@@ -144,9 +144,9 @@ export default function BookingConfirmationModal({
 
                         {customerType === 'CORPORATE' && (
                             <div className="pt-2.5 mt-2 border-t border-slate-200 text-xs space-y-1">
-                                <div className="flex items-center gap-1.5 text-blue-700 font-bold">
-                                    <Building2 className="w-3.5 h-3.5 shrink-0" />
-                                    <span>Doanh nghiệp: {companyName}</span>
+                                <div className="flex items-start gap-1.5 text-blue-700 font-bold">
+                                    <Building2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                    <span className="min-w-0 break-words">Doanh nghiệp: {companyName}</span>
                                 </div>
                                 <div className="text-slate-600 text-[11px]">
                                     Mã số thuế: <strong className="text-slate-800">{companyTaxCode}</strong>
@@ -222,8 +222,8 @@ export default function BookingConfirmationModal({
 
                     {/* 5. Ghi chú chính sách */}
                     <div className="p-3 bg-emerald-50/70 border border-emerald-200/60 rounded-xl text-[11px] text-emerald-800 space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <div className="flex items-start gap-1.5 font-bold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                             <span>Chính sách: {room?.cancellation_policy ? 'Áp dụng theo quy định của phòng' : 'Miễn phí hủy trước 24 giờ'}</span>
                         </div>
                         <p className="text-emerald-700/90 pl-5.5">

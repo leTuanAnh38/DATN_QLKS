@@ -35,10 +35,19 @@ body {
   background-color: #f8fafc;
 }
 
-/* Tắt hiệu ứng nháy nền xanh/xám mặc định khi chạm nút/link trên điện thoại */
+/* Tắt hiệu ứng nháy nền xanh/xám mặc định và bỏ độ trễ chạm kép trên điện thoại */
 button,
-a {
+a,
+[role="button"] {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Phản hồi chạm tay tức thì kiểu ứng dụng di động (không ảnh hưởng vị trí transform) */
+@media (hover: none) and (pointer: coarse) {
+  button:not(:disabled):active {
+    filter: brightness(0.94);
+  }
 }
 
 /* Định nghĩa lớp font-serif dùng Playfair Display tiếng Việt chuẩn không bị lỗi dấu */
@@ -282,6 +291,14 @@ a {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Chống cuộn lây trang nền khi vuốt tới cuối danh sách bên trong Modal / Bottom-Sheet */
+.fixed.inset-0.overflow-y-auto,
+.fixed.inset-0 .overflow-y-auto {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* =========================================================================
@@ -449,8 +466,81 @@ input[type="date"]::-webkit-datetime-edit {
   }
 }
 
-.animate-fadeIn {
-  animation: fadeInSmooth 0.24s var(--ease-luxury) both;
+.animate-fadeIn,
+.animate-fade-in {
+  animation: fadeInSmooth 0.22s var(--ease-luxury) backwards;
+}
+
+/* 4b. Kích hoạt bộ hiệu ứng mở Modal, Toast & trượt Bottom-Sheet từ đáy trên Mobile */
+@keyframes enterMotion {
+  0% {
+    opacity: var(--enter-opacity, 1);
+    transform: translate3d(var(--enter-x, 0), var(--enter-y, 0), 0) scale(var(--enter-scale, 1));
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-in {
+  animation: enterMotion 0.24s var(--ease-luxury) backwards;
+}
+
+.animate-in.duration-150 {
+  animation-duration: 0.16s;
+}
+
+.animate-in.duration-200 {
+  animation-duration: 0.24s;
+}
+
+.animate-in.duration-300 {
+  animation-duration: 0.32s;
+}
+
+.fade-in {
+  --enter-opacity: 0;
+}
+
+.zoom-in {
+  --enter-opacity: 0;
+  --enter-scale: 0.94;
+}
+
+.zoom-in-95,
+.animate-scale-up {
+  --enter-opacity: 0;
+  --enter-scale: 0.96;
+}
+
+.animate-scale-up {
+  animation: enterMotion 0.24s var(--ease-luxury) backwards;
+}
+
+.slide-in-from-top,
+.slide-in-from-top-2,
+.slide-in-from-top-4 {
+  --enter-opacity: 0;
+  --enter-y: -12px;
+}
+
+.slide-in-from-bottom,
+.slide-in-from-bottom-2,
+.slide-in-from-bottom-4 {
+  --enter-opacity: 0;
+  --enter-y: 24px;
+}
+
+/* Trên điện thoại: các modal dạng Bottom-Sheet (items-end) trượt mượt từ cạnh dưới lên */
+@media (max-width: 639px) {
+  .fixed.inset-0.items-end > .animate-in,
+  .fixed.inset-0.items-end > .animate-scale-up {
+    --enter-opacity: 0.92;
+    --enter-y: 36px;
+    --enter-scale: 1;
+    animation: enterMotion 0.3s var(--ease-luxury) backwards;
+  }
 }
 
 .animate-popover {
@@ -512,8 +602,10 @@ input[type="date"]::-webkit-datetime-edit {
   z-index: 1;
 }
 
-.btn-luxury-shine:hover::after {
-  transform: translate3d(135%, 0, 0);
+@media (hover: hover) and (pointer: fine) {
+  .btn-luxury-shine:hover::after {
+    transform: translate3d(135%, 0, 0);
+  }
 }
 
 /* 7. Gạch chân trượt vàng kim cho Menu Navbar */
@@ -535,9 +627,14 @@ input[type="date"]::-webkit-datetime-edit {
   transition: transform 0.34s var(--ease-luxury);
 }
 
-.nav-link-luxury:hover::after,
 .nav-link-luxury.nav-link-active::after {
   transform: scaleX(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-link-luxury:hover::after {
+    transform: scaleX(1);
+  }
 }
 
 /* 8. Ánh sáng nền thở/trôi cực chậm cho Banner Concierge */
@@ -600,6 +697,9 @@ input[type="date"]::-webkit-datetime-edit {
   .animate-hero-up,
   .animate-tab-reveal,
   .animate-fadeIn,
+  .animate-fade-in,
+  .animate-in,
+  .animate-scale-up,
   .animate-popover,
   .animate-drawer-down,
   .animate-callout,
