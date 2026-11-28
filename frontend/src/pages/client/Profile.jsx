@@ -544,41 +544,53 @@ export default function Profile() {
                         {/* 2. CỘT PHẢI - THÔNG TIN ĐỊNH DANH (VIEW & EDIT FORM) */}
                         {/* Trên mobile hiển thị vị trí 2 (ngay dưới Avatar), trên desktop hiển thị cột phải */}
                         <div className="lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:row-span-2 bg-white rounded-3xl p-4 sm:p-8 shadow-sm border border-slate-200/80 min-w-0">
-                            {/* Card Header with Quick Edit Trigger Button */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 pb-3.5 sm:pb-5 mb-4 sm:mb-6 border-b border-slate-100">
-                                <div>
-                                    <div className="flex items-center gap-2.5 flex-wrap">
-                                        <h2 className="text-xl sm:text-2xl font-serif font-bold text-slate-900 tracking-tight">
-                                            {isEditing ? 'Chỉnh Sửa Hồ Sơ Cá Nhân' : 'Hồ Sơ Định Danh & Liên Hệ'}
+                            {/* Card Header with Quick Edit Trigger Button (Gọn 2 hàng trên Mobile) */}
+                            <div className="pb-3.5 sm:pb-5 mb-4 sm:mb-6 border-b border-slate-100 space-y-1.5 sm:space-y-1">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <h2 className="text-lg sm:text-2xl font-serif font-bold text-slate-900 tracking-tight truncate">
+                                            {isEditing ? (
+                                                <>
+                                                    <span className="sm:hidden">Chỉnh Sửa Hồ Sơ</span>
+                                                    <span className="hidden sm:inline">Chỉnh Sửa Hồ Sơ Cá Nhân</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="sm:hidden">Hồ Sơ Định Danh</span>
+                                                    <span className="hidden sm:inline">Hồ Sơ Định Danh &amp; Liên Hệ</span>
+                                                </>
+                                            )}
                                         </h2>
                                         {isEditing ? (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                Đang chỉnh sửa
+                                            <span className="px-2 sm:px-2.5 py-0.5 rounded-full text-[10.5px] sm:text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap shrink-0">
+                                                Đang sửa
                                             </span>
                                         ) : (
-                                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/70">
+                                            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/70 whitespace-nowrap shrink-0">
                                                 Chế độ xem
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1">
-                                        {isEditing
-                                            ? 'Cập nhật thông tin chính xác giúp quá trình nhận phòng lễ tân diễn ra nhanh chóng.'
-                                            : 'Thông tin cá nhân dùng để đối chiếu khi nhận phòng tại khách sạn TA Đà Nẵng.'}
-                                    </p>
+
+                                    {/* Nút Chỉnh sửa gọn ngay góc phải hàng 1 */}
+                                    {!isEditing && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEditing(true)}
+                                            className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
+                                        >
+                                            <Edit3 className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="sm:hidden">Chỉnh sửa</span>
+                                            <span className="hidden sm:inline">Chỉnh Sửa Hồ Sơ</span>
+                                        </button>
+                                    )}
                                 </div>
 
-                                {/* Nút Chỉnh sửa ở ngay góc trên bên phải */}
-                                {!isEditing && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditing(true)}
-                                        className="self-start sm:self-auto px-4 py-2 sm:py-2.5 bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-900/15 transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                                    >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                        <span>Chỉnh Sửa Hồ Sơ</span>
-                                    </button>
-                                )}
+                                <p className="text-[11.5px] sm:text-xs text-slate-500 leading-snug">
+                                    {isEditing
+                                        ? 'Cập nhật thông tin chính xác giúp quá trình nhận phòng lễ tân diễn ra nhanh chóng.'
+                                        : 'Thông tin cá nhân dùng để đối chiếu khi nhận phòng tại khách sạn TA Đà Nẵng.'}
+                                </p>
                             </div>
 
                             {/* CHẾ ĐỘ XEM (VIEW MODE) - GIAO DIỆN SẠCH SẼ, SANG TRỌNG */}

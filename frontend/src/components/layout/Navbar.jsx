@@ -11,7 +11,7 @@ import NotificationBell from '../common/NotificationBell';
 import { isStaffRole, getRoleTitle } from '../../utils/permission';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { useScrolled } from '../../hooks/useMotion';
-import { Phone, CalendarClock, User, Tag, KeyRound, LayoutDashboard } from 'lucide-react';
+import { Phone, CalendarClock, User, KeyRound, LayoutDashboard } from 'lucide-react';
 
 const getAvatarUrl = (avatar) => resolveMediaUrl(avatar, null);
 
@@ -515,31 +515,31 @@ export default function Navbar({
                                     </div>
                                 </div>
 
-                                {/* Menu tắt trên Mobile dành riêng cho khách hàng */}
+                                {/* Menu tắt trên Mobile dành riêng cho khách hàng (Chỉ tô màu mục đang mở) */}
                                 <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-1.5 sm:gap-2 text-xs">
                                     <Link
                                         to="/booking-history"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
+                                        className={`col-span-2 flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl font-bold border transition ${
+                                            location.pathname.startsWith('/booking-history')
+                                                ? 'bg-amber-50 text-amber-800 border-amber-200/90'
+                                                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200/80'
+                                        }`}
                                     >
-                                        <CalendarClock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                                        <CalendarClock className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${location.pathname.startsWith('/booking-history') ? 'text-amber-600' : 'text-sky-600'}`} />
                                         <span className="truncate">Lịch sử đặt phòng</span>
                                     </Link>
                                     <Link
                                         to="/profile"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200/80 transition"
+                                        className={`flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl font-bold border transition ${
+                                            location.pathname.startsWith('/profile')
+                                                ? 'bg-amber-50 text-amber-800 border-amber-200/90'
+                                                : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200/80'
+                                        }`}
                                     >
-                                        <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600 shrink-0" />
+                                        <User className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${location.pathname.startsWith('/profile') ? 'text-amber-600' : 'text-slate-600'}`} />
                                         <span className="truncate">Hồ sơ cá nhân</span>
-                                    </Link>
-                                    <Link
-                                        to="/promotions"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-1.5 p-2 sm:p-2.5 min-h-[38px] sm:min-h-[42px] rounded-xl bg-amber-50/80 hover:bg-amber-100 text-amber-800 font-bold border border-amber-200/60 transition"
-                                    >
-                                        <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
-                                        <span className="truncate">Mã ưu đãi của tôi</span>
                                     </Link>
                                     <button
                                         type="button"
@@ -564,7 +564,7 @@ export default function Navbar({
                                         key={item.path}
                                         to={item.path}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center min-h-[38px] sm:min-h-[42px] px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-lg text-[13px] sm:text-sm font-medium transition ${
+                                        className={`flex items-center min-h-[38px] sm:min-h-[42px] px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-lg text-[13px] sm:text-sm font-medium transition last:odd:col-span-2 ${
                                             active
                                                 ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200/90 sm:border-0 sm:border-l-4 sm:border-amber-600'
                                                 : 'bg-slate-50/70 sm:bg-transparent text-slate-700 hover:bg-amber-50/50 hover:text-amber-800 border border-slate-100 sm:border-0'
@@ -620,10 +620,10 @@ export default function Navbar({
                             {/* Đường dây nóng nhanh cho Mobile (do Topbar ẩn trên < sm) */}
                             <a
                                 href={`tel:${hotlineDisplay.replace(/\s+/g, '')}`}
-                                className="sm:hidden w-full min-h-[40px] py-2 px-3 rounded-xl bg-amber-50/70 border border-amber-200/70 text-amber-900 text-xs font-semibold flex items-center justify-center gap-2"
+                                className="sm:hidden w-full min-h-[40px] py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center gap-2 transition"
                             >
-                                <Phone className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>Hotline 24/7: <strong>{hotlineDisplay}</strong></span>
+                                <Phone className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                <span>Hotline 24/7: <strong className="text-slate-900">{hotlineDisplay}</strong></span>
                             </a>
                         </div>
                 </div>

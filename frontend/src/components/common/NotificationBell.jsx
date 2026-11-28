@@ -468,21 +468,21 @@ export default function NotificationBell({ theme = 'light' }) {
                         style={{ transformOrigin: 'top right' }}
                     >
                     {/* Header Popover */}
-                    <div className="p-3 sm:p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between gap-2">
+                    <div className="p-2.5 sm:p-3.5 bg-gradient-to-r from-blue-50 to-sky-50 text-slate-900 border-b border-slate-200 flex items-center justify-between gap-1.5 sm:gap-2">
                         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                             <span className="font-bold text-sm tracking-wide whitespace-nowrap">Thông Báo</span>
                             {unreadCount > 0 && (
-                                <span className="bg-red-500/90 text-white text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shrink-0">
+                                <span className="bg-red-500/90 text-white text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
                                     {unreadCount > 99 ? '99+' : `${unreadCount} mới`}
                                 </span>
                             )}
                         </div>
-                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                        <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
                             {unreadCount > 0 && (
                                 <button
                                     type="button"
                                     onClick={handleMarkAllAsRead}
-                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 min-h-[40px] px-2.5 sm:min-h-0 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 min-h-[32px] px-2 sm:min-h-0 sm:px-2.5 sm:py-1 rounded-lg hover:bg-blue-100/60 transition cursor-pointer font-medium whitespace-nowrap shrink-0"
                                     title="Đánh dấu tất cả đã đọc"
                                     aria-label="Đánh dấu tất cả đã đọc"
                                 >
@@ -496,7 +496,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                     type="button"
                                     onClick={handleClearRead}
                                     disabled={isClearingRead}
-                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-red-600 min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
+                                    className="inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-red-600 w-8 h-8 sm:w-auto sm:h-auto p-1.5 sm:px-2 sm:py-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-50 shrink-0"
                                     title="Dọn dẹp các thông báo đã đọc"
                                     aria-label="Dọn dẹp các thông báo đã đọc"
                                 >
@@ -507,7 +507,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={toggleSound}
-                                className={`min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center rounded-lg transition cursor-pointer shrink-0 ${
+                                className={`w-8 h-8 sm:w-auto sm:h-auto p-1.5 flex items-center justify-center rounded-lg transition cursor-pointer shrink-0 ${
                                     soundEnabled ? 'text-blue-600 hover:bg-blue-100/60' : 'text-slate-400 hover:bg-slate-200/60'
                                 }`}
                                 title={soundEnabled ? 'Đang bật âm thanh thông báo (Click để tắt)' : 'Đang tắt âm thanh thông báo (Click để bật)'}
@@ -518,7 +518,7 @@ export default function NotificationBell({ theme = 'light' }) {
                             <button
                                 type="button"
                                 onClick={() => fetchNotifications(false, 1, false, filter)}
-                                className="min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 sm:p-1.5 flex items-center justify-center hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
+                                className="w-8 h-8 sm:w-auto sm:h-auto p-1.5 flex items-center justify-center hover:bg-white rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer shrink-0"
                                 title="Tải lại thông báo"
                                 aria-label="Tải lại thông báo"
                             >
@@ -639,7 +639,7 @@ export default function NotificationBell({ theme = 'light' }) {
                                                             </span>
                                                         )}
                                                         <h4
-                                                            className={`text-xs leading-snug break-words flex-1 ${
+                                                            className={`basis-full sm:basis-auto sm:flex-1 min-w-0 text-xs leading-snug break-words mt-0.5 sm:mt-0 ${
                                                                 isUnread
                                                                     ? 'font-bold text-slate-900'
                                                                     : 'font-semibold text-slate-700'

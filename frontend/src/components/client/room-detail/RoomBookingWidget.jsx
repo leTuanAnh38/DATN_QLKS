@@ -54,12 +54,12 @@ export default function RoomBookingWidget({
                 <div className="lg:sticky lg:top-20 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-5 space-y-4 lg:max-h-[calc(100vh-5.75rem)] lg:overflow-y-auto">
                     {/* Khối giá hiển thị động */}
                     <div className="pb-3.5 border-b border-slate-100">
-                        <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-slate-500 mb-1">
                             <span className="uppercase font-bold tracking-wider text-sky-700">
                                 Giá ưu đãi đặt trực tiếp
                             </span>
-                            <span className="text-emerald-600 font-bold flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Giá tốt nhất
+                            <span className="text-emerald-600 font-bold flex items-center gap-1 whitespace-nowrap shrink-0">
+                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Giá tốt nhất
                             </span>
                         </div>
 
@@ -166,27 +166,27 @@ export default function RoomBookingWidget({
                     </div>
 
                     {/* Bảng chiết tính chi phí minh bạch */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
-                        <div className="flex justify-between text-slate-600">
-                            <span>
+                    <div className="p-3.5 sm:p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs tabular-nums">
+                        <div className="flex justify-between gap-2 text-slate-600">
+                            <span className="min-w-0">
                                 {totalPricePerNight.toLocaleString('vi-VN')} VND x {nights} đêm
                             </span>
-                            <span>{roomSubtotal.toLocaleString('vi-VN')} VND</span>
+                            <span className="whitespace-nowrap shrink-0 font-medium text-slate-800">{roomSubtotal.toLocaleString('vi-VN')} VND</span>
                         </div>
-                        <div className="flex justify-between text-slate-600">
+                        <div className="flex justify-between gap-2 text-slate-600">
                             <span>Thuế VAT & Phí phục vụ</span>
-                            <span className="text-emerald-600 font-semibold">Đã bao gồm</span>
+                            <span className="text-emerald-600 font-semibold whitespace-nowrap shrink-0">Đã bao gồm</span>
                         </div>
-                        <div className="flex justify-between text-sky-700 font-semibold pt-1 border-t border-slate-200">
-                            <span className="flex items-center gap-1.5">
-                                <Award className="w-3.5 h-3.5 text-sky-600" /> Tích lũy điểm thưởng
+                        <div className="flex justify-between gap-2 text-sky-700 font-semibold pt-1 border-t border-slate-200">
+                            <span className="flex items-center gap-1.5 min-w-0">
+                                <Award className="w-3.5 h-3.5 text-sky-600 shrink-0" /> Tích lũy điểm thưởng
                             </span>
-                            <span>+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
+                            <span className="whitespace-nowrap shrink-0">+{earnedPoints.toLocaleString('vi-VN')} điểm</span>
                         </div>
-                        <div className="flex justify-between items-baseline pt-2 border-t border-slate-200">
+                        <div className="flex justify-between items-baseline gap-2 pt-2 border-t border-slate-200">
                             <span className="font-bold text-slate-900 text-sm">Tổng thanh toán dự kiến</span>
-                            <div className="text-right">
-                                <span className="font-black text-xl text-slate-900">
+                            <div className="text-right shrink-0">
+                                <span className="font-black text-xl text-slate-900 whitespace-nowrap">
                                     {finalTotal.toLocaleString('vi-VN')}
                                 </span>
                                 <span className="text-[11px] text-slate-500 font-bold block">VND</span>
@@ -200,7 +200,7 @@ export default function RoomBookingWidget({
                             {availability.is_sold_out ? (
                                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 space-y-1">
                                     <div className="font-bold flex items-center gap-1.5">
-                                        <AlertCircle className="w-4 h-4 text-rose-500" />
+                                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                                         <span>Hạng phòng này đã kín chỗ trong khoảng ngày bạn chọn!</span>
                                     </div>
                                     <p className="text-[11px] text-rose-700">
@@ -208,13 +208,13 @@ export default function RoomBookingWidget({
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50/80 px-3 py-2 rounded-xl border border-emerald-200">
-                                    <span className="font-medium flex items-center gap-1.5">
-                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sẵn sàng đón khách
+                                <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-emerald-800 bg-emerald-50/80 px-3 py-2 rounded-xl border border-emerald-200">
+                                    <span className="font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Sẵn sàng đón khách
                                     </span>
-                                    <span className="font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Còn {availability.available_rooms} phòng trống
+                                    <span className="font-bold text-emerald-700 bg-emerald-100/60 px-2.5 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                                        <span>Còn {availability.available_rooms} phòng<span className="hidden sm:inline"> trống</span></span>
                                     </span>
                                 </div>
                             )}

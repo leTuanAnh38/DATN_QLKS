@@ -33,12 +33,12 @@ export default function ServiceOrderModal({
     if (!selectedItem) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
             {/* Backdrop dismiss */}
             <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
             <div
-                className="relative bg-white rounded-3xl max-w-lg w-full max-h-[92dvh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10"
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[92dvh] sm:max-h-[88dvh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-scale-up z-10"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Header */}
@@ -67,7 +67,7 @@ export default function ServiceOrderModal({
                 {/* Form wrapping Tier 2 & Tier 3 */}
                 <form onSubmit={onSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {/* Modal Body (Scrollable Tier 2) */}
-                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
+                    <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-3.5 sm:space-y-5">
                         {/* Preview Item đã chọn */}
                         <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center gap-3.5 shadow-2xs">
                             <img
@@ -153,8 +153,8 @@ export default function ServiceOrderModal({
                         </div>
 
                         {/* HÀNG 2: CHỌN SỐ LƯỢNG (QUANTITY) & TẠM TÍNH */}
-                        <div className="grid grid-cols-2 gap-4 items-center bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                            <div>
+                        <div className="flex items-center justify-between gap-2 bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200/80">
+                            <div className="shrink-0">
                                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                                     Số lượng:
                                 </label>
@@ -166,7 +166,7 @@ export default function ServiceOrderModal({
                                     >
                                         <Minus className="w-3.5 h-3.5" />
                                     </button>
-                                    <span className="px-4 py-1.5 text-xs font-bold text-slate-900 border-x border-slate-200">
+                                    <span className="px-3.5 sm:px-4 py-1.5 text-xs font-bold text-slate-900 border-x border-slate-200 tabular-nums">
                                         {quantity}
                                     </span>
                                     <button
@@ -179,11 +179,11 @@ export default function ServiceOrderModal({
                                 </div>
                             </div>
 
-                            <div className="text-right">
+                            <div className="text-right min-w-0">
                                 <span className="text-[10px] text-slate-400 block font-medium">
                                     Tổng tiền dịch vụ:
                                 </span>
-                                <div className="text-lg font-black text-rose-600 font-bold tracking-tight">
+                                <div className="text-base sm:text-lg font-black text-rose-600 tracking-tight whitespace-nowrap tabular-nums">
                                     {(Number(selectedItem.price) * quantity).toLocaleString('vi-VN')}
                                     <span className="text-xs font-normal text-slate-400 ml-1">VND</span>
                                 </div>
@@ -192,10 +192,10 @@ export default function ServiceOrderModal({
 
                         {/* HÀNG 3: THỜI GIAN PHỤC VỤ (GIAO NGAY HOẶC HẸN GIỜ) */}
                         <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-700 mb-1.5 flex flex-wrap items-center justify-between gap-1.5">
                                 <span>Thời gian phục vụ</span>
                                 {deliveryMode === 'scheduled' && scheduledDateTime && (
-                                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200">
+                                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200 whitespace-nowrap shrink-0">
                                         Hẹn giao:{' '}
                                         {new Date(scheduledDateTime).toLocaleTimeString('vi-VN', {
                                             hour: '2-digit',
@@ -228,9 +228,9 @@ export default function ServiceOrderModal({
                                     >
                                         <Zap className="w-3.5 h-3.5" />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                         <div className="text-xs font-bold leading-tight">Giao ngay</div>
-                                        <div className="text-[10px] text-slate-400 font-normal">
+                                        <div className="hidden sm:block text-[10px] text-slate-400 font-normal">
                                             Bếp làm luôn khi nhận đơn
                                         </div>
                                     </div>
@@ -260,9 +260,9 @@ export default function ServiceOrderModal({
                                     >
                                         <Clock className="w-3.5 h-3.5" />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                         <div className="text-xs font-bold leading-tight">Hẹn giờ giao</div>
-                                        <div className="text-[10px] text-slate-400 font-normal">
+                                        <div className="hidden sm:block text-[10px] text-slate-400 font-normal">
                                             Đặt trước theo giờ ăn của bạn
                                         </div>
                                     </div>
@@ -330,29 +330,30 @@ export default function ServiceOrderModal({
                     </div>
 
                     {/* Modal Actions */}
-                    <div className="px-5 sm:px-6 py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-end gap-3 shrink-0">
+                    <div className="px-3.5 sm:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:py-3.5 bg-slate-50/90 backdrop-blur-xs border-t border-slate-200/80 flex items-center justify-between sm:justify-end gap-2 sm:gap-3 shrink-0">
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                            className="flex-1 sm:flex-initial min-h-[44px] sm:min-h-0 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold transition cursor-pointer disabled:opacity-50 text-center whitespace-nowrap"
                         >
                             Đóng
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                            className="flex-[1.6] sm:flex-initial min-h-[44px] sm:min-h-0 px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-blue-600 to-cyan-700 hover:from-sky-700 hover:via-blue-700 hover:to-cyan-800 active:scale-95 text-white text-xs font-bold shadow-md shadow-sky-900/20 transition flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                                     <span>Đang gửi yêu cầu...</span>
                                 </>
                             ) : (
                                 <>
-                                    <BellRing className="w-4 h-4" />
-                                    <span>Xác nhận gửi yêu cầu</span>
+                                    <BellRing className="w-4 h-4 shrink-0" />
+                                    <span className="sm:hidden">Gửi yêu cầu</span>
+                                    <span className="hidden sm:inline">Xác nhận gửi yêu cầu</span>
                                 </>
                             )}
                         </button>

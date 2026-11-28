@@ -1494,16 +1494,16 @@ export default function CorporateBooking() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto flex-nowrap">
                                                         {/* Badge sức chứa */}
-                                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 border font-sans tabular-nums whitespace-nowrap ${
+                                                        <span className={`px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 sm:gap-1.5 border font-sans tabular-nums whitespace-nowrap shrink-0 ${
                                                             isFull
                                                                 ? 'bg-sky-50 text-sky-800 border-sky-200'
                                                                 : 'bg-white text-slate-700 border-slate-200'
                                                         }`}>
                                                             <Users className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                                                            <span>{guestCount}/{roomCap} người</span>
-                                                            {isFull && <span className="text-[10px] text-sky-600 font-semibold hidden xs:inline">(Đã tối đa)</span>}
+                                                            <span>{guestCount}/{roomCap}<span className="hidden sm:inline"> người</span></span>
+                                                            {isFull && <span className="text-[10px] text-sky-600 font-semibold hidden sm:inline">(Đã tối đa)</span>}
                                                         </span>
 
                                                         <button
@@ -1516,7 +1516,7 @@ export default function CorporateBooking() {
                                                                 setShowFastPasteModal(true);
                                                             }}
                                                             title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Dán nhanh khách vào phòng này từ Excel'}
-                                                            className={`min-h-[36px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs sm:text-[11px] font-bold border transition flex items-center gap-1 whitespace-nowrap ${
+                                                            className={`flex-1 sm:flex-initial justify-center min-h-[34px] sm:min-h-0 px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 whitespace-nowrap ${
                                                                 isFull
                                                                     ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
                                                                     : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
@@ -1531,7 +1531,7 @@ export default function CorporateBooking() {
                                                             disabled={isFull}
                                                             onClick={() => handleAddGuestToAllocatedRoom(room.room_key)}
                                                             title={isFull ? `Phòng đã đạt sức chứa tối đa (${roomCap} người)` : 'Thêm người ở cùng'}
-                                                            className={`min-h-[36px] sm:min-h-0 px-3 py-2 sm:py-1 rounded-lg text-xs sm:text-[11px] font-bold border transition flex items-center gap-1 whitespace-nowrap ${
+                                                            className={`flex-1 sm:flex-initial justify-center min-h-[34px] sm:min-h-0 px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-[11px] font-bold border transition flex items-center gap-1 whitespace-nowrap ${
                                                                 isFull
                                                                     ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
                                                                     : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 cursor-pointer active:scale-95'
@@ -1602,9 +1602,9 @@ export default function CorporateBooking() {
                                                                             onChange={(e) => handleAllocatedGuestFieldChange(room.room_key, gIdx, 'id_type', e.target.value)}
                                                                             className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-sky-500/25 focus:border-sky-500 cursor-pointer"
                                                                         >
-                                                                            <option value="CCCD">CCCD / CMND</option>
+                                                                            <option value="CCCD">CCCD</option>
                                                                             <option value="PASSPORT">Hộ chiếu</option>
-                                                                            <option value="OTHER">Trẻ em / Khác</option>
+                                                                            <option value="OTHER">Khác</option>
                                                                         </select>
                                                                     </div>
 
@@ -1652,22 +1652,23 @@ export default function CorporateBooking() {
 
                                                 {/* Dịch vụ chọn kèm cho phòng này */}
                                                 <div className="pt-3 border-t border-slate-200/80 space-y-2.5">
-                                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
-                                                            <Bell className="w-3.5 h-3.5 text-sky-600" />
-                                                            <span>Dịch vụ tiện ích chọn kèm phòng này</span>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 min-w-0 flex-1">
+                                                            <Bell className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                                            <span className="sm:hidden truncate">Dịch vụ phòng này</span>
+                                                            <span className="hidden sm:inline truncate">Dịch vụ tiện ích chọn kèm phòng này</span>
                                                             {room.services && room.services.length > 0 && (
-                                                                <span className="px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-[10px] font-sans tabular-nums">
-                                                                    {room.services.length} dịch vụ
+                                                                <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 font-bold text-[10px] font-sans tabular-nums whitespace-nowrap shrink-0">
+                                                                    {room.services.length}<span className="hidden sm:inline"> dịch vụ</span>
                                                                 </span>
                                                             )}
                                                         </div>
                                                         <button
                                                             type="button"
                                                             onClick={() => setActiveServicePickerRoomKey(activeServicePickerRoomKey === room.room_key ? null : room.room_key)}
-                                                            className="min-h-[36px] sm:min-h-0 px-3 sm:px-2.5 py-2 sm:py-1 rounded-lg text-xs sm:text-[11px] font-bold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center gap-1 transition cursor-pointer active:scale-95"
+                                                            className="min-h-[34px] sm:min-h-0 px-2.5 py-1.5 sm:py-1 rounded-lg text-[11px] font-bold bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center gap-1 transition cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                                                         >
-                                                            <Plus className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
+                                                            <Plus className="w-3 h-3 shrink-0" />
                                                             <span>{activeServicePickerRoomKey === room.room_key ? 'Đóng menu' : 'Thêm dịch vụ'}</span>
                                                         </button>
                                                     </div>
@@ -1728,10 +1729,11 @@ export default function CorporateBooking() {
                                                     {/* Panel chọn dịch vụ cho phòng này */}
                                                     {activeServicePickerRoomKey === room.room_key && (
                                                         <div className="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3 animate-in fade-in duration-150 shadow-2xs">
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
-                                                                    <Bell className="w-3.5 h-3.5 text-sky-600" />
-                                                                    <span>Chọn dịch vụ khách sạn muốn thêm vào phòng #{room.global_index} ({room.category_name}):</span>
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <div className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5 min-w-0 flex-1">
+                                                                    <Bell className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                                                    <span className="sm:hidden truncate">Chọn dịch vụ phòng #{room.global_index}</span>
+                                                                    <span className="hidden sm:inline truncate">Chọn dịch vụ thêm vào phòng #{room.global_index} ({room.category_name})</span>
                                                                 </div>
                                                                 <button
                                                                     type="button"
@@ -1740,9 +1742,9 @@ export default function CorporateBooking() {
                                                                         setServiceSearchQuery('');
                                                                         setSelectedServiceCategory('all');
                                                                     }}
-                                                                    className="text-slate-400 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold inline-flex items-center gap-1"
+                                                                    className="text-slate-500 hover:text-slate-700 text-xs px-2 py-0.5 rounded-md hover:bg-white transition cursor-pointer font-bold inline-flex items-center gap-1 whitespace-nowrap shrink-0"
                                                                 >
-                                                                    <X className="w-3.5 h-3.5" />
+                                                                    <X className="w-3.5 h-3.5 shrink-0" />
                                                                     <span>Đóng</span>
                                                                 </button>
                                                             </div>
@@ -1826,7 +1828,7 @@ export default function CorporateBooking() {
                                                                                 >
                                                                                     <div className="min-w-0">
                                                                                         <div className="flex items-center justify-between gap-1 mb-1.5">
-                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[90px] sm:max-w-[130px] inline-flex items-center gap-1">
+                                                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 truncate max-w-[210px] sm:max-w-[130px] inline-flex items-center gap-1">
                                                                                                 <Tag className="w-2.5 h-2.5 text-slate-400 shrink-0" />
                                                                                                 <span className="truncate">{svcItem.category?.name || svcItem.category_name || 'Tiện ích'}</span>
                                                                                             </span>
@@ -1911,18 +1913,18 @@ export default function CorporateBooking() {
                     <div id="corporate-payment-summary" className="bg-white rounded-3xl p-4 sm:p-8 border border-slate-200 shadow-md space-y-5 sm:space-y-6 scroll-mt-24">
                         {/* 1. CHÍNH SÁCH THANH TOÁN PHÁT SINH TẠI PHÒNG (BILLING ROUTING) */}
                         <div className="space-y-3 pb-5 border-b border-slate-200">
-                            <div className="flex items-center justify-between">
-                                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                    <Scale className="w-4 h-4 text-sky-600" />
+                            <div className="flex items-center justify-between gap-2">
+                                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-start sm:items-center gap-2">
+                                    <Scale className="w-4 h-4 text-sky-600 shrink-0 mt-0.5 sm:mt-0" />
                                     <span>Chính sách chi trả dịch vụ phát sinh tại phòng (Minibar, Giặt là, Ăn uống...):</span>
                                 </label>
-                                <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">Quy định hạch toán</span>
+                                <span className="text-[11px] text-slate-500 font-medium hidden sm:inline shrink-0">Quy định hạch toán</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 {/* Tùy chọn 1: Khách tự trả phát sinh (ROOM_ONLY) */}
                                 <div
                                     onClick={() => setBillingType('ROOM_ONLY')}
-                                    className={`p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
+                                    className={`p-3.5 sm:p-4 rounded-2xl border-2 transition cursor-pointer flex items-start gap-3 ${
                                         billingType === 'ROOM_ONLY'
                                             ? 'border-sky-500 bg-sky-50/45 shadow-sm ring-2 ring-sky-500/15'
                                             : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
@@ -1933,7 +1935,7 @@ export default function CorporateBooking() {
                                         name="billingType"
                                         checked={billingType === 'ROOM_ONLY'}
                                         onChange={() => setBillingType('ROOM_ONLY')}
-                                        className="mt-1 w-4 h-4 text-sky-600 focus:ring-sky-500 accent-sky-600 cursor-pointer"
+                                        className="mt-1 w-4 h-4 text-sky-600 focus:ring-sky-500 accent-sky-600 cursor-pointer shrink-0"
                                     />
                                     <div className="space-y-1 min-w-0">
                                         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

@@ -811,15 +811,15 @@ export default function HotelAdminDashboard({ initialTab }) {
             />
 
             {/* ========================================================================= */}
-            {/* 2. KHU VỰC NỘI DUNG CHÍNH (ml-0 trên Mobile, ml-16 / ml-56 trên Desktop)  */}
+            {/* 2. KHU VỰC NỘI DUNG CHÍNH (ml-0 trên Mobile, ml-16 / ml-60 trên Desktop)  */}
             {/* ========================================================================= */}
             <div
                 className={`pms-admin flex-1 ml-0 ${
-                    isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-56'
+                    isSidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'
                 } transition-all duration-250 ease-in-out flex flex-col min-h-screen min-w-0 max-w-full print:ml-0 print:w-full`}
             >
-                {/* Top Navbar: Ghim cố định trên cùng gọn chuẩn Compact PMS (h-13 / 52px) */}
-                <header className="h-13 bg-white border-b border-slate-200 px-3.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-xs print:hidden">
+                {/* Top Navbar: Ghim cố định trên cùng gọn chuẩn Compact PMS (h-14 / 56px đồng bộ Sidebar) */}
+                <header className="h-14 bg-white border-b border-slate-200 px-3.5 sm:px-5 flex items-center justify-between sticky top-0 z-30 shadow-xs print:hidden">
                     <div className="flex items-center gap-2.5 min-w-0">
                         {/* Nút Hamburger mở Sidebar trên Mobile */}
                         <button

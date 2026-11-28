@@ -114,39 +114,39 @@ export default function RoomFloorPlan({
         // 1. PENTHOUSE / PRESIDENTIAL LAYOUT
         if (layoutType === 'penthouse') {
             return (
-                <div className="flex flex-col gap-2 h-[230px] sm:h-[245px]">
+                <div className="flex flex-col gap-2 min-h-[225px] sm:h-[245px]">
                     {/* Dải trên cùng: Sky Terrace / Ban công Panorama + Jacuzzi */}
-                    <div className="h-[58px] rounded-lg border border-dashed border-blue-300 bg-blue-100/55 flex items-center justify-between px-3">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
+                    <div className="min-h-[48px] sm:h-[58px] rounded-lg border border-dashed border-blue-300 bg-blue-100/55 flex flex-wrap items-center justify-between gap-1.5 px-2.5 sm:px-3 py-1.5">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.12em] text-blue-700">
                             {roomHasBalcony ? `SKY TERRACE • ${viewShort}` : `KÍNH PANORAMA • ${viewShort}`}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/90 border border-blue-300 text-[10px] font-extrabold text-blue-700 uppercase">
+                        <span className="px-2 py-0.5 rounded-full bg-white/90 border border-blue-300 text-[9px] sm:text-[10px] font-extrabold text-blue-700 uppercase whitespace-nowrap shrink-0">
                             {roomHasJacuzzi ? 'JACUZZI / LOUNGE' : 'GHẾ THƯ GIÃN'}
                         </span>
                     </div>
 
                     {/* Gian giữa & dưới: Phòng khách lớn + Master Bedroom + Phòng tắm Spa */}
-                    <div className="flex-1 grid grid-cols-12 gap-2">
-                        <div className="col-span-5 rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    <div className="flex-1 grid grid-cols-12 gap-1.5 sm:gap-2">
+                        <div className="col-span-5 rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-600 leading-tight">
                                 PHÒNG KHÁCH &amp; BÀN ĂN
                             </span>
-                            <span className="text-[10px] text-slate-400 mt-0.5">Khu tiếp đãi riêng</span>
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5">Khu tiếp đãi riêng</span>
                         </div>
-                        <div className="col-span-4 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                        <div className="col-span-4 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-700 leading-tight">
                                 MASTER BEDROOM
                             </span>
                             {renderBedVisual(false)}
                         </div>
-                        <div className="col-span-3 grid grid-rows-2 gap-2">
+                        <div className="col-span-3 grid grid-rows-2 gap-1.5 sm:gap-2">
                             <div className="rounded-lg border border-slate-200/90 bg-blue-50/50 flex items-center justify-center p-1 text-center">
-                                <span className="text-[10px] font-extrabold uppercase text-blue-700 leading-tight">
+                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'SPA & JACUZZI' : 'PHÒNG TẮM'}
                                 </span>
                             </div>
                             <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1 text-center">
-                                <span className="text-[10px] font-bold uppercase text-slate-500 leading-tight">
+                                <span className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-500 leading-tight">
                                     CLOSET &amp; SẢNH
                                 </span>
                             </div>
@@ -159,38 +159,38 @@ export default function RoomFloorPlan({
         // 2. SUITE LAYOUT (Phòng khách + Phòng ngủ tách biệt)
         if (layoutType === 'suite') {
             return (
-                <div className="grid grid-cols-12 gap-2 h-[225px] sm:h-[240px]">
-                    <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
+                <div className="grid grid-cols-12 gap-1.5 sm:gap-2 min-h-[220px] sm:h-[240px]">
+                    <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1 sm:p-1.5">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `KÍNH ${viewShort}`}
                         </span>
                     </div>
 
-                    <div className="col-span-5 grid grid-rows-2 gap-2">
-                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    <div className="col-span-5 grid grid-rows-2 gap-1.5 sm:gap-2">
+                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-600 leading-tight">
                                 PHÒNG KHÁCH
                             </span>
-                            <span className="text-[10px] text-slate-400 mt-0.5">Sofa &amp; bàn trà</span>
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 mt-0.5">Sofa &amp; bàn trà</span>
                         </div>
-                        <div className="rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                        <div className="rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-700 leading-tight">
                                 PHÒNG NGỦ
                             </span>
                             {renderBedVisual()}
                         </div>
                     </div>
 
-                    <div className="col-span-4 grid grid-rows-2 gap-2">
-                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2">
-                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-blue-500/80 bg-blue-100/75 flex items-center justify-center text-center px-1 shadow-2xs">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                    <div className="col-span-4 grid grid-rows-2 gap-1.5 sm:gap-2">
+                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-1.5 sm:p-2">
+                            <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-full border-2 border-blue-500/80 bg-blue-100/75 flex items-center justify-center text-center px-1 shadow-2xs">
+                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-normal sm:tracking-wider text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'JACUZZI' : 'PHÒNG TẮM'}
                                 </span>
                             </div>
                         </div>
-                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                 WALK-IN CLOSET
                             </span>
                         </div>
@@ -202,36 +202,36 @@ export default function RoomFloorPlan({
         // 3. FAMILY / MULTI-GUEST LAYOUT (2 khu giường rõ ràng)
         if (layoutType === 'family') {
             return (
-                <div className="flex flex-col gap-2 h-[225px] sm:h-[240px]">
-                    <div className="h-[42px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-3">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
+                <div className="flex flex-col gap-1.5 sm:gap-2 min-h-[220px] sm:h-[240px]">
+                    <div className="min-h-[38px] sm:h-[42px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-2.5 sm:px-3 py-1">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.12em] text-blue-700">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `CỬA SỔ LỚN • ${viewShort}`}
                         </span>
                     </div>
 
-                    <div className="flex-1 grid grid-cols-12 gap-2">
-                        <div className="col-span-8 flex flex-col gap-2">
-                            <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                    <div className="flex-1 grid grid-cols-12 gap-1.5 sm:gap-2">
+                        <div className="col-span-8 flex flex-col gap-1.5 sm:gap-2">
+                            <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-700 leading-tight">
                                     KHU NGỦ GIA ĐÌNH ({capacity} KHÁCH)
                                 </span>
                                 {renderBedVisual(true)}
                             </div>
-                            <div className="h-[46px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 text-center">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            <div className="min-h-[44px] sm:h-[46px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 py-1 text-center">
+                                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                     KHU SINH HOẠT CHUNG &amp; BÀN TRÀ
                                 </span>
                             </div>
                         </div>
 
-                        <div className="col-span-4 grid grid-rows-2 gap-2">
-                            <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                        <div className="col-span-4 grid grid-rows-2 gap-1.5 sm:gap-2">
+                            <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-normal sm:tracking-wider text-blue-700 leading-tight">
                                     {roomHasJacuzzi ? 'PHÒNG TẮM & BỒN TẮM' : 'PHÒNG TẮM LỚN'}
                                 </span>
                             </div>
-                            <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                            <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                     TỦ ĐỒ &amp; LỐI VÀO
                                 </span>
                             </div>
@@ -244,35 +244,35 @@ export default function RoomFloorPlan({
         // 4. DELUXE LAYOUT (Ban công dọc + Phòng ngủ chính rộng + Bàn làm việc & Phòng tắm)
         if (layoutType === 'deluxe') {
             return (
-                <div className="grid grid-cols-12 gap-2 h-[220px] sm:h-[235px]">
-                    <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
+                <div className="grid grid-cols-12 gap-1.5 sm:gap-2 min-h-[215px] sm:h-[235px]">
+                    <div className="col-span-3 rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center p-1 sm:p-1.5">
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.12em] text-blue-700 [writing-mode:vertical-rl] rotate-180 select-none text-center">
                             {roomHasBalcony ? `BAN CÔNG ${viewShort}` : `KÍNH ${viewShort}`}
                         </span>
                     </div>
 
-                    <div className="col-span-5 flex flex-col gap-2">
-                        <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                    <div className="col-span-5 flex flex-col gap-1.5 sm:gap-2">
+                        <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-700 leading-tight">
                                 PHÒNG NGỦ CHÍNH
                             </span>
                             {renderBedVisual()}
                         </div>
-                        <div className="h-[52px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <div className="min-h-[48px] sm:h-[52px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                 GÓC THƯ GIÃN &amp; BÀN LÀM VIỆC
                             </span>
                         </div>
                     </div>
 
-                    <div className="col-span-4 grid grid-rows-2 gap-2">
-                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                    <div className="col-span-4 grid grid-rows-2 gap-1.5 sm:gap-2">
+                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-normal sm:tracking-wider text-blue-700 leading-tight">
                                 {roomHasJacuzzi ? 'BỒN TẮM & WC' : 'PHÒNG TẮM KÍNH'}
                             </span>
                         </div>
-                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                 TỦ ĐỒ &amp; LỐI VÀO
                             </span>
                         </div>
@@ -283,36 +283,36 @@ export default function RoomFloorPlan({
 
         // 5. STANDARD COMPACT LAYOUT (Tinh gọn, không vẽ ô phòng khách thừa)
         return (
-            <div className="flex flex-col gap-2 h-[215px] sm:h-[230px]">
-                <div className="h-[38px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-3">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-700">
+            <div className="flex flex-col gap-1.5 sm:gap-2 min-h-[210px] sm:h-[230px]">
+                <div className="min-h-[36px] sm:h-[38px] rounded-lg border border-dashed border-blue-300 bg-blue-100/50 flex items-center justify-center px-2.5 sm:px-3 py-1">
+                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-[0.12em] text-blue-700">
                         CỬA SỔ ĐÓN SÁNG • {viewShort}
                     </span>
                 </div>
 
-                <div className="flex-1 grid grid-cols-12 gap-2">
-                    <div className="col-span-7 flex flex-col gap-2">
-                        <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                <div className="flex-1 grid grid-cols-12 gap-1.5 sm:gap-2">
+                    <div className="col-span-7 flex flex-col gap-1.5 sm:gap-2">
+                        <div className="flex-1 rounded-lg border border-slate-200/90 bg-white/90 flex flex-col items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-700 leading-tight">
                                 KHÔNG GIAN NGỦ
                             </span>
                             {renderBedVisual()}
                         </div>
-                        <div className="h-[44px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        <div className="min-h-[42px] sm:h-[44px] rounded-lg border border-slate-200/90 bg-white/80 flex items-center justify-center px-2 py-1 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                 BÀN LÀM VIỆC &amp; MINIBAR
                             </span>
                         </div>
                     </div>
 
-                    <div className="col-span-5 grid grid-rows-2 gap-2">
-                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 leading-tight">
+                    <div className="col-span-5 grid grid-rows-2 gap-1.5 sm:gap-2">
+                        <div className="rounded-lg border border-slate-200/90 bg-blue-50/45 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-normal sm:tracking-wider text-blue-700 leading-tight">
                                 PHÒNG TẮM KÍNH
                             </span>
                         </div>
-                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-2 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">
+                        <div className="rounded-lg border border-slate-200/90 bg-white/85 flex items-center justify-center p-1.5 sm:p-2 text-center">
+                            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-normal sm:tracking-wider text-slate-500 leading-tight">
                                 TỦ ĐỒ &amp; LỐI VÀO
                             </span>
                         </div>
@@ -340,12 +340,17 @@ export default function RoomFloorPlan({
             </div>
 
             {/* Thẻ nội dung trắng */}
-            <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/70 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.07)]">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+            <div className="bg-white rounded-3xl p-4 sm:p-7 border border-slate-200/70 shadow-[0_10px_35px_-15px_rgba(15,23,42,0.07)]">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 items-center">
                     {/* CỘT TRÁI: BẢN VẼ FLOOR PLAN WIREFRAME THEO PHÂN KHÚC PHÒNG */}
                     <div className="lg:col-span-6 bg-[#f2f5fc] rounded-2xl p-2.5 sm:p-5 overflow-x-auto no-scrollbar">
-                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2 sm:p-2.5 bg-white/50 w-full min-w-0">
-                            <div className="absolute -top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-white shadow-sm border border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                        <div className="mb-2 flex justify-end sm:hidden">
+                            <span className="px-2.5 py-0.5 rounded-lg bg-white shadow-2xs border border-slate-200/80 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                                {layoutMeta.badge}
+                            </span>
+                        </div>
+                        <div className="relative border-2 border-blue-500/80 rounded-xl p-2 sm:p-2.5 bg-white/50 w-full min-w-[300px]">
+                            <div className="hidden sm:block absolute -top-3 right-3 z-10 px-2.5 py-1 rounded-lg bg-white shadow-sm border border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-700">
                                 {layoutMeta.badge}
                             </div>
 

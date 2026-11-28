@@ -157,15 +157,15 @@ export default function BookingConfirmationModal({
 
                     {/* 3. Dịch vụ đã chọn kèm (nếu có) */}
                     {selectedServicesArray.length > 0 && (
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2">
+                        <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2">
                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
                                 Dịch vụ chọn kèm ({selectedServicesArray.length})
                             </span>
                             <div className="space-y-1 text-xs">
                                 {selectedServicesArray.map((svc) => (
-                                    <div key={svc.service_id} className="flex justify-between items-center text-slate-700">
-                                        <span>{svc.name} × {svc.quantity}</span>
-                                        <span className="font-bold text-slate-800">{Number(svc.total_price).toLocaleString('vi-VN')} VND</span>
+                                    <div key={svc.service_id} className="flex justify-between items-center gap-2 text-slate-700">
+                                        <span className="min-w-0 truncate">{svc.name} × {svc.quantity}</span>
+                                        <span className="font-bold text-slate-800 whitespace-nowrap shrink-0 tabular-nums">{Number(svc.total_price).toLocaleString('vi-VN')} VND</span>
                                     </div>
                                 ))}
                             </div>
@@ -173,46 +173,46 @@ export default function BookingConfirmationModal({
                     )}
 
                     {/* 4. Hình thức thanh toán & Chi tiết tài chính */}
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2.5">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                             Chi tiết thanh toán
                         </span>
                         <div className="space-y-1.5 text-xs font-sans tabular-nums">
-                            <div className="flex justify-between text-slate-600">
-                                <span>Tiền phòng ({nights} đêm):</span>
-                                <span className="font-semibold text-slate-800">{Number(roomNetTotal).toLocaleString('vi-VN')} VND</span>
+                            <div className="flex justify-between gap-2 text-slate-600">
+                                <span className="min-w-0">Tiền phòng ({nights} đêm):</span>
+                                <span className="font-semibold text-slate-800 whitespace-nowrap shrink-0">{Number(roomNetTotal).toLocaleString('vi-VN')} VND</span>
                             </div>
                             {totalServicesAmount > 0 && (
-                                <div className="flex justify-between text-slate-600">
-                                    <span>Phí dịch vụ chọn kèm:</span>
-                                    <span className="font-semibold text-slate-800">+{Number(totalServicesAmount).toLocaleString('vi-VN')} VND</span>
+                                <div className="flex justify-between gap-2 text-slate-600">
+                                    <span className="min-w-0">Phí dịch vụ chọn kèm:</span>
+                                    <span className="font-semibold text-slate-800 whitespace-nowrap shrink-0">+{Number(totalServicesAmount).toLocaleString('vi-VN')} VND</span>
                                 </div>
                             )}
                             {appliedPromo && discountAmount > 0 && (
-                                <div className="flex justify-between text-emerald-600 font-medium">
-                                    <span>Mã giảm giá ({appliedPromo.code}):</span>
-                                    <span>-{Number(discountAmount).toLocaleString('vi-VN')} VND</span>
+                                <div className="flex justify-between gap-2 text-emerald-600 font-medium">
+                                    <span className="min-w-0">Mã giảm giá ({appliedPromo.code}):</span>
+                                    <span className="whitespace-nowrap shrink-0">-{Number(discountAmount).toLocaleString('vi-VN')} VND</span>
                                 </div>
                             )}
-                            <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
+                            <div className="pt-2 border-t border-slate-200 flex flex-wrap justify-between items-baseline gap-1.5">
                                 <span className="font-bold text-slate-900 text-sm">Tổng cộng thanh toán:</span>
-                                <span className="text-xl font-black text-rose-600">
+                                <span className="text-lg sm:text-xl font-black text-rose-600 whitespace-nowrap shrink-0 ml-auto">
                                     {Number(finalTotal).toLocaleString('vi-VN')} VND
                                 </span>
                             </div>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
-                            <span className="text-slate-500">Hình thức thanh toán:</span>
-                            <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                        <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                            <span className="text-slate-500 shrink-0">Hình thức thanh toán:</span>
+                            <span className="font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap shrink-0">
                                 {paymentMethod === 'vietqr' ? (
                                     <>
-                                        <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+                                        <CreditCard className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                                         <span>Chuyển khoản VietQR</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Building2 className="w-3.5 h-3.5 text-slate-600" />
+                                        <Building2 className="w-3.5 h-3.5 text-slate-600 shrink-0" />
                                         <span>Thanh toán tại quầy lễ tân</span>
                                     </>
                                 )}

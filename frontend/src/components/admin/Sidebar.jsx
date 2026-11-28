@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { X, PanelLeftClose, PanelLeftOpen, UtensilsCrossed } from 'lucide-react';
+import { X, PanelLeftClose, PanelLeftOpen, UtensilsCrossed, BedDouble, Briefcase, CalendarRange } from 'lucide-react';
 import { useAuth } from '../../store/authStore';
 import { useHotelSettings } from '../../store/hotelSettingStore';
 import { resolveMediaUrl } from '../../utils/mediaUrl';
@@ -170,62 +170,63 @@ export default function Sidebar({
     return (
         <>
             <style>{`
-                .custom-sidebar-scroll {
-                    scrollbar-width: thin;
-                    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
-                }
                 .custom-sidebar-scroll::-webkit-scrollbar {
-                    width: 5px;
+                    width: 4px;
+                }
+                .custom-sidebar-scroll::-webkit-scrollbar-button {
+                    display: none;
+                    width: 0;
+                    height: 0;
                 }
                 .custom-sidebar-scroll::-webkit-scrollbar-track {
                     background: transparent;
                 }
                 .custom-sidebar-scroll::-webkit-scrollbar-thumb {
-                    background: rgba(148, 163, 184, 0.25);
+                    background: rgba(148, 163, 184, 0.22);
                     border-radius: 9999px;
                 }
-                .custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
-                    background: rgba(148, 163, 184, 0.45);
+                .custom-sidebar-scroll:hover::-webkit-scrollbar-thumb {
+                    background: rgba(148, 163, 184, 0.42);
                 }
             `}</style>
             <aside
                 className={`${
-                    effectiveCollapsed ? 'lg:w-16' : 'lg:w-56'
+                    effectiveCollapsed ? 'lg:w-16' : 'lg:w-60'
                 } w-64 h-screen bg-slate-900 text-slate-300 flex flex-col shrink-0 fixed inset-y-0 left-0 z-50 border-r border-slate-800 transition-[transform,width] duration-250 ease-in-out will-change-transform print:hidden ${
                     isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
                 }`}
             >
                 {/* Logo Brand Header (Cố định phía trên) */}
                 <div
-                    className={`h-13 shrink-0 flex items-center border-b border-slate-800/80 transition-all duration-250 ${
-                        effectiveCollapsed ? 'lg:justify-center lg:px-1.5 px-3.5 justify-between' : 'justify-between px-3.5'
+                    className={`h-14 shrink-0 flex items-center gap-1.5 border-b border-slate-800/80 transition-all duration-250 ${
+                        effectiveCollapsed ? 'lg:justify-center lg:px-1.5 px-3 justify-between' : 'justify-between px-3'
                     }`}
                 >
                     <Link
                         to="/"
                         onClick={() => setIsMobileSidebarOpen && setIsMobileSidebarOpen(false)}
-                        className="flex items-center gap-2.5 hover:bg-slate-800/40 transition rounded-xl min-w-0"
+                        className="flex items-center gap-2 hover:bg-slate-800/40 transition rounded-xl min-w-0 flex-1"
                         title={`${sidebarHotelName} - Luxury Hotel Admin`}
                     >
                         {sidebarLogoUrl && !logoError ? (
-                            <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center shadow-md shadow-slate-950/40 ring-1 ring-amber-400/40 shrink-0 overflow-hidden">
+                            <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md shadow-slate-950/40 ring-1 ring-amber-400/60 shrink-0 overflow-hidden">
                                 <img
                                     src={sidebarLogoUrl}
                                     alt={sidebarHotelName}
                                     onError={() => setLogoError(true)}
-                                    className="w-full h-full object-cover object-center scale-105"
+                                    className="w-full h-full object-contain object-center scale-[1.08] contrast-[1.06]"
                                 />
                             </div>
                         ) : (
-                            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base shadow-md shadow-blue-600/40 shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-serif font-black text-base shadow-md shadow-blue-600/40 shrink-0">
                                 TA
                             </div>
                         )}
                         <div className={`flex flex-col min-w-0 ${effectiveCollapsed ? 'lg:hidden' : ''}`}>
-                            <span className="text-white font-bold text-[13px] leading-tight tracking-wide font-sans truncate">
+                            <span className="text-white font-bold text-[12.5px] leading-tight tracking-normal font-sans truncate">
                                 {sidebarHotelName}
                             </span>
-                            <span className="text-[9.5px] text-blue-400 uppercase tracking-wider font-semibold truncate">
+                            <span className="text-[9.5px] text-blue-400 uppercase tracking-wider font-semibold truncate mt-0.5">
                                 Hotel PMS
                             </span>
                         </div>
@@ -463,9 +464,7 @@ export default function Sidebar({
                                                         }`}
                                                     >
                                                         <div className="flex items-center gap-2.5 flex-1 min-w-0 overflow-hidden">
-                                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                            </svg>
+                                                            <CalendarRange className="w-4 h-4 shrink-0" />
                                                             <span className="truncate text-left">Lịch đặt phòng</span>
                                                         </div>
                                                         
@@ -545,7 +544,7 @@ export default function Sidebar({
                     {/* NHÓM 2: BUỒNG PHÒNG & DỊCH VỤ (HOUSEKEEPING & SERVICES) */}
                     {/* ========================================================================= */}
                     {(canViewCategories || canViewRooms || canViewServices) && (
-                        <div className={`space-y-1 ${effectiveCollapsed ? 'lg:pt-2 lg:border-t lg:border-slate-800/80' : ''}`}>
+                        <div className="space-y-1 pt-2 border-t border-slate-800/70">
                             <span
                                 className={`text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-2 mb-1 block select-none ${
                                     effectiveCollapsed ? 'lg:hidden' : ''
@@ -616,9 +615,7 @@ export default function Sidebar({
                                             }`}
                                         >
                                             <div className={`flex items-center gap-3 ${effectiveCollapsed ? 'lg:flex-none' : 'flex-1 min-w-0 overflow-hidden'}`}>
-                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                                </svg>
+                                                <BedDouble className="w-4 h-4 shrink-0" />
                                                 <span className={`truncate text-left ${effectiveCollapsed ? 'lg:hidden' : ''}`}>Hạng phòng & Giá</span>
                                             </div>
                                             <div className={`flex items-center gap-1.5 shrink-0 ml-2 ${effectiveCollapsed ? 'lg:hidden' : ''}`}>
@@ -756,7 +753,7 @@ export default function Sidebar({
                                         }`}
                                     >
                                         <div className={`flex items-center gap-3 ${effectiveCollapsed ? 'lg:flex-none' : 'flex-1 min-w-0 overflow-hidden'}`}>
-                                            <UtensilsCrossed className="w-4 h-4 shrink-0 text-slate-300" />
+                                            <UtensilsCrossed className="w-4 h-4 shrink-0" />
                                             <span className={`truncate text-left ${effectiveCollapsed ? 'lg:hidden' : ''}`}>Danh mục Dịch vụ</span>
                                         </div>
                                         
@@ -770,7 +767,7 @@ export default function Sidebar({
                     {/* NHÓM 3: KHÁCH HÀNG & TIẾP THỊ (CRM & MARKETING) */}
                     {/* ========================================================================= */}
                     {(canViewGuests || canViewCorporatePartners || canViewReviews || canViewMarketing || canViewContacts) && (
-                        <div className={`space-y-1 ${effectiveCollapsed ? 'lg:pt-2 lg:border-t lg:border-slate-800/80' : ''}`}>
+                        <div className="space-y-1 pt-2 border-t border-slate-800/70">
                             <span
                                 className={`text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-2 mb-1 block select-none ${
                                     effectiveCollapsed ? 'lg:hidden' : ''
@@ -837,9 +834,7 @@ export default function Sidebar({
                                         }`}
                                     >
                                         <div className={`flex items-center gap-3 ${effectiveCollapsed ? 'lg:flex-none' : 'flex-1 min-w-0 overflow-hidden'}`}>
-                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                            </svg>
+                                            <Briefcase className="w-4 h-4 shrink-0" />
                                             <span className={`truncate text-left ${effectiveCollapsed ? 'lg:hidden' : ''}`}>Đối tác Doanh nghiệp</span>
                                         </div>
                                         
@@ -1042,7 +1037,7 @@ export default function Sidebar({
                     {/* NHÓM 4: HỆ THỐNG & BÁO CÁO (ADMINISTRATION & REPORTS) */}
                     {/* ========================================================================= */}
                     {(canViewAnalytics || canViewEmployees || canViewSettings || isHighLevelManager) && (
-                        <div className={`space-y-1 ${effectiveCollapsed ? 'lg:pt-2 lg:border-t lg:border-slate-800/80' : ''}`}>
+                        <div className="space-y-1 pt-2 border-t border-slate-800/70">
                             <span
                                 className={`text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 pt-2 mb-1 block select-none ${
                                     effectiveCollapsed ? 'lg:hidden' : ''

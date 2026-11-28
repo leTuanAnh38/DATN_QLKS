@@ -84,13 +84,13 @@ export default function CorporateConfirmationModal({
                     )}
 
                     {/* 1. Thông tin đoàn & Người phụ trách */}
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5">
-                        <div className="flex items-center justify-between">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
                             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                                 Thông tin đoàn & Trưởng đoàn
                             </span>
                             {appliedPartner && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
                                     Đối tác: {appliedPartner.partner_name} (-{discountPercent}%)
                                 </span>
                             )}
@@ -157,14 +157,14 @@ export default function CorporateConfirmationModal({
                                 const unitPrice = Number(cat.promo_price || cat.base_price || 0);
                                 const roomSubtotal = unitPrice * nights * qty;
                                 return (
-                                    <div key={cat.id} className="flex justify-between items-center py-2 text-xs">
-                                        <div>
-                                            <span className="font-bold text-slate-800">{cat.name}</span>
+                                    <div key={cat.id} className="flex justify-between items-center gap-2 py-2 text-xs">
+                                        <div className="min-w-0 flex-1">
+                                            <span className="font-bold text-slate-800 block truncate">{cat.name}</span>
                                             <span className="text-slate-500 block text-[11px]">
                                                 {qty} phòng × {nights} đêm × {formatCurrency(unitPrice)}/đêm
                                             </span>
                                         </div>
-                                        <span className="font-bold text-slate-900 font-sans tabular-nums">
+                                        <span className="font-bold text-slate-900 font-sans tabular-nums whitespace-nowrap shrink-0">
                                             {formatCurrency(roomSubtotal)}
                                         </span>
                                     </div>
@@ -192,36 +192,36 @@ export default function CorporateConfirmationModal({
                     )}
 
                     {/* 5. Tóm tắt tài chính & Tiền cọc */}
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-2.5">
+                    <div className="bg-slate-50 rounded-2xl p-3.5 sm:p-4 border border-slate-200/80 space-y-2.5">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                             Chi tiết tài chính hợp đồng
                         </span>
                         <div className="space-y-1.5 text-xs font-sans tabular-nums">
-                            <div className="flex justify-between text-slate-600">
-                                <span>Tổng tiền phòng gốc ({totalRoomsCount} phòng × {nights} đêm):</span>
-                                <span className="font-semibold text-slate-800">{formatCurrency(subtotalAmount)}</span>
+                            <div className="flex justify-between gap-2 text-slate-600">
+                                <span className="min-w-0">Tổng tiền phòng gốc ({totalRoomsCount} phòng × {nights} đêm):</span>
+                                <span className="font-semibold text-slate-800 whitespace-nowrap shrink-0">{formatCurrency(subtotalAmount)}</span>
                             </div>
                             {totalDiscount > 0 && (
-                                <div className="flex justify-between text-emerald-600 font-medium">
-                                    <span>Chiết khấu đối tác ({discountPercent}%):</span>
-                                    <span>-{formatCurrency(totalDiscount)}</span>
+                                <div className="flex justify-between gap-2 text-emerald-600 font-medium">
+                                    <span className="min-w-0">Chiết khấu đối tác ({discountPercent}%):</span>
+                                    <span className="whitespace-nowrap shrink-0">-{formatCurrency(totalDiscount)}</span>
                                 </div>
                             )}
                             {totalServicesAmount > 0 && (
-                                <div className="flex justify-between text-amber-700 font-medium">
-                                    <span>Phí dịch vụ chọn kèm các phòng:</span>
-                                    <span>+{formatCurrency(totalServicesAmount)}</span>
+                                <div className="flex justify-between gap-2 text-amber-700 font-medium">
+                                    <span className="min-w-0">Phí dịch vụ chọn kèm các phòng:</span>
+                                    <span className="whitespace-nowrap shrink-0">+{formatCurrency(totalServicesAmount)}</span>
                                 </div>
                             )}
-                            <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
+                            <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1">
                                 <span className="font-bold text-slate-900 text-sm">Tổng giá trị hợp đồng toàn đoàn:</span>
-                                <span className="text-lg font-black text-slate-900">{formatCurrency(grandTotal)}</span>
+                                <span className="text-lg font-black text-slate-900 whitespace-nowrap shrink-0">{formatCurrency(grandTotal)}</span>
                             </div>
                         </div>
 
                         {/* Khối tiền cọc cần thanh toán ngay */}
-                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex justify-between items-baseline">
-                            <div>
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/80 flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1.5">
+                            <div className="min-w-0">
                                 <span className="font-bold text-amber-900 text-xs block">
                                     {paymentOption === 'FULL'
                                         ? 'Số tiền thanh toán ngay (100% Trọn gói):'
@@ -233,7 +233,7 @@ export default function CorporateConfirmationModal({
                                     </span>
                                 )}
                             </div>
-                            <span className="text-xl font-black text-amber-600 font-sans tabular-nums">
+                            <span className="text-xl font-black text-amber-600 font-sans tabular-nums whitespace-nowrap shrink-0">
                                 {formatCurrency(depositAmount)}
                             </span>
                         </div>
